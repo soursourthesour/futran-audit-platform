@@ -1,0 +1,17 @@
+@page {
+  size: letter;
+  margin: 2.2cm 2cm 2.2cm 2cm;
+  @frame header_frame { -pdf-frame-content: header_content; left: 2cm; width: 17.6cm; top: 0.9cm; height: 0.8cm; }
+  @frame footer_frame { -pdf-frame-content: footer_content; left: 2cm; width: 17.6cm; top: 26.4cm; height: 0.8cm; }
+}
+body { font-family: Helvetica; font-size: 10.5pt; color: #1d2433; line-height: 1.4; }
+h1 { font-size: 18pt; color: #1B3A6B; margin: 0 0 8pt 0; }
+h2 { font-size: 14pt; color: #1B3A6B; margin: 14pt 0 6pt 0; }
+h3 { font-size: 12pt; color: #1B3A6B; margin: 12pt 0 4pt 0; }
+p { margin: 0 0 6pt 0; }
+table { width: 100%; margin: 6pt 0 10pt 0; }
+th, td { border: 0.5pt solid #b8c0cc; padding: 4pt 5pt; vertical-align: top; font-size: 9.5pt; }
+th { background-color: #eef3fb; font-weight: bold; text-align: left; }
+blockquote { margin: 6pt 0; padding-left: 8pt; border-left: 2pt solid #1B3A6B; color: #3b4456; }
+.pagebreak { page-break-after: always; }
+#header_content, #footer_content { font-size: 8pt; color: #5b6474; }
