@@ -4,8 +4,8 @@ The platform asks for a small number of named people at {{ client.name }}. Pleas
 
 | Role | Required | What they do |
 |---|---|---|
-| Chief AI Compliance Officer | Yes | Leads the engagement for {{ client.name }}. Approves the inventory, responses to findings and any public summary. {% if contacts.caico.name %}Currently: {{ contacts.caico.name }}.{% endif %} |
-| Client Admin | Yes | Adds departments and users and assigns roles. Has no access to audit content. {% if contacts.client_admin.name %}Currently: {{ contacts.client_admin.name }}.{% endif %} |
+| Chief AI Compliance Officer | Yes | Leads the engagement for {{ (client.name) | md_cell }}. Approves the inventory, responses to findings and any public summary. {% if contacts.caico.name %}Currently: {{ (contacts.caico.name) | md_cell }}.{% endif %} |
+| Client Admin | Yes | Adds departments and users and assigns roles. Has no access to audit content. {% if contacts.client_admin.name %}Currently: {{ (contacts.client_admin.name) | md_cell }}.{% endif %} |
 | Executive Sponsor | Optional | Signs the management representation and accepts the remediation plan. If not appointed, the Chief AI Compliance Officer signs. |
 | Data Protection Officer | Optional | Reviews data categories for higher-risk uses of AI and the privacy of the employee attestation. If not appointed, the Chief AI Compliance Officer covers this. |
 | Department Compliance Lead | Yes, one per department | Reviews and approves the AI tools and uses of AI in their department and responds to findings for it. |

@@ -68,6 +68,7 @@ export function NewClientWizard() {
   const pending = useRef<Map<string, unknown>>(new Map());
   const timer = useRef<number | null>(null);
   const inflight = useRef<Promise<void>>(Promise.resolve());
+  const submitting = useRef(false);
 
   const flush = useCallback(async () => {
     if (timer.current) { window.clearTimeout(timer.current); timer.current = null; }
@@ -114,6 +115,8 @@ export function NewClientWizard() {
   const go = async (to: string) => { await flush(); await qc.invalidateQueries({ queryKey: ['wizard', clientId] }); nav(to); };
 
   async function submit() {
+    if (submitting.current) return;
+    submitting.current = true;
     await flush();
     try {
       await api.post(`/clients/${clientId}/submit`);
@@ -123,6 +126,8 @@ export function NewClientWizard() {
       const errs = (e as { errors?: FieldError[] }).errors ?? [];
       setErrors(toMap(errs));
       setStatus((s) => ({ ...s, error: errorMessage(e) }));
+    } finally {
+      submitting.current = false;
     }
   }
 

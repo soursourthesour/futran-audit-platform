@@ -1,5 +1,5 @@
 """Engagements: creation, client locations and the status state machine (spec §7)."""
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from app.audit_log import service as audit
@@ -73,6 +73,12 @@ def add_location(
     return loc
 
 
+def preparers(e: Engagement) -> list[str]:
+    """Everyone who prepared the draft: its author, whoever submitted it and anyone who edited it in the wizard."""
+    ids = [e.created_by, e.submitted_by, *((e.wizard_state or {}).get("editors") or [])]
+    return list(dict.fromkeys(i for i in ids if i))
+
+
 def transition(db: Session, actor: User, engagement: Engagement, to_status: str, comment: str | None = None) -> Engagement:
     """Move an engagement along `draft → pending_approval → initiated → in_progress → completed → archived`.
     `pending_approval → draft` returns it to the author and needs a comment."""
@@ -80,13 +86,21 @@ def transition(db: Session, actor: User, engagement: Engagement, to_status: str,
     if to_status not in ALLOWED.get(frm, set()):
         raise Conflict(f"An engagement in {STATUS_LABELS.get(frm, frm)} cannot move to {STATUS_LABELS.get(to_status, to_status)}.")
     before = {"status": frm}
-    if frm == "pending_approval" and to_status == "draft":
-        if not (comment or "").strip():
-            raise Invalid("Say what the author needs to change.", [{"field": "comment", "message": "Add a comment for the author."}])
-        engagement.returned_comment = comment.strip()
+    if frm == "pending_approval" and to_status == "draft" and not (comment or "").strip():
+        raise Invalid("Say what the author needs to change.", [{"field": "comment", "message": "Add a comment for the author."}])
     if to_status == "initiated":
-        assert_not_self_approval(actor.id, engagement.created_by)
+        assert_not_self_approval(actor.id, *preparers(engagement))
+    # compare-and-set: two requests racing on the same move cannot both succeed
+    moved = db.execute(update(Engagement).where(Engagement.id == engagement.id, Engagement.status == frm).values(status=to_status, updated_by=actor.id)).rowcount
+    if moved != 1:
+        db.refresh(engagement)
+        raise Conflict("Someone else has just changed this engagement. Reload the page to see its current state.")
+    if to_status == "pending_approval":
+        engagement.submitted_by = actor.id
+    if to_status == "initiated":
         engagement.approved_by, engagement.approved_at, engagement.returned_comment = actor.id, utcnow(), None
+    if frm == "pending_approval" and to_status == "draft":
+        engagement.returned_comment = comment.strip()
     if to_status == "completed":
         engagement.completed_at = utcnow()
     engagement.status = to_status

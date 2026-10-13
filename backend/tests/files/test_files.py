@@ -60,7 +60,7 @@ def test_storage_rejects_path_traversal(db, settings, world):
 
 def test_file_download_cross_tenant_404(client, db, settings, world):
     client.app.state.settings = settings
-    f = upload(db, settings, world["caico_a"], data=b"policy", filename="policy.pdf", content_type="application/pdf", organization_id=world["a"].id, engagement_id=world["e"].id, linked_type="governance_document", linked_id="g1")
+    f = upload(db, settings, world["caico_a"], data=b"policy", filename="policy.pdf", content_type="application/pdf", organization_id=world["a"].id, engagement_id=world["e"].id, linked_type="evidence", linked_id="g1")
     db.commit()
     login_as(client, db, world["caico_b"])
     assert client.get(f"/api/v1/files/{f.id}").status_code == 404

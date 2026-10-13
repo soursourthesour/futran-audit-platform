@@ -17,12 +17,12 @@ We will assess how {{ client.name }} governs the AI systems and AI tools it uses
 
 | Item | Scope |
 |---|---|
-| Engagement type | {{ engagement.type_label }} |
-| Audit period | {{ engagement.period_start }} to {{ engagement.period_end }} |
-| Departments in scope | {{ engagement.departments | join(", ") if engagement.departments else "To be confirmed in setup" }} |
-| AI systems in scope | {{ engagement.systems | join(", ") if engagement.systems else "To be confirmed during discovery" }} |
-| Business processes | {{ engagement.business_processes or "As identified during discovery" }} |
-| Geographic scope | {{ engagement.geographic_scope or "As listed under laws in scope" }} |
+| Engagement type | {{ (engagement.type_label) | md_cell }} |
+| Audit period | {{ (engagement.period_start) | md_cell }} to {{ (engagement.period_end) | md_cell }} |
+| Departments in scope | {{ (engagement.departments | join(", ") if engagement.departments else "To be confirmed in setup") | md_cell }} |
+| AI systems in scope | {{ (engagement.systems | join(", ") if engagement.systems else "To be confirmed during discovery") | md_cell }} |
+| Business processes | {{ (engagement.business_processes or "As identified during discovery") | md_cell }} |
+| Geographic scope | {{ (engagement.geographic_scope or "As listed under laws in scope") | md_cell }} |
 
 **Exclusions and limitations:** {{ engagement.exclusions or "None recorded." }}
 
@@ -30,7 +30,7 @@ We will assess how {{ client.name }} governs the AI systems and AI tools it uses
 
 | Law or framework | Jurisdiction | Area |
 |---|---|---|
-{% for law in laws %}| {{ law.short_name }} | {{ law.jurisdiction_name }} | {{ law.feature_label }} |
+{% for law in laws %}| {{ (law.short_name) | md_cell }} | {{ (law.jurisdiction_name) | md_cell }} | {{ (law.feature_label) | md_cell }} |
 {% endfor %}
 
 Adding a law, framework or AI system after this letter is signed requires the agreement of the Futran Engagement Manager and is recorded in the platform.
@@ -55,7 +55,7 @@ Adding a law, framework or AI system after this letter is signed requires the ag
 
 | Name | Role |
 |---|---|
-{% for m in team %}| {{ m.name }} | {{ m.role_label }} |
+{% for m in team %}| {{ (m.name) | md_cell }} | {{ (m.role_label) | md_cell }} |
 {% endfor %}
 
 ## 7. Reporting

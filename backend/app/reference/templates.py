@@ -43,8 +43,27 @@ class _Sandbox(ImmutableSandboxedEnvironment):
         raise SecurityError(f"Templates cannot use '{attribute}'.")
 
 
-_env = _Sandbox(undefined=_Lenient, trim_blocks=True, lstrip_blocks=True, autoescape=False)
+MD_SPECIAL = str.maketrans({c: "\\" + c for c in "[]*_`<>"})
+
+
+def md_inline(value):
+    """Escape Markdown that would turn client-supplied text into links, emphasis or code."""
+    return value.translate(MD_SPECIAL) if isinstance(value, str) else value
+
+
+def md_cell(value) -> str:
+    """Make a value safe inside a Markdown table cell: no line breaks, pipes escaped."""
+    if value is None or isinstance(value, Undefined):
+        return ""
+    if isinstance(value, (list, tuple)):
+        value = ", ".join(str(v) for v in value)
+    return " ".join(str(value).split()).replace("|", "\\|")
+
+
+_env = _Sandbox(undefined=_Lenient, trim_blocks=True, lstrip_blocks=True, autoescape=False, finalize=md_inline)
+_env.filters["md_cell"] = md_cell
 _strict = _Sandbox(undefined=StrictUndefined)
+_strict.filters["md_cell"] = md_cell
 
 
 def load_templates(db: Session) -> str:

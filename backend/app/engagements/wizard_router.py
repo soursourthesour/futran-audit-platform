@@ -69,6 +69,8 @@ def team_options(actor: Actor = Depends(current_actor), db: Session = Depends(ge
 @router.get("/{client_id}/wizard")
 def get_wizard(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
     org, e = _load(db, actor, client_id, Action.VIEW_ENGAGEMENT)
+    if not actor.is_futran:  # Futran-internal: engagement reason, conflict confirmations, suggestion reasoning
+        raise NotFound()
     return wizard.wizard_out(db, org, e)
 
 
@@ -79,15 +81,24 @@ def save_step(client_id: str, step: str, payload: dict, actor: Actor = Depends(c
     org, e = _load(db, actor, client_id)
     if e.status != "draft":
         raise Conflict("This engagement has been submitted for approval. Ask the Chief Auditor to return it if it needs changes.")
+    before = wizard.snapshot(db, org, e, step)
     errors = wizard.SAVERS[step](db, actor.user, org, e, payload)
-    e.wizard_state = (e.wizard_state or {}) | {"last_step": step}
+    state = dict(e.wizard_state or {})
+    state["editors"] = list(dict.fromkeys([*(state.get("editors") or []), actor.id]))  # editors cannot approve (spec §6 rule 2)
+    e.wizard_state = state | {"last_step": step}
     db.flush()
+    after = wizard.snapshot(db, org, e, step)
+    changed = [k for k in after if after[k] != before.get(k)]
+    if changed:
+        audit.record(db, actor_id=actor.id, action="wizard.save", obj=e, before={k: before.get(k) for k in changed}, after={k: after[k] for k in changed}, summary=f"Edited the {step} step of {e.audit_ref}")
     return {"saved_at": utcnow().isoformat(), "errors": errors}
 
 
 @router.get("/{client_id}/suggestions")
 def suggestions(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
     org, e = _load(db, actor, client_id, Action.VIEW_ENGAGEMENT)
+    if not actor.is_futran:
+        raise NotFound()
     return [s.to_json() for s in suggest_requirements(db, org, e)]
 
 

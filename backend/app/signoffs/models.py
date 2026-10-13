@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.models import Base, TimestampedTenantMixin
@@ -21,12 +21,14 @@ class SignOff(TimestampedTenantMixin, Base):
     """One of the eight sign-offs (spec §8). organization_id is the client."""
 
     __tablename__ = "sign_offs"
+    __table_args__ = (UniqueConstraint("engagement_id", "number", "scope_ref", "version", name="uq_sign_off_version"),)
 
     engagement_id: Mapped[str] = mapped_column(String(36), ForeignKey("engagements.id"), index=True)
     number: Mapped[int] = mapped_column(Integer)
     title: Mapped[str] = mapped_column(String(160))
     scope_ref: Mapped[str | None] = mapped_column(String(36))  # e.g. department_id for sign-off 2
     preparer_id: Mapped[str | None] = mapped_column(String(36))
+    excluded_signer_ids: Mapped[list] = mapped_column(JSON, default=list)  # everyone who prepared the item (spec §6 rule 2)
     reviewer_id: Mapped[str | None] = mapped_column(String(36))
     approver_ids: Mapped[list | None] = mapped_column(JSON)
     required_approver_roles: Mapped[list] = mapped_column(JSON)
@@ -43,6 +45,10 @@ class Signature(TimestampedTenantMixin, Base):
     """A click-to-sign record (schematic D8): the typed name, when, from where, and the hash of what was signed."""
 
     __tablename__ = "signatures"
+    __table_args__ = (
+        UniqueConstraint("sign_off_id", "role", name="uq_signature_role"),
+        UniqueConstraint("sign_off_id", "user_id", name="uq_signature_user"),
+    )
 
     sign_off_id: Mapped[str] = mapped_column(String(36), ForeignKey("sign_offs.id"), index=True)
     user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"))

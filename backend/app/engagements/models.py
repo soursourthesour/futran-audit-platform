@@ -32,6 +32,7 @@ class Engagement(TimestampedTenantMixin, Base):
     planned_systems: Mapped[list | None] = mapped_column(JSON)
     status: Mapped[str] = mapped_column(String(20), default="draft")
     stage: Mapped[int] = mapped_column(Integer, default=1)
+    submitted_by: Mapped[str | None] = mapped_column(String(36))
     approved_by: Mapped[str | None] = mapped_column(String(36))
     approved_at: Mapped[datetime | None] = mapped_column(DateTime)
     returned_comment: Mapped[str | None] = mapped_column(Text)

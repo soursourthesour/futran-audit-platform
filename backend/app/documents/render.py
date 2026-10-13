@@ -6,7 +6,8 @@ SENTINEL = "PAGEBREAK-7f3c"
 
 
 def _md() -> MarkdownIt:
-    return MarkdownIt("commonmark", {"html": False}).enable("table")
+    # no raw HTML, and no images: a merge value must never make the reader's browser or the PDF writer fetch anything
+    return MarkdownIt("commonmark", {"html": False}).enable("table").disable("image")
 
 
 def preprocess(md: str) -> str:

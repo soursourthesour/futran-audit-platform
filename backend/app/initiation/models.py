@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.models import Base, TimestampedTenantMixin
@@ -10,6 +10,7 @@ class InitiationPackage(TimestampedTenantMixin, Base):
     """The seven documents sent to the client at approval (spec §9.3, §12). organization_id is the client."""
 
     __tablename__ = "initiation_packages"
+    __table_args__ = (UniqueConstraint("engagement_id", "version", name="uq_package_version"),)
 
     engagement_id: Mapped[str] = mapped_column(String(36), ForeignKey("engagements.id"), index=True)
     version: Mapped[int] = mapped_column(Integer, default=1)

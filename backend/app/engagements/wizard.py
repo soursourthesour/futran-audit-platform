@@ -182,69 +182,101 @@ def save_company(db: Session, actor: User, org: Organization, e: Engagement, pay
     return errors
 
 
+LOCATION_FIELDS = {"site_name": text(120), "street": text(200), "city": text(120), "subdivision_code": text(12), "country_code": text(2), "employees_at_site": an_int}
+
+
 def save_locations(db: Session, actor: User, org: Organization, e: Engagement, payload: dict) -> list[dict]:
+    """Replace the site list. Rows are reused (by id, then in order) so repeated autosaves never pile up rows;
+    a value that cannot be read is reported and the stored value is kept."""
     errors: list[dict] = []
     items = payload.get("locations")
     if not isinstance(items, list):
         return [{"field": "locations.locations", "message": "Expected a list of sites."}]
-    existing = {loc.id: loc for loc in db.scalars(select(ClientLocation).where(ClientLocation.organization_id == org.id, ClientLocation.deleted_at.is_(None)))}
+    existing = list(db.scalars(select(ClientLocation).where(ClientLocation.organization_id == org.id, ClientLocation.deleted_at.is_(None)).order_by(ClientLocation.created_at)))
+    by_id = {loc.id: loc for loc in existing}
+    claimed = {item.get("id") for item in items if isinstance(item, dict) and item.get("id") in by_id}
+    spare = [loc for loc in existing if loc.id not in claimed]
     keep: set[str] = set()
     for i, item in enumerate(items):
+        if not isinstance(item, dict):
+            continue
         p = f"locations.locations.{i}"
-        vals = _read({"site_name": text(120), "street": text(200), "city": text(120), "subdivision_code": text(12), "country_code": text(2), "employees_at_site": an_int}, item, p, errors)
-        country = (vals.get("country_code") or "").upper()
-        if not country:
-            errors.append({"field": f"{p}.country_code", "message": "Choose a country."})
-            continue
-        if not resolve_jurisdictions(db, country, None, None):
+        vals = _read(LOCATION_FIELDS, item, p, errors)
+        loc = by_id.get(item.get("id")) or (spare.pop(0) if spare else None)
+        if loc is not None:
+            keep.add(loc.id)
+        country = (vals.get("country_code") or (loc.country_code if loc else "") or "").upper()
+        if "country_code" in vals and vals["country_code"] and not resolve_jurisdictions(db, vals["country_code"].upper(), None, None):
             errors.append({"field": f"{p}.country_code", "message": "Unknown country."})
+            country = loc.country_code if loc else ""
+        if not country:
+            if loc is None:
+                errors.append({"field": f"{p}.country_code", "message": "Choose a country."})
             continue
-        site = vals.get("site_name") or vals.get("city") or "Site"
-        loc = existing.get(item.get("id"))
         if loc is None:
-            loc = add_location(db, org, site_name=site, country_code=country, subdivision_code=vals.get("subdivision_code"), city=vals.get("city"), street=vals.get("street"), employees_at_site=vals.get("employees_at_site"), in_scope=bool(item.get("in_scope", True)), actor_id=actor.id)
-        else:
-            js = resolve_jurisdictions(db, country, vals.get("subdivision_code"), vals.get("city"))
-            state = next((j for j in js if j.level == "state"), None)
-            loc.site_name, loc.street, loc.city, loc.country_code = site, vals.get("street"), vals.get("city"), country
-            loc.subdivision_code = state.code if state else vals.get("subdivision_code")
-            loc.employees_at_site, loc.in_scope = vals.get("employees_at_site"), bool(item.get("in_scope", True))
-            loc.jurisdiction_ids, loc.updated_by = [j.id for j in js], actor.id
-        keep.add(loc.id)
-    for loc_id, loc in existing.items():
-        if loc_id not in keep:
+            loc = add_location(db, org, site_name=vals.get("site_name") or vals.get("city") or "Site", country_code=country, subdivision_code=vals.get("subdivision_code"), city=vals.get("city"), street=vals.get("street"), employees_at_site=vals.get("employees_at_site"), in_scope=bool(item.get("in_scope", True)), actor_id=actor.id)
+            keep.add(loc.id)
+            continue
+        for k in ("site_name", "street", "city", "subdivision_code", "employees_at_site"):
+            if k in vals:
+                setattr(loc, k, vals[k])
+        loc.site_name = loc.site_name or loc.city or "Site"
+        loc.country_code = country
+        if "in_scope" in item:
+            loc.in_scope = bool(item["in_scope"])
+        js = resolve_jurisdictions(db, country, loc.subdivision_code, loc.city)
+        state = next((j for j in js if j.level == "state"), None)
+        loc.subdivision_code = state.code if state else loc.subdivision_code
+        loc.jurisdiction_ids, loc.updated_by = [j.id for j in js], actor.id
+    for loc in existing:
+        if loc.id not in keep:
             loc.deleted_at = utcnow()
     return errors
 
 
 def save_requirements(db: Session, actor: User, org: Organization, e: Engagement, payload: dict) -> list[dict]:
+    """Replace the laws in scope. Old law versions are mapped to the current one; retired laws are refused."""
+    from app.laws.publish import current_version_of
+
     errors: list[dict] = []
     items = payload.get("requirements")
     if not isinstance(items, list):
         return [{"field": "requirements", "message": "Expected a list of laws."}]
-    for r in db.scalars(select(ClientRequirement).where(ClientRequirement.engagement_id == e.id, ClientRequirement.deleted_at.is_(None))):
-        r.deleted_at = utcnow()
-    seen: set[str] = set()
+    existing = {(r.regulation_id or f"text:{r.free_text}"): r for r in db.scalars(select(ClientRequirement).where(ClientRequirement.engagement_id == e.id, ClientRequirement.deleted_at.is_(None)))}
+    keep: set[str] = set()
     for i, item in enumerate(items):
+        if not isinstance(item, dict):
+            continue
+        vals = _read({"label": text(300), "reason_text": text(1000), "notes": text(2000)}, item, f"requirements.{i}", errors)
         reg_id = item.get("regulation_id")
-        label = text(300)(item.get("label")) if isinstance(item.get("label"), str) else None
         if reg_id:
-            if reg_id in seen:
-                continue
-            if db.get(Regulation, reg_id) is None:
+            reg = current_version_of(db, reg_id) if isinstance(reg_id, str) else None
+            if reg is None or reg.retired_in_version_id:
                 errors.append({"field": f"requirements.{i}", "message": "This law is no longer in the matrix."})
                 continue
-            seen.add(reg_id)
-        elif not label:
-            errors.append({"field": f"requirements.{i}", "message": "Name the requirement."})
+            key = reg.id
+        elif vals.get("label"):
+            key = f"text:{vals['label']}"
+        else:
+            if "label" in vals or "label" not in item:
+                errors.append({"field": f"requirements.{i}", "message": "Name the requirement."})
             continue
-        db.add(ClientRequirement(
-            organization_id=org.id, engagement_id=e.id, regulation_id=reg_id or None, free_text=None if reg_id else label,
-            source=item.get("source") if item.get("source") in ("auto", "manual", "futran_default") else "manual",
-            reason_text=text(1000)(item.get("reason_text")) if isinstance(item.get("reason_text"), str) else None,
-            in_scope=bool(item.get("in_scope", True)), notes=text(2000)(item.get("notes")) if isinstance(item.get("notes"), str) else None,
-            created_by=actor.id,
-        ))
+        if key in keep:
+            continue
+        keep.add(key)
+        r = existing.get(key)
+        if r is None:
+            r = ClientRequirement(organization_id=org.id, engagement_id=e.id, regulation_id=None if key.startswith("text:") else key, free_text=key[5:] if key.startswith("text:") else None, created_by=actor.id)
+            db.add(r)
+        r.source = item.get("source") if item.get("source") in ("auto", "manual", "futran_default") else (r.source or "manual")
+        if "reason_text" in vals:
+            r.reason_text = vals["reason_text"]
+        if "notes" in vals:
+            r.notes = vals["notes"]
+        r.in_scope, r.updated_by = bool(item.get("in_scope", True)), actor.id
+    for key, r in existing.items():
+        if key not in keep:
+            r.deleted_at = utcnow()
     db.flush()
     return errors
 
@@ -343,6 +375,20 @@ def save_contacts(db: Session, actor: User, org: Organization, e: Engagement, pa
     return errors
 
 
+def snapshot(db: Session, org: Organization, e: Engagement, step: str) -> dict:
+    """The step's current values, for the audit log (spec §6 rule 10)."""
+    w = wizard_out(db, org, e)
+    if step == "company":
+        return {k: w["company"][k] for k in COMPANY_FIELDS}
+    if step == "locations":
+        return {"locations": [{k: loc[k] for k in ("site_name", "street", "city", "subdivision_code", "country_code", "employees_at_site", "in_scope")} for loc in w["locations"]["locations"]]}
+    if step == "requirements":
+        return {"requirements": [r["label"] for r in w["locations"]["requirements"]]}
+    if step == "scope":
+        return w["scope"]
+    return w["contacts"]
+
+
 SAVERS = {"company": save_company, "locations": save_locations, "requirements": save_requirements, "scope": save_scope, "contacts": save_contacts}
 
 
@@ -361,9 +407,11 @@ def wizard_out(db: Session, org: Organization, e: Engagement) -> dict:
     jnames = dict(db.execute(select(Jurisdiction.id, Jurisdiction.name)).all())
     locs = db.scalars(select(ClientLocation).where(ClientLocation.organization_id == org.id, ClientLocation.deleted_at.is_(None)).order_by(ClientLocation.created_at))
     reqs = []
+    from app.laws.publish import current_version_of
+
     for r in db.scalars(select(ClientRequirement).where(ClientRequirement.engagement_id == e.id, ClientRequirement.deleted_at.is_(None)).order_by(ClientRequirement.created_at)):
-        reg = db.get(Regulation, r.regulation_id) if r.regulation_id else None
-        reqs.append({"id": r.id, "regulation_id": r.regulation_id, "label": reg.short_name if reg else r.free_text, "jurisdiction": jnames.get(reg.jurisdiction_id) if reg else None, "feature": reg.feature if reg else None, "source": r.source, "reason_text": r.reason_text, "in_scope": r.in_scope})
+        reg = current_version_of(db, r.regulation_id) if r.regulation_id else None  # always show the current text of the law
+        reqs.append({"id": r.id, "regulation_id": reg.id if reg else None, "label": reg.short_name if reg else r.free_text, "jurisdiction": jnames.get(reg.jurisdiction_id) if reg else None, "feature": reg.feature if reg else None, "source": r.source, "reason_text": r.reason_text, "in_scope": r.in_scope, "retired": bool(reg and reg.retired_in_version_id)})
     team = [
         {"user_id": t.user_id, "name": u.name, "role": t.role, "conflict_confirmed": t.conflict_confirmed_at is not None}
         for t, u in db.execute(select(EngagementTeam, User).join(User, User.id == EngagementTeam.user_id).where(EngagementTeam.engagement_id == e.id, EngagementTeam.deleted_at.is_(None)).order_by(EngagementTeam.created_at))

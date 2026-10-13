@@ -1,7 +1,8 @@
 """Sign-offs and click-to-sign signatures (spec §8, schematic D8)."""
 import hashlib
 
-from sqlalchemy import select
+from sqlalchemy import select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.audit_log import service as audit
@@ -16,8 +17,8 @@ from app.tenancy.models import User
 FUTRAN_SIGNER_ROLES = {"chief_auditor", "auditor", "qa_reviewer"}
 
 
-def create_sign_off(db: Session, e: Engagement, number: int, *, preparer_id: str | None, required_roles: list[str], document_id: str | None = None, scope_ref: str | None = None) -> SignOff:
-    so = SignOff(organization_id=e.client_id, engagement_id=e.id, number=number, title=SIGN_OFF_TITLES[number], scope_ref=scope_ref, preparer_id=preparer_id, required_approver_roles=required_roles, approver_ids=[], document_version_id=document_id, status="pending")
+def create_sign_off(db: Session, e: Engagement, number: int, *, preparer_id: str | None, required_roles: list[str], document_id: str | None = None, scope_ref: str | None = None, excluded: list[str] | None = None) -> SignOff:
+    so = SignOff(organization_id=e.client_id, engagement_id=e.id, number=number, title=SIGN_OFF_TITLES[number], scope_ref=scope_ref, preparer_id=preparer_id, excluded_signer_ids=list(dict.fromkeys([i for i in [preparer_id, *(excluded or [])] if i])), required_approver_roles=required_roles, approver_ids=[], document_version_id=document_id, status="pending")
     db.add(so)
     db.flush()
     return so
@@ -39,14 +40,28 @@ def signatures(db: Session, so: SignOff) -> list[Signature]:
     return list(db.scalars(select(Signature).where(Signature.sign_off_id == so.id).order_by(Signature.signed_at)))
 
 
+def _team_holders(db: Session, so: SignOff, role: str) -> set[str]:
+    from app.engagements.models import EngagementTeam
+
+    return set(db.scalars(select(EngagementTeam.user_id).where(EngagementTeam.engagement_id == so.engagement_id, EngagementTeam.role == role, EngagementTeam.deleted_at.is_(None))))
+
+
+def is_excluded(so: SignOff, user_id: str) -> bool:
+    return user_id == so.preparer_id or user_id in (so.excluded_signer_ids or [])
+
+
 def signer_role(db: Session, actor: Actor, so: SignOff) -> str | None:
-    """The still-unsigned required role this actor can sign for, if any."""
+    """The still-unsigned required role this actor can sign for, if any. For a Futran role, the engagement team's
+    holder signs; another holder of the role steps in only when the team's holder prepared the item."""
     done = {s.role for s in signatures(db, so)}
     for role in so.required_approver_roles:
         if role in done or not actor.has_role(role):
             continue
         if role in FUTRAN_SIGNER_ROLES:
-            if actor.is_futran:
+            if not actor.is_futran:
+                continue
+            holders = {h for h in _team_holders(db, so, role) if not is_excluded(so, h)}
+            if not holders or actor.id in holders:
                 return role
         elif not actor.is_futran and actor.organization.id == so.organization_id:
             return role
@@ -72,11 +87,14 @@ def document_hash(db: Session, so: SignOff, settings) -> str | None:
 
 
 def sign(db: Session, settings, actor: Actor, so: SignOff, typed_name: str, request=None) -> Signature:
+    # take the row lock first so two signers cannot both miss each other's signature
+    db.execute(update(SignOff).where(SignOff.id == so.id).values(updated_at=utcnow()))
+    db.refresh(so)
     if so.status == "approved":
         raise Conflict("This sign-off is already complete.")
     if any(s.user_id == actor.id for s in signatures(db, so)):
         raise Conflict("You have already signed this.")
-    if so.preparer_id and so.preparer_id == actor.id:
+    if is_excluded(so, actor.id):
         raise Forbidden("You prepared this item, so you cannot approve it. Another approver must sign it off.")
     role = signer_role(db, actor, so)
     if role is None:
@@ -90,7 +108,11 @@ def sign(db: Session, settings, actor: Actor, so: SignOff, typed_name: str, requ
     )
     db.add(sig)
     so.approver_ids = [*(so.approver_ids or []), actor.id]
-    db.flush()
+    try:
+        with db.begin_nested():
+            db.flush()
+    except IntegrityError:
+        raise Conflict("This has just been signed. Reload the page.") from None
     e = db.get(Engagement, so.engagement_id)
     audit.record(db, actor_id=actor.id, action="signoff.sign", obj=so, request=request, after={"role": role, "document_sha256": sig.document_sha256}, summary=f"{actor.user.name} signed sign-off {so.number} ({so.title}) as {ROLE_LABELS.get(role, role)}")
     if {s.role for s in signatures(db, so)} >= set(so.required_approver_roles):
@@ -120,6 +142,6 @@ def sign_off_out(db: Session, actor: Actor, so: SignOff) -> dict:
             for r in so.required_approver_roles
         ],
         "document": {"id": doc.id, "title": doc.title, "pdf_file_id": doc.pdf_file_id, "docx_file_id": doc.docx_file_id} if doc else None,
-        "can_sign": so.status != "approved" and so.preparer_id != actor.id and actor.id not in (so.approver_ids or []) and signer_role(db, actor, so) is not None,
+        "can_sign": so.status != "approved" and not is_excluded(so, actor.id) and actor.id not in (so.approver_ids or []) and signer_role(db, actor, so) is not None,
         "my_name": actor.user.name,
     }

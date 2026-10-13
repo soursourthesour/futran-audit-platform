@@ -22,6 +22,12 @@ def _font_css() -> str:
     )
 
 
+def _only_bundled_fonts(uri: str, rel: str) -> str:
+    """xhtml2pdf may only load our own font files; any other URI (file, http) resolves to nothing."""
+    p = Path(uri)
+    return str(p) if p.parent == FONTS and p.suffix == ".ttf" else ""
+
+
 def to_pdf(md: str, title: str, meta: dict) -> bytes:
     css = (HERE / "styles.css").read_text() + _font_css()
     ref = escape(str(meta.get("audit_ref", "")))
@@ -31,7 +37,7 @@ def to_pdf(md: str, title: str, meta: dict) -> bytes:
 {render_markdown(md)}
 </body></html>"""
     out = BytesIO()
-    result = pisa.CreatePDF(html, dest=out, encoding="utf-8")
+    result = pisa.CreatePDF(html, dest=out, encoding="utf-8", link_callback=_only_bundled_fonts)
     if result.err:
         raise RuntimeError(f"PDF generation failed for {title}")
     return out.getvalue()
