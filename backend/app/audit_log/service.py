@@ -34,6 +34,11 @@ def record(
     if request is not None:
         ip = request.client.host if request.client else None
         ua = (request.headers.get("user-agent") or "")[:300]
+    if actor_id and actor_name is None:
+        from app.tenancy.models import User
+
+        u = db.get(User, actor_id)
+        actor_name = u.name if u else None
     entry = AuditLog(
         organization_id=organization_id,
         actor_id=actor_id,

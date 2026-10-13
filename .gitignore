@@ -12,3 +12,4 @@ e2e/playwright-report/
 .env
 dist/
 *.egg-info/
+e2e/screenshots/

@@ -41,6 +41,8 @@ export function FutranShell() {
     { to: '/admin/reference', label: 'Reference data', show: hasRole(me, 'admin', 'chief_auditor') },
     { to: '/admin/users', label: 'Users', show: hasRole(me, 'admin', 'chief_auditor') },
     { to: '/admin/audit-log', label: 'Audit log', show: hasRole(me, 'admin', 'chief_auditor') },
+    { to: '/admin/outbox', label: 'Outbox', show: hasRole(me, 'admin', 'chief_auditor') },
+    { to: '/admin/settings', label: 'Settings', show: hasRole(me, 'admin', 'chief_auditor') },
   ];
   return (
     <>
