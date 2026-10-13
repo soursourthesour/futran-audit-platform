@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.clock import utcnow
@@ -31,3 +31,14 @@ class MfaSecret(IdMixin, Base):
     secret_encrypted: Mapped[str] = mapped_column(String(300))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     confirmed_at: Mapped[datetime | None] = mapped_column(DateTime)
+    last_used_step: Mapped[int | None] = mapped_column(Integer)
+
+
+class LoginAttempt(IdMixin, Base):
+    """Failed sign-ins, keyed by email and IP, for lockout. Covers emails with no account too."""
+
+    __tablename__ = "login_attempts"
+
+    email: Mapped[str] = mapped_column(String(254), index=True)
+    ip: Mapped[str | None] = mapped_column(String(64))
+    at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)

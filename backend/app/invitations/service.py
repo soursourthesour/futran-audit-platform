@@ -30,6 +30,8 @@ def invite_user(
     """Send a fresh single-use invitation; any earlier pending invitation stops working."""
     if user.status == "active" and user.password_hash:
         raise Conflict(f"{user.name} has already accepted an invitation.")
+    if user.status == "disabled" or user.deleted_at is not None:
+        raise Conflict(f"{user.name}'s account is disabled. Enable it before sending an invitation.")
     now = utcnow()
     for old in db.scalars(select(Invitation).where(Invitation.user_id == user.id, Invitation.status == "pending")):
         old.status = "revoked"
@@ -56,7 +58,11 @@ def invite_user(
         "mfa_required": settings.mfa_required,
         **(extra_context or {}),
     }
-    send(db, settings, template_key, to=[user.email], context=context, organization_id=org.id, related=inv, actor_id=inviter.id if inviter else None)
+    send(
+        db, settings, template_key, to=[user.email], context=context, organization_id=org.id, related=inv,
+        actor_id=inviter.id if inviter else None, redact={"accept_url": "[secure link sent only to the recipient]"},
+    )
+    inv.raw_token = raw  # transient: for the caller (CLI) only; never stored
     audit.record(db, actor_id=inviter.id if inviter else None, action="invitation.sent", obj=inv, summary=f"Invitation sent to {user.email}")
     db.flush()
     return inv
@@ -84,6 +90,9 @@ def accept_invitation(db: Session, settings: Settings, raw: str, password: str) 
         inv.status = "expired"
         raise Conflict("This invitation has expired. Ask your contact at Futran to send a new one.")
     user = db.get(User, inv.user_id)
+    if user is None or user.deleted_at is not None or user.status == "disabled":
+        inv.status = "revoked"
+        raise Conflict("This account is disabled. Contact your administrator.")
     errors = validate_password(password, user.email)
     if errors:
         raise Invalid("Choose a stronger password.", [{"field": "password", "message": e} for e in errors])
@@ -94,3 +103,11 @@ def accept_invitation(db: Session, settings: Settings, raw: str, password: str) 
     audit.record(db, actor_id=user.id, action="invitation.accepted", obj=inv, summary=f"{user.email} accepted the invitation")
     db.flush()
     return user
+
+
+def revoke_pending_invitations(db: Session, user_id: str) -> int:
+    n = 0
+    for inv in db.scalars(select(Invitation).where(Invitation.user_id == user_id, Invitation.status == "pending")):
+        inv.status = "revoked"
+        n += 1
+    return n

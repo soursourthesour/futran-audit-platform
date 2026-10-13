@@ -17,6 +17,11 @@ from app.policy.matrix import Scope, scopes_for
 
 router = APIRouter(prefix="/audit-log", tags=["audit-log"])
 
+def _cell(value: str) -> str:
+    """Stop spreadsheet formula injection in exported text."""
+    return "'" + value if value and value[0] in "=+-@\t\r" else value
+
+
 CSV_COLUMNS = ["at", "actor", "action", "object_type", "object_id", "summary", "ip"]
 
 
@@ -49,14 +54,14 @@ def list_audit_log(
         stmt = stmt.where(AuditLog.at >= since)
     if until:
         stmt = stmt.where(AuditLog.at <= until)
-    cap = 50_000 if format == "csv" else min(limit, 2000)
+    cap = 50_000 if format == "csv" else max(1, min(limit, 2000))
     rows = list(db.scalars(stmt.order_by(AuditLog.at.desc()).limit(cap)))
     if format == "csv":
         buf = io.StringIO()
         w = csv.writer(buf)
         w.writerow(CSV_COLUMNS)
         for e in rows:
-            w.writerow([e.at.isoformat(), e.actor_name or e.actor_id or "", e.action, e.object_type, e.object_id or "", e.summary or "", e.ip or ""])
+            w.writerow([_cell(v) for v in (e.at.isoformat(), e.actor_name or e.actor_id or "", e.action, e.object_type, e.object_id or "", e.summary or "", e.ip or "")])
         return Response(buf.getvalue(), media_type="text/csv", headers={"Content-Disposition": 'attachment; filename="audit-log.csv"'})
     return [
         {

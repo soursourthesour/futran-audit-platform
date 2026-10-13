@@ -28,8 +28,20 @@ def provisioning_uri(email: str, secret: str) -> str:
     return pyotp.TOTP(secret).provisioning_uri(name=email, issuer_name=ISSUER)
 
 
-def verify_totp(secret: str, code: str) -> bool:
+def verify_totp(secret: str, code: str, last_used_step: int | None = None, now: float | None = None) -> int | None:
+    """Return the matched time step if `code` is valid and newer than `last_used_step`, else None."""
+    import hmac
+    import time
+
     code = (code or "").strip().replace(" ", "")
     if not code.isdigit() or len(code) != 6:
-        return False
-    return pyotp.TOTP(secret).verify(code, valid_window=1)
+        return None
+    totp = pyotp.TOTP(secret)
+    t = now if now is not None else time.time()
+    current = int(t // totp.interval)
+    for step in (current - 1, current, current + 1):
+        if last_used_step is not None and step <= last_used_step:
+            continue
+        if hmac.compare_digest(totp.generate_otp(step), code):
+            return step
+    return None

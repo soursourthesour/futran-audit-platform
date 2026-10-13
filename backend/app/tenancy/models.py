@@ -1,6 +1,6 @@
 from datetime import date
 
-from sqlalchemy import JSON, Boolean, Date, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import JSON, Boolean, Date, ForeignKey, Index, Integer, String, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.models import Base, TimestampedTenantMixin
@@ -43,7 +43,10 @@ class Department(TimestampedTenantMixin, Base):
 
 class User(TimestampedTenantMixin, Base):
     __tablename__ = "users"
-    __table_args__ = (UniqueConstraint("organization_id", "email", name="uq_user_org_email"),)
+    __table_args__ = (
+        UniqueConstraint("organization_id", "email", name="uq_user_org_email"),
+        Index("uq_users_email_ci", text("lower(email)"), unique=True),
+    )
 
     name: Mapped[str] = mapped_column(String(160))
     email: Mapped[str] = mapped_column(String(254), index=True)

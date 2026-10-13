@@ -78,11 +78,12 @@ def assign_role(
 
 
 def roles_of(db: Session, user_id: str) -> list[RoleAssignment]:
-    return list(
-        db.scalars(
-            select(RoleAssignment).where(RoleAssignment.user_id == user_id, RoleAssignment.deleted_at.is_(None))
-        )
-    )
+    """Current role assignments: not deleted, and within start/end dates when set."""
+    from app.core.clock import today
+
+    d = today()
+    rows = db.scalars(select(RoleAssignment).where(RoleAssignment.user_id == user_id, RoleAssignment.deleted_at.is_(None)))
+    return [r for r in rows if (r.start_date is None or r.start_date <= d) and (r.end_date is None or r.end_date >= d)]
 
 
 def get_org(db: Session, org_id: str) -> Organization:

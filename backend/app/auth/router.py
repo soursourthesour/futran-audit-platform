@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.audit_log import service as audit
 from app.auth.deps import Actor, build_actor, current_actor, current_session
 from app.auth.models import AuthSession, MfaSecret
-from app.auth.service import authenticate, confirmed_mfa, pending_mfa
+from app.auth.service import LOCKED, MFA_FAILURES, TooManyAttempts, authenticate, confirmed_mfa, pending_mfa, recent_mfa_failures
 from app.auth.sessions import COOKIE_NAME, create_session, revoke
 from app.auth.totp import decrypt_secret, encrypt_secret, new_secret, provisioning_uri, verify_totp
 from app.core.clock import utcnow
@@ -89,17 +89,30 @@ def _qr_svg(data: str) -> str:
 
 
 @router.post("/mfa/verify")
-def mfa_verify(body: CodeIn, request: Request, s: AuthSession = Depends(current_session), db: Session = Depends(get_db)):
+def mfa_verify(body: CodeIn, request: Request, response: Response, s: AuthSession = Depends(current_session), db: Session = Depends(get_db)):
     settings: Settings = request.app.state.settings
+    actor = build_actor(db, s, request)
+    if recent_mfa_failures(db, actor.id) >= MFA_FAILURES:
+        revoke(db, s)
+        db.commit()
+        raise TooManyAttempts(LOCKED)
     rec = confirmed_mfa(db, s.user_id) or pending_mfa(db, s.user_id)
-    if rec is None or not verify_totp(decrypt_secret(rec.secret_encrypted, settings.secret_key), body.code):
-        actor = build_actor(db, s, request)
+    step = None
+    if rec is not None:
+        step = verify_totp(decrypt_secret(rec.secret_encrypted, settings.secret_key), body.code, rec.last_used_step)
+    if step is None:
         audit.record(db, actor_id=actor.id, action="auth.mfa_failed", obj=actor.user, request=request)
+        db.flush()
+        if recent_mfa_failures(db, actor.id) >= MFA_FAILURES:
+            revoke(db, s)
+            response.delete_cookie(COOKIE_NAME, path="/")
+            db.commit()
+            raise TooManyAttempts(LOCKED)
         db.commit()
         raise Unauthorized("That code is not valid. Check the time on your phone and try the newest code.")
+    rec.last_used_step = step
     if rec.confirmed_at is None:
         rec.confirmed_at = utcnow()
-        actor = build_actor(db, s, request)
         actor.user.mfa_enabled = True
         audit.record(db, actor_id=actor.id, action="auth.mfa_enrolled", obj=actor.user, request=request)
     s.mfa_passed = True

@@ -79,12 +79,19 @@ def update_futran_user(user_id: str, body: UserPatch, request: Request, actor: A
         raise NotFound()
     before = column_snapshot(u) | {"roles": sorted(r.role for r in roles_of(db, u.id))}
     if body.status is not None:
-        if body.status not in ("active", "disabled"):
+        if body.status not in ("active", "disabled", "invited"):
             raise Invalid("Status must be active or disabled.")
         if u.id == actor.id and body.status == "disabled":
             raise Conflict("You cannot disable your own account.")
-        if body.status == "active" and not u.password_hash:
+        if body.status == "active" and u.status == "disabled" and not u.password_hash:
+            u.status = "invited"
+            body.status = "invited"
+        elif body.status == "active" and not u.password_hash:
             raise Conflict("This person has not accepted their invitation yet. Resend it instead.")
+        if body.status == "disabled":
+            from app.invitations.service import revoke_pending_invitations
+
+            revoke_pending_invitations(db, u.id)
         u.status = body.status
     if body.name is not None:
         u.name = body.name.strip()

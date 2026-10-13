@@ -18,9 +18,12 @@ class AcceptIn(BaseModel):
 @router.get("/accept/{token}")
 def invitation_info(token: str, db: Session = Depends(get_db)):
     inv = find_invitation(db, token)
+    state = invitation_state(inv)
+    if state["used"] or state["expired"]:
+        return state
     user = db.get(User, inv.user_id)
     org = db.get(Organization, user.organization_id)
-    return {"email": user.email, "name": user.name, "organization_name": org.name, **invitation_state(inv)}
+    return {"email": user.email, "name": user.name, "organization_name": org.name, **state}
 
 
 @router.post("/accept/{token}")

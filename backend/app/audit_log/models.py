@@ -1,6 +1,7 @@
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, String, event
+from sqlalchemy import DDL, JSON, DateTime, String, event
+from sqlalchemy.orm import Session
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.clock import utcnow
@@ -35,3 +36,27 @@ def _no_update(*_):
 @event.listens_for(AuditLog, "before_delete")
 def _no_delete(*_):
     raise PermissionError("The audit log is append-only.")
+
+
+@event.listens_for(Session, "do_orm_execute")
+def _no_bulk_changes(state):
+    if state.is_update or state.is_delete:
+        table = getattr(state.statement, "table", None)
+        if table is not None and getattr(table, "name", None) == AuditLog.__tablename__:
+            raise PermissionError("The audit log is append-only.")
+
+
+# Database-level guard, for anything that bypasses the ORM.
+SQLITE_TRIGGERS = [
+    "CREATE TRIGGER IF NOT EXISTS audit_log_no_update BEFORE UPDATE ON audit_log BEGIN SELECT RAISE(ABORT, 'audit log is append-only'); END",
+    "CREATE TRIGGER IF NOT EXISTS audit_log_no_delete BEFORE DELETE ON audit_log BEGIN SELECT RAISE(ABORT, 'audit log is append-only'); END",
+]
+POSTGRES_TRIGGERS = [
+    "CREATE OR REPLACE FUNCTION audit_log_append_only() RETURNS trigger AS $$ BEGIN RAISE EXCEPTION 'audit log is append-only'; END; $$ LANGUAGE plpgsql",
+    "DROP TRIGGER IF EXISTS audit_log_no_change ON audit_log",
+    "CREATE TRIGGER audit_log_no_change BEFORE UPDATE OR DELETE ON audit_log FOR EACH ROW EXECUTE FUNCTION audit_log_append_only()",
+]
+for _sql in SQLITE_TRIGGERS:
+    event.listen(AuditLog.__table__, "after_create", DDL(_sql).execute_if(dialect="sqlite"))
+for _sql in POSTGRES_TRIGGERS:
+    event.listen(AuditLog.__table__, "after_create", DDL(_sql).execute_if(dialect="postgresql"))

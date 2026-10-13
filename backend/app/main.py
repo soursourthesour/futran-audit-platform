@@ -28,8 +28,20 @@ def _health_router() -> APIRouter:
     return router
 
 
+WEAK_KEYS = {"change-me", "change-me-in-env", "", "secret"}
+
+
+def check_secret_key(settings: Settings) -> None:
+    if settings.mfa_required and (settings.secret_key in WEAK_KEYS or len(settings.secret_key) < 32):
+        raise RuntimeError(
+            "SECRET_KEY in .env is missing, a placeholder, or shorter than 32 characters. "
+            "Set a long random value before switching on sign-in codes (MFA_REQUIRED=true)."
+        )
+
+
 def create_app(settings: Settings | None = None, engine: Engine | None = None) -> FastAPI:
     settings = settings or get_settings()
+    check_secret_key(settings)
     engine = engine or make_engine(settings.database_url)
 
     app = FastAPI(title="Futran Audit Platform", version=VERSION, docs_url="/api/docs", openapi_url="/api/openapi.json")

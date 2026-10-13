@@ -38,10 +38,18 @@ def send(
     cc: list[str] | None = None,
     related=None,
     actor_id: str | None = None,
+    redact: dict[str, str] | None = None,
 ) -> OutboxMessage:
-    """Render and deliver one email. In outbox mode it is only stored (Admin > Outbox)."""
+    """Render and deliver one email. In outbox mode it is only stored (Admin > Outbox).
+
+    `redact` names context values (such as one-time links) that are sent to the recipient but never
+    stored readable when real email is on, so nobody at Futran can read them back from the outbox.
+    """
     ctx = {"base_url": settings.base_url, **context}
     subject, html, text = render(template_key, ctx)
+    real = (subject, html, text)
+    if redact and settings.email_mode == "smtp":
+        subject, html, text = render(template_key, {**ctx, **redact})
     msg = OutboxMessage(
         organization_id=organization_id,
         to=list(to),
@@ -57,7 +65,7 @@ def send(
     )
     db.add(msg)
     if settings.email_mode == "smtp":
-        _deliver_smtp(settings, msg)
+        _deliver_smtp(settings, msg, *real)
     else:
         msg.status = "sent"
         msg.sent_at = utcnow()
@@ -65,15 +73,15 @@ def send(
     return msg
 
 
-def _deliver_smtp(settings: Settings, msg: OutboxMessage) -> None:
+def _deliver_smtp(settings: Settings, msg: OutboxMessage, subject: str, html: str, text: str) -> None:
     em = EmailMessage()
     em["From"] = settings.smtp_from
     em["To"] = ", ".join(msg.to)
     if msg.cc:
         em["Cc"] = ", ".join(msg.cc)
-    em["Subject"] = msg.subject
-    em.set_content(msg.body_text)
-    em.add_alternative(msg.body_html, subtype="html")
+    em["Subject"] = subject
+    em.set_content(text)
+    em.add_alternative(html, subtype="html")
     try:
         with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=20) as s:
             if settings.smtp_starttls:

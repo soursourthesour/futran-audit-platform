@@ -36,18 +36,15 @@ def _futran_org(db):
 
 def cmd_create_admin(args) -> int:
     from app.invitations.service import invite_user
-    from app.mail.models import OutboxMessage
     from app.tenancy.service import assign_role, create_user
 
     settings, db = _session()
     org = _futran_org(db)
     user = create_user(db, org, name=args.name, email=args.email)
     assign_role(db, user, "admin")
-    invite_user(db, settings, None, user)
+    inv = invite_user(db, settings, None, user)
     db.commit()
-    msg = db.scalars(select(OutboxMessage).order_by(OutboxMessage.created_at.desc())).first()
-    link = next((ln for ln in msg.body_text.splitlines() if "/invite/" in ln), "")
-    print(f"Admin {args.email} created. Open this link within 7 days to set a password:\n{link.split(': ', 1)[-1]}")
+    print(f"Admin {args.email} created. Open this link within 7 days to set a password:\n{settings.base_url}/invite/{inv.raw_token}")
     return 0
 
 

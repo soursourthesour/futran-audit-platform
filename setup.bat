@@ -9,6 +9,7 @@ call .venv\Scripts\activate.bat
 python -m pip install --upgrade pip >nul
 pip install -e backend || (echo Installing packages failed. Check your internet connection and try again. & pause & exit /b 1)
 if not exist .env copy .env.example .env >nul
+python -c "import secrets,re,pathlib;p=pathlib.Path('.env');t=p.read_text();p.write_text(re.sub(r'^SECRET_KEY=change-me\s*$','SECRET_KEY='+secrets.token_urlsafe(48),t,flags=re.M))"
 cd backend
 if not exist data mkdir data
 copy /y ..\.env .env >nul
