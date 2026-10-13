@@ -74,7 +74,18 @@ def mfa_enroll(request: Request, s: AuthSession = Depends(current_session), db: 
     actor = build_actor(db, s, request)
     secret = new_secret()
     db.add(MfaSecret(user_id=s.user_id, organization_id=s.organization_id, secret_encrypted=encrypt_secret(secret, settings.secret_key)))
-    return {"otpauth_uri": provisioning_uri(actor.user.email, secret), "secret": secret}
+    uri = provisioning_uri(actor.user.email, secret)
+    return {"otpauth_uri": uri, "secret": secret, "qr_svg": _qr_svg(uri)}
+
+
+def _qr_svg(data: str) -> str:
+    import io
+
+    import segno
+
+    buf = io.BytesIO()
+    segno.make(data, error="m").save(buf, kind="svg", scale=5, border=2, xmldecl=False, svgns=True, dark="#16233A")
+    return buf.getvalue().decode()
 
 
 @router.post("/mfa/verify")
