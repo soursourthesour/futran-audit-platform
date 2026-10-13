@@ -52,3 +52,4 @@ class Action(StrEnum):
     APPROVE_SYSTEM_ADDITION = "approve_system_addition"
     MANAGE_SYSTEMS = "manage_systems"
     SIGN_CLIENT_SIGNOFF = "sign_client_signoff"
+    ADVANCE_STAGE = "advance_stage"

@@ -1,0 +1,27 @@
+# Requirements Futran adds to every suggestion list (spec §10.3). Matched to the law matrix by jurisdiction and the
+# start of the short name; when the matrix has no match the requirement is added as free text.
+# when: the requirement applies only if an in-scope site resolves to this jurisdiction (omit for always).
+defaults:
+  - jurisdiction: US
+    starts_with: "NIST AI Risk Management Framework"
+    label: "NIST AI RMF 1.0"
+    feature: government_other
+    reason: "Futran default assessment framework"
+    source: futran_default
+  - when: US-NY
+    jurisdiction: US-NY
+    starts_with: "Civil Rights Law §52-c"
+    label: "NY Civil Rights Law §52-c"
+    feature: employment_hiring
+    reason: "Employee monitoring notice for attestation"
+    source: futran_default
+  - when: EU
+    jurisdiction: EU
+    starts_with: "EU AI Act"
+    reason: "Site in the EU: the AI Act applies to AI systems used there"
+    source: auto
+  - when: EU
+    jurisdiction: EU
+    starts_with: "GDPR"
+    reason: "Site in the EU: personal data of people in the EU"
+    source: auto

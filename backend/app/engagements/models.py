@@ -62,3 +62,44 @@ class ClientRequirement(TimestampedTenantMixin, Base):
     in_scope: Mapped[bool] = mapped_column(Boolean, default=True)
     notes: Mapped[str | None] = mapped_column(Text)
     free_text: Mapped[str | None] = mapped_column(Text)
+
+
+class ClientLocation(TimestampedTenantMixin, Base):
+    """A client site (spec §9.2). Its resolved jurisdictions drive law suggestions."""
+
+    __tablename__ = "client_locations"
+
+    site_name: Mapped[str] = mapped_column(String(120))
+    street: Mapped[str | None] = mapped_column(String(200))
+    city: Mapped[str | None] = mapped_column(String(120))
+    subdivision_code: Mapped[str | None] = mapped_column(String(12))  # ISO 3166-2, e.g. US-NY
+    country_code: Mapped[str] = mapped_column(String(2))
+    employees_at_site: Mapped[int | None] = mapped_column(Integer)
+    in_scope: Mapped[bool] = mapped_column(Boolean, default=True)
+    jurisdiction_ids: Mapped[list] = mapped_column(JSON, default=list)  # city → state → country → regional groups
+
+
+class ScopeItem(TimestampedTenantMixin, Base):
+    __tablename__ = "scope_items"
+
+    engagement_id: Mapped[str] = mapped_column(String(36), ForeignKey("engagements.id"), index=True)
+    regulation_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("regulations.id"))
+    framework_id: Mapped[str | None] = mapped_column(String(36))
+    location_ids: Mapped[list | None] = mapped_column(JSON)
+    department_ids: Mapped[list | None] = mapped_column(JSON)
+    exclusions_text: Mapped[str | None] = mapped_column(Text)
+
+
+class ClientContact(TimestampedTenantMixin, Base):
+    """A named client contact for a sign-off or setup role (spec §9.1, §18.3). organization_id is the client."""
+
+    __tablename__ = "client_contacts"
+
+    engagement_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("engagements.id"), index=True)
+    contact_role: Mapped[str] = mapped_column(String(20))  # caico | client_admin | exec_sponsor | dpo | project_lead | technical_lead | compliance_lead
+    name: Mapped[str | None] = mapped_column(String(120))
+    title: Mapped[str | None] = mapped_column(String(120))
+    email: Mapped[str | None] = mapped_column(String(254))
+    phone: Mapped[str | None] = mapped_column(String(40))
+    not_appointed: Mapped[bool] = mapped_column(Boolean, default=False)
+    user_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("users.id"))

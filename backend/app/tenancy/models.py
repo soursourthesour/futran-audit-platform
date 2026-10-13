@@ -18,6 +18,7 @@ class Organization(TimestampedTenantMixin, Base):
     employee_count: Mapped[int | None] = mapped_column(Integer)
     annual_revenue_band: Mapped[str | None] = mapped_column(String(40))
     primary_jurisdictions: Mapped[list | None] = mapped_column(JSON)
+    ai_systems_in_scope_count: Mapped[int | None] = mapped_column(Integer)
     hq_street: Mapped[str | None] = mapped_column(String(200))
     hq_city: Mapped[str | None] = mapped_column(String(120))
     hq_state: Mapped[str | None] = mapped_column(String(120))
