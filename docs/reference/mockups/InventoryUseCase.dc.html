@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Add a use case</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+.lbl{display:block;font-size:14px;font-weight:600;margin-bottom:6px}
+input[type=text],input[type=number],select,textarea{box-sizing:border-box;width:100%;min-height:44px;border:1px solid #C7CFDA;border-radius:6px;padding:10px 12px;font:inherit;font-size:15px;background:#fff;color:#16233A}
+input[type=checkbox],input[type=radio]{width:20px;height:20px;accent-color:#1B3A6B;margin:0;flex:none}
+.opt{display:flex;align-items:center;gap:10px;font-size:14.5px;min-height:34px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-weight:600;color:#5A6577;font-size:12.5px;text-transform:uppercase;letter-spacing:0.4px;padding:8px 10px;border-bottom:1px solid #D9DFE7}
+td{padding:10px;border-bottom:1px solid #E8ECF1}
+</style>
+</helmet>
+<div style="min-height:100vh">
+  <header style="background:#fff;border-bottom:1px solid #D9DFE7;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#1B3A6B"></div><div style="font-weight:700;font-size:17px;color:#1B3A6B">Futran Audit</div><span style="color:#5A6577;font-size:14px">· ABC Corp</span></div>
+    <div style="flex:1"></div>
+    <div style="font-size:13px;color:#5A6577">[Name] · Contributor, Human Resources</div>
+  </header>
+  <main style="max-width:1200px;margin:0 auto;padding:28px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:20px">
+    <div style="font-size:14px"><a href="InventoryReview.dc.html">AI inventory</a> <span style="color:#5A6577">/ New use case</span></div>
+    <h1 style="margin:0;font-size:28px;font-weight:600">Add a use case</h1>
+    <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
+      <form style="flex:999 1 600px;min-width:0;display:flex;flex-direction:column;gap:20px">
+        <section style="background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:24px;display:flex;flex-direction:column;gap:16px">
+          <h2 style="margin:0;font-size:18px;font-weight:600">What it is</h2>
+          <div><label class="lbl" for="nm">Use case name *</label><input type="text" id="nm" value="Screening résumés for NYC recruiter roles"></div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px">
+            <div><label class="lbl" for="dep">Department *</label><select id="dep"><option>Human Resources</option></select></div>
+            <div><label class="lbl" for="tool">AI tools used *</label><select id="tool"><option>ATS resume screening (company)</option></select></div>
+          </div>
+          <div><label class="lbl" for="pur">Purpose *</label><textarea id="pur" rows="2">The ATS ranks applicants and recruiters review the top 20 before scheduling interviews.</textarea></div>
+        </section>
+        <section style="background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:24px;display:flex;flex-direction:column;gap:16px">
+          <h2 style="margin:0;font-size:18px;font-weight:600">Data and decisions</h2>
+          <fieldset style="border:none;margin:0;padding:0"><legend class="lbl" style="padding:0">Data entered into the tool *</legend>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:2px 16px">
+              <label class="opt"><input type="checkbox" checked> Personal information (PII)</label>
+              <label class="opt"><input type="checkbox"> Health information (PHI)</label>
+              <label class="opt"><input type="checkbox"> Client or customer data</label>
+              <label class="opt"><input type="checkbox"> Company confidential</label>
+              <label class="opt"><input type="checkbox"> None of these</label>
+            </div>
+          </fieldset>
+          <fieldset style="border:none;margin:0;padding:0"><legend class="lbl" style="padding:0">How does the output affect people? *</legend>
+            <label class="opt"><input type="radio" name="imp"> No effect on decisions about people</label>
+            <label class="opt"><input type="radio" name="imp"> Informs a decision a person makes</label>
+            <label class="opt"><input type="radio" name="imp" checked> Substantially assists or makes decisions on hiring, promotion, credit, housing, insurance or health</label>
+          </fieldset>
+        </section>
+        <section style="background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:24px;display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><h2 style="margin:0;font-size:18px;font-weight:600">Who uses it</h2><span style="font-size:13px;font-weight:600;color:#9B1C1C">Named users required for Tier 3</span></div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px">
+            <div><label class="lbl" for="role">Role</label><input type="text" id="role" value="Recruiter"></div>
+            <div><label class="lbl" for="hc">Headcount</label><input type="number" id="hc" value="4"></div>
+          </div>
+          <div style="overflow-x:auto"><table>
+            <thead><tr><th>Named user</th><th>Training complete</th><th>Policy acknowledged</th><th>Human oversight role</th></tr></thead>
+            <tbody>
+              <tr><td>[Name]</td><td>Yes</td><td>Yes</td><td>Reviews ranked list</td></tr>
+              <tr><td>[Name]</td><td>No</td><td>Yes</td><td>Reviews ranked list</td></tr>
+            </tbody>
+          </table></div>
+          <a href="#" style="font-size:14px;font-weight:600">Add named user</a>
+        </section>
+      </form>
+      <aside style="flex:1 1 320px;display:flex;flex-direction:column;gap:20px;position:static">
+        <section style="background:#FDECEC;border:2px solid #B42318;border-radius:8px;padding:20px;display:flex;flex-direction:column;gap:8px">
+          <div style="font-size:13px;font-weight:600;color:#7A1A12">Proposed risk tier</div>
+          <div style="font-size:26px;font-weight:700;color:#7A1A12">Tier 3 · High-risk</div>
+          <p style="margin:0;font-size:14px;line-height:1.5">Output substantially assists hiring decisions for NYC roles. Likely an AEDT under LL144. The Futran auditor sets the final tier.</p>
+        </section>
+        <section style="background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:20px;display:flex;flex-direction:column;gap:10px">
+          <h2 style="margin:0;font-size:16px;font-weight:600">Evidence (optional now)</h2>
+          <p style="margin:0;font-size:13.5px;color:#5A6577">Vendor terms, screenshots of settings, prior bias audit.</p>
+          <button style="height:42px;border-radius:6px;border:1px dashed #8894A6;background:#F4F6F9;font:inherit;font-size:14px;font-weight:600;color:#16233A">Upload files</button>
+        </section>
+        <a href="InventoryReview.dc.html" style="display:flex;align-items:center;justify-content:center;height:48px;border-radius:6px;background:#1B3A6B;color:#fff;text-decoration:none;font-weight:600;font-size:15px">Submit to Department Lead</a>
+        <button style="height:44px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:14px;font-weight:600;color:#16233A">Save draft</button>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

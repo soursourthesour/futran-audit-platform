@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Auditor fieldwork: use case</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+.lbl{display:block;font-size:14px;font-weight:600;margin-bottom:6px}
+input[type=text],select,textarea{box-sizing:border-box;width:100%;min-height:44px;border:1px solid #C7CFDA;border-radius:6px;padding:10px 12px;font:inherit;font-size:15px;background:#fff;color:#16233A}
+dt{font-size:12.5px;color:#5A6577;font-weight:600}
+dd{margin:2px 0 12px;font-size:14.5px}
+</style>
+</helmet>
+<div style="min-height:100vh">
+  <header style="background:#1B3A6B;color:#fff;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#0098D4"></div><div style="font-weight:700;font-size:17px">Futran Audit</div></div>
+    <div style="flex:1"></div>
+    <div style="font-size:13px;color:#C9D6EA">[Your name] · Auditor</div>
+  </header>
+  <main style="max-width:1240px;margin:0 auto;padding:28px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:20px">
+    <div style="font-size:14px"><a href="Dashboard.dc.html">Audits</a> <span style="color:#5A6577">/ ABC Corp / Inventory snapshot v1 / Résumé screening, NYC roles</span></div>
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px">
+      <div><h1 style="margin:0;font-size:28px;font-weight:600">Résumé screening, NYC roles</h1><p style="margin:6px 0 0;color:#5A6577;font-size:15px">Human Resources · ATS screening (company account) · stage 5 fieldwork</p></div>
+      <span style="padding:4px 12px;border-radius:14px;background:#FDECEC;color:#7A1A12;font-size:13px;font-weight:600">Client proposed Tier 3</span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
+      <div style="flex:999 1 620px;min-width:0;display:flex;flex-direction:column;gap:20px">
+        <section style="background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:22px;display:flex;flex-direction:column;gap:14px">
+          <h2 style="margin:0;font-size:18px;font-weight:600">Final risk tier</h2>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px">
+            <div><label class="lbl" for="tier">Tier set by auditor</label><select id="tier"><option>Tier 3 · High-risk</option><option>Tier 2 · Elevated</option><option>Tier 1 · Baseline</option></select></div>
+            <div><label class="lbl" for="aedt">LL144 AEDT determination</label><select id="aedt"><option>AEDT: in scope</option><option>Not an AEDT</option></select></div>
+          </div>
+          <div><label class="lbl" for="rat">Rationale</label><textarea id="rat" rows="2">Ranks candidates and recruiters review only the top 20; output substantially assists the hiring decision for NYC roles.</textarea></div>
+        </section>
+        <section style="background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:22px;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h2 style="margin:0;font-size:18px;font-weight:600">Evidence requests</h2><button style="height:38px;padding:0 14px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:14px;font-weight:600;color:#16233A">Request evidence</button></div>
+          <ul style="list-style:none;margin:0;padding:0;font-size:14.5px">
+            <li style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;padding:12px 0;border-bottom:1px solid #E8ECF1"><span>Vendor contract and data processing terms</span><span style="color:#1F5C38;font-weight:600">Received · 2 files</span></li>
+            <li style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;padding:12px 0;border-bottom:1px solid #E8ECF1"><span>Most recent independent bias audit summary</span><span style="color:#7A4800;font-weight:600">Outstanding · due [date]</span></li>
+            <li style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;padding:12px 0;border-bottom:1px solid #E8ECF1"><span>Candidate notice (10 business days) wording</span><span style="color:#7A4800;font-weight:600">Outstanding · due [date]</span></li>
+            <li style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;padding:12px 0"><span>Applicant demographic data availability</span><span style="color:#1F5C38;font-weight:600">Answered</span></li>
+          </ul>
+        </section>
+        <section style="background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:22px;display:flex;flex-direction:column;gap:14px">
+          <h2 style="margin:0;font-size:18px;font-weight:600">Draft finding</h2>
+          <div><label class="lbl" for="ft">Title</label><input type="text" id="ft" value="No bias audit within the past year for an AEDT used on NYC roles"></div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px">
+            <div><label class="lbl" for="sev">Severity</label><select id="sev"><option>High</option><option>Medium</option><option>Low</option></select></div>
+            <div><label class="lbl" for="ctl">Control reference</label><select id="ctl"><option>NYC LL144 · bias audit requirement</option><option>NIST AI RMF · MEASURE</option></select></div>
+          </div>
+          <div><label class="lbl" for="fd">Description and recommendation</label><textarea id="fd" rows="3">[Condition, criteria, cause, effect; recommended action]</textarea></div>
+          <div style="display:flex;flex-wrap:wrap;gap:10px"><button style="height:42px;padding:0 16px;border-radius:6px;border:1px solid #1B3A6B;background:#1B3A6B;font:inherit;font-size:14px;font-weight:600;color:#fff">Submit to Chief Auditor</button><button style="height:42px;padding:0 16px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:14px;font-weight:600;color:#16233A">Save draft</button></div>
+        </section>
+      </div>
+      <aside style="flex:1 1 320px;display:flex;flex-direction:column;gap:20px">
+        <section style="background:#FFF6E5;border:2px solid #D9922B;border-radius:8px;padding:20px;display:flex;flex-direction:column;gap:8px">
+          <div style="font-size:13px;font-weight:600;color:#7A4800">Data sufficiency check</div>
+          <div style="font-size:18px;font-weight:600;color:#7A4800">Null-compliance risk</div>
+          <p style="margin:0;font-size:14px;line-height:1.5">Client reports no applicant demographic data is collected. A bias audit could be run with no categories to test, which meets the form of LL144 but gives no real transparency. Flag in the report.</p>
+        </section>
+        <section style="background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:20px">
+          <h2 style="margin:0 0 12px;font-size:16px;font-weight:600">From the client's inventory</h2>
+          <dl style="margin:0">
+            <dt>Purpose</dt><dd>ATS ranks applicants; recruiters review the top 20</dd>
+            <dt>Data</dt><dd>Personal information</dd>
+            <dt>Named users</dt><dd>2 recruiters · 1 not trained</dd>
+            <dt>Submitted by</dt><dd>[Name], Contributor · approved by Department Lead</dd>
+          </dl>
+        </section>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

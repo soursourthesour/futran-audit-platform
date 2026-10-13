@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Invitation email</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#E9EDF2}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+</style>
+</helmet>
+<div style="min-height:100vh;padding:40px 16px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:16px">
+  <div style="width:100%;max-width:640px;font-size:13.5px;color:#3E4757;display:flex;flex-direction:column;gap:4px">
+    <div><strong>From:</strong> Futran Audit &lt;audit@futransolutions.com&gt;</div>
+    <div><strong>To:</strong> [Name], Chief AI Compliance Officer, ABC Corp</div>
+    <div><strong>Subject:</strong> ABC Corp: your AI governance assessment with Futran is ready to start</div>
+  </div>
+  <article style="width:100%;max-width:640px;background:#fff;border-radius:8px;overflow:hidden;border:1px solid #D9DFE7">
+    <div style="background:#1B3A6B;color:#fff;padding:22px 32px;display:flex;align-items:center;gap:10px"><div style="width:26px;height:26px;border-radius:5px;background:#0098D4"></div><div style="font-weight:700;font-size:17px">Futran Audit</div></div>
+    <div style="padding:32px;display:flex;flex-direction:column;gap:18px;font-size:15.5px;line-height:1.6">
+      <p style="margin:0">Dear [Name],</p>
+      <p style="margin:0">Futran Solutions has set up ABC Corp's <strong>Initial AI governance assessment</strong>. You have been named Chief AI Compliance Officer for this engagement.</p>
+      <p style="margin:0;padding:14px 16px;background:#F4F6F9;border-radius:6px">We look forward to working with you on ABC Corp's AI governance assessment. Please sign the engagement letter and nominate your role holders within the next 10 business days.<br><span style="font-size:13.5px;color:#5A6577">[Chief Auditor name], Chief Auditor</span></p>
+      <div>
+        <div style="font-weight:600;margin-bottom:8px">Your initiation package (7 items)</div>
+        <ul style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px">
+          <li>Engagement letter and scope: <strong>please sign</strong></li>
+          <li>Roles and responsibilities note: nominate role holders</li>
+          <li>User list and department list templates (CSV)</li>
+          <li>Employee data notice</li>
+          <li>Getting started guide</li>
+          <li>AI governance structure: your charter, committees and named owners</li>
+        </ul>
+      </div>
+      <a href="ClientWelcome.dc.html" style="align-self:flex-start;display:inline-flex;align-items:center;height:48px;padding:0 24px;border-radius:6px;background:#1B3A6B;color:#fff;text-decoration:none;font-weight:600;font-size:16px">Accept invitation and open package</a>
+      <p style="margin:0;font-size:13.5px;color:#5A6577">This link is for you only and expires in 7 days. You will set a password and turn on multi-factor authentication. Documents are not attached to this email; they open only after you sign in.</p>
+    </div>
+    <div style="border-top:1px solid #E8ECF1;padding:18px 32px;font-size:12.5px;color:#5A6577">Futran Solutions · Edison, NJ · Questions: reply to this email or contact your Futran Chief Auditor.</div>
+  </article>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":860}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

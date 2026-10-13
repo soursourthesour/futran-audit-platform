@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Inventory review and management representation</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-weight:600;color:#5A6577;font-size:12.5px;text-transform:uppercase;letter-spacing:0.4px;padding:10px 12px;border-bottom:1px solid #D9DFE7;white-space:nowrap}
+td{padding:12px;border-bottom:1px solid #E8ECF1;white-space:nowrap}
+input[type=checkbox]{width:20px;height:20px;accent-color:#1B3A6B;margin:0;flex:none}
+</style>
+</helmet>
+<div style="min-height:100vh">
+  <header style="background:#fff;border-bottom:1px solid #D9DFE7;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#1B3A6B"></div><div style="font-weight:700;font-size:17px;color:#1B3A6B">Futran Audit</div><span style="color:#5A6577;font-size:14px">· ABC Corp</span></div>
+    <nav style="display:flex;flex-wrap:wrap;gap:4px;flex:1">
+      <a href="#" style="text-decoration:none;padding:8px 12px;font-size:14px;color:#3E4757">Overview</a>
+      <a href="Campaign.dc.html" style="text-decoration:none;padding:8px 12px;font-size:14px;color:#3E4757">Attestation</a>
+      <a href="#" style="text-decoration:none;padding:8px 12px;border-radius:5px;background:#E3EEF9;font-weight:600;font-size:14px">AI inventory</a>
+    </nav>
+    <div style="font-size:13px;color:#5A6577">[Name] · Chief AI Compliance Officer</div>
+  </header>
+  <main style="max-width:1240px;margin:0 auto;padding:28px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:20px">
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px">
+      <div><h1 style="margin:0;font-size:28px;font-weight:600">AI inventory review</h1><p style="margin:6px 0 0;color:#5A6577;font-size:15px">Stage 4 · Approve the inventory, then your Executive Sponsor signs the management representation.</p></div>
+      <a href="InventoryUseCase.dc.html" style="display:inline-flex;align-items:center;height:42px;padding:0 16px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;color:#16233A;text-decoration:none;font-weight:600;font-size:14px">Add use case</a>
+    </div>
+    <ol aria-label="Sign-off progress" style="list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;font-size:14px">
+      <li style="padding:12px 14px;border-radius:6px;background:#E1F2E7;border:1px solid #A9D7B8"><div style="font-weight:600;color:#1F5C38">Sign-off 2 · Department inventories</div><div style="color:#1F5C38">5 of 5 Department Leads approved</div></li>
+      <li style="padding:12px 14px;border-radius:6px;background:#E1F2E7;border:1px solid #A9D7B8"><div style="font-weight:600;color:#1F5C38">Sign-off 3 · Data categories</div><div style="color:#1F5C38">Reviewed (DPO duties: Chief AI CO)</div></li>
+      <li style="padding:12px 14px;border-radius:6px;background:#E3EEF9;border:2px solid #2E75B6"><div style="font-weight:600;color:#1B3A6B">Sign-off 4 · Management representation</div><div style="color:#1B3A6B">Waiting for your approval</div></li>
+    </ol>
+    <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
+      <section style="flex:999 1 640px;min-width:0;background:#fff;border:1px solid #D9DFE7;border-radius:8px">
+        <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;padding:16px"><h2 style="margin:0;font-size:17px;font-weight:600">Use cases · 14</h2><span style="font-size:13.5px;color:#5A6577">Tier 3: 2 · Tier 2: 5 · Tier 1: 7</span></div>
+        <div style="overflow-x:auto"><table>
+          <thead><tr><th>Use case</th><th>Department</th><th>Tool · account</th><th>Proposed tier</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td><a href="#" style="font-weight:600">Résumé screening, NYC roles</a></td><td>Human Resources</td><td>ATS screening · company</td><td><span style="padding:2px 8px;border-radius:10px;background:#FDECEC;color:#7A1A12;font-size:12.5px;font-weight:600">Tier 3</span></td><td>Dept approved</td></tr>
+            <tr><td><a href="#" style="font-weight:600">Interview question drafting</a></td><td>Human Resources</td><td>ChatGPT · personal free</td><td><span style="padding:2px 8px;border-radius:10px;background:#FFF1D6;color:#7A4800;font-size:12.5px;font-weight:600">Tier 2</span></td><td>Dept approved</td></tr>
+            <tr><td><a href="#" style="font-weight:600">Client proposal drafting</a></td><td>Sales and Marketing</td><td>ChatGPT · personal free</td><td><span style="padding:2px 8px;border-radius:10px;background:#FFF1D6;color:#7A4800;font-size:12.5px;font-weight:600">Tier 2</span></td><td>Dept approved</td></tr>
+            <tr><td><a href="#" style="font-weight:600">Invoice anomaly checks</a></td><td>Finance</td><td>Copilot · company</td><td><span style="padding:2px 8px;border-radius:10px;background:#FFF1D6;color:#7A4800;font-size:12.5px;font-weight:600">Tier 2</span></td><td>Dept approved</td></tr>
+            <tr><td><a href="#" style="font-weight:600">Code assistance</a></td><td>Engineering and IT</td><td>Copilot · company</td><td><span style="padding:2px 8px;border-radius:10px;background:#ECEEF2;color:#3E4757;font-size:12.5px;font-weight:600">Tier 1</span></td><td>Dept approved</td></tr>
+            <tr><td><a href="#" style="font-weight:600">Meeting summaries</a></td><td>Operations</td><td>Copilot · company</td><td><span style="padding:2px 8px;border-radius:10px;background:#ECEEF2;color:#3E4757;font-size:12.5px;font-weight:600">Tier 1</span></td><td>Dept approved</td></tr>
+          </tbody>
+        </table></div>
+        <div style="padding:12px 16px;font-size:14px"><a href="#">Show all 14</a></div>
+      </section>
+      <aside style="flex:1 1 340px;background:#fff;border:2px solid #1B3A6B;border-radius:8px;padding:22px;box-sizing:border-box;display:flex;flex-direction:column;gap:14px">
+        <h2 style="margin:0;font-size:17px;font-weight:600">Management representation</h2>
+        <p style="margin:0;font-size:14px;line-height:1.55;background:#F4F6F9;border-radius:6px;padding:12px">To the best of our knowledge, the AI inventory submitted for ABC Corp is complete and accurate for the audit period, and we have disclosed all AI tools and use cases known to management in the departments in scope.</p>
+        <label style="display:flex;gap:10px;font-size:14px;line-height:1.45"><input type="checkbox" style="margin-top:1px"> I have reviewed the 14 use cases and approve the inventory</label>
+        <div style="font-size:13.5px;color:#5A6577">Next signer: <strong style="color:#16233A">[Name], Executive Sponsor</strong></div>
+        <button style="height:46px;border-radius:6px;border:1px solid #1B3A6B;background:#1B3A6B;font:inherit;font-size:15px;font-weight:600;color:#fff">Approve and send for signature</button>
+        <p style="margin:0;font-size:12.5px;color:#5A6577;line-height:1.5">Once signed, the inventory is locked as a snapshot and Futran's fieldwork begins. Later changes need a new version.</p>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

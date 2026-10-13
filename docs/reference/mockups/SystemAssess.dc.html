@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>System assessment</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+.lbl{display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:#3E4757}
+input[type=text],select,textarea{box-sizing:border-box;width:100%;min-height:40px;border:1px solid #C7CFDA;border-radius:6px;padding:8px 10px;font:inherit;font-size:14px;background:#fff;color:#16233A}
+input[type=checkbox]{width:20px;height:20px;accent-color:#1B3A6B;margin:0;flex:none}
+.q{background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:18px 20px;display:flex;flex-direction:column;gap:12px}
+.code{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;color:#5A6577}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:600;white-space:nowrap}
+.nav a{display:flex;justify-content:space-between;gap:8px;padding:10px 12px;border-radius:6px;text-decoration:none;color:#16233A;font-size:14px}
+</style>
+</helmet>
+<div style="min-height:100vh">
+  <header style="background:#1B3A6B;color:#fff;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#0098D4"></div><div style="font-weight:700;font-size:17px">Futran Audit</div></div>
+    <div style="flex:1"></div>
+    <div style="font-size:13px;color:#C9D6EA">[Your name] · Auditor</div>
+  </header>
+  <main style="max-width:1280px;margin:0 auto;padding:24px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px">
+    <div style="font-size:14px"><a href="Systems.dc.html">AI systems</a> <span style="color:#5A6577">/ SYS-001 ATS résumé screening</span></div>
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px">
+      <div><h1 style="margin:0;font-size:26px;font-weight:600">ATS résumé screening</h1><p style="margin:6px 0 0;color:#5A6577;font-size:14.5px">Built by <strong>vendor</strong> ([ATS vendor]) · full assessment · Template v1.0 + Addendum 5.1a · Vendor assurance replaces §6.1 and §6.3</p></div>
+      <a href="SystemScore.dc.html" style="display:inline-flex;align-items:center;height:42px;padding:0 16px;border-radius:6px;background:#1B3A6B;color:#fff;text-decoration:none;font-weight:600;font-size:14px">View risk score</a>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
+      <nav class="nav" aria-label="Template sections" style="flex:1 1 260px;max-width:300px;background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:8px;box-sizing:border-box">
+        <a href="#">§3 System profile <span style="color:#1F5C38;font-weight:600">10/10</span></a>
+        <a href="#">§5.1 Data inventory <span style="color:#1F5C38;font-weight:600">8/8</span></a>
+        <a href="#">§5.1a Null-compliance <span style="color:#1F5C38;font-weight:600">6/6</span></a>
+        <a href="#">§5.2 Legal basis <span style="color:#7A4800;font-weight:600">5/8</span></a>
+        <a href="#" style="color:#5A6577">§5.3 HIPAA <span>N/A</span></a>
+        <a href="#">Vendor assurance <span style="color:#7A4800;font-weight:600">5/8</span></a>
+        <a href="#" style="background:#E3EEF9;font-weight:600">§6.2 Bias and fairness <span style="color:#1B3A6B">9/9</span></a>
+        <a href="#">§7 Oversight, explainability <span style="color:#7A4800;font-weight:600">9/13</span></a>
+        <a href="#">§8 Security, monitoring <span style="color:#7A4800;font-weight:600">14/26</span></a>
+        <a href="#">§9.2 Vendor due diligence <span style="color:#7A4800;font-weight:600">6/8</span></a>
+        <div style="border-top:1px solid #E8ECF1;margin:6px 0"></div>
+        <a href="#">Checklists 5.4, 6.4, 7.3, 8.4 <span style="color:#7A4800;font-weight:600">19/48</span></a>
+        <a href="#">Draft findings <span style="color:#9B1C1C;font-weight:600">3</span></a>
+      </nav>
+      <div style="flex:999 1 640px;min-width:0;display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px">
+          <h2 style="margin:0;font-size:20px;font-weight:600">§6.2 Bias, fairness and ethics testing</h2>
+          <span style="font-size:13px;color:#5A6577">Client pre-filled · auditor verifying</span>
+        </div>
+        <p style="margin:0;font-size:13.5px;line-height:1.55;color:#3E4757;background:#EEF1F5;border-radius:6px;padding:12px 14px"><strong>Intern note:</strong> Ask to see the bias test results by demographic group. If only overall accuracy was tested, that is a finding. For vendor systems, results must come from the vendor or the client's own testing on its own population.</p>
+
+        <div class="q" style="border-color:#B42318">
+          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px"><span class="code">6.2.01 · Required</span><span class="tag" style="background:#FDECEC;color:#7A1A12">Draft finding F-007 · High</span></div>
+          <div style="font-weight:600">Bias testing performed?</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px"><span class="tag" style="background:#fff;border:1px solid #C7CFDA;color:#3E4757;padding:6px 12px">Yes</span><span class="tag" style="background:#9B1C1C;color:#fff;padding:6px 12px">No</span><span class="tag" style="background:#fff;border:1px solid #C7CFDA;color:#3E4757;padding:6px 12px">Planned → not yet in place</span></div>
+          <div><label class="lbl">Answer detail</label><textarea rows="2">Vendor states it tests its model but has not shared results. Client has never tested on its own applicants.</textarea></div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+            <div><label class="lbl">Source person *</label><input type="text" value="[Name]"></div>
+            <div><label class="lbl">Source title *</label><input type="text" value="Head of Talent Systems"></div>
+            <div><label class="lbl">Evidence</label><div style="font-size:13.5px;color:#5A6577;padding-top:9px">None linked · <a href="#">Link evidence</a></div></div>
+          </div>
+        </div>
+
+        <div class="q">
+          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px"><span class="code">6.2.06</span><span class="tag" style="background:#ECEEF2;color:#3E4757">Not available</span></div>
+          <div style="font-weight:600">Disparate impact ratio <span style="font-weight:400;color:#5A6577">(selection rate of less-favored ÷ favored group; below 0.80 flags a finding)</span></div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+            <div><label class="lbl">Result</label><input type="text" placeholder="e.g. 0.86"></div>
+            <div><label class="lbl">Status</label><select><option>N/A: no bias test exists</option></select></div>
+          </div>
+        </div>
+
+        <div class="q">
+          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px"><span class="code">V.02 · Vendor assurance</span><span class="tag" style="background:#FFF1D6;color:#7A4800">Requested from vendor</span></div>
+          <div style="font-weight:600">Vendor bias test results provided, with date</div>
+          <div style="font-size:14px;color:#3E4757">Evidence request ER-012 sent to client on [date]; due [date]. Linked to document register item "Model validation / testing reports (incl. bias testing)".</div>
+        </div>
+
+        <div class="q">
+          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px"><span class="code">6.2.08</span><span class="tag" style="background:#FDECEC;color:#7A1A12">Draft finding F-008 · Medium</span></div>
+          <div style="font-weight:600">Ongoing bias monitoring in production?</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px"><span class="tag" style="background:#fff;border:1px solid #C7CFDA;color:#3E4757;padding:6px 12px">Yes · frequency</span><span class="tag" style="background:#9B1C1C;color:#fff;padding:6px 12px">No</span></div>
+        </div>
+
+        <section class="q">
+          <div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline"><div style="font-weight:600">Checklist 6.4 · items for this section</div><span class="code">tick only with evidence</span></div>
+          <label style="display:flex;gap:10px;align-items:flex-start;font-size:14px;color:#5A6577"><input type="checkbox" disabled style="margin-top:1px"> The model has been tested for bias across all relevant protected attributes <span class="tag" style="background:#ECEEF2;color:#3E4757;margin-left:auto">No evidence</span></label>
+          <label style="display:flex;gap:10px;align-items:flex-start;font-size:14px;color:#5A6577"><input type="checkbox" disabled style="margin-top:1px"> Disparate impact analysis results are documented and within acceptable thresholds <span class="tag" style="background:#ECEEF2;color:#3E4757;margin-left:auto">No evidence</span></label>
+          <label style="display:flex;gap:10px;align-items:flex-start;font-size:14px"><input type="checkbox" checked style="margin-top:1px"> The model can be explained to affected individuals in plain language if required <span class="tag" style="background:#E1F2E7;color:#1F5C38;margin-left:auto">1 file</span></label>
+        </section>
+
+        <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px">
+          <button style="height:42px;padding:0 16px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:14px;font-weight:600;color:#16233A">Previous: Vendor assurance</button>
+          <button style="height:42px;padding:0 16px;border-radius:6px;border:1px solid #1B3A6B;background:#1B3A6B;font:inherit;font-size:14px;font-weight:600;color:#fff">Mark section verified · next §7</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1400}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

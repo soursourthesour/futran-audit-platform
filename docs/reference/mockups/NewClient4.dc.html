@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>New client: client contacts</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+.lbl{display:block;font-size:14px;font-weight:600;margin-bottom:6px}
+input[type=text],input[type=email],input[type=tel]{box-sizing:border-box;width:100%;min-height:44px;border:1px solid #C7CFDA;border-radius:6px;padding:10px 12px;font:inherit;font-size:15px;background:#fff;color:#16233A}
+input[type=checkbox],input[type=radio]{width:20px;height:20px;accent-color:#1B3A6B;margin:0;flex:none}
+.opt{display:flex;align-items:center;gap:10px;font-size:14.5px;min-height:36px}
+</style>
+</helmet>
+<div style="min-height:100vh">
+  <header style="background:#1B3A6B;color:#fff;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#0098D4"></div><div style="font-weight:700;font-size:17px">Futran Audit</div></div>
+    <div style="flex:1"></div>
+    <div style="font-size:13px;color:#C9D6EA">[Your name] · Auditor</div>
+  </header>
+  <main style="max-width:960px;margin:0 auto;padding:28px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:22px">
+    <div style="font-size:14px"><a href="Dashboard.dc.html">Audits</a> <span style="color:#5A6577">/ New client / ABC Corp</span></div>
+    <h1 style="margin:0;font-size:28px;font-weight:600">New client: ABC Corp</h1>
+    <ol aria-label="Wizard steps" style="list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;font-size:13.5px">
+      <li style="padding:10px 12px;border-radius:6px;background:#E3EEF9;color:#1B3A6B;font-weight:600">1 · Company ✓</li>
+      <li style="padding:10px 12px;border-radius:6px;background:#E3EEF9;color:#1B3A6B;font-weight:600">2 · Locations and laws ✓</li>
+      <li style="padding:10px 12px;border-radius:6px;background:#E3EEF9;color:#1B3A6B;font-weight:600">3 · Scope and team ✓</li>
+      <li style="padding:10px 12px;border-radius:6px;background:#1B3A6B;color:#fff;font-weight:600">4 · Client contacts</li>
+      <li style="padding:10px 12px;border-radius:6px;background:#fff;border:1px solid #D9DFE7;color:#3E4757">5 · Initiation package</li>
+    </ol>
+    <section style="background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:24px;display:flex;flex-direction:column;gap:16px">
+      <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px">
+        <h2 style="margin:0;font-size:19px;font-weight:600">Chief AI Compliance Officer</h2>
+        <span style="font-size:13px;font-weight:600;color:#1B3A6B">Required · receives the initiation package</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:18px">
+        <div><label class="lbl" for="cn">Full name *</label><input type="text" id="cn" placeholder="[Name]"></div>
+        <div><label class="lbl" for="ct">Job title *</label><input type="text" id="ct" placeholder="e.g. Head of Operations"></div>
+        <div><label class="lbl" for="ce">Work email *</label><input type="email" id="ce" placeholder="name@abc.com"></div>
+        <div><label class="lbl" for="cp">Phone</label><input type="tel" id="cp" placeholder="[Phone]"></div>
+      </div>
+    </section>
+    <section style="background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:24px;display:flex;flex-direction:column;gap:16px">
+      <div>
+        <h2 style="margin:0;font-size:19px;font-weight:600">Client Admin</h2>
+        <p style="margin:4px 0 0;font-size:14px;color:#5A6577">Creates departments and staff accounts on the client side. No access to audit content.</p>
+      </div>
+      <fieldset style="border:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:4px 24px">
+        <legend style="position:absolute;left:-9999px">Who is Client Admin</legend>
+        <label class="opt"><input type="radio" name="admin"> Same person as Chief AI Compliance Officer</label>
+        <label class="opt"><input type="radio" name="admin" checked> A different person</label>
+      </fieldset>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:18px">
+        <div><label class="lbl" for="an">Full name</label><input type="text" id="an" placeholder="[Name]"></div>
+        <div><label class="lbl" for="at">Job title</label><input type="text" id="at" placeholder="e.g. IT Manager"></div>
+        <div><label class="lbl" for="ae">Work email</label><input type="email" id="ae" placeholder="name@abc.com"></div>
+      </div>
+    </section>
+    <section style="background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:24px;display:flex;flex-direction:column;gap:16px">
+      <div>
+        <h2 style="margin:0;font-size:19px;font-weight:600">Optional roles</h2>
+        <p style="margin:4px 0 0;font-size:14px;color:#5A6577">Can be left blank; the client nominates them later from the roles note. They are not invited until named.</p>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px">
+        <div style="border:1px solid #E8ECF1;border-radius:6px;padding:16px;display:flex;flex-direction:column;gap:12px">
+          <div style="font-weight:600">Executive Sponsor</div>
+          <div><label class="lbl" for="sn">Full name</label><input type="text" id="sn" placeholder="e.g. CEO or owner"></div>
+          <div><label class="lbl" for="se">Work email</label><input type="email" id="se" placeholder="name@abc.com"></div>
+        </div>
+        <div style="border:1px solid #E8ECF1;border-radius:6px;padding:16px;display:flex;flex-direction:column;gap:12px">
+          <div style="font-weight:600">Data Protection Officer</div>
+          <div><label class="lbl" for="dn">Full name</label><input type="text" id="dn" placeholder="[Name]"></div>
+          <label class="opt"><input type="checkbox" checked> Not appointed: Chief AI Compliance Officer covers these duties</label>
+        </div>
+      </div>
+    </section>
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px">
+      <a href="NewClient3.dc.html" style="display:inline-flex;align-items:center;height:44px;padding:0 18px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;color:#16233A;text-decoration:none;font-weight:600;font-size:15px">Back</a>
+      <div style="display:flex;flex-wrap:wrap;gap:12px">
+        <button style="height:44px;padding:0 18px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:15px;font-weight:600;color:#16233A">Save draft and exit</button>
+        <a href="NewClient5.dc.html" style="display:inline-flex;align-items:center;height:44px;padding:0 22px;border-radius:6px;background:#1B3A6B;color:#fff;text-decoration:none;font-weight:600;font-size:15px">Next: initiation package</a>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

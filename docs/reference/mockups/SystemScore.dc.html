@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>System risk score</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-weight:600;color:#5A6577;font-size:12px;text-transform:uppercase;letter-spacing:0.4px;padding:8px 10px;border-bottom:1px solid #D9DFE7;white-space:nowrap}
+td{padding:10px;border-bottom:1px solid #E8ECF1}
+.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.bar{height:10px;border-radius:5px;background:#E8ECF1;position:relative;overflow:hidden}
+.dom{display:grid;grid-template-columns:minmax(0,1.4fr) 60px minmax(0,1fr) 54px 54px;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid #E8ECF1;font-size:14px}
+select,textarea{box-sizing:border-box;width:100%;border:1px solid #C7CFDA;border-radius:6px;padding:8px 10px;font:inherit;font-size:14px;background:#fff;color:#16233A}
+</style>
+</helmet>
+<div style="min-height:100vh">
+  <header style="background:#1B3A6B;color:#fff;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#0098D4"></div><div style="font-weight:700;font-size:17px">Futran Audit</div></div>
+    <div style="flex:1"></div>
+    <div style="font-size:13px;color:#C9D6EA">[Your name] · Lead Auditor</div>
+  </header>
+  <main style="max-width:1240px;margin:0 auto;padding:24px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px">
+    <div style="font-size:14px"><a href="Systems.dc.html">AI systems</a> <span style="color:#5A6577">/ <a href="SystemAssess.dc.html">SYS-001 ATS résumé screening</a> / Risk score</span></div>
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px">
+      <div><h1 style="margin:0;font-size:26px;font-weight:600">Risk score: ATS résumé screening</h1><p style="margin:6px 0 0;color:#5A6577;font-size:14.5px">Vendor-supplied · methodology v1.0 · recalculates on every answer change until locked</p></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+      <div style="background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:16px"><div style="font-size:13px;color:#5A6577;font-weight:600">Inherent risk</div><div style="font-size:32px;font-weight:600">76 <span style="font-size:15px;color:#5A6577;font-weight:500">/ 100</span></div><div style="font-size:13px;color:#5A6577">impact before controls</div></div>
+      <div style="background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:16px"><div style="font-size:13px;color:#5A6577;font-weight:600">Control maturity</div><div style="font-size:32px;font-weight:600">2.25 <span style="font-size:15px;color:#5A6577;font-weight:500">/ 5</span></div><div style="font-size:13px;color:#5A6577">vendor weights · effectiveness 31%</div></div>
+      <div style="background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:16px"><div style="font-size:13px;color:#5A6577;font-weight:600">Residual risk</div><div style="font-size:32px;font-weight:600">58.2</div><div style="font-size:13px;color:#5A6577">76 × (1 − 0.75 × 0.31)</div></div>
+      <div style="background:#FDECEC;border:2px solid #B42318;border-radius:8px;padding:16px"><div style="font-size:13px;color:#7A1A12;font-weight:600">Final rating</div><div style="font-size:32px;font-weight:700;color:#7A1A12">High</div><div style="font-size:13px;color:#7A1A12">score band High · 2 knock-outs</div></div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start">
+      <section style="flex:1 1 460px;background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:20px;box-sizing:border-box">
+        <h2 style="margin:0 0 4px;font-size:17px;font-weight:600">Inherent risk factors</h2>
+        <p style="margin:0 0 12px;font-size:13px;color:#5A6577">From §3.1–3.3 and §5.1 answers</p>
+        <div style="overflow-x:auto"><table>
+          <thead><tr><th>Factor</th><th>Answer</th><th class="num">Score</th><th class="num">Weight</th><th class="num">Points</th></tr></thead>
+          <tbody>
+            <tr><td>Decision type</td><td>Human-assisted</td><td class="num">3</td><td class="num">20%</td><td class="num">12</td></tr>
+            <tr><td>Consequence of error</td><td>Qualified candidate rejected</td><td class="num">4</td><td class="num">20%</td><td class="num">16</td></tr>
+            <tr><td>Protected classes</td><td>Yes</td><td class="num">5</td><td class="num">15%</td><td class="num">15</td></tr>
+            <tr><td>Data sensitivity</td><td>PII</td><td class="num">3</td><td class="num">15%</td><td class="num">9</td></tr>
+            <tr><td>Regulated context</td><td>NYC LL144, IL HB 3773</td><td class="num">5</td><td class="num">10%</td><td class="num">10</td></tr>
+            <tr><td>Volume</td><td>~2,000 / month</td><td class="num">3</td><td class="num">10%</td><td class="num">6</td></tr>
+            <tr><td>System type</td><td>Machine learning</td><td class="num">3</td><td class="num">5%</td><td class="num">3</td></tr>
+            <tr><td>Exposure</td><td>Client-facing decision</td><td class="num">5</td><td class="num">5%</td><td class="num">5</td></tr>
+            <tr><td colspan="4" style="font-weight:600">Inherent risk</td><td class="num" style="font-weight:700">76</td></tr>
+          </tbody>
+        </table></div>
+      </section>
+      <section style="flex:1 1 520px;background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:20px;box-sizing:border-box">
+        <h2 style="margin:0 0 4px;font-size:17px;font-weight:600">Control maturity by domain (§11)</h2>
+        <p style="margin:0 0 8px;font-size:13px;color:#5A6577">Proposed from evidence-confirmed checklist items; Lead Auditor sets final</p>
+        <div class="dom" style="font-size:12px;font-weight:600;color:#5A6577;text-transform:uppercase;letter-spacing:0.4px"><span>Domain</span><span>Weight</span><span>Final score</span><span class="num">Prop.</span><span class="num">Final</span></div>
+        <div class="dom"><span>Governance and accountability</span><span>15%</span><div class="bar" role="img" aria-label="3 of 5"><div style="width:60%;height:100%;background:#2E75B6"></div></div><span class="num">3</span><span class="num" style="font-weight:600">3</span></div>
+        <div class="dom"><span>Data governance and privacy</span><span>15%</span><div class="bar" role="img" aria-label="2 of 5"><div style="width:40%;height:100%;background:#2E75B6"></div></div><span class="num">2</span><span class="num" style="font-weight:600">2</span></div>
+        <div class="dom"><span>Vendor assurance (replaces §6.1, §6.3)</span><span>10%</span><div class="bar" role="img" aria-label="2 of 5"><div style="width:40%;height:100%;background:#2E75B6"></div></div><span class="num">2</span><span class="num" style="font-weight:600">2</span></div>
+        <div class="dom"><span>Bias, fairness and ethics</span><span>15%</span><div class="bar" role="img" aria-label="1 of 5"><div style="width:20%;height:100%;background:#B42318"></div></div><span class="num">1</span><span class="num" style="font-weight:600">1</span></div>
+        <div class="dom"><span>Human oversight and explainability</span><span>15%</span><div class="bar" role="img" aria-label="3 of 5"><div style="width:60%;height:100%;background:#2E75B6"></div></div><span class="num">3</span><span class="num" style="font-weight:600">3</span></div>
+        <div class="dom"><span>Security and monitoring</span><span>10%</span><div class="bar" role="img" aria-label="3 of 5"><div style="width:60%;height:100%;background:#2E75B6"></div></div><span class="num">2</span><span class="num" style="font-weight:600">3</span></div>
+        <div class="dom"><span>Incident management</span><span>5%</span><div class="bar" role="img" aria-label="2 of 5"><div style="width:40%;height:100%;background:#2E75B6"></div></div><span class="num">2</span><span class="num" style="font-weight:600">2</span></div>
+        <div class="dom" style="border-bottom:none"><span>Vendor and third-party AI risk</span><span>15%</span><div class="bar" role="img" aria-label="2 of 5"><div style="width:40%;height:100%;background:#2E75B6"></div></div><span class="num">2</span><span class="num" style="font-weight:600">2</span></div>
+        <p style="margin:8px 0 0;font-size:13px;color:#5A6577">Security raised from 2 to 3: "Pen test report covers vendor API; encryption confirmed" (within 1 point, no rationale required).</p>
+      </section>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start">
+      <section style="flex:1 1 460px;background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:20px;box-sizing:border-box;display:flex;flex-direction:column;gap:10px">
+        <h2 style="margin:0;font-size:17px;font-weight:600">Knock-out rules</h2>
+        <div style="display:flex;justify-content:space-between;gap:10px;font-size:14px;padding:8px 0;border-bottom:1px solid #E8ECF1"><span>No bias testing on a system affecting people (6.2.01)</span><strong style="color:#7A1A12;white-space:nowrap">Triggered · at least High</strong></div>
+        <div style="display:flex;justify-content:space-between;gap:10px;font-size:14px;padding:8px 0;border-bottom:1px solid #E8ECF1"><span>Null-compliance risk High (5.1a.05)</span><strong style="color:#7A1A12;white-space:nowrap">Triggered · at least High</strong></div>
+        <div style="display:flex;justify-content:space-between;gap:10px;font-size:14px;padding:8px 0;border-bottom:1px solid #E8ECF1"><span>PHI with a vendor and no BAA (5.3.02)</span><span style="color:#5A6577">N/A</span></div>
+        <div style="display:flex;justify-content:space-between;gap:10px;font-size:14px;padding:8px 0;border-bottom:1px solid #E8ECF1"><span>No legal basis for personal data (§5.2)</span><span style="color:#5A6577">Not triggered</span></div>
+        <div style="display:flex;justify-content:space-between;gap:10px;font-size:14px;padding:8px 0"><span>Fully automated, severe, no override (§3.3, 7.1.02)</span><span style="color:#5A6577">Not triggered</span></div>
+        <p style="margin:0;font-size:12.5px;color:#5A6577">Bands: Critical ≥ 75 · High 50–74.9 · Medium 25–49.9 · Low under 25</p>
+      </section>
+      <section style="flex:1 1 400px;background:#fff;border:2px solid #1B3A6B;border-radius:8px;padding:20px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px">
+        <h2 style="margin:0;font-size:17px;font-weight:600">Lead Auditor rating</h2>
+        <div><label for="fr" style="display:block;font-size:13px;font-weight:600;margin-bottom:4px">Final rating</label><select id="fr"><option>High (as computed)</option><option>Critical (raise)</option><option>Medium (lower)</option></select></div>
+        <div><label for="rat" style="display:block;font-size:13px;font-weight:600;margin-bottom:4px">Rationale (required if changed)</label><textarea id="rat" rows="2" placeholder="Why the final rating differs from the computed rating"></textarea></div>
+        <button style="height:46px;border-radius:6px;border:1px solid #1B3A6B;background:#1B3A6B;font:inherit;font-size:15px;font-weight:600;color:#fff">Approve score and lock system</button>
+        <p style="margin:0;font-size:12.5px;color:#5A6577;line-height:1.5">Locking is part of sign-off 5. The engagement rating takes the highest final system rating.</p>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1250}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

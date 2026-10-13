@@ -1,0 +1,1135 @@
+FUTRAN SOLUTIONS
+AI System Governance Audit
+Client Assessment Template &amp; Procedure Guide
+Version 1.0  |  Effective 2026  |  Confidential
+CLIENT ORGANIZATION
+[Enter Client Name]
+AUDIT REFERENCE NO.
+FSL-AI-AUD-[YYYY]-[NNN]
+LEAD AUDITOR
+[Futran Auditor Name &amp; Title]
+AUDIT PERIOD
+[Start Date]  →  [End Date]
+INDUSTRY VERTICAL
+[ ] BFSI   [ ] Healthcare   [ ] Insurance   [ ] Public Sector
+APPLICABLE FRAMEWORKS
+[ ] NIST AI RMF   [ ] EU AI Act   [ ] DPDP   [ ] HIPAA   [ ] SOC 2
+AUDIT STATUS
+[ ] Draft   [ ] In Review   [ ] Final   [ ] Accepted
+OVERALL RISK RATING
+[ ] Low   [ ] Medium   [ ] High   [ ] Critical
+INTERN GUIDE: Read the Procedure Notes in grey boxes before filling each section. Never skip a field — write N/A with a reason if not applicable.
+HOW TO USE THIS DOCUMENT — INTERN GUIDE
+PURPOSE
+This document is the official Futran Solutions AI Governance Audit Template. You will complete one copy per client engagement. Every section must be filled in. If information is genuinely unavailable, write the specific reason — never leave blanks.
+What You Are Doing and Why
+An AI Governance Audit assesses whether a client's AI systems are built, deployed, and monitored in a responsible, safe, and legally compliant manner. Our clients — banks, hospitals, insurers, government agencies — use AI to make decisions that affect people's money, health, and rights. Your job is to gather enough documented evidence that a senior Futran consultant can form a defensible opinion about the maturity and risk level of each AI system.
+Your Role as the Auditor / Intern
+You do not need to be an AI engineer. You need to ask the right questions, record the answers accurately, and flag anything that seems incomplete, contradictory, or missing. When in doubt, ask the client to show you the document — not just describe it.
+The Five-Step Audit Process
+Step
+Activity
+What You Produce
+Who Reviews
+Timeline
+1
+Pre-Engagement Preparation — receive scope, send document request list, schedule interviews
+Completed Document Request List (Appendix A); Interview Schedule
+Futran Engagement Manager
+Week 1
+2
+Document Review — collect and review all client-provided policies, architecture docs, test reports
+Document Review Log (Section 2); Gaps flagged in red
+Lead Auditor
+Week 1–2
+3
+Field Interviews — conduct structured interviews with AI owners, data engineers, compliance leads
+Completed Interview Records (Sections 3–9)
+Lead Auditor
+Week 2–3
+4
+Evidence Validation — cross-check interview answers against documents; request missing items
+Evidence Matrix (Section 10); Finding Log
+Lead Auditor + Reviewer
+Week 3
+5
+Findings &amp; Reporting — summarize findings, assign risk ratings, draft recommendations
+Completed Audit Report (Sections 10–12); Client Presentation
+Engagement Manager
+Week 4
+Colour &amp; Symbol Key Used in This Template
+Symbol / Colour
+Meaning
+Action Required
+[REQUIRED]
+Field is mandatory — must be completed
+Complete before submitting draft to Lead Auditor
+[IF APPLICABLE]
+Complete only if the item applies to this client
+Mark N/A with reason if not applicable
+[INTERN NOTE: ...]
+Grey italic text — guidance for you on what to look for
+Read carefully before filling the field above it
+☐ Checkbox
+Tick when the item is confirmed with evidence
+Do not tick unless you have seen the evidence
+Risk: High / Medium / Low
+Risk classification of a finding
+Determined by Lead Auditor — you propose, they confirm
+Golden Rules for Every Interview
+Always ask: 'Can you show me the document that confirms this?' — verbal assurances are not evidence.
+If the client says 'we plan to' or 'we will', record it as NOT YET IN PLACE.
+Record the name and title of every person who provides information.
+If you receive a document you do not understand, log it and flag for the Lead Auditor — never guess.
+Do not share draft findings with the client before the Lead Auditor approves them.
+1
+Client &amp; Engagement Profile
+Complete in Week 1 during the kick-off meeting. Every field is required.
+INTERN NOTE
+Fill this section during or immediately after the kick-off meeting. Ask the client's Project Lead to confirm all details in writing (email is acceptable). If the organization has multiple AI systems, you will need a separate copy of Sections 3–9 for each system.
+1.1 Client Organization Details
+Legal Entity Name [REQUIRED]
+Full registered name of the organization
+Trading Name (if different)
+Name used publicly / on website
+Primary Industry [REQUIRED]
+e.g., Banking, Healthcare, Property &amp; Casualty Insurance, Federal Agency
+Head Office Address [REQUIRED]
+Street, City, State, Country, ZIP
+Primary Jurisdiction(s) of Operation [REQUIRED]
+List all countries/states where AI systems are deployed
+Annual Revenue (approximate)
+Used to calibrate potential regulatory penalty exposure — ask Finance contact
+Number of Employees
+Total headcount
+Number of AI Systems in Scope [REQUIRED]
+Count only those included in this audit
+Client Project Lead Name &amp; Title [REQUIRED]
+The person responsible for the audit on the client side
+Client Project Lead Email &amp; Phone [REQUIRED]
+Direct contact details
+Client Technical Lead Name &amp; Title
+The engineer / architect who can answer technical questions
+Client Compliance Lead Name &amp; Title
+The person responsible for regulatory compliance
+1.2 Futran Engagement Team
+Futran Engagement Manager [REQUIRED]
+Name, title, email
+Lead Auditor [REQUIRED]
+Name, title, email — the Futran person accountable for audit quality
+Assisting Auditor / Intern [REQUIRED]
+Your name and title
+Legal / Compliance Reviewer
+Name of Futran or retained counsel reviewing regulatory findings
+Engagement Start Date [REQUIRED]
+Target Draft Report Date [REQUIRED]
+Target Final Report Date [REQUIRED]
+Audit Methodology Version
+Futran AI Audit Procedure v1.0 (update if newer version released)
+1.3 Scope &amp; Boundaries
+INTERN NOTE
+Scope defines what IS and IS NOT included. This is critical — findings only apply to systems in scope. If the client tries to add systems mid-audit, flag immediately to the Engagement Manager.
+AI Systems Included in Scope [REQUIRED]
+List each system by name, e.g., 'Claims Automation Engine v2.1', 'Credit Scoring Model'
+AI Systems Explicitly Excluded
+Name excluded systems and the reason for exclusion
+Business Processes in Scope [REQUIRED]
+e.g., Underwriting, Loan Origination, Diagnostics, Fraud Detection
+Data Environments in Scope [REQUIRED]
+Production / UAT / Dev — specify which
+Geographic Scope [REQUIRED]
+Jurisdictions whose data or users are touched by in-scope systems
+Regulatory Frameworks in Scope [REQUIRED]
+Tick all: [ ] NIST AI RMF  [ ] EU AI Act  [ ] DPDP  [ ] HIPAA  [ ] GDPR  [ ] SOC 2  [ ] ISO 27001  [ ] RBI FREE-AI  [ ] Other: _____
+Exclusions &amp; Limitations
+Any agreed limitations on access, testing, or data review
+2
+Document Review Log
+Record every document you request and receive. Missing documents = findings.
+INTERN NOTE
+Send the Document Request List (see Appendix A) to the client at least 5 business days before fieldwork begins. Log every document here. If a document is not received, write the date you chased it and escalate to the Lead Auditor after 3 business days.
+2.1 Document Receipt Register
+Document Name / Description
+Category
+Requested
+Received
+Status
+Finding Ref
+AI Use Policy / Acceptable Use Policy
+[ ] Received [ ] Pending [ ] Not Available
+F-___
+AI Risk Classification Framework
+[ ] Received [ ] Pending [ ] Not Available
+F-___
+Model Cards for each AI system
+[ ] Received [ ] Pending [ ] Not Available
+F-___
+Training Data Inventory / Lineage Documentation
+[ ] Received [ ] Pending [ ] Not Available
+F-___
+Data Flow Diagrams (showing AI system data inputs/outputs)
+[ ] Received [ ] Pending [ ] Not Available
+F-___
+Model Validation / Testing Reports (incl. bias testing)
+[ ] Received [ ] Pending [ ] Not Available
+F-___
+Model Monitoring Logs (last 6 months)
+[ ] Received [ ] Pending [ ] Not Available
+F-___
+Incident &amp; Anomaly Reports related to AI systems
+[ ] Received [ ] Pending [ ] Not Available
+F-___
+Vendor AI Agreements / Business Associate Agreements (BAAs)
+[ ] Received [ ] Pending [ ] Not Available
+F-___
+AI Ethics Committee Charter or equivalent governance body minutes
+[ ] Received [ ] Pending [ ] Not Available
+F-___
+DPIA / AI Impact Assessment for each system
+[ ] Received [ ] Pending [ ] Not Available
+F-___
+Privacy Policy (current version)
+[ ] Received [ ] Pending [ ] Not Available
+F-___
+Information Security Policy
+[ ] Received [ ] Pending [ ] Not Available
+F-___
+Change Management / Model Update Procedures
+[ ] Received [ ] Pending [ ] Not Available
+F-___
+Human Oversight Protocols / Escalation Procedures
+[ ] Received [ ] Pending [ ] Not Available
+F-___
+Employee AI Training Records
+[ ] Received [ ] Pending [ ] Not Available
+F-___
+Client Disclosure Notices (where AI is used in client-facing decisions)
+[ ] Received [ ] Pending [ ] Not Available
+F-___
+Regulatory Correspondence related to AI (if any)
+[ ] Received [ ] Pending [ ] Not Available
+F-___
+Third-Party Audit or Penetration Test Reports (last 12 months)
+[ ] Received [ ] Pending [ ] Not Available
+F-___
+Board / Executive AI Governance Minutes
+[ ] Received [ ] Pending [ ] Not Available
+F-___
+3
+AI System Inventory
+Complete one copy of this section per AI system in scope.
+INTERN NOTE
+You must complete this section for EVERY AI system in scope. If there are 3 systems, make 3 copies of this section labeled 3A, 3B, 3C. The system name you record here becomes the reference throughout the rest of the audit. Ask to see the architecture diagram — do not rely on a verbal description alone.
+3.1 System Identification
+System Name (Official) [REQUIRED]
+The name used in technical documentation — not a nickname
+System Reference ID [REQUIRED]
+Internal system ID, e.g., SYS-042 — used for cross-referencing
+System Version Audited [REQUIRED]
+The specific version / release deployed in production at time of audit
+System Owner — Name &amp; Title [REQUIRED]
+The business person accountable for this system
+System Owner — Department [REQUIRED]
+e.g., Credit Risk, Claims Operations, Clinical Analytics
+Technical Owner / Lead Engineer [REQUIRED]
+The engineer responsible for model maintenance
+Date Deployed to Production [REQUIRED]
+First production go-live date
+Date of Last Major Update
+Most recent version change in production
+Date of Last Audit / Review
+Prior audit date — write 'Never' if none
+System Classification [REQUIRED]
+[ ] Internal Tool Only  [ ] Client-Facing Decision System  [ ] Regulatory Reporting  [ ] Both Internal &amp; External
+3.2 AI/ML Technology Profile
+INTERN NOTE
+Ask the Technical Owner to walk you through the system architecture. If they use terms you do not know, write them down exactly and flag for the Lead Auditor. Do not guess at AI types — each has different risk implications.
+AI System Type [REQUIRED]
+[ ] Machine Learning (ML)  [ ] Deep Learning / Neural Network  [ ] Generative AI / LLM  [ ] Rule-Based / Expert System  [ ] Computer Vision  [ ] NLP  [ ] Agentic AI  [ ] Other: _____
+Model Architecture
+e.g., Random Forest, XGBoost, GPT-based, BERT, CNN, Transformer — ask Technical Owner
+Foundation Model Used (if GenAI)
+e.g., GPT-4o, Claude, Gemini, Llama — include version
+Model Built By [REQUIRED]
+[ ] Developed in-house  [ ] Purchased from vendor  [ ] Open-source with customization  [ ] Hybrid — describe: _____
+Vendor Name (if purchased)
+Full legal name of AI vendor
+Cloud / Hosting Environment [REQUIRED]
+[ ] AWS  [ ] Azure  [ ] GCP  [ ] On-Premise  [ ] Hybrid — specify region(s)
+Programming Languages / Frameworks
+e.g., Python/TensorFlow, Python/PyTorch, R — ask Technical Owner
+Training Data Sources [REQUIRED]
+List all data sources used to train the model — see Data Section 5 for detail
+Inference Environment
+Where predictions are generated — same cloud? edge device? API call?
+External APIs / Services Called
+Any third-party services the system calls at runtime — e.g., OpenAI API, AWS Rekognition
+3.3 Business Use &amp; Decision Impact
+INTERN NOTE
+This is the most important section for risk classification. The higher the impact of the AI's decisions on people (credit denial, diagnosis, insurance exclusion), the higher the inherent risk and the stricter the governance requirements under HIPAA, EU AI Act, and other frameworks.
+Business Purpose [REQUIRED]
+Plain English: what does this system do? What decision does it inform or make?
+Decision Type [REQUIRED]
+[ ] Fully Automated Decision (no human review)  [ ] Human-Assisted (AI recommends, human decides)  [ ] Alert/Flag Only (human investigates)  [ ] Analytics/Reporting Only (no direct decisions)
+Population Affected [REQUIRED]
+Who is affected by this system's outputs? e.g., 'loan applicants', 'patients', 'insurance claimants'
+Estimated Number of Decisions/Month
+How many times per month does this system produce an output used in a decision?
+Consequence of Incorrect Output [REQUIRED]
+What is the worst realistic outcome if the system produces a wrong answer? e.g., 'Loan wrongly denied', 'Cancer missed in scan'
+Is This System Used in a Regulated Context? [REQUIRED]
+[ ] Yes — specify regulation(s): _____   [ ] No
+Does System Output Affect Protected Classes?
+[ ] Yes — e.g., race, gender, age, disability, religion  [ ] No  [ ] Unknown
+EU AI Act Risk Classification [IF APPLICABLE]
+[ ] Unacceptable (Prohibited)  [ ] High Risk  [ ] Limited Risk  [ ] Minimal Risk  — justify below
+NIST AI RMF Risk Tier
+[ ] Tier 1 (Minimal)  [ ] Tier 2 (Managed)  [ ] Tier 3 (Defined)  [ ] Tier 4 (Quantitatively Managed) — justify below
+Risk Classification Justification [REQUIRED]
+Explain why you assigned the above classifications — what factors drove the rating?
+4
+AI Governance &amp; Accountability
+Assess whether the organization has the structures, policies, and ownership to govern AI responsibly.
+INTERN NOTE
+Good governance means the RIGHT people are accountable, policies EXIST in writing, and there are PROCESSES — not just intentions. Always ask: 'Who is accountable if this system causes harm?' If no one has a clear answer, that is a High finding.
+4.1 Governance Structure
+AI Governance Body [REQUIRED]
+Does a formal AI ethics committee, AI steering committee, or equivalent exist?  [ ] Yes  [ ] No  [ ] In Progress
+Committee Name &amp; Chair
+Full name of the governance body and its chair
+Meeting Frequency
+How often does this body meet? Request last 3 sets of minutes.
+Board-Level AI Oversight [REQUIRED]
+Is there a board member or executive with named accountability for AI governance?  [ ] Yes — Name: _____  [ ] No
+AI Policy Owner [REQUIRED]
+Name and title of the person who owns the AI Use Policy
+AI Use Policy — Exists? [REQUIRED]
+[ ] Yes — Date last updated: _____  [ ] Draft  [ ] No — FINDING
+AI Use Policy — Covers Employees? [REQUIRED]
+Does the policy govern how employees use AI tools (e.g., ChatGPT, Copilot)?  [ ] Yes  [ ] No
+AI Use Policy — Covers Client-Facing AI? [REQUIRED]
+Does the policy cover AI used in decisions affecting clients/patients/applicants?  [ ] Yes  [ ] No
+AI Risk Appetite Statement
+Has the board or senior management approved a statement of acceptable AI risk?  [ ] Yes  [ ] No  [ ] Informal only
+AI Incident Escalation Path [REQUIRED]
+Who does an employee call if an AI system produces a harmful or unexpected output? Write the process.
+4.2 Roles &amp; Responsibilities
+INTERN NOTE
+In many organizations, AI accountability is vague — 'the data science team' owns everything. Press for specific named individuals. A RACI (Responsible, Accountable, Consulted, Informed) matrix for AI is a sign of maturity.
+AI Product Owner / Business Sponsor
+Who in the business is accountable for each AI system's outcomes?
+Model Risk Manager (if applicable)
+Especially relevant in BFSI — name of model risk function owner
+Data Steward / Data Owner [REQUIRED]
+Who is accountable for the quality and provenance of training data?
+AI Ethics / Responsible AI Lead
+Is there a named person responsible for ethical AI assessment?  [ ] Yes — Name: _____  [ ] No
+Security Owner for AI Systems
+Who owns the cybersecurity posture of AI infrastructure?
+Privacy Officer / DPO [REQUIRED]
+Name of the Data Protection Officer or Privacy Officer
+Third-Party AI Oversight Owner
+Who manages the relationships with external AI vendors?
+RACI Matrix Exists for AI?
+[ ] Yes — request copy  [ ] No  [ ] Partial
+4.3 Governance Checklist
+✓
+Audit Check Item
+Auditor Notes / Evidence Ref
+☐
+A formal written AI Use Policy exists and is reviewed at least annually
+Auditor note / evidence ref
+☐
+All employees with AI access have signed acknowledgement of the AI Use Policy
+Auditor note / evidence ref
+☐
+A named executive is accountable for AI governance outcomes
+Auditor note / evidence ref
+☐
+An AI governance committee or steering body meets at least quarterly
+Auditor note / evidence ref
+☐
+Minutes of AI governance meetings are formally recorded and retained
+Auditor note / evidence ref
+☐
+There is a documented AI incident response procedure
+Auditor note / evidence ref
+☐
+AI projects require formal approval before moving to production
+Auditor note / evidence ref
+☐
+Third-party AI vendors are subject to vendor risk management assessment
+Auditor note / evidence ref
+☐
+A process exists to retire or decommission AI systems that become unsafe or outdated
+Auditor note / evidence ref
+☐
+AI governance requirements are included in employee onboarding training
+Auditor note / evidence ref
+5
+Data Governance &amp; Privacy (incl. HIPAA / GDPR / DPDP)
+Assess how personal and sensitive data is collected, used, stored, and protected in AI systems.
+INTERN NOTE
+This section covers the most legally sensitive area of AI governance. HIPAA protects US health data. GDPR protects EU personal data. India's DPDP Act protects Indian personal data. The client may be subject to one, two, or all three. Ask which regulations apply BEFORE filling this section. Anything touching health data, financial data, or biometrics is automatically high-sensitivity.
+5.1 Data Inventory &amp; Classification
+Data Types Used in Training [REQUIRED]
+List every category: e.g., personal names, DOB, financial transactions, medical records, biometric data, IP addresses, behavioral data
+Does Training Data Include PHI (Protected Health Information)?
+PHI includes: names, dates of birth, medical record numbers, diagnosis codes, prescriptions, anything that could identify a patient  [ ] Yes  [ ] No  [ ] Unknown — FINDING
+Does Training Data Include PII?
+PII includes: name, address, SSN, email, phone, financial account numbers  [ ] Yes  [ ] No
+Does Training Data Include Special Category Data?
+Under GDPR: racial/ethnic origin, political opinions, biometric data, health data, sexual orientation  [ ] Yes  [ ] No  [ ] Unknown
+Data Classification Policy Exists?
+[ ] Yes — request copy  [ ] No — FINDING
+Data Inventory / Data Catalog Maintained?
+Does the organization maintain a formal inventory of all datasets used in AI?  [ ] Yes  [ ] No  [ ] Informal
+Data Retention Period
+How long is training data retained? Is this documented and enforced?
+Data Deletion / Model Unlearning Capability
+If a data subject requests deletion, can the organization remove that individual's data from the model?  [ ] Yes  [ ] No  [ ] Partial — explain
+5.2 Legal Basis &amp; Consent
+INTERN NOTE
+Every use of personal data in an AI system must have a legal basis. Under GDPR and DPDP, this is usually consent, contract, or legitimate interest. Under HIPAA, the data must be used for Treatment, Payment, or Operations (TPO) or the patient must have signed an Authorization. If no legal basis is documented, that is a Critical finding.
+Legal Basis for Processing — GDPR [IF APPLICABLE]
+[ ] Consent  [ ] Contract  [ ] Legal Obligation  [ ] Vital Interests  [ ] Public Task  [ ] Legitimate Interests — document which applies per data type
+Legal Basis for Processing — HIPAA [IF APPLICABLE]
+[ ] Treatment  [ ] Payment  [ ] Healthcare Operations  [ ] Patient Authorization  [ ] Other HIPAA exception — specify
+Legal Basis for Processing — DPDP [IF APPLICABLE]
+[ ] Consent  [ ] Certain Legitimate Uses (law enforcement, public health)  [ ] Government purpose — specify
+Consent Mechanism [IF APPLICABLE]
+How is consent obtained? [ ] Online form  [ ] Paper  [ ] Implied  [ ] None — if 'None', explain legal basis
+Consent Records Retained?
+[ ] Yes — for how long? _____  [ ] No  [ ] Not applicable — justify
+Privacy Notice Updated to Cover AI?
+Does the organization's privacy notice disclose that AI is used in decisions?  [ ] Yes  [ ] No — FINDING
+Data Subject Rights Handled?
+Can individuals access, correct, or delete their data?  [ ] Yes — process exists  [ ] No  [ ] Partial
+Cross-Border Data Transfers
+Is training or inference data transferred across jurisdictions?  [ ] Yes — mechanism: _____  [ ] No
+5.3 HIPAA-Specific Assessment [COMPLETE IF HEALTH DATA IS IN SCOPE]
+INTERN NOTE
+If this client is a US healthcare provider, payer, or their business associate, HIPAA applies to any AI system touching PHI. Fill every row. If any question is answered 'No', create a finding immediately.
+Is the Organization a HIPAA Covered Entity?
+[ ] Healthcare Provider  [ ] Health Plan / Payer  [ ] Healthcare Clearinghouse  [ ] Not a Covered Entity
+Is the AI Vendor a Business Associate?
+If the AI vendor processes PHI on behalf of the client, they MUST have a signed BAA  [ ] Yes — BAA in place  [ ] Yes — BAA NOT in place (CRITICAL FINDING)  [ ] No
+BAA Date Signed
+Date the BAA was executed — check it covers AI use specifically
+PHI Minimum Necessary Standard
+Does the AI system use only the minimum PHI necessary for its purpose?  [ ] Yes — documented  [ ] No  [ ] Unknown
+PHI De-identification Method
+[ ] Expert Determination  [ ] Safe Harbor (18 identifiers removed)  [ ] Not de-identified (must have legal basis)  [ ] N/A
+Audit Logs for PHI Access
+Are all accesses to PHI by the AI system logged and retained for 6 years?  [ ] Yes  [ ] No — FINDING
+HIPAA Security Rule Compliance
+[ ] Access controls in place  [ ] Encryption at rest  [ ] Encryption in transit  [ ] Workforce training completed  [ ] Emergency access procedure exists
+Breach Notification Procedure
+If the AI system causes a PHI breach, what is the notification process? Is it within HIPAA's 60-day window?
+HIPAA Risk Analysis Last Completed
+Date: _____  — Must include AI systems; if more than 12 months ago, flag as finding
+5.4 Data Governance Checklist
+✓
+Audit Check Item
+Auditor Notes / Evidence Ref
+☐
+A formal Data Classification Policy exists covering AI training data
+Auditor note / evidence ref
+☐
+All personal data used in AI training has a documented legal basis
+Auditor note / evidence ref
+☐
+Consent records are retained for the minimum required period
+Auditor note / evidence ref
+☐
+The organization's Privacy Notice discloses AI use in decisions
+Auditor note / evidence ref
+☐
+Data subject access and deletion requests can be fulfilled within regulatory deadlines
+Auditor note / evidence ref
+☐
+Cross-border data transfers are covered by appropriate safeguards (SCCs, adequacy decision, etc.)
+Auditor note / evidence ref
+☐
+HIPAA Business Associate Agreements are in place with all AI vendors processing PHI (if applicable)
+Auditor note / evidence ref
+☐
+PHI in AI systems is limited to the minimum necessary for the stated purpose
+Auditor note / evidence ref
+☐
+A Data Protection Impact Assessment (DPIA) has been completed for high-risk AI systems
+Auditor note / evidence ref
+☐
+Training data is deleted or anonymized when no longer needed
+Auditor note / evidence ref
+☐
+Data lineage is documented from source to AI model training
+Auditor note / evidence ref
+☐
+Third-party datasets are licensed for AI use — licensing agreements reviewed
+Auditor note / evidence ref
+6
+Model Development, Testing &amp; Validation
+Assess how AI models are built, tested for bias, validated, and approved before production.
+INTERN NOTE
+A model that has never been tested for bias or validated by an independent party is a significant risk. In regulated industries, model validation is mandatory (OCC SR 11-7, RBI FREE-AI, EU AI Act). Ask to see the actual test reports — not a summary from the developer who built the model.
+6.1 Model Development Process
+Model Development Methodology [REQUIRED]
+[ ] Agile / Iterative  [ ] Waterfall  [ ] MLOps pipeline  [ ] No formal methodology — FINDING
+Model Card / Model Documentation Exists?
+A Model Card describes what a model does, its limitations, and its performance characteristics  [ ] Yes — request copy  [ ] No — FINDING for high-risk systems
+Feature Engineering Documentation
+Are the input features (variables) used by the model documented with their sources and rationale?  [ ] Yes  [ ] No
+Training / Validation / Test Split
+What percentage of data is used for training vs. validation vs. test?  ___% / ___% / ___%
+Hyperparameter Tuning Method
+How were model parameters optimized? e.g., Grid Search, Random Search, Bayesian — ask Technical Owner
+Explainability / Interpretability Method
+[ ] SHAP values  [ ] LIME  [ ] Feature importance scores  [ ] Rule extraction  [ ] None — flag if high-risk
+Model Reproducibility
+If the model were retrained today on the same data, would it produce the same results?  [ ] Yes  [ ] No  [ ] Unknown
+Change Management for Model Updates
+Describe the process when the model is updated — is there a formal approval gate before deployment?
+6.2 Bias, Fairness &amp; Ethics Testing
+INTERN NOTE
+Bias testing checks whether the model treats different groups differently. Ask to see the bias test results by demographic group. If they only tested overall accuracy (e.g., '95% accurate') but not accuracy by gender, race, or age, that is a finding. The EU AI Act and US state laws both require this for high-risk systems.
+Bias Testing Performed? [REQUIRED]
+[ ] Yes  [ ] No — FINDING for any system affecting people  [ ] Planned
+Bias Testing Date
+When was the last bias test conducted?
+Bias Testing Tool/Method
+e.g., IBM AI Fairness 360, Microsoft Fairlearn, manual analysis, third-party audit
+Protected Attributes Tested
+List the demographic groups tested: e.g., gender, race/ethnicity, age, disability status, national origin
+Bias Test Results
+Summarize findings — e.g., 'Model approved loans at 82% rate for Group A vs. 71% for Group B'
+Disparate Impact Ratio
+Calculate: (Selection rate of less-favored group) / (Selection rate of favored group) — threshold is typically 80% (4/5ths rule)  Result: _____
+Remediation Actions Taken
+If bias was found, what was done? e.g., resampling, re-weighting, model redesign, human review overlay
+Ongoing Bias Monitoring
+Is bias monitored continuously in production?  [ ] Yes — frequency: _____  [ ] No — FINDING
+Ethics Review Conducted
+Was the AI system reviewed by an ethics committee or responsible AI team before launch?  [ ] Yes  [ ] No  [ ] Not applicable
+6.3 Independent Model Validation
+INTERN NOTE
+Independent validation means someone OTHER than the team that built the model reviews it. This is required by OCC SR 11-7 for banking models in the US, RBI FREE-AI for Indian banks, and EU AI Act for high-risk systems. A developer reviewing their own model is NOT independent validation.
+Independent Validation Required? [REQUIRED]
+Based on regulatory context: [ ] Yes — required  [ ] No — not required  [ ] Unclear — escalate to Lead Auditor
+Validation Performed? [REQUIRED]
+[ ] Yes — by internal model risk team  [ ] Yes — by external third party  [ ] No — FINDING if required  [ ] Partial
+Validator Name &amp; Organization
+Who conducted the validation? Internal team name or external firm name
+Validation Date
+Date validation was completed
+Validation Report — Obtained?
+[ ] Yes — log in Document Register  [ ] No — request immediately
+Key Validation Findings
+Summarize the main issues found during validation and their resolution status
+Validation Frequency
+How often is the model re-validated?  [ ] Annually  [ ] After major changes  [ ] Never  [ ] Ad hoc — flag if inadequate
+Validation Covers Bias?
+Does the validation explicitly assess fairness and bias?  [ ] Yes  [ ] No — FINDING
+6.4 Model Development Checklist
+✓
+Audit Check Item
+Auditor Notes / Evidence Ref
+☐
+A Model Card or equivalent technical documentation exists for each AI system
+Auditor note / evidence ref
+☐
+Training data is documented including source, date, size, and any known limitations
+Auditor note / evidence ref
+☐
+The model has been tested for bias across all relevant protected attributes
+Auditor note / evidence ref
+☐
+Disparate impact analysis results are documented and within acceptable thresholds
+Auditor note / evidence ref
+☐
+An independent validation has been conducted by a party not involved in development
+Auditor note / evidence ref
+☐
+Model validation reports are retained and available for regulatory inspection
+Auditor note / evidence ref
+☐
+A formal change management process governs model updates and retraining
+Auditor note / evidence ref
+☐
+Model performance metrics are tracked over time (not just at launch)
+Auditor note / evidence ref
+☐
+The model can be explained to affected individuals in plain language if required
+Auditor note / evidence ref
+☐
+An ethics review was conducted before the model was deployed to production
+Auditor note / evidence ref
+7
+Human Oversight &amp; Explainability
+Assess whether humans can understand, challenge, and override AI decisions.
+INTERN NOTE
+Human oversight is one of the core requirements of the EU AI Act for high-risk systems and NIST AI RMF for all AI. In healthcare, a fully automated diagnostic AI with no physician review is extremely high risk. Ask to see a real decision workflow — not a slide deck version of it.
+7.1 Human-in-the-Loop Design
+Decision Workflow [REQUIRED]
+Describe step by step: (1) AI produces output → (2) What happens next? Who sees it? What do they do?
+Can a Human Override the AI? [REQUIRED]
+[ ] Yes — always  [ ] Yes — in specific circumstances (describe)  [ ] No — FINDING for high-impact systems
+Override Process Documented?
+Is the override process written down and trained?  [ ] Yes  [ ] No
+Override Rate (last 6 months)
+What % of AI decisions are overridden by humans? A very low rate may mean oversight is rubber-stamping.
+Escalation Path for Edge Cases
+What happens when the AI encounters a case it cannot handle confidently?
+Human Reviewer Training
+Are the humans who review AI outputs trained on how to interpret and challenge them?  [ ] Yes  [ ] No  [ ] Informal
+Time Pressure on Human Review
+Are reviewers given adequate time to review AI outputs, or are productivity targets creating a rubber-stamp environment?
+Right to Human Review (if applicable)
+Under GDPR Art. 22 and DPDP, individuals may have the right to not be subject to solely automated decisions — is this honored?
+7.2 Explainability to Affected Individuals
+Can Decisions Be Explained? [REQUIRED]
+If a loan is denied, claim rejected, or medical flag raised by AI, can the organization explain WHY in plain language?  [ ] Yes  [ ] No — FINDING
+Explanation Format
+How is the explanation provided?  [ ] Automated letter  [ ] Human agent call  [ ] Online portal  [ ] Not provided — FINDING
+Adverse Action Notices (BFSI)
+US law requires adverse action notices for credit decisions — do AI-driven denials include required disclosures?  [ ] Yes  [ ] No  [ ] N/A
+Explanation Tested with Users
+Has the organization tested whether affected individuals actually understand the explanations provided?  [ ] Yes  [ ] No
+Regulatory Disclosure — AI Used
+Are clients/patients/applicants informed that AI is involved in decisions affecting them?  [ ] Yes  [ ] No  [ ] Partial
+7.3 Human Oversight Checklist
+✓
+Audit Check Item
+Auditor Notes / Evidence Ref
+☐
+Every high-impact AI decision has a defined human review step before action is taken
+Auditor note / evidence ref
+☐
+Human reviewers are trained specifically on how to review and challenge AI outputs
+Auditor note / evidence ref
+☐
+A documented process exists for humans to override or escalate AI decisions
+Auditor note / evidence ref
+☐
+Override decisions are logged with the reason and reviewer identity
+Auditor note / evidence ref
+☐
+Affected individuals can request a human review of AI-driven decisions
+Auditor note / evidence ref
+☐
+The organization can provide a plain-language explanation for every AI-driven decision
+Auditor note / evidence ref
+☐
+Automated adverse action notices include required disclosures about AI use (BFSI)
+Auditor note / evidence ref
+☐
+The time allocated for human review is sufficient to enable genuine oversight
+Auditor note / evidence ref
+☐
+AI systems are designed to express confidence levels / uncertainty — not just binary outputs
+Auditor note / evidence ref
+☐
+The organization monitors override rates to detect rubber-stamping or disuse of oversight
+Auditor note / evidence ref
+8
+Security, Monitoring &amp; Incident Management
+Assess how AI systems are secured, continuously monitored, and how incidents are managed.
+INTERN NOTE
+AI systems face unique security threats: data poisoning (corrupting training data), adversarial attacks (inputs designed to fool the model), model theft (extracting model weights), and prompt injection (in GenAI systems). Ask the Security Owner if they have specifically tested for these — not just general IT security.
+8.1 AI-Specific Security Controls
+Data Poisoning Controls
+Are controls in place to detect and prevent malicious manipulation of training data?  [ ] Yes  [ ] No  [ ] Unknown
+Adversarial Attack Testing
+Has the system been tested with adversarial inputs designed to cause misclassification?  [ ] Yes  [ ] No
+Model Access Controls [REQUIRED]
+Who can access the model weights, training data, and API endpoints?  Are access controls documented and enforced?
+API Security (if model is served via API)
+[ ] API authentication (keys/OAuth)  [ ] Rate limiting  [ ] Input validation  [ ] Output filtering  [ ] Logging of all calls
+Prompt Injection Testing (GenAI only)
+For LLM/GenAI systems: has prompt injection been tested?  [ ] Yes  [ ] No  [ ] N/A
+Model Theft / Extraction Controls
+Are controls in place to prevent reverse-engineering or theft of the model?  [ ] Yes  [ ] No
+Encryption at Rest [REQUIRED]
+Is all AI training data and model storage encrypted?  [ ] Yes — algorithm: _____  [ ] No — FINDING
+Encryption in Transit [REQUIRED]
+Is all data sent to/from the AI system encrypted (TLS 1.2+)?  [ ] Yes  [ ] No — FINDING
+Penetration Test — Last Date
+Date of most recent pen test that specifically covered the AI system or its API  — if &gt;12 months, FINDING
+Vulnerability Management
+Are AI system dependencies (libraries, frameworks) patched regularly?  [ ] Yes — frequency: _____  [ ] No
+8.2 Production Monitoring
+INTERN NOTE
+Models degrade over time — the world changes and the model's training data becomes outdated. This is called 'model drift'. Ask for the monitoring dashboard or reports. If they say 'we check it occasionally', that is not monitoring.
+Monitoring System in Place? [REQUIRED]
+[ ] Yes — describe tool/process  [ ] No — FINDING for production AI  [ ] Manual only
+Monitoring Metrics Tracked
+List what is monitored: e.g., accuracy, precision, recall, AUC-ROC, feature distribution, input volume, latency, error rate
+Model Drift Detection
+Is there an automated alert when model performance degrades below a threshold?  [ ] Yes — threshold: _____  [ ] No
+Data Drift Detection
+Is there monitoring for changes in the distribution of input data (which can signal model becoming inappropriate)?  [ ] Yes  [ ] No
+Monitoring Frequency
+[ ] Real-time  [ ] Daily  [ ] Weekly  [ ] Monthly  [ ] Ad hoc — flag if high-risk and less than weekly
+Monitoring Reports Retained
+How long are monitoring logs and performance reports kept?  Duration: _____
+Performance Review Cadence
+How often is the model formally reviewed for continued fitness for purpose?  [ ] Monthly  [ ] Quarterly  [ ] Annually  [ ] Never — FINDING
+Retraining Process
+When poor performance is detected, what is the retraining and re-deployment process? Is there a change control gate?
+8.3 AI Incident Management
+AI Incident Definition
+Does the organization have a written definition of what constitutes an 'AI incident'?  [ ] Yes  [ ] No
+Incident Response Procedure [REQUIRED]
+Is there a documented procedure specifically for AI incidents?  [ ] Yes — request copy  [ ] No — FINDING
+Incident Response Team
+Who is on the AI incident response team? List roles: e.g., Technical Owner, Privacy Officer, Legal, Communications
+Incident Log Maintained?
+[ ] Yes — request last 12 months  [ ] No
+Number of AI Incidents (last 12 months)
+How many AI-related incidents were recorded in the last year? Describe the most serious.
+Regulatory Notification Process
+If an AI incident triggers regulatory notification obligations (HIPAA breach, GDPR 72-hour rule), is the process documented?  [ ] Yes  [ ] No — FINDING
+EU AI Act Serious Incident Reporting (if in scope)
+Providers of high-risk AI systems in EU must report serious incidents to the EU AI Office — process in place?  [ ] Yes  [ ] No  [ ] N/A
+Post-Incident Review Process
+After an AI incident, is a root cause analysis conducted and are findings used to improve controls?  [ ] Yes  [ ] No
+8.4 Security &amp; Monitoring Checklist
+✓
+Audit Check Item
+Auditor Notes / Evidence Ref
+☐
+AI training data and model storage are encrypted at rest with a documented algorithm
+Auditor note / evidence ref
+☐
+All data transmitted to/from AI systems is encrypted in transit (minimum TLS 1.2)
+Auditor note / evidence ref
+☐
+Access to AI model weights, training data, and APIs is controlled and logged
+Auditor note / evidence ref
+☐
+A penetration test covering AI systems has been conducted in the last 12 months
+Auditor note / evidence ref
+☐
+The AI system is monitored in production with automated drift and performance alerts
+Auditor note / evidence ref
+☐
+Monitoring logs are retained for the minimum regulatory period
+Auditor note / evidence ref
+☐
+A formal AI incident response procedure exists and has been tested
+Auditor note / evidence ref
+☐
+Regulatory notification obligations (HIPAA, GDPR, EU AI Act) are covered in the incident procedure
+Auditor note / evidence ref
+☐
+AI library and framework dependencies are patched within 30 days of critical vulnerability disclosure
+Auditor note / evidence ref
+☐
+For GenAI systems: prompt injection has been tested and mitigated
+Auditor note / evidence ref
+☐
+Model retraining triggered by performance degradation goes through change control before re-deployment
+Auditor note / evidence ref
+9
+Vendor &amp; Third-Party AI Risk
+Assess how the organization manages AI systems or components provided by external vendors.
+INTERN NOTE
+Most organizations use AI tools from vendors — AWS SageMaker, Microsoft Copilot, OpenAI, Salesforce Einstein, etc. The client is responsible for how those tools are used, even if they did not build them. Under HIPAA, GDPR, and EU AI Act, the deployer shares accountability. Ask for a list of ALL AI vendors — often the procurement or IT team knows of systems the compliance team does not.
+9.1 AI Vendor Inventory
+Vendor / Tool Name
+AI Capability Provided
+Personal Data Processed?
+BAA / DPA Signed?
+Last Risk Review
+Risk Level
+[ ] Yes  [ ] No
+[ ] Yes  [ ] No
+[ ] H  [ ] M  [ ] L
+[ ] Yes  [ ] No
+[ ] Yes  [ ] No
+[ ] H  [ ] M  [ ] L
+[ ] Yes  [ ] No
+[ ] Yes  [ ] No
+[ ] H  [ ] M  [ ] L
+[ ] Yes  [ ] No
+[ ] Yes  [ ] No
+[ ] H  [ ] M  [ ] L
+[ ] Yes  [ ] No
+[ ] Yes  [ ] No
+[ ] H  [ ] M  [ ] L
+[ ] Yes  [ ] No
+[ ] Yes  [ ] No
+[ ] H  [ ] M  [ ] L
+9.2 Vendor Due Diligence
+Vendor Risk Assessment Process
+Does the organization have a formal vendor AI risk assessment process?  [ ] Yes  [ ] No  [ ] Generic IT vendor process only
+AI-Specific Due Diligence Questions
+Are vendors asked specifically about AI governance, bias testing, and model documentation?  [ ] Yes  [ ] No
+Vendor SOC 2 / ISO 27001 Certification
+Are vendors required to hold SOC 2 Type II or ISO 27001?  [ ] Yes  [ ] No  [ ] Encouraged but not required
+AI Transparency From Vendor
+Does the vendor provide Model Cards, bias testing results, or technical documentation?  [ ] Yes  [ ] No  [ ] Partial
+Right to Audit Clause
+Do AI vendor contracts include the right for the client to audit the vendor's AI practices?  [ ] Yes  [ ] No
+Data Localization Compliance
+Do vendor contracts specify where data is stored and processed, and does this meet regulatory requirements?  [ ] Yes  [ ] No
+Vendor Subprocessors Disclosed
+Are vendors required to disclose their AI subprocessors (e.g., the cloud provider they use)?  [ ] Yes  [ ] No
+Vendor Incident Notification
+Are vendors contractually required to notify the client within a defined timeframe of AI incidents?  [ ] Yes — timeframe: _____  [ ] No
+10
+Findings &amp; Risk Register
+Log every finding from Sections 1–9 here. Assign risk rating. Do not omit findings — the client needs to see everything.
+INTERN NOTE
+A 'finding' is any gap, weakness, or non-compliance identified during the audit. Every 'No' answer to a [REQUIRED] question should generate at least a consideration. Every 'No' to a critical item (PHI without BAA, no bias testing, no encryption) is a High or Critical finding. Write findings in plain English — assume the CEO will read this, not just the technical team.
+10.1 Finding Classification Guide
+Risk Level
+Definition
+Example
+Recommended Response Time
+CRITICAL
+Immediate regulatory violation or existential risk — could result in enforcement action, major fines, or serious harm to individuals
+AI system processing PHI without a signed BAA; Prohibited AI use under EU AI Act deployed
+Remediate within 30 days; notify Lead Auditor immediately
+HIGH
+Significant control gap — creates material regulatory exposure or meaningful risk of harm
+No bias testing on credit model; HIPAA audit logs not retained; no independent model validation
+Remediate within 60–90 days; remediation plan required
+MEDIUM
+Control weakness — gap that should be addressed but does not create immediate regulatory risk
+Model documentation incomplete; bias monitoring not continuous; override process undocumented
+Remediate within 6 months; track in risk register
+LOW
+Best practice gap — improvement opportunity; not a compliance failure
+Model Card not in standard format; training records informal; no formal ethics review
+Address in next annual cycle; no formal remediation plan required
+OBSERVATION
+Advisory note — not a gap, but a recommendation for enhanced maturity
+Consider adopting ISO 42001 AI Management System; explore federated learning for privacy enhancement
+Consider in 12-month roadmap
+10.2 Finding Log
+Ref
+Section
+Finding Description
+Regulatory / Standard Reference
+Risk Level
+Recommended Remediation &amp; Owner
+F-001
+§
+[ ] Critical [ ] High [ ] Medium [ ] Low [ ] Obs
+F-002
+§
+[ ] Critical [ ] High [ ] Medium [ ] Low [ ] Obs
+F-003
+§
+[ ] Critical [ ] High [ ] Medium [ ] Low [ ] Obs
+F-004
+§
+[ ] Critical [ ] High [ ] Medium [ ] Low [ ] Obs
+F-005
+§
+[ ] Critical [ ] High [ ] Medium [ ] Low [ ] Obs
+F-006
+§
+[ ] Critical [ ] High [ ] Medium [ ] Low [ ] Obs
+F-007
+§
+[ ] Critical [ ] High [ ] Medium [ ] Low [ ] Obs
+F-008
+§
+[ ] Critical [ ] High [ ] Medium [ ] Low [ ] Obs
+F-009
+§
+[ ] Critical [ ] High [ ] Medium [ ] Low [ ] Obs
+F-010
+§
+[ ] Critical [ ] High [ ] Medium [ ] Low [ ] Obs
+11
+AI Governance Maturity Scorecard
+Score each domain 1–5. Provide an overall risk rating. This is completed by the Lead Auditor.
+INTERN NOTE
+The Lead Auditor completes this section based on your field work. Your job is to ensure Sections 1–10 are complete and accurate so the Lead Auditor can make informed scoring decisions. The scoring scale: 1 = No capability / non-existent  |  2 = Initial / ad hoc  |  3 = Defined / documented  |  4 = Managed / measured  |  5 = Optimized / continuously improving.
+11.1 Domain Maturity Scores
+Governance Domain
+Score (1–5)
+Key Finding Summary
+Risk Level
+Governance &amp; Accountability (§4)
+__ / 5
+[Lead Auditor to summarize key finding]
+[High/Med/Low]
+Data Governance &amp; Privacy / HIPAA (§5)
+__ / 5
+Model Development &amp; Validation (§6)
+__ / 5
+Bias, Fairness &amp; Ethics (§6.2)
+__ / 5
+Human Oversight &amp; Explainability (§7)
+__ / 5
+Security &amp; Monitoring (§8)
+__ / 5
+Incident Management (§8.3)
+__ / 5
+Vendor &amp; Third-Party AI Risk (§9)
+__ / 5
+OVERALL MATURITY SCORE
+__ / 5
+[Overall assessment narrative — Lead Auditor]
+[ ] Critical [ ] High [ ] Medium [ ] Low
+12
+Recommendations &amp; Remediation Roadmap
+Completed by Lead Auditor after reviewing all findings. Presented to client in closing meeting.
+12.1 Executive Summary of Findings
+Total Findings
+Critical: ___ | High: ___ | Medium: ___ | Low: ___ | Observations: ___
+Overall Risk Rating
+[ ] Critical  [ ] High  [ ] Medium  [ ] Low
+Most Significant Finding
+Describe the single most important issue identified and its potential impact
+Greatest Strengths Observed
+What is the organization doing well? This section is important — always include genuine positives.
+Immediate Actions Required (within 30 days)
+List any items that must be addressed immediately — typically Critical findings
+12.2 Remediation Roadmap
+Ref
+Recommended Action
+Responsible Owner
+Priority
+Target Date
+How Futran Can Help
+R-01
+[ ] Critical [ ] High [ ] Medium [ ] Low
+R-02
+[ ] Critical [ ] High [ ] Medium [ ] Low
+R-03
+[ ] Critical [ ] High [ ] Medium [ ] Low
+R-04
+[ ] Critical [ ] High [ ] Medium [ ] Low
+R-05
+[ ] Critical [ ] High [ ] Medium [ ] Low
+R-06
+[ ] Critical [ ] High [ ] Medium [ ] Low
+R-07
+[ ] Critical [ ] High [ ] Medium [ ] Low
+R-08
+[ ] Critical [ ] High [ ] Medium [ ] Low
+13
+Audit Sign-Off &amp; Declarations
+All parties must sign before this report is considered final.
+INTERN NOTE
+The sign-off section makes the audit legally defensible. Do not send a draft to the client with blank signature blocks. The Lead Auditor and Engagement Manager must sign first. Then the client acknowledges receipt. Never alter the audit findings after the Lead Auditor has signed.
+13.1 Futran Solutions Declarations
+Lead Auditor Declaration
+I confirm that this audit was conducted in accordance with Futran Solutions AI Audit Procedure v1.0 and that the findings accurately reflect the evidence gathered during the engagement.
+Lead Auditor Name &amp; Signature
+Name: ___________________________________   Signature: ___________________   Date: __________
+Engagement Manager Name &amp; Signature
+Name: ___________________________________   Signature: ___________________   Date: __________
+Quality Reviewer Name &amp; Signature
+Name: ___________________________________   Signature: ___________________   Date: __________
+Audit Report Version
+Final  v_____   (Track version numbers: Draft v0.1, Lead Review v0.2, Client v1.0, Final v1.1)
+13.2 Client Acknowledgement
+INTERN NOTE
+Client signature means they have RECEIVED and READ the report, NOT that they agree with every finding. Make this distinction clear to the client contact before they sign.
+Client Authorized Representative
+Name: ___________________________________   Title: ___________________________________
+Client Signature &amp; Date
+Signature: ___________________   Date: __________
+Client Declaration
+By signing, I confirm that [Organization Name] has received the Futran Solutions AI Governance Audit Report ref [FSL-AI-AUD-YYYY-NNN] and that the information provided during the audit was accurate to the best of my knowledge.
+Client Remediation Commitment
+[ ] Client has reviewed findings and agrees to develop a remediation plan within 30 days  [ ] Client disputes the following findings (list): _____
+APPENDIX A — Pre-Audit Document Request List
+PURPOSE
+Send this list to the client at least 5 business days before fieldwork begins. This is the email or message you send: 'To support our AI Governance Audit engagement, please provide the following documents by [DATE]. If any item does not exist, please confirm in writing — this will be noted as a finding.'
+INSTRUCTIONS FOR INTERN: Copy this list into an email to the Client Project Lead. Fill in the [DATE] — typically 5 business days before your first interview. Add the Futran Engagement Manager to CC. Track responses in Section 2 of this document.
+Category 1 — Governance Documents
+AI Use Policy / Acceptable Use Policy (current version, signed by appropriate authority)
+AI Risk Classification Framework or Risk Appetite Statement
+AI Governance Committee Charter and last 3 meeting minutes
+Organizational chart showing AI governance roles and responsibilities
+RACI matrix for AI systems (if available)
+AI-related Board or Executive Committee minutes (last 12 months)
+Category 2 — System &amp; Technical Documentation
+Model Cards for each AI system in scope
+System architecture diagrams (showing data flows in/out of AI systems)
+Training data inventory / data lineage documentation
+Feature engineering documentation (list of input variables and their sources)
+Model validation reports (most recent, for each system)
+Bias and fairness test reports (most recent, for each system)
+Change management records for model updates (last 12 months)
+Model monitoring reports / dashboards (last 6 months)
+Category 3 — Data Privacy &amp; Legal Documents
+Privacy Policy / Privacy Notice (current version — must cover AI use)
+Data Protection Impact Assessment (DPIA) for each AI system
+Records of Processing Activities (ROPA) if GDPR applies
+HIPAA Business Associate Agreements with all AI vendors (if PHI is processed)
+HIPAA Risk Analysis (most recent)
+Data Processing Agreements (DPAs) with AI vendors
+Consent records / consent mechanism documentation
+Cross-border data transfer documentation (SCCs, adequacy decisions, etc.)
+Category 4 — Security Documents
+Information Security Policy (current version)
+Most recent penetration test report covering AI systems or APIs
+Vulnerability assessment results (last 12 months)
+Access control list / IAM policy for AI systems
+Encryption standards documentation
+Category 5 — Incident &amp; Training Records
+AI incident log (last 12 months) — any incidents where AI contributed to harm or error
+AI incident response procedure
+Employee AI training records / completion logs
+Third-party AI audit reports (if any)
+Regulatory correspondence related to AI (if any)
+Category 6 — Vendor &amp; Contract Documents
+List of all AI vendors / tools in use
+Vendor contracts including AI-specific clauses
+Vendor SOC 2 Type II or ISO 27001 certificates
+Vendor subprocessor lists
+APPENDIX B — Regulatory Quick Reference for Auditors
+PURPOSE
+Use this as a quick reference during fieldwork. When a client asks 'why do we need to do X?', you can point to the relevant regulation. Never provide legal advice — always refer specific legal questions to the Lead Auditor or Legal Reviewer.
+Requirement
+HIPAA (US Healthcare)
+EU AI Act
+GDPR (EU)
+India DPDP Act
+Applies to
+Covered Entities &amp; Business Associates processing PHI in the US
+Any organization placing AI systems on the EU market or affecting EU persons
+Any organization processing personal data of EU residents
+Any organization processing personal data of Indian residents
+Data consent / legal basis
+Authorization for non-TPO uses; TPO uses do not require consent
+Transparency required; consent for GPAI training in some cases
+Explicit legal basis required (consent, contract, LI, etc.)
+Explicit consent for most processing; certain legitimate uses exempt
+Bias &amp; fairness testing
+Not explicitly required but implied by non-discrimination laws
+Mandatory for all high-risk AI systems
+Non-discrimination principle applies
+Fairness principle — India AI Guidelines; mandatory for SDFs under DPDP
+Human oversight
+Required for clinical decisions; not universal mandate
+Mandatory for all high-risk AI — meaningful human review
+Right to not be subject to solely automated decisions (Art. 22)
+Human oversight principle in AI Guidelines; human-in-loop for high-impact
+Model documentation
+Not specifically mandated
+Technical documentation &amp; model cards mandatory for high-risk AI
+DPIAs required for high-risk processing
+DPIAs required for Significant Data Fiduciaries; AI Impact Assessments evolving
+Incident notification
+60 days for breaches affecting 500+ individuals; annual report for smaller
+Serious incident reporting to EU AI Office for high-risk AI providers
+72 hours to supervisory authority for personal data breaches
+Breach reporting timelines specified in DPDP Rules 2025
+Penalties
+Up to $2M per violation category; criminal for wilful neglect
+Up to €35M or 7% global turnover for prohibited AI practices
+Up to €20M or 4% global turnover
+Up to ₹250 crore under DPDP; AI-specific penalties emerging
+Audit / assessment required
+HIPAA Risk Analysis — at least annually or when environment changes
+Conformity assessment for high-risk AI before market placement
+DPIAs for high-risk processing; ongoing review
+DPIAs for SDFs; IndiaAI Safety Institute audits evolving
+Explainability required
+Not explicitly mandated (but adverse action notices required in BFSI)
+Mandatory for high-risk AI — decisions must be explainable
+Right to explanation for automated decisions (Art. 22)
+Transparency principle in AI Guidelines; explanation emerging
+Key Futran reference point
+BAA checklist (§9); HIPAA assessment (§5.3)
+EU AI Act risk classification (§3.3); bias testing (§6.2)
+Data privacy fields throughout §5
+DPDP consent fields (§5.2); India framework (§4)
+APPENDIX C — Glossary of Terms
+PURPOSE
+If you encounter a term you do not understand during the audit, look it up here first. If it is not here, write it down exactly as the client used it and flag for the Lead Auditor — never guess at a technical term's meaning.
+Term
+Plain English Definition
+Why It Matters in AI Audit
+Adversarial Attack
+A deliberate input designed to trick an AI model into making an incorrect prediction
+If the model is used in security, fraud detection, or medical diagnosis, adversarial robustness is critical
+Algorithm
+A set of rules or instructions that a computer follows to make a decision or prediction
+All AI systems are built on algorithms — understanding what the algorithm does is the starting point of any audit
+Agentic AI
+AI that can take actions autonomously — browse the web, execute code, send emails — without human approval for each step
+Much higher risk than advisory AI; human oversight controls are especially important
+BAA (Business Associate Agreement)
+A HIPAA-required contract between a healthcare organization and any vendor who handles patient health information on their behalf
+Without a signed BAA, using a vendor for AI on PHI is a HIPAA violation
+Bias (Algorithmic)
+When an AI model produces systematically different (worse) outcomes for one demographic group compared to another
+Can cause illegal discrimination in credit, hiring, insurance, or healthcare; must be tested before and during deployment
+Data Drift
+When the real-world data an AI system encounters in production starts to look different from the data it was trained on, causing performance to degrade
+If untreated, the model becomes less accurate over time without anyone noticing
+Data Fiduciary
+Under India's DPDP Act: any entity that determines the purpose and means of processing personal data
+Equivalent to a 'Data Controller' under GDPR; has specific compliance obligations
+DPIA (Data Protection Impact Assessment)
+A formal analysis of the privacy risks of a data processing activity, required before high-risk processing begins
+Required by GDPR and evolving under India DPDP for high-risk AI systems
+Disparate Impact
+When a facially neutral policy or algorithm produces different outcomes for different protected groups
+Measured using the 4/5ths rule: if the selection rate for the less-favored group is below 80% of the favored group, disparate impact is indicated
+Explainability / XAI
+The ability to describe in plain language why an AI model made a particular prediction or decision
+Required by EU AI Act for high-risk AI; required by GDPR Art. 22 for automated decisions; needed for consumer adverse action notices
+Feature
+An input variable used by an AI model to make predictions — e.g., 'income', 'age', 'zip code', 'diagnosis code'
+Some features may be proxies for protected characteristics — e.g., zip code correlates with race — creating indirect bias
+Foundation Model / LLM
+A large pre-trained AI model (e.g., GPT-4, Claude, Gemini) that can be adapted for many tasks
+Governed under EU AI Act GPAI provisions; prompt injection and output filtering are key security controls
+GenAI (Generative AI)
+AI that generates new content — text, images, audio, code — rather than just classifying or predicting
+Synthetic media labeling requirements apply (EU AI Act, India IT Amendment Rules 2026)
+High-Risk AI (EU AI Act)
+AI systems used in areas where errors can significantly harm people: healthcare, credit, employment, education, law enforcement
+Subject to the strictest EU AI Act obligations — conformity assessment, documentation, human oversight, registration
+HIPAA (Health Insurance Portability and Accountability Act)
+US law protecting patient health information (PHI) — requires covered entities and business associates to protect PHI
+Any AI touching US health data must comply; BAAs required with all vendors processing PHI
+Human-in-the-Loop
+A design approach where a human reviews and approves AI outputs before they are acted upon
+Required by EU AI Act for high-risk systems; prevents fully automated harmful decisions
+Model Card
+A brief document that describes what an AI model does, how it was trained, its performance characteristics, and its limitations
+Required for high-risk AI under EU AI Act; best practice for all models — ask to see it
+Model Drift
+When a model's predictive accuracy declines over time because the real world has changed
+Requires continuous monitoring and periodic retraining; a model with no monitoring is a liability
+Model Risk
+The risk of adverse consequences from decisions based on poorly developed, implemented, or used AI models
+Formally managed in banking (OCC SR 11-7); emerging requirement across industries
+Model Validation
+An independent review of an AI model to confirm it is conceptually sound, performing as intended, and suitable for its use case
+Must be performed by someone not involved in building the model; required in banking, evolving in other sectors
+PHI (Protected Health Information)
+Under HIPAA: any individually identifiable health information — includes names, dates, diagnoses, insurance numbers, images
+The most sensitive data category in US healthcare AI; any AI touching PHI requires rigorous HIPAA compliance
+PII (Personally Identifiable Information)
+Any data that could identify an individual — name, address, SSN, email, IP address, biometric data
+Triggers privacy law obligations under GDPR, DPDP, and state laws — document carefully
+Prompt Injection
+An attack where malicious text in a user's input causes a GenAI system to behave in unintended ways
+Critical security risk for GenAI systems; must be tested and mitigated before deployment
+SHAP / LIME
+Mathematical tools that explain which features most influenced a model's prediction for a specific case
+Ask whether these are used — their presence indicates the organization is thinking about explainability
+SDF (Significant Data Fiduciary)
+Under India's DPDP Act: a Data Fiduciary classified as handling especially sensitive or large volumes of data
+Subject to additional obligations including DPIAs, audits, and Data Protection Officer appointment
+SOC 2 Type II
+An independent audit confirming that a technology vendor has controls in place for security, availability, and privacy, and that those controls actually worked over a 6–12 month period
+Required evidence from high-risk AI vendors; Type II (tested over time) is stronger than Type I (point-in-time)
+Training Data
+The dataset used to teach an AI model to make predictions
+Its quality, bias, legal basis, and provenance are the foundation of the entire audit; get the documentation
+FUTRAN SOLUTIONS  |  AI Governance Audit Template v1.0  |  Edison, New Jersey  |  www.futransolutions.com
+CONFIDENTIAL — This document contains proprietary Futran Solutions intellectual property. Not for external distribution without written authorization.

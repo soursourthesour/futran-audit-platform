@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Client Admin: departments and users</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-weight:600;color:#5A6577;font-size:12.5px;text-transform:uppercase;letter-spacing:0.4px;padding:10px 14px;border-bottom:1px solid #D9DFE7;white-space:nowrap}
+td{padding:12px 14px;border-bottom:1px solid #E8ECF1;white-space:nowrap}
+</style>
+</helmet>
+<div style="min-height:100vh">
+  <header style="background:#fff;border-bottom:1px solid #D9DFE7;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#1B3A6B"></div><div style="font-weight:700;font-size:17px;color:#1B3A6B">Futran Audit</div><span style="color:#5A6577;font-size:14px">· ABC Corp</span></div>
+    <nav style="display:flex;flex-wrap:wrap;gap:4px;flex:1">
+      <a href="ClientWelcome.dc.html" style="text-decoration:none;padding:8px 12px;font-size:14px;color:#3E4757">Getting started</a>
+      <a href="#" style="text-decoration:none;padding:8px 12px;border-radius:5px;background:#E3EEF9;font-weight:600;font-size:14px">Users</a>
+      <a href="#" style="text-decoration:none;padding:8px 12px;font-size:14px;color:#3E4757">Documents</a>
+    </nav>
+    <div style="font-size:13px;color:#5A6577">[Name] · Client Admin</div>
+  </header>
+  <main style="max-width:1200px;margin:0 auto;padding:28px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:20px">
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px">
+      <div><h1 style="margin:0;font-size:28px;font-weight:600">Departments and users</h1><p style="margin:6px 0 0;color:#5A6577;font-size:15px">Only people who need a login. All other staff take part through the attestation link.</p></div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px">
+        <button style="height:42px;padding:0 16px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:14px;font-weight:600;color:#16233A">Upload user CSV</button>
+        <button style="height:42px;padding:0 16px;border-radius:6px;border:1px solid #1B3A6B;background:#1B3A6B;font:inherit;font-size:14px;font-weight:600;color:#fff">Add user</button>
+      </div>
+    </div>
+    <section aria-label="Upload result" style="background:#FFF6E5;border:1px solid #F0C978;border-radius:8px;padding:16px 20px;display:flex;flex-direction:column;gap:10px">
+      <div style="font-weight:600">user_list.csv: 9 rows ready, 2 need fixing before import</div>
+      <ul style="margin:0;padding-left:20px;font-size:14px;line-height:1.6">
+        <li>Row 6: department "People Ops" is not in your department list. <a href="#">Map to Human Resources</a> or <a href="#">add department</a></li>
+        <li>Row 10: role "Approver" is not a valid role. Choose Department Compliance Lead or Contributor</li>
+      </ul>
+      <div style="display:flex;flex-wrap:wrap;gap:10px"><button style="height:38px;padding:0 14px;border-radius:6px;border:1px solid #1B3A6B;background:#1B3A6B;font:inherit;font-size:14px;font-weight:600;color:#fff">Import 9 ready rows</button><button style="height:38px;padding:0 14px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:14px;font-weight:600;color:#16233A">Fix and re-upload</button></div>
+    </section>
+    <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
+      <section style="flex:1 1 280px;background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:20px;box-sizing:border-box">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px"><h2 style="margin:0;font-size:17px;font-weight:600">Departments</h2><a href="#" style="font-size:14px">Add</a></div>
+        <ul style="list-style:none;margin:0;padding:0;font-size:14.5px">
+          <li style="padding:10px 0;border-bottom:1px solid #E8ECF1;display:flex;justify-content:space-between;gap:8px"><span>Human Resources</span><span style="color:#5A6577">Lead assigned</span></li>
+          <li style="padding:10px 0;border-bottom:1px solid #E8ECF1;display:flex;justify-content:space-between;gap:8px"><span>Sales and Marketing</span><span style="color:#5A6577">Lead assigned</span></li>
+          <li style="padding:10px 0;border-bottom:1px solid #E8ECF1;display:flex;justify-content:space-between;gap:8px"><span>Finance</span><span style="color:#5A6577">Lead assigned</span></li>
+          <li style="padding:10px 0;border-bottom:1px solid #E8ECF1;display:flex;justify-content:space-between;gap:8px"><span>Engineering and IT</span><span style="color:#7A4800;font-weight:600">No lead yet</span></li>
+          <li style="padding:10px 0;display:flex;justify-content:space-between;gap:8px"><span>Operations</span><span style="color:#5A6577">Lead assigned</span></li>
+        </ul>
+      </section>
+      <section style="flex:999 1 640px;min-width:0;background:#fff;border:1px solid #D9DFE7;border-radius:8px">
+        <h2 style="margin:0;padding:18px 16px 8px;font-size:17px;font-weight:600">Users</h2>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>Name</th><th>Role</th><th>Department</th><th>Invitation</th><th></th></tr></thead>
+            <tbody>
+              <tr><td>[Name]</td><td>Chief AI Compliance Officer</td><td>—</td><td><span style="color:#1F5C38;font-weight:600">Active</span></td><td><a href="#">Edit</a></td></tr>
+              <tr><td>[Name]</td><td>Client Admin</td><td>—</td><td><span style="color:#1F5C38;font-weight:600">Active</span></td><td><a href="#">Edit</a></td></tr>
+              <tr><td>[Name]</td><td>Executive Sponsor <span style="font-size:12px;color:#1B3A6B;font-weight:600">· sign-off role</span></td><td>—</td><td>Sent</td><td><a href="#">Resend</a></td></tr>
+              <tr><td>[Name]</td><td>Department Compliance Lead</td><td>Human Resources</td><td>Sent</td><td><a href="#">Resend</a></td></tr>
+              <tr><td>[Name]</td><td>Department Compliance Lead</td><td>Sales and Marketing</td><td>Sent</td><td><a href="#">Resend</a></td></tr>
+              <tr><td>[Name]</td><td>Contributor</td><td>Human Resources</td><td>Sent</td><td><a href="#">Resend</a></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="margin:0;padding:14px 16px;font-size:12.5px;color:#5A6577">Assigning or removing a sign-off role (Chief AI Compliance Officer, Executive Sponsor, DPO) notifies Futran and is recorded in the audit log.</p>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

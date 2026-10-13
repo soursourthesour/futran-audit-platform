@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Document request register</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-weight:600;color:#5A6577;font-size:12px;text-transform:uppercase;letter-spacing:0.4px;padding:10px 12px;border-bottom:1px solid #D9DFE7;white-space:nowrap}
+td{padding:11px 12px;border-bottom:1px solid #E8ECF1;vertical-align:top}
+.grp td{background:#F4F6F9;font-size:12.5px;font-weight:700;letter-spacing:0.4px;text-transform:uppercase;color:#3E4757;padding:9px 12px}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:600;white-space:nowrap}
+</style>
+</helmet>
+<div style="min-height:100vh">
+  <header style="background:#1B3A6B;color:#fff;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#0098D4"></div><div style="font-weight:700;font-size:17px">Futran Audit</div></div>
+    <div style="flex:1"></div>
+    <div style="font-size:13px;color:#C9D6EA">[Your name] · Auditor</div>
+  </header>
+  <main style="max-width:1240px;margin:0 auto;padding:24px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px">
+    <div style="font-size:14px"><a href="Dashboard.dc.html">Audits</a> <span style="color:#5A6577">/ ABC Corp · FSL-AI-AUD-2026-014 / Documents</span></div>
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px">
+      <div><h1 style="margin:0;font-size:26px;font-weight:600">Document request register</h1><p style="margin:6px 0 0;color:#5A6577;font-size:14.5px">Template §2 and Appendix A · requested [date] · due [date] (5 business days before fieldwork) · missing documents become findings</p></div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px">
+        <button style="height:42px;padding:0 16px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:14px;font-weight:600;color:#16233A">Preview request email</button>
+        <button style="height:42px;padding:0 16px;border-radius:6px;border:1px solid #1B3A6B;background:#1B3A6B;font:inherit;font-size:14px;font-weight:600;color:#fff">Chase 4 pending</button>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
+      <div style="background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:14px 16px"><div style="font-size:13px;color:#5A6577;font-weight:600">Requested</div><div style="font-size:28px;font-weight:600">38</div><div style="font-size:12.5px;color:#5A6577">incl. per-system items × 4 systems</div></div>
+      <div style="background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:14px 16px"><div style="font-size:13px;color:#1F5C38;font-weight:600">Received</div><div style="font-size:28px;font-weight:600">24</div></div>
+      <div style="background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:14px 16px"><div style="font-size:13px;color:#7A4800;font-weight:600">Pending</div><div style="font-size:28px;font-weight:600">10</div><div style="font-size:12.5px;color:#7A4800">2 past escalation (3 business days)</div></div>
+      <div style="background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:14px 16px"><div style="font-size:13px;color:#9B1C1C;font-weight:600">Not available</div><div style="font-size:28px;font-weight:600">4</div><div style="font-size:12.5px;color:#9B1C1C">4 draft findings created</div></div>
+    </div>
+    <section style="background:#fff;border:1px solid #D9DFE7;border-radius:8px">
+      <div style="display:flex;flex-wrap:wrap;gap:10px;padding:14px 16px;border-bottom:1px solid #E8ECF1">
+        <label style="font-size:13px;font-weight:600;color:#3E4757;display:flex;align-items:center;gap:8px">Category <select style="height:36px;border:1px solid #C7CFDA;border-radius:6px;padding:0 8px;font:inherit;font-size:14px"><option>All 6 categories</option><option>1 Governance</option><option>2 System and technical</option><option>3 Data privacy and legal</option><option>4 Security</option><option>5 Incident and training</option><option>6 Vendor and contract</option></select></label>
+        <label style="font-size:13px;font-weight:600;color:#3E4757;display:flex;align-items:center;gap:8px">System <select style="height:36px;border:1px solid #C7CFDA;border-radius:6px;padding:0 8px;font:inherit;font-size:14px"><option>All systems</option><option>SYS-001 ATS résumé screening</option></select></label>
+      </div>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>Document</th><th>System</th><th>Received</th><th>Status</th><th>Chases</th><th>Finding</th></tr></thead>
+        <tbody>
+          <tr class="grp"><td colspan="6">Category 1 · Governance</td></tr>
+          <tr><td>AI Use Policy / Acceptable Use Policy</td><td>—</td><td>—</td><td><span class="tag" style="background:#FDECEC;color:#7A1A12">Not available</span></td><td>1</td><td><a href="#">F-002</a></td></tr>
+          <tr><td>AI Governance Committee Charter and last 3 minutes</td><td>—</td><td>[date]</td><td><span class="tag" style="background:#E1F2E7;color:#1F5C38">Received</span></td><td>0</td><td>—</td></tr>
+          <tr><td>RACI matrix for AI systems</td><td>—</td><td>[date]</td><td><span class="tag" style="background:#E1F2E7;color:#1F5C38">Received</span></td><td>0</td><td>—</td></tr>
+          <tr class="grp"><td colspan="6">Category 2 · System and technical</td></tr>
+          <tr><td>Model card</td><td>SYS-001</td><td>—</td><td><span class="tag" style="background:#FFF1D6;color:#7A4800">Pending · escalate</span></td><td>2 (last [date])</td><td>—</td></tr>
+          <tr><td>Bias and fairness test report</td><td>SYS-001</td><td>—</td><td><span class="tag" style="background:#FDECEC;color:#7A1A12">Not available</span></td><td>1</td><td><a href="#">F-007</a></td></tr>
+          <tr><td>Model monitoring reports (last 6 months)</td><td>SYS-002</td><td>—</td><td><span class="tag" style="background:#FFF1D6;color:#7A4800">Pending</span></td><td>0</td><td>—</td></tr>
+          <tr class="grp"><td colspan="6">Category 3 · Data privacy and legal</td></tr>
+          <tr><td>Privacy Policy (must cover AI use)</td><td>—</td><td>[date]</td><td><span class="tag" style="background:#E1F2E7;color:#1F5C38">Received</span></td><td>0</td><td>—</td></tr>
+          <tr><td>DPIA / AI impact assessment</td><td>SYS-001</td><td>—</td><td><span class="tag" style="background:#FFF1D6;color:#7A4800">Pending · escalate</span></td><td>2 (last [date])</td><td>—</td></tr>
+          <tr class="grp"><td colspan="6">Category 6 · Vendor and contract</td></tr>
+          <tr><td>Vendor contract incl. AI clauses</td><td>SYS-001</td><td>[date]</td><td><span class="tag" style="background:#E1F2E7;color:#1F5C38">Received</span></td><td>0</td><td>—</td></tr>
+          <tr><td>Vendor SOC 2 Type II report</td><td>SYS-001</td><td>[date]</td><td><span class="tag" style="background:#E1F2E7;color:#1F5C38">Received</span></td><td>0</td><td>—</td></tr>
+        </tbody>
+      </table></div>
+      <div style="padding:12px 16px;font-size:14px"><a href="#">Show all 38</a></div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1150}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

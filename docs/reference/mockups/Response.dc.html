@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Client: management response</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+.lbl{display:block;font-size:14px;font-weight:600;margin-bottom:6px}
+input[type=text],input[type=date],select,textarea{box-sizing:border-box;width:100%;min-height:44px;border:1px solid #C7CFDA;border-radius:6px;padding:10px 12px;font:inherit;font-size:15px;background:#fff;color:#16233A}
+input[type=radio]{width:20px;height:20px;accent-color:#1B3A6B;margin:0;flex:none}
+.opt{display:flex;align-items:center;gap:8px;font-size:14.5px;min-height:34px}
+</style>
+</helmet>
+<div style="min-height:100vh">
+  <header style="background:#fff;border-bottom:1px solid #D9DFE7;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#1B3A6B"></div><div style="font-weight:700;font-size:17px;color:#1B3A6B">Futran Audit</div><span style="color:#5A6577;font-size:14px">· ABC Corp</span></div>
+    <nav style="display:flex;flex-wrap:wrap;gap:4px;flex:1">
+      <a href="#" style="text-decoration:none;padding:8px 12px;font-size:14px;color:#3E4757">Overview</a>
+      <a href="InventoryReview.dc.html" style="text-decoration:none;padding:8px 12px;font-size:14px;color:#3E4757">AI inventory</a>
+      <a href="#" style="text-decoration:none;padding:8px 12px;border-radius:5px;background:#E3EEF9;font-weight:600;font-size:14px">Draft report</a>
+    </nav>
+    <div style="font-size:13px;color:#5A6577">[Name] · Chief AI Compliance Officer</div>
+  </header>
+  <main style="max-width:1240px;margin:0 auto;padding:28px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:20px">
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px">
+      <div><h1 style="margin:0;font-size:28px;font-weight:600">Respond to findings</h1><p style="margin:6px 0 0;color:#5A6577;font-size:15px">Stage 7 · Draft report issued [date] · responses due [date] · 3 of 5 answered</p></div>
+      <a href="#" style="display:inline-flex;align-items:center;height:42px;padding:0 16px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;color:#16233A;text-decoration:none;font-weight:600;font-size:14px">Download draft report</a>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
+      <div style="flex:999 1 640px;min-width:0;display:flex;flex-direction:column;gap:16px">
+        <section style="background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:22px;display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px"><span style="font-size:13px;font-weight:600;color:#9B1C1C">Finding 1 · High</span><span style="font-size:13px;color:#5A6577">Written by Futran · read only</span></div>
+          <h2 style="margin:0;font-size:18px;font-weight:600">No bias audit within the past year for an AEDT used on NYC roles</h2>
+          <p style="margin:0;font-size:14.5px;line-height:1.55;color:#3E4757;background:#F4F6F9;border-radius:6px;padding:12px">[Finding text and Futran's recommendation]</p>
+          <fieldset style="border:none;margin:0;padding:0"><legend class="lbl" style="padding:0">Management response *</legend>
+            <div style="display:flex;flex-wrap:wrap;gap:4px 20px"><label class="opt"><input type="radio" name="r1" checked> Agree</label><label class="opt"><input type="radio" name="r1"> Partially agree</label><label class="opt"><input type="radio" name="r1"> Disagree</label></div>
+          </fieldset>
+          <div><label class="lbl" for="a1">Planned action *</label><textarea id="a1" rows="2">Commission an independent bias audit and publish the summary before continuing to use the tool for NYC roles.</textarea></div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px">
+            <div><label class="lbl" for="o1">Owner *</label><select id="o1"><option>[Name], HR Department Lead</option></select></div>
+            <div><label class="lbl" for="d1">Due date *</label><input type="date" id="d1"></div>
+          </div>
+        </section>
+        <section style="background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:18px 22px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px">
+          <div><div style="font-size:13px;font-weight:600;color:#9B1C1C">Finding 2 · High</div><div style="font-weight:600">Null-compliance risk: no demographic data collected</div></div>
+          <span style="color:#7A4800;font-weight:600;font-size:14px">Response needed</span>
+        </section>
+        <section style="background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:18px 22px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px">
+          <div><div style="font-size:13px;font-weight:600;color:#7A4800">Finding 3 · Medium</div><div style="font-weight:600">Personal AI accounts used with client data</div></div>
+          <span style="color:#1F5C38;font-weight:600;font-size:14px">Answered · Agree</span>
+        </section>
+      </div>
+      <aside style="flex:1 1 320px;background:#fff;border:2px solid #1B3A6B;border-radius:8px;padding:22px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px">
+        <h2 style="margin:0;font-size:17px;font-weight:600">Sign-off 6 · Accept the remediation plan</h2>
+        <ol style="margin:0;padding-left:20px;font-size:14px;line-height:1.7">
+          <li>Department Leads draft responses</li>
+          <li><strong>You review</strong> all 5 responses</li>
+          <li>Executive Sponsor accepts the plan</li>
+        </ol>
+        <div style="height:10px;border-radius:5px;background:#E8ECF1;overflow:hidden" role="img" aria-label="3 of 5 responses complete"><div style="width:60%;height:100%;background:#2E75B6"></div></div>
+        <button disabled style="height:46px;border-radius:6px;border:1px solid #C7CFDA;background:#ECEEF2;font:inherit;font-size:15px;font-weight:600;color:#5A6577">Send to Executive Sponsor</button>
+        <p style="margin:0;font-size:12.5px;color:#5A6577;line-height:1.5">Available when every finding has a response, owner and due date. Futran reviews responses for adequacy before the final report.</p>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

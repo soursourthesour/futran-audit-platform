@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>New client: company</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+label{display:block;font-size:14px;font-weight:600;margin-bottom:6px}
+input,select,textarea{box-sizing:border-box;width:100%;min-height:44px;border:1px solid #C7CFDA;border-radius:6px;padding:10px 12px;font:inherit;font-size:15px;background:#fff;color:#16233A}
+.hint{font-size:12.5px;color:#5A6577;margin-top:4px}
+</style>
+</helmet>
+<div style="min-height:100vh">
+  <header style="background:#1B3A6B;color:#fff;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#0098D4"></div><div style="font-weight:700;font-size:17px">Futran Audit</div></div>
+    <div style="flex:1"></div>
+    <div style="font-size:13px;color:#C9D6EA">[Your name] · Auditor</div>
+  </header>
+  <main style="max-width:960px;margin:0 auto;padding:28px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:22px">
+    <div style="font-size:14px"><a href="Dashboard.dc.html">Audits</a> <span style="color:#5A6577">/ New client</span></div>
+    <div>
+      <h1 style="margin:0;font-size:28px;font-weight:600">New client</h1>
+      <p style="margin:6px 0 0;color:#5A6577;font-size:15px">Drafts save automatically. The Chief Auditor approves before anything is sent to the client.</p>
+    </div>
+    <ol aria-label="Wizard steps" style="list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;font-size:13.5px">
+      <li style="padding:10px 12px;border-radius:6px;background:#1B3A6B;color:#fff;font-weight:600">1 · Company</li>
+      <li style="padding:10px 12px;border-radius:6px;background:#fff;border:1px solid #D9DFE7;color:#3E4757">2 · Locations and laws</li>
+      <li style="padding:10px 12px;border-radius:6px;background:#fff;border:1px solid #D9DFE7;color:#3E4757">3 · Scope and team</li>
+      <li style="padding:10px 12px;border-radius:6px;background:#fff;border:1px solid #D9DFE7;color:#3E4757">4 · Client contacts</li>
+      <li style="padding:10px 12px;border-radius:6px;background:#fff;border:1px solid #D9DFE7;color:#3E4757">5 · Initiation package</li>
+    </ol>
+    <form style="background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:28px;display:flex;flex-direction:column;gap:22px">
+      <h2 style="margin:0;font-size:19px;font-weight:600">Company details</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px">
+        <div><label for="legal">Legal name *</label><input id="legal" value="ABC Corp"></div>
+        <div><label for="trade">Trading name</label><input id="trade" placeholder="If different from legal name"></div>
+        <div><label for="ind">Industry *</label><select id="ind"><option>Staffing and recruitment</option><option>Financial services</option><option>Healthcare</option><option>Insurance</option><option>Pharma and life sciences</option><option>Property management</option><option>Other</option></select></div>
+        <div><label for="size">Employees *</label><select id="size"><option>1–49</option><option selected>50–249</option><option>250–999</option><option>1,000+</option></select><div class="hint">Sets the default attestation approach.</div></div>
+        <div><label for="web">Website</label><input id="web" placeholder="https://"></div>
+        <div><label for="ref">Futran client reference</label><input id="ref" value="Auto: FUT-[####]" readonly style="background:#F4F6F9"></div>
+      </div>
+      <fieldset style="border:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px">
+        <legend style="font-size:16px;font-weight:600;padding:0;margin-bottom:12px">Headquarters address</legend>
+        <div><label for="street">Street *</label><input id="street" placeholder="[Street address]"></div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:18px">
+          <div><label for="city">City *</label><input id="city" value="New York"></div>
+          <div><label for="state">State / region *</label><input id="state" value="NY"></div>
+          <div><label for="zip">Postal code *</label><input id="zip" placeholder="[ZIP]"></div>
+          <div><label for="country">Country *</label><select id="country"><option>United States</option><option>India</option><option>Other</option></select></div>
+        </div>
+      </fieldset>
+      <div><label for="why">Why the client is engaging Futran</label><textarea id="why" rows="3" placeholder="e.g. Uses AI screening in hiring for NYC roles; no AI policy in place"></textarea><div class="hint">Shown to the Chief Auditor at approval.</div></div>
+    </form>
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px">
+      <button style="height:44px;padding:0 18px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:15px;font-weight:600;color:#16233A">Save draft and exit</button>
+      <a href="NewClient2.dc.html" style="display:inline-flex;align-items:center;height:44px;padding:0 22px;border-radius:6px;background:#1B3A6B;color:#fff;text-decoration:none;font-weight:600;font-size:15px">Next: locations and laws</a>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

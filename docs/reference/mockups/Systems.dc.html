@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AI systems register</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-weight:600;color:#5A6577;font-size:12.5px;text-transform:uppercase;letter-spacing:0.4px;padding:10px 12px;border-bottom:1px solid #D9DFE7;white-space:nowrap}
+td{padding:13px 12px;border-bottom:1px solid #E8ECF1;white-space:nowrap;vertical-align:top}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:12.5px;font-weight:600;white-space:nowrap}
+</style>
+</helmet>
+<div style="min-height:100vh">
+  <header style="background:#1B3A6B;color:#fff;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#0098D4"></div><div style="font-weight:700;font-size:17px">Futran Audit</div></div>
+    <div style="flex:1"></div>
+    <div style="font-size:13px;color:#C9D6EA">[Your name] · Lead Auditor</div>
+  </header>
+  <main style="max-width:1240px;margin:0 auto;padding:28px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:20px">
+    <div style="font-size:14px"><a href="Dashboard.dc.html">Audits</a> <span style="color:#5A6577">/ ABC Corp · FSL-AI-AUD-2026-014 / AI systems</span></div>
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px">
+      <div><h1 style="margin:0;font-size:28px;font-weight:600">AI systems in scope</h1><p style="margin:6px 0 0;color:#5A6577;font-size:15px">Template §3–9 per system · risk methodology v1.0 · overall engagement rating follows the highest system rating</p></div>
+      <button style="height:42px;padding:0 16px;border-radius:6px;border:1px solid #1B3A6B;background:#1B3A6B;font:inherit;font-size:14px;font-weight:600;color:#fff">Add system</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+      <div style="background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:16px"><div style="font-size:13px;color:#5A6577;font-weight:600">Systems in scope</div><div style="font-size:30px;font-weight:600">4</div><div style="font-size:13px;color:#5A6577">2 full · 2 light</div></div>
+      <div style="background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:16px"><div style="font-size:13px;color:#5A6577;font-weight:600">Built by</div><div style="font-size:15px;font-weight:600;margin-top:8px;line-height:1.6">3 vendor · 1 in-house</div></div>
+      <div style="background:#fff;border:2px solid #B42318;border-radius:8px;padding:16px"><div style="font-size:13px;color:#7A1A12;font-weight:600">Engagement rating so far</div><div style="font-size:30px;font-weight:700;color:#7A1A12">High</div><div style="font-size:13px;color:#5A6577">from ATS résumé screening</div></div>
+      <div style="background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:16px"><div style="font-size:13px;color:#5A6577;font-weight:600">Assessment completion</div><div style="font-size:30px;font-weight:600">59%</div></div>
+    </div>
+    <section style="background:#fff;border:1px solid #D9DFE7;border-radius:8px">
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>System</th><th>Built by</th><th>Depth</th><th>Complete</th><th>Inherent</th><th>Maturity</th><th>Residual · rating</th><th>Knock-outs</th></tr></thead>
+        <tbody>
+          <tr><td><a href="SystemAssess.dc.html" style="font-weight:600">ATS résumé screening</a><div style="font-size:12.5px;color:#5A6577">SYS-001 · Human Resources · from Tier 3 use case</div></td><td>Vendor<div style="font-size:12.5px;color:#5A6577">[ATS vendor]</div></td><td>Full</td><td>100%</td><td>76</td><td>2.25</td><td><a href="SystemScore.dc.html" style="text-decoration:none"><span class="tag" style="background:#FDECEC;color:#7A1A12">58 · High</span></a></td><td style="white-space:normal;font-size:13px;color:#7A1A12">No bias testing<br>Null-compliance High</td></tr>
+          <tr><td><a href="#" style="font-weight:600">Invoice anomaly model</a><div style="font-size:12.5px;color:#5A6577">SYS-002 · Finance</div></td><td>In-house</td><td>Full</td><td>45%</td><td>38</td><td>—</td><td><span class="tag" style="background:#ECEEF2;color:#3E4757">Scoring pending</span></td><td>—</td></tr>
+          <tr><td><a href="#" style="font-weight:600">Interview scheduling chatbot</a><div style="font-size:12.5px;color:#5A6577">SYS-003 · Human Resources</div></td><td>Vendor</td><td>Light</td><td>60%</td><td>34</td><td>—</td><td><span class="tag" style="background:#ECEEF2;color:#3E4757">Scoring pending</span></td><td>—</td></tr>
+          <tr><td><a href="#" style="font-weight:600">Proposal drafting (GenAI)</a><div style="font-size:12.5px;color:#5A6577">SYS-004 · Sales and Marketing · personal accounts</div></td><td>Vendor<div style="font-size:12.5px;color:#5A6577">ChatGPT</div></td><td>Light</td><td>30%</td><td>44</td><td>—</td><td><span class="tag" style="background:#ECEEF2;color:#3E4757">Scoring pending</span></td><td>—</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+    <section style="background:#FFF6E5;border:1px solid #F0C978;border-radius:8px;padding:16px 20px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px">
+      <div><div style="font-weight:600">1 Tier 3 use case is not mapped to a system</div><div style="font-size:14px;color:#3E4757">Every Tier 3 use case needs a full assessment. Tier 2 use cases get a light one (§3, §5, §7.2, §9).</div></div>
+      <button style="height:40px;padding:0 16px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:14px;font-weight:600;color:#16233A">Map use case</button>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
