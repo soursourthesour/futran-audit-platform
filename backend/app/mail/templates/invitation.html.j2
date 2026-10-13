@@ -1,0 +1,6 @@
+{% extends "_layout.html.j2" %}{% block body %}
+<p>Dear {{ name }},</p>
+<p>{{ inviter_name }} has given you access to the Futran Audit Platform for {{ organization_name }}{% if role_label %} as {{ role_label }}{% endif %}.</p>
+<p style="margin:24px 0"><a href="{{ accept_url }}" style="background:#1B3A6B;color:#ffffff;padding:12px 20px;text-decoration:none;display:inline-block">Accept invitation</a></p>
+<p style="font-size:13px;color:#5b6474">This link is for you only and expires in 7 days. You will set a password{% if mfa_required %} and turn on multi-factor authentication{% endif %}. Documents are not attached to this email; they open only after you sign in.</p>
+{% endblock %}
