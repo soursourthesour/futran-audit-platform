@@ -23,7 +23,7 @@ def upgrade() -> None:
         batch_op.create_unique_constraint('uq_package_version', ['engagement_id', 'version'])
 
     with op.batch_alter_table('sign_offs', schema=None) as batch_op:
-        batch_op.add_column(sa.Column('excluded_signer_ids', sa.JSON(), nullable=False))
+        batch_op.add_column(sa.Column('excluded_signer_ids', sa.JSON(), nullable=False, server_default='[]'))
         batch_op.create_unique_constraint('uq_sign_off_version', ['engagement_id', 'number', 'scope_ref', 'version'])
 
     with op.batch_alter_table('signatures', schema=None) as batch_op:
