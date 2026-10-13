@@ -28,20 +28,17 @@ def normalise_email(email: str) -> str:
     return email.strip().lower()
 
 
-def find_user_by_email(db: Session, org_id: str, email: str) -> User | None:
+def find_user_by_email(db: Session, email: str) -> User | None:
+    """Emails are unique across the whole platform, because sign-in is by email alone."""
     return db.scalar(
-        select(User).where(
-            User.organization_id == org_id,
-            func.lower(User.email) == normalise_email(email),
-            User.deleted_at.is_(None),
-        )
+        select(User).where(func.lower(User.email) == normalise_email(email), User.deleted_at.is_(None))
     )
 
 
 def create_user(db: Session, org: Organization, *, name: str, email: str, actor_id: str | None = None, **fields) -> User:
     email = normalise_email(email)
-    if find_user_by_email(db, org.id, email):
-        raise Conflict(f"A user with the email {email} already exists in {org.name}.")
+    if find_user_by_email(db, email):
+        raise Conflict(f"A user with the email {email} already exists.")
     user = User(organization_id=org.id, name=name.strip(), email=email, created_by=actor_id, updated_by=actor_id, **fields)
     db.add(user)
     db.flush()

@@ -27,3 +27,15 @@ def make_user(db, org, roles=(), name="Test User", email=None, password=None, sc
 
 def make_department(db, org, name="Human Resources", **kw):
     return create_department(db, org, name=name, **kw)
+
+
+def login_as(client, db, user):
+    """Give `client` a signed-in, MFA-passed session for `user`; returns the client."""
+    from app.auth.sessions import COOKIE_NAME, create_session
+
+    settings = client.app.state.settings
+    s, raw = create_session(db, user, settings, mfa_passed=True)
+    db.commit()
+    client.cookies.set(COOKIE_NAME, raw)
+    client.headers["X-CSRF-Token"] = s.csrf_token
+    return client
