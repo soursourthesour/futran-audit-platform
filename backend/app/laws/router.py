@@ -11,7 +11,7 @@ from app.core.db import get_db
 from app.core.errors import Conflict, Invalid, NotFound
 from app.laws.importer import FEATURE_LABELS, FEATURES, ImportPreview, parse_workbook
 from app.laws.models import LawImportPreview, MatrixVersion, Regulation
-from app.laws.publish import publish
+from app.laws.publish import plan_out, plan_publish, publish
 from app.laws.service import add_law, edit_law, law_out, search_laws
 from app.policy.actions import Action
 from app.policy.authorize import authorize
@@ -22,6 +22,7 @@ router = APIRouter(tags=["laws"])
 
 class PublishIn(BaseModel):
     edits: dict[str, str] = {}
+    take_workbook: list[str] = []
 
 
 class LawIn(BaseModel):
@@ -42,11 +43,12 @@ class LawIn(BaseModel):
     status_text: str | None = None
 
 
-def _preview_out(pid: str, pv: ImportPreview) -> dict:
+def _preview_out(db: Session, pid: str, pv: ImportPreview) -> dict:
     regs = [r for r in pv.rows if r.kind == "regulation"]
     return {
         "preview_id": pid,
         **pv.to_json(),
+        "plan": plan_out(plan_publish(db, pv, {})),
         "counts": {
             "regulations": len(regs),
             "notes": len(pv.rows) - len(regs),
@@ -57,10 +59,16 @@ def _preview_out(pid: str, pv: ImportPreview) -> dict:
     }
 
 
+MAX_ROWS = 5000
+
+
 @router.post("/admin/laws/import")
-async def import_preview(file: UploadFile = File(...), actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def import_preview(request: Request, file: UploadFile = File(...), actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
     authorize(db, actor, Action.MANAGE_REFERENCE_DATA)
-    data = await file.read()
+    limit = request.app.state.settings.max_upload_mb * 1024 * 1024
+    data = file.file.read(limit + 1)
+    if len(data) > limit:
+        raise Invalid(f"The workbook is larger than {request.app.state.settings.max_upload_mb} MB.", [{"field": "file", "message": "File too large."}])
     if not data.startswith(b"PK"):
         raise Invalid("Upload the law matrix as an Excel workbook (.xlsx).", [{"field": "file", "message": "Not an .xlsx file."}])
     with tempfile.TemporaryDirectory() as tmp:
@@ -72,10 +80,12 @@ async def import_preview(file: UploadFile = File(...), actor: Actor = Depends(cu
             raise Invalid(f"This workbook is missing a sheet the importer needs: {exc}.")
         except Exception as exc:  # malformed workbook
             raise Invalid(f"The workbook could not be read: {exc}")
+    if len(pv.rows) > MAX_ROWS:
+        raise Invalid(f"The workbook has more than {MAX_ROWS} law rows. Check that the right file was chosen.")
     rec = LawImportPreview(payload=pv.to_json(), created_by=actor.id)
     db.add(rec)
     db.flush()
-    return _preview_out(rec.id, pv)
+    return _preview_out(db, rec.id, pv)
 
 
 @router.get("/admin/laws/import/{preview_id}")
@@ -84,7 +94,7 @@ def get_preview(preview_id: str, actor: Actor = Depends(current_actor), db: Sess
     rec = db.get(LawImportPreview, preview_id)
     if rec is None:
         raise NotFound()
-    return _preview_out(rec.id, ImportPreview.from_json(rec.payload))
+    return _preview_out(db, rec.id, ImportPreview.from_json(rec.payload))
 
 
 @router.post("/admin/laws/import/{preview_id}/publish")
@@ -95,7 +105,10 @@ def publish_preview(preview_id: str, body: PublishIn, actor: Actor = Depends(cur
         raise NotFound()
     if rec.published_version_id:
         raise Conflict("This preview has already been published. Upload the workbook again to make another version.")
-    v = publish(db, ImportPreview.from_json(rec.payload), actor.user, body.edits)
+    newer = db.scalar(select(MatrixVersion.id).where(MatrixVersion.origin == "import", MatrixVersion.published_at > rec.created_at).limit(1))
+    if newer:
+        raise Conflict("A newer import was published after this preview was made. Upload the workbook again.")
+    v = publish(db, ImportPreview.from_json(rec.payload), actor.user, body.edits, take_workbook=body.take_workbook)
     rec.published_version_id = v.id
     return {"version_id": v.id, "label": v.label, "summary": v.summary}
 
@@ -171,7 +184,7 @@ def _run_in_background(app, run_id: str, actor_id: str, jurisdiction_ids: list[s
         run = db.get(LawRefreshRun, run_id)
         actor = db.get(User, actor_id)
         client = getattr(app.state, "claude_factory", None) or default_factory
-        run_refresh(db, actor, jurisdiction_ids, client(app.state.settings), run=run)
+        run_refresh(db, actor, jurisdiction_ids, client(app.state.settings), run=run, commit=db.commit)
         db.commit()
     except Exception as exc:
         db.rollback()
@@ -230,7 +243,11 @@ def start_refresh(body: RefreshIn, background: BackgroundTasks, request: Request
 def list_runs(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
     from app.laws.models import LawRefreshRun
 
+    from app.laws.refresh import fail_stale_runs
+
     authorize(db, actor, Action.RUN_LAW_REFRESH)
+    fail_stale_runs(db)
+    db.flush()
     return [_run_out(db, r) for r in db.scalars(select(LawRefreshRun).order_by(LawRefreshRun.created_at.desc()).limit(50))]
 
 

@@ -50,7 +50,8 @@ class Regulation(IdMixin, Base):
     public_summary: Mapped[bool] = mapped_column(Boolean, default=False)
     source_sheet: Mapped[str | None] = mapped_column(String(60))
     source_row_ref: Mapped[str | None] = mapped_column(String(80), index=True)
-    content_hash: Mapped[str | None] = mapped_column(String(64))
+    import_key: Mapped[str | None] = mapped_column(String(200), index=True)  # stable workbook identity; kept through edits
+    content_hash: Mapped[str | None] = mapped_column(String(64))  # hash of the workbook row this law last took
     origin: Mapped[str] = mapped_column(String(10), default="import")  # import | manual | claude
     superseded_by_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("regulations.id"))
     retired_in_version_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("matrix_versions.id"))

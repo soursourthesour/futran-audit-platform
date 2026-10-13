@@ -80,7 +80,7 @@ def test_vendor_assurance_replaces_6_1_and_6_3(bank):
     assert "vendor" not in q["6.1.01"].build_types and "vendor" not in q["6.3.02"].build_types
     assert q["V.01"].build_types == ["vendor", "hybrid"]
     assert q["6.2.01"].build_types is None  # bias testing applies to every build type
-    assert q["9.2.01"].build_types == ["vendor", "hybrid"]
+    assert q["9.2.01"].build_types is None and q["9.2.01"].section_rule["any"][0] == {"system": "built_by", "in": ["vendor", "hybrid"]}  # plus in-house systems calling external APIs
 
 
 def test_intern_notes_are_futran_only_help(bank):

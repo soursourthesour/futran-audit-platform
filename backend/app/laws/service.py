@@ -125,7 +125,7 @@ def edit_law(db: Session, actor: User, reg_id: str, fields: dict) -> Regulation:
     fields = {k: v for k, v in fields.items() if k in EDITABLE}
     _validate(fields)
     v = new_manual_version(db, actor, f"Manual edit — {old.short_name[:80]}")
-    data = {c.key: getattr(old, c.key) for c in Regulation.__table__.columns if c.key not in ("id", "created_at", "superseded_by_id", "retired_in_version_id", "content_hash")}
+    data = {c.key: getattr(old, c.key) for c in Regulation.__table__.columns if c.key not in ("id", "created_at", "superseded_by_id", "retired_in_version_id")}
     data.update(fields)
     data.update(matrix_version_id=v.id, last_seen_version_id=v.id, origin="manual", updated_by=actor.id)
     new = Regulation(**data)

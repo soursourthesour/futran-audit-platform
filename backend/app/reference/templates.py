@@ -1,6 +1,8 @@
 """Versioned document templates (Markdown + Jinja). Admin edits create a new version."""
 import yaml
-from jinja2 import Environment, StrictUndefined, TemplateSyntaxError, Undefined
+from jinja2 import StrictUndefined, TemplateSyntaxError, Undefined
+from jinja2.exceptions import SecurityError
+from jinja2.sandbox import ImmutableSandboxedEnvironment
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -20,6 +22,11 @@ class _Lenient(Undefined):
         return ""
 
     def __getattr__(self, name):
+        if name.startswith("__"):
+            raise AttributeError(name)
+        return self
+
+    def __getitem__(self, key):
         return self
 
     def __iter__(self):
@@ -29,8 +36,15 @@ class _Lenient(Undefined):
         return False
 
 
-_env = Environment(undefined=_Lenient, trim_blocks=True, lstrip_blocks=True, autoescape=False)
-_strict = Environment(undefined=StrictUndefined)
+class _Sandbox(ImmutableSandboxedEnvironment):
+    """Admins edit templates in the browser, so templates never reach Python internals or mutate data."""
+
+    def unsafe_undefined(self, obj, attribute):
+        raise SecurityError(f"Templates cannot use '{attribute}'.")
+
+
+_env = _Sandbox(undefined=_Lenient, trim_blocks=True, lstrip_blocks=True, autoescape=False)
+_strict = _Sandbox(undefined=StrictUndefined)
 
 
 def load_templates(db: Session) -> str:
@@ -68,6 +82,10 @@ def edit_template(db: Session, actor: User, key: str, body: str) -> DocumentTemp
         _strict.parse(body)
     except TemplateSyntaxError as exc:
         raise Invalid("The template has a merge-field error.", [{"field": "body", "message": f"Line {exc.lineno}: {exc.message}"}])
+    try:
+        render_string(body, {})  # test render: missing fields are blank, unsafe or broken expressions fail here, not at generation
+    except Exception as exc:
+        raise Invalid("The template could not be rendered.", [{"field": "body", "message": str(exc)[:300]}])
     current = active_template(db, key)
     latest = db.scalar(select(func.max(DocumentTemplate.version)).where(DocumentTemplate.key == key)) or 1
     current.active = False

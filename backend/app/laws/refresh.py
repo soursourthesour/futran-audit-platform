@@ -100,7 +100,49 @@ def _extract_json(text: str):
     return json.loads(raw)
 
 
-def run_refresh(db: Session, actor: User, jurisdiction_ids: list[str], client: ClaudeClient, model: str | None = None, run: LawRefreshRun | None = None) -> LawRefreshRun:
+BOOL_FIELDS = {"verify_flag", "public_summary"}
+
+
+def _field_problem(fields: dict) -> str | None:
+    """Claude's fields must fit the columns they land in."""
+    for k, v in fields.items():
+        if k in BOOL_FIELDS:
+            if not isinstance(v, bool):
+                return f"{k} is not true or false"
+            continue
+        if v is None:
+            continue
+        if not isinstance(v, str):
+            return f"{k} is not text"
+        length = getattr(Regulation.__table__.columns[k].type, "length", None)
+        if length and len(v) > length:
+            return f"{k} is longer than {length} characters"
+    return None
+
+
+STALE_AFTER_HOURS = 2
+
+
+def fail_stale_runs(db: Session) -> None:
+    """A run still 'running' long after it started was cut off by a restart; say so instead of spinning forever."""
+    from datetime import timedelta
+
+    cutoff = utcnow() - timedelta(hours=STALE_AFTER_HOURS)
+    for run in db.scalars(select(LawRefreshRun).where(LawRefreshRun.status == "running", LawRefreshRun.created_at < cutoff)):
+        run.status, run.error, run.finished_at = "failed", "The run was interrupted before it finished (the server restarted). Start it again.", utcnow()
+
+
+def run_refresh(
+    db: Session,
+    actor: User,
+    jurisdiction_ids: list[str],
+    client: ClaudeClient,
+    model: str | None = None,
+    run: LawRefreshRun | None = None,
+    commit=None,
+) -> LawRefreshRun:
+    """Research each jurisdiction in turn. `commit` (when given) is called before every network call so no database
+    transaction stays open while Claude researches; proposals for finished jurisdictions are kept if a later one fails."""
     if run is None:
         run = LawRefreshRun(jurisdiction_ids=jurisdiction_ids, requested_by=actor.id, model=model, status="running", warnings=[])
         db.add(run)
@@ -120,6 +162,8 @@ def run_refresh(db: Session, actor: User, jurisdiction_ids: list[str], client: C
                 name=j.name, code=j.code, today=today().isoformat(), current=_current_payload(regs),
                 fields=", ".join(EDITABLE), features=", ".join(FEATURES), types=", ".join(TYPES),
             )
+            if commit is not None:
+                commit()
             reply = client.research(prompt)
             try:
                 items = _extract_json(reply)
@@ -138,6 +182,10 @@ def run_refresh(db: Session, actor: User, jurisdiction_ids: list[str], client: C
                     warnings.append(f"{j.name}, item {i}: skipped because it refers to a law that is not in the matrix.")
                     continue
                 fields = {k: v for k, v in p.fields.items() if k in EDITABLE}
+                problem = _field_problem(fields)
+                if problem:
+                    warnings.append(f"{j.name}, item {i}: skipped because {problem}.")
+                    continue
                 if p.change_type == "add" and not (fields.get("short_name") or "").strip():
                     warnings.append(f"{j.name}, item {i}: skipped because a new law needs a short name.")
                     continue
@@ -182,7 +230,7 @@ def accept_proposals(db: Session, actor: User, accept: list[str], reject: list[s
             old = db.get(Regulation, p.regulation_id)
             if old is None or old.superseded_by_id or old.retired_in_version_id:
                 raise Invalid(f"The law '{old.short_name if old else p.regulation_id}' changed after this proposal was made. Run the update again.")
-            data = {c.key: getattr(old, c.key) for c in Regulation.__table__.columns if c.key not in ("id", "created_at", "superseded_by_id", "retired_in_version_id", "content_hash")}
+            data = {c.key: getattr(old, c.key) for c in Regulation.__table__.columns if c.key not in ("id", "created_at", "superseded_by_id", "retired_in_version_id")}
             data.update({k: v for k, v in p.proposed.items() if k in EDITABLE})
             data.update(matrix_version_id=version.id, last_seen_version_id=version.id, origin="claude", updated_by=actor.id)
             new = Regulation(**data)
@@ -191,8 +239,9 @@ def accept_proposals(db: Session, actor: User, accept: list[str], reject: list[s
             old.superseded_by_id = new.id
         elif p.change_type == "retire":
             old = db.get(Regulation, p.regulation_id)
-            if old is not None and not old.retired_in_version_id:
-                old.retired_in_version_id = version.id
+            if old is None or old.superseded_by_id or old.retired_in_version_id:
+                raise Invalid(f"The law '{old.short_name if old else p.regulation_id}' changed after this proposal was made. Run the update again.")
+            old.retired_in_version_id = version.id
         p.status, p.reviewed_by, p.reviewed_at = "accepted", actor.id, now
     for old_v in db.scalars(select(MatrixVersion).where(MatrixVersion.status == "published", MatrixVersion.id != version.id)):
         old_v.status = "superseded"

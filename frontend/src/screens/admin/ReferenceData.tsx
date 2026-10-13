@@ -80,7 +80,7 @@ function LawEditor({ law, onDone }: { law?: Law; onDone: () => void }) {
   const features = useFeatures();
   const juris = useLawJurisdictions();
   const qc = useQueryClient();
-  const [f, setF] = useState({
+  const initial = {
     jurisdiction_code: law?.jurisdiction_code ?? 'US',
     short_name: law?.short_name ?? '',
     feature: law?.feature ?? 'employment_hiring',
@@ -91,7 +91,8 @@ function LawEditor({ law, onDone }: { law?: Law; onDone: () => void }) {
     developments_text: law?.developments_text ?? '',
     applies_to: law?.applies_to ?? 'deployer',
     verify_flag: law?.verify_flag ?? false,
-  });
+  };
+  const [f, setF] = useState(initial);
   const [err, setErr] = useState<string | null>(null);
   const [fe, setFe] = useState<Record<string, string>>({});
   const set = (k: string, v: string | boolean) => setF({ ...f, [k]: v });
@@ -100,9 +101,10 @@ function LawEditor({ law, onDone }: { law?: Law; onDone: () => void }) {
     setErr(null);
     try {
       if (law) {
-        const { jurisdiction_code: _j, ...rest } = f;
-        void _j;
-        await api.patch(`/laws/${law.id}`, rest);
+        // send only what changed, so an untouched field (for example a summary shown in place of empty obligations) is not written back
+        const changed = Object.fromEntries(Object.entries(f).filter(([k, v]) => k !== 'jurisdiction_code' && v !== initial[k as keyof typeof initial]));
+        if (Object.keys(changed).length === 0) return onDone();
+        await api.patch(`/laws/${law.id}`, changed);
       } else await api.post('/laws', f);
       await qc.invalidateQueries({ queryKey: ['laws'] });
       onDone();
@@ -193,12 +195,15 @@ function JurisdictionsTab({ canEdit }: { canEdit: boolean }) {
 }
 
 type PreviewRow = { row_key: string; kind: string; source_sheet: string; jurisdiction_code: string; jurisdiction_name: string; feature: string; short_name: string; full_text: string; verify_flag: boolean; applies_to: string };
-type Preview = { preview_id: string; status_date: string | null; source_filename: string; rows: PreviewRow[]; warnings: string[]; counts: Record<string, number> };
+type Conflict = { row_key: string | null; kind: 'changed' | 'removed'; current_id: string; current_short_name: string; current_origin: string; workbook_short_name: string | null; workbook_text: string | null };
+type Plan = { created: number; updated: number; unchanged: number; retired: number; conflicts: Conflict[] };
+type Preview = { preview_id: string; status_date: string | null; source_filename: string; rows: PreviewRow[]; warnings: string[]; counts: Record<string, number>; plan: Plan };
 
 function ImportTab() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [pv, setPv] = useState<Preview | null>(null);
   const [edits, setEdits] = useState<Record<string, string>>({});
+  const [take, setTake] = useState<string[]>([]);
   const [filter, setFilter] = useState('');
   const [msg, setMsg] = useState<{ tone: 'success' | 'danger' | 'info'; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -213,6 +218,7 @@ function ImportTab() {
     try {
       setPv(await api.upload<Preview>('/admin/laws/import', form));
       setEdits({});
+      setTake([]);
     } catch (ex) {
       setMsg({ tone: 'danger', text: errorMessage(ex) });
     } finally {
@@ -223,8 +229,9 @@ function ImportTab() {
     if (!pv) return;
     setBusy(true);
     try {
-      const out = await api.post<{ summary: Record<string, number> }>(`/admin/laws/import/${pv.preview_id}/publish`, { edits });
-      setMsg({ tone: 'success', text: `Published. ${out.summary.created} new, ${out.summary.updated} changed, ${out.summary.unchanged} unchanged, ${out.summary.retired} no longer in the workbook (kept on record).` });
+      const out = await api.post<{ summary: Record<string, number> }>(`/admin/laws/import/${pv.preview_id}/publish`, { edits, take_workbook: take });
+      const kept = out.summary.conflicts ? ` ${out.summary.conflicts} edited laws kept as they were.` : '';
+      setMsg({ tone: 'success', text: `Published. ${out.summary.created} new, ${out.summary.updated} changed, ${out.summary.unchanged} unchanged, ${out.summary.retired} no longer in the workbook (kept on record).${kept}` });
       setPv(null);
       await qc.invalidateQueries();
     } catch (ex) {
@@ -249,7 +256,22 @@ function ImportTab() {
             <div className="row small">
               <Badge>{pv.counts.regulations} laws</Badge><Badge>{pv.counts.jurisdictions} jurisdictions</Badge><Badge tone="warn">{pv.counts.verify} to verify</Badge><Badge tone="muted">{pv.counts.developer_only} developer-only</Badge><Badge tone="muted">{pv.counts.notes} notes</Badge>
             </div>
+            <p className="small">Publishing will add <strong>{pv.plan.created}</strong> laws, change <strong>{pv.plan.updated}</strong>, leave <strong>{pv.plan.unchanged}</strong> as they are and mark <strong>{pv.plan.retired}</strong> as no longer in the workbook.</p>
             {pv.warnings.length > 0 && <Alert tone="warn"><strong>{pv.warnings.length} warnings.</strong> {pv.warnings.slice(0, 5).join(' ')}</Alert>}
+            {pv.plan.conflicts.length > 0 && (
+              <Alert tone="warn">
+                <strong>{pv.plan.conflicts.length} laws were edited in the platform since the last import and the workbook differs.</strong> The platform version is kept unless you tick a law below to take the workbook text instead.
+                <ul className="small" style={{ margin: '8px 0 0', paddingLeft: 18 }}>
+                  {pv.plan.conflicts.map((c) => (
+                    <li key={c.current_id}>
+                      {c.kind === 'removed' ? <>{c.current_short_name}: no longer in the workbook. It stays in the matrix.</> : (
+                        <Checkbox label={`${c.current_short_name}: use the workbook text`} checked={take.includes(c.row_key!)} onChange={(e) => setTake(e.target.checked ? [...take, c.row_key!] : take.filter((k) => k !== c.row_key))} />
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </Alert>
+            )}
             <div style={{ maxWidth: 360 }}><TextField label="Filter" value={filter} onChange={(e) => setFilter(e.target.value)} /></div>
             <div className="table-wrap">
               <table className="table">

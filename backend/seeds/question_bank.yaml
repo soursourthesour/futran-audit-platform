@@ -180,16 +180,18 @@ sections:
          options: [{value: baa_in_place, label: "Yes — BAA in place"}, {value: baa_not_in_place, label: "Yes — BAA not in place"}, {value: "no", label: "No"}],
          finding: {when: {in: [baa_not_in_place]}, severity: critical, title: "PHI processed by an AI vendor without a business associate agreement"}}
       - {code: "5.3.03", label: "BAA date signed, and covers AI use", type: text, applies: {q: "5.3.02", eq: baa_in_place}}
-      - {code: "5.3.04", label: "Minimum necessary standard", help: "Does the system use only the minimum PHI needed?", type: single, options: [{value: "yes", label: "Yes — documented"}, {value: "no", label: "No"}, {value: unknown, label: "Unknown"}]}
+      - {code: "5.3.04", label: "Minimum necessary standard", help: "Does the system use only the minimum PHI needed?", type: single, options: [{value: "yes", label: "Yes — documented"}, {value: "no", label: "No"}, {value: unknown, label: "Unknown"}],
+         finding: {when: {in: ["no", unknown]}, severity: medium, title: "PHI used by the AI system is not limited to the minimum necessary"}}
       - {code: "5.3.05", label: "PHI de-identification method", type: single,
          options: [{value: expert, label: "Expert determination"}, {value: safe_harbor, label: "Safe harbor (18 identifiers removed)"}, {value: not_deidentified, label: "Not de-identified"}, {value: na, label: "Not applicable"}]}
       - {code: "5.3.06", label: "PHI access by the AI system logged and retained for 6 years", type: single, option_set: yes_no,
          finding: {when: {in: ["no"]}, severity: high, title: "PHI access by the AI system is not logged and retained for 6 years"}}
       - {code: "5.3.07", label: "HIPAA Security Rule controls", type: multi,
-         options: [{value: access_control, label: "Access controls"}, {value: encryption_rest, label: "Encryption at rest"}, {value: encryption_transit, label: "Encryption in transit"}, {value: training, label: "Workforce training completed"}, {value: emergency_access, label: "Emergency access procedure"}]}
+         options: [{value: access_control, label: "Access controls"}, {value: encryption_rest, label: "Encryption at rest"}, {value: encryption_transit, label: "Encryption in transit"}, {value: training, label: "Workforce training completed"}, {value: emergency_access, label: "Emergency access procedure"}],
+         finding: {when: {missing_any: [access_control, encryption_rest, encryption_transit, training, emergency_access]}, severity: high, title: "HIPAA Security Rule safeguards are incomplete for the AI system"}}
       - {code: "5.3.08", label: "Breach notification procedure", help: "Is notification within HIPAA's 60-day window?", type: long_text}
       - {code: "5.3.09", label: "HIPAA risk analysis last completed", help: "Must include AI systems. More than 12 months ago is a finding.", type: date,
-         finding: {when: {older_than_months: 12}, severity: medium, title: "HIPAA risk analysis is more than 12 months old"}}
+         finding: {when: {older_than_months: 12, or_never: true}, severity: medium, title: "HIPAA risk analysis is more than 12 months old or has never been done"}}
 
   - code: "OS"
     title: Open-source licence and provenance
@@ -212,13 +214,13 @@ sections:
          options: [{value: agile, label: "Agile / iterative"}, {value: waterfall, label: "Waterfall"}, {value: mlops, label: "MLOps pipeline"}, {value: none, label: "No formal methodology"}],
          finding: {when: {in: [none]}, severity: medium, title: "No formal model development methodology"}}
       - {code: "6.1.02", label: "Model card or model documentation exists", type: single, option_set: yes_no, evidence: true,
-         finding: {when: {in: ["no"]}, severity: medium, title: "No model card or equivalent documentation"}}
+         finding: {when: {in: ["no"]}, severity: medium, title: "No model card or equivalent documentation for a high-risk system", if: {system: depth, eq: full}}}
       - {code: "6.1.03", label: "Feature engineering documentation", help: "Are input variables documented with their sources and rationale?", type: single, option_set: yes_no}
       - {code: "6.1.04", label: "Training / validation / test split", help: "Percentages, for example 70 / 15 / 15.", type: text}
       - {code: "6.1.05", label: "Hyperparameter tuning method", type: text}
       - {code: "6.1.06", label: "Explainability / interpretability method", type: single,
          options: [{value: shap, label: "SHAP values"}, {value: lime, label: "LIME"}, {value: feature_importance, label: "Feature importance scores"}, {value: rule_extraction, label: "Rule extraction"}, {value: none, label: "None"}],
-         finding: {when: {in: [none]}, severity: medium, title: "No explainability method for the model"}}
+         finding: {when: {in: [none]}, severity: medium, title: "No explainability method for a high-risk model", if: {system: depth, eq: full}}}
       - {code: "6.1.07", label: "Model reproducibility", help: "Retrained today on the same data, would it produce the same results?", type: single, option_set: yes_no_unknown}
       - {code: "6.1.08", label: "Change management for model updates", help: "Is there a formal approval gate before an updated model is deployed?", type: long_text}
 
@@ -329,7 +331,7 @@ sections:
       - {code: "8.1.08", label: "Encryption in transit (TLS 1.2 or later)", type: single, option_set: yes_no, required: true,
          finding: {when: {in: ["no"]}, severity: high, title: "Data to and from the AI system is not encrypted in transit"}}
       - {code: "8.1.09", label: "Last penetration test covering the AI system or its API", type: date,
-         finding: {when: {older_than_months: 12}, severity: medium, title: "No penetration test of the AI system in the last 12 months"}}
+         finding: {when: {older_than_months: 12, or_never: true}, severity: medium, title: "No penetration test of the AI system in the last 12 months"}}
       - {code: "8.1.10", label: "Dependency patching", type: single, option_set: yes_no, detail_label: "Frequency"}
 
   - code: "8.2"
@@ -371,7 +373,7 @@ sections:
     title: Vendor due diligence
     scope: system
     light: true
-    build_types: [vendor, hybrid]
+    applies: {any: [{system: built_by, in: [vendor, hybrid]}, {q: "3.2.10", empty: false}]}   # also in-house systems that call external AI services
     note: "Most organizations use AI from vendors. Under HIPAA, GDPR and the EU AI Act the deployer shares accountability. Procurement or IT often knows of AI vendors the compliance team does not."
     questions:
       - {code: "9.2.01", label: "Vendor AI risk assessment process", type: single,

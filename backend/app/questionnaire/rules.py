@@ -6,9 +6,13 @@ Rule grammar (JSON):
   {"engagement": <fact name>, "eq"|"in": ...}
   {"all": [rules]} | {"any": [rules]} | {"not": rule}
 
-Finding rules: {"when": {"in": [...]} | {"lt": n} | {"gt": n} | {"older_than_months": n},
-                "severity": ..., "title": ..., "if": rule?, "unless": rule?, "null_compliance": bool?}
-Golden rule 2: an answer with status `not_yet_in_place` counts as "No" — it always triggers the finding.
+Finding rules: {"when": {"in": [...]} | {"lt": n} | {"gt": n} | {"older_than_months": n, "or_never": bool?}
+                         | {"missing_any": [...]} (multi-select: a required option was not ticked),
+                "severity": ..., "title": ..., "if": rule?, "unless": rule?, "null_compliance": bool?, "nyip_triggers": bool?}
+Golden rule 2: an answer with status `not_yet_in_place` counts as "No". It triggers a finding when a "No" would —
+rules about a missing control (`in` with a no-like value, `missing_any`, `or_never`) — and never triggers rules about
+measured or positive values (a prohibited classification, an impact ratio, a high null-compliance rating).
+`nyip_triggers` overrides the default either way. String comparisons ignore case.
 """
 from dataclasses import dataclass, field
 from datetime import date
@@ -37,13 +41,22 @@ class EngagementFacts:
         return self.extra.get(name)
 
 
+def _fold(v: Any) -> Any:
+    if isinstance(v, str):
+        return v.casefold()
+    if isinstance(v, (list, tuple, set)):
+        return [_fold(x) for x in v]
+    return v
+
+
 def _compare(value: Any, rule: dict) -> bool:
+    value = _fold(value)
     if "eq" in rule:
-        return value == rule["eq"]
+        return value == _fold(rule["eq"])
     if "in" in rule:
-        return value in rule["in"]
+        return value in _fold(rule["in"])
     if "contains" in rule:
-        return isinstance(value, (list, tuple, set)) and rule["contains"] in value
+        return isinstance(value, list) and _fold(rule["contains"]) in value
     if "empty" in rule:
         empty = value in (None, "", [], {})
         return empty if rule["empty"] else not empty
@@ -80,9 +93,27 @@ def _months_between(earlier: date, later: date) -> int:
     return (later.year - earlier.year) * 12 + (later.month - earlier.month) - (1 if later.day < earlier.day else 0)
 
 
+NO_LIKE = {"no", "none", "never", "planned", "draft", "not_provided", "baa_not_in_place"}
+
+
+def nyip_triggers(rule: dict) -> bool:
+    """Does "not yet in place" trigger this finding rule? (see module docstring)"""
+    if "nyip_triggers" in rule:
+        return bool(rule["nyip_triggers"])
+    if rule.get("null_compliance"):
+        return False
+    when = rule.get("when", {})
+    if "in" in when:
+        return bool(NO_LIKE & {str(v).casefold() for v in when["in"]})
+    return "missing_any" in when or bool(when.get("or_never"))
+
+
 def _matches(when: dict, value: Any, today: date) -> bool:
     if "in" in when:
-        return value in when["in"]
+        return _fold(value) in _fold(when["in"])
+    if "missing_any" in when:
+        ticked = set(_fold(value) or []) if isinstance(value, (list, tuple, set)) else set()
+        return any(_fold(v) not in ticked for v in when["missing_any"])
     if "lt" in when or "gt" in when:
         try:
             num = float(value)
@@ -90,6 +121,8 @@ def _matches(when: dict, value: Any, today: date) -> bool:
             return False
         return num < when["lt"] if "lt" in when else num > when["gt"]
     if "older_than_months" in when:
+        if isinstance(value, str) and value.casefold() == "never":
+            return bool(when.get("or_never"))
         if not value:
             return False
         try:
@@ -117,6 +150,9 @@ def evaluate_finding(
     if rule.get("unless") and is_applicable(rule["unless"], answers, system, facts):
         return None
     nyip = status == "not_yet_in_place"
+    if nyip:
+        if not nyip_triggers(rule):
+            return None
     if nyip or _matches(rule["when"], value, today or date.today()):
         return FindingDraft(severity=rule["severity"], title=rule["title"], not_yet_in_place=nyip, null_compliance=bool(rule.get("null_compliance")))
     return None

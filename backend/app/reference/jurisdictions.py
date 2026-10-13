@@ -91,9 +91,11 @@ def upsert_city(db: Session, state_code: str, name: str, *, code: str | None = N
 def _find_subdivision(db: Session, country: Jurisdiction, subdivision: str | None) -> Jurisdiction | None:
     if not subdivision:
         return None
-    j = by_code(db, subdivision.upper())
-    if j is not None and j.level == "state":
-        return j
+    code = subdivision.strip().upper()
+    for candidate in (code, f"{country.code}-{code}"):  # "US-NY" or the bare ISO short code "NY"
+        j = by_code(db, candidate)
+        if j is not None and j.level == "state" and j.code.startswith(f"{country.code}-"):
+            return j
     target = norm(subdivision)
     for s in db.scalars(select(Jurisdiction).where(Jurisdiction.level == "state", Jurisdiction.code.like(f"{country.code}-%"))):
         if norm(s.name) == target or target in {norm(a) for a in (s.aliases or [])}:

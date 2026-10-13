@@ -3,9 +3,15 @@ version: "1.0"
 effective_date: 2026-10-12
 factors:
   decision_type:    {weight: 0.20, question: "3.3.02", scores: {fully_automated: 5, human_assisted: 3, alert_only: 2, analytics_only: 1}}
-  consequence:      {weight: 0.20, question: "3.3.05", source: auditor_severity}
+  consequence:      {weight: 0.20, question: "3.3.05s", scores: {"1": 1, "2": 2, "3": 3, "4": 4, "5": 5}}   # auditor's severity rating
   protected_classes: {weight: 0.15, question: "3.3.07", scores: {"yes": 5, unknown: 4, "no": 1}}
-  data_sensitivity: {weight: 0.15, questions: ["5.1.02", "5.1.03", "5.1.04"], scores: {special: 5, pii: 3, none: 1}}
+  data_sensitivity:   # highest level whose rule matches; "unknown" PHI or special-category data is treated as sensitive
+    weight: 0.15
+    questions: ["5.1.02", "5.1.03", "5.1.04"]
+    levels:
+      - {score: 5, rule: {any: [{q: "5.1.02", in: ["yes", unknown]}, {q: "5.1.04", in: ["yes", unknown]}]}}
+      - {score: 3, rule: {q: "5.1.03", eq: "yes"}}
+      - {score: 1, rule: null}
   regulated_context: {weight: 0.10, question: "3.3.06", scores: {"yes": 5, "no": 1}}
   volume:           {weight: 0.10, question: "3.3.04", bands: [{max: 99, score: 1}, {max: 999, score: 2}, {max: 9999, score: 3}, {max: 99999, score: 4}, {max: null, score: 5}]}
   system_type:      {weight: 0.05, question: "3.2.01", scores: {agentic: 5, genai_llm: 4, ml: 3, deep_learning: 3, computer_vision: 3, nlp: 3, rule_based: 1, other: 3}}
@@ -33,12 +39,13 @@ bands:
   - {min: 50, rating: high}
   - {min: 25, rating: medium}
   - {min: 0, rating: low}
-knockouts:
-  - {code: phi_vendor_no_baa, force: critical, label: "PHI processed by a vendor without a BAA (5.3.02)"}
-  - {code: no_legal_basis, force: critical, label: "No documented legal basis for personal data (§5.2)"}
-  - {code: eu_prohibited, force: critical, label: "EU AI Act prohibited practice (3.3.08)"}
-  - {code: automated_severe_no_override, force: critical, label: "Fully automated, consequence 4 or more, no human override (3.3.02, 3.3.05, 7.1.02)"}
-  - {code: no_bias_testing, force: high, label: "No bias testing on a system affecting people (6.2.01)"}
-  - {code: no_encryption, force: high, label: "No encryption at rest or in transit (8.1.07, 8.1.08)"}
-  - {code: null_compliance_high, force: high, label: "Null-compliance risk High (5.1a.05)"}
-  - {code: validation_required_not_done, force: high, label: "Independent validation required but not performed (6.3.01, 6.3.02)"}
+knockouts:   # rule grammar as app/questionnaire/rules.py; "not yet in place" answers count as "no"
+  - {code: phi_vendor_no_baa, force: critical, label: "PHI processed by a vendor without a BAA (5.3.02)", rule: {q: "5.3.02", eq: baa_not_in_place}}
+  - {code: no_legal_basis, force: critical, label: "No documented legal basis for personal data (5.2.09)", rule: {q: "5.2.09", eq: "no"}}
+  - {code: eu_prohibited, force: critical, label: "EU AI Act prohibited practice (3.3.08)", rule: {q: "3.3.08", eq: prohibited}}
+  - {code: automated_severe_no_override, force: critical, label: "Fully automated, consequence 4 or more, no human override (3.3.02, 3.3.05s, 7.1.02)",
+     rule: {all: [{q: "3.3.02", eq: fully_automated}, {q: "3.3.05s", in: ["4", "5"]}, {q: "7.1.02", eq: "no"}]}}
+  - {code: no_bias_testing, force: high, label: "No bias testing on a system affecting people (6.2.01)", rule: {all: [{q: "6.2.01", in: ["no", planned]}, {not: {q: "3.3.07", eq: "no"}}]}}
+  - {code: no_encryption, force: high, label: "No encryption at rest or in transit (8.1.07, 8.1.08)", rule: {any: [{q: "8.1.07", eq: "no"}, {q: "8.1.08", eq: "no"}]}}
+  - {code: null_compliance_high, force: high, label: "Null-compliance risk High (5.1a.05)", rule: {q: "5.1a.05", eq: high}}
+  - {code: validation_required_not_done, force: high, label: "Independent validation required but not performed (6.3.01, 6.3.02)", rule: {all: [{q: "6.3.01", eq: "yes"}, {q: "6.3.02", eq: "no"}]}}
