@@ -22,6 +22,7 @@ def world(db, settings, tmp_path):
     caico_a = make_user(db, a, roles=["caico"], name="Maria Lopez", email="maria@abc.test")
     caico_b = make_user(db, b, roles=["caico"], name="Ben Other", email="ben@xyz.test")
     e = create_engagement(db, aud, a, name="ABC audit")
+    e.status = "initiated"  # clients see an engagement only after it is sent
     db.add(EngagementTeam(organization_id=a.id, engagement_id=e.id, user_id=aud.id, role="auditor"))
     db.flush()
     return {"aud": aud, "a": a, "b": b, "caico_a": caico_a, "caico_b": caico_b, "e": e}

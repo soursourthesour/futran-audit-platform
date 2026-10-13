@@ -108,6 +108,9 @@ def submit(client_id: str, request: Request, actor: Actor = Depends(current_acto
         raise Invalid("Some details are missing. Complete the fields listed before submitting.", errors)
     transition(db, actor.user, e, "pending_approval")
     settings = request.app.state.settings
+    from app.initiation.service import generate_package
+
+    generate_package(db, settings, actor.user, e)  # the Chief Auditor reviews exactly what was submitted
     for chief in _chief_auditors(db, e):
         send(db, settings, "engagement_submitted", to=[chief.email], organization_id=chief.organization_id, actor_id=actor.id, related=e,
              context={"name": chief.name, "preparer": actor.user.name, "client": org.name, "audit_ref": e.audit_ref, "link": f"{settings.base_url}/clients/{org.id}"})

@@ -143,3 +143,22 @@ table.table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .kv dt { color: var(--muted); }
 .kv dd { margin: 0; }
 .divider { height: 1px; background: var(--line-soft); }
+
+/* Dialogs */
+.dialog-backdrop { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45); display: flex; align-items: flex-start; justify-content: center; padding: 48px 16px; z-index: 50; overflow-y: auto; }
+.dialog { background: var(--surface); border-radius: var(--radius); width: 100%; max-width: 560px; box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25); }
+.dialog-wide { max-width: 860px; }
+.doc-preview { font-size: 14.5px; line-height: 1.55; }
+.doc-preview h1 { font-size: 22px; color: var(--navy); }
+.doc-preview h2 { font-size: 17px; color: var(--navy); margin-top: 20px; }
+.doc-preview table { border-collapse: collapse; width: 100%; margin: 8px 0 14px; font-size: 13.5px; }
+.doc-preview th, .doc-preview td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
+.doc-preview th { background: #eef3fb; }
+.doc-preview .pagebreak { border-top: 1px dashed var(--line); margin: 20px 0; }
+.checklist { list-style: none; margin: 0; padding: 0; }
+.checklist > li { display: flex; gap: 16px; align-items: flex-start; padding: 16px 0; border-top: 1px solid var(--line-soft); }
+.checklist > li:first-child { border-top: none; }
+.checklist .num { flex: none; width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; font-weight: 600; font-size: 14px; color: var(--muted); }
+.checklist .num.done { background: var(--success); border-color: var(--success); color: #fff; }
+.checklist .body { flex: 1; min-width: 0; }
+.checklist .body h3 { font-size: 15.5px; margin: 0 0 2px; }

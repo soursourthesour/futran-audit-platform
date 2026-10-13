@@ -4,7 +4,7 @@ import { Login } from '@/screens/auth/Login';
 import { MfaSetup, MfaVerify } from '@/screens/auth/Mfa';
 import { AcceptInvite } from '@/screens/auth/AcceptInvite';
 import { Dashboard } from '@/screens/futran/Dashboard';
-import { ClientHome } from '@/screens/client/ClientHome';
+import { InitiationChecklist } from '@/screens/client/InitiationChecklist';
 import { useMe } from '@/api/auth';
 import { Loading } from '@/components/ui';
 import { homeFor } from '@/screens/auth/Login';
@@ -30,7 +30,7 @@ export const router = createBrowserRouter([
   },
   {
     element: <RequireAuth side="client"><ClientShell /></RequireAuth>,
-    children: [{ path: '/start', element: <ClientHome /> }, ...clientRoutes],
+    children: [{ path: '/start', element: <InitiationChecklist /> }, ...clientRoutes],
   },
   { path: '*', element: <Home /> },
 ]);

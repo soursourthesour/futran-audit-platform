@@ -27,7 +27,7 @@ def record(
         object_type = object_type or type(obj).__name__
         object_id = object_id or getattr(obj, "id", None)
         organization_id = organization_id or getattr(obj, "organization_id", None)
-        engagement_id = engagement_id or getattr(obj, "engagement_id", None)
+        engagement_id = engagement_id or getattr(obj, "engagement_id", None) or (obj.id if type(obj).__name__ == "Engagement" else None)
     if organization_id is None:
         raise ValueError("audit.record needs an organization_id or an object with one")
     ip = ua = None

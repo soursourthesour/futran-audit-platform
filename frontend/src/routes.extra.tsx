@@ -6,6 +6,7 @@ import { SettingsScreen } from '@/screens/admin/Settings';
 import { ReferenceData } from '@/screens/admin/ReferenceData';
 import { TemplatesAdmin } from '@/screens/admin/Templates';
 import { NewClientStart, NewClientWizard } from '@/screens/futran/newclient/Wizard';
+import { ClientPage } from '@/screens/futran/ClientPage';
 
 /** Screens added by later tasks register here, so routes.tsx stays stable. */
 export const futranRoutes: RouteObject[] = [
@@ -17,6 +18,7 @@ export const futranRoutes: RouteObject[] = [
   { path: '/admin/templates', element: <TemplatesAdmin /> },
   { path: '/audits/new', element: <NewClientStart /> },
   { path: '/clients/:clientId/setup/:step', element: <NewClientWizard /> },
+  { path: '/clients/:clientId', element: <ClientPage /> },
 ];
 export const clientRoutes: RouteObject[] = [];
 export const publicRoutes: RouteObject[] = [];

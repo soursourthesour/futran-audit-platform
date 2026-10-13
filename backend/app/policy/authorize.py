@@ -55,7 +55,8 @@ def visible_org_ids(db: Session, actor: Actor) -> set[str] | None:
 def can_see_engagement(db: Session, actor: Actor, engagement: Engagement) -> bool:
     if actor.is_futran:
         return sees_all_engagements(actor) or is_assigned(db, actor.id, engagement.id)
-    return engagement.client_id == actor.organization.id
+    # clients see an engagement only once the Chief Auditor has approved and sent it
+    return engagement.client_id == actor.organization.id and engagement.status not in ("draft", "pending_approval")
 
 
 def _role_scope(role: str, action: Action) -> Scope:

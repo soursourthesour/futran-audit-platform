@@ -58,3 +58,25 @@ def app(settings, engine):
 def client(app):
     with TestClient(app) as c:
         yield c
+
+
+# ---- law matrix (published once per test; parsed once per session)
+from pathlib import Path  # noqa: E402
+
+from app.laws.importer import parse_workbook  # noqa: E402
+from app.laws.publish import publish  # noqa: E402
+from app.reference.jurisdictions import seed_iso  # noqa: E402
+
+WORKBOOK = Path(__file__).resolve().parents[1] / "seeds" / "law_matrix.xlsx"
+
+
+@pytest.fixture(scope="session")
+def preview():
+    return parse_workbook(WORKBOOK)
+
+
+@pytest.fixture
+def matrix(db, preview):
+    seed_iso(db)
+    publish(db, preview, None, {}, organization_id="futran")
+    return db

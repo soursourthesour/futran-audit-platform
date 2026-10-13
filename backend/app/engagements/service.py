@@ -42,7 +42,7 @@ def create_engagement(db: Session, actor: User, client: Organization, *, name: s
     e = Engagement(organization_id=client.id, client_id=client.id, name=name, type=type, audit_ref=next_audit_ref(db), status="draft", stage=1, created_by=actor.id, updated_by=actor.id, **fields)
     db.add(e)
     db.flush()
-    audit.record(db, actor_id=actor.id, action="engagement.create", obj=e, summary=f"Created engagement {e.audit_ref} for {client.name}")
+    audit.record(db, actor_id=actor.id, action="engagement.create", obj=e, summary=f"Started engagement {e.audit_ref} as a draft")
     return e
 
 

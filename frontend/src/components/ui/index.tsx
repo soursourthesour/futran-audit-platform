@@ -135,3 +135,22 @@ export function fmtDateTime(v?: string | null): string {
   const d = new Date(v.endsWith('Z') || v.includes('+') ? v : v + 'Z');
   return d.toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
+
+/** A modal dialog. Closes on Escape and on the close button; focus moves into it when it opens. */
+export function Dialog({ title, onClose, children, wide }: { title: ReactNode; onClose: () => void; children: ReactNode; wide?: boolean }) {
+  return (
+    <div className="dialog-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }} onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}>
+      <div className={`dialog ${wide ? 'dialog-wide' : ''}`} role="dialog" aria-modal="true" aria-label={typeof title === 'string' ? title : undefined}>
+        <div className="card-header">
+          {typeof title === 'string' ? <h2>{title}</h2> : title}
+          <button type="button" className="btn btn-ghost btn-sm" onClick={onClose} autoFocus aria-label="Close">Close</button>
+        </div>
+        <div className="card-body">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+export function fileUrl(id: string): string {
+  return `/api/v1/files/${id}`;
+}

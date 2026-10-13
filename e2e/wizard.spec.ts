@@ -8,7 +8,13 @@ async function signIn(page: Page, email: string) {
   await expect(page).toHaveURL(/\/audits$/);
 }
 
-test('auditor sets up a new client and submits it for approval', async ({ page }) => {
+async function signOut(page: Page) {
+  await page.getByRole('button', { name: 'Sign out' }).click();
+  await expect(page).toHaveURL(/\/login/);
+}
+
+test('auditor sets up a client, the Chief Auditor approves and the client signs the engagement letter', async ({ page }) => {
+  test.setTimeout(120_000);
   await signIn(page, 'auditor1@futran.demo');
   await page.getByRole('link', { name: 'New client' }).click();
   await expect(page).toHaveURL(/\/setup\/company$/);
@@ -72,4 +78,45 @@ test('auditor sets up a new client and submits it for approval', async ({ page }
   await page.getByRole('button', { name: 'Submit for approval' }).click();
   await expect(page).toHaveURL(/\/audits$/);
   await expect(page.getByText('ABC Corp was sent to the Chief Auditor for approval.')).toBeVisible();
+
+  await signOut(page);
+
+  // Chief Auditor reviews and approves
+  await signIn(page, 'chief@futran.demo');
+  await expect(page.getByRole('cell', { name: /ABC Corp/ })).toBeVisible();
+  await page.screenshot({ path: 'screenshots/p3-dashboard.png', fullPage: true });
+  await page.getByRole('table').getByRole('link', { name: 'ABC Corp' }).click();
+  await expect(page.getByRole('heading', { name: 'Documents' })).toBeVisible({ timeout: 20_000 });
+  await page.getByRole('button', { name: 'Preview' }).first().click();
+  await expect(page.getByRole('dialog').getByRole('heading', { name: /Engagement letter/ }).first()).toBeVisible();
+  await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click();
+  await page.getByLabel('Scope, laws and departments are appropriate for this client').check();
+  await page.getByLabel('The team has no conflict of interest').check();
+  await expect(page.getByLabel('I have previewed the engagement letter')).toBeChecked();
+  await page.screenshot({ path: 'screenshots/p3-package-review.png', fullPage: true });
+  await page.getByRole('button', { name: 'Approve and send' }).click();
+  await expect(page.getByText('Approved and sent.')).toBeVisible();
+  await expect(page.getByText('Sign-off 1 (engagement letter and scope) is not approved yet.')).toBeVisible();
+  await page.screenshot({ path: 'screenshots/p3-client-page.png', fullPage: true });
+
+  // The CAICO's invitation is in the outbox (test mode)
+  const outbox = await (await page.request.get('/api/v1/admin/outbox')).json();
+  const invite = outbox.find((m: { to: string[]; template_key: string }) => m.to[0] === 'maria.lopez@abccorp.example' && m.template_key === 'client_invitation');
+  const link = /\/invite\/[A-Za-z0-9_-]+/.exec(invite.body_html)![0];
+  await signOut(page);
+
+  // Client accepts, reads the guide and signs
+  await page.goto(link);
+  await page.getByLabel('New password').fill('Client-Password-2026');
+  await page.getByLabel('Confirm password').fill('Client-Password-2026');
+  await page.getByRole('button', { name: 'Set password and continue' }).click();
+  await expect(page.getByRole('heading', { name: 'Welcome to your AI governance assessment' })).toBeVisible({ timeout: 15_000 });
+  await page.getByRole('button', { name: 'Mark as read' }).click();
+  await expect(page.getByText('1 of 7 complete')).toBeVisible();
+  await page.screenshot({ path: 'screenshots/p3-client-checklist.png', fullPage: true });
+  await page.getByRole('button', { name: 'Review and sign' }).click();
+  await page.getByLabel('Type your full name to sign').fill('Maria Lopez');
+  await page.getByLabel(/I have read the document and agree/).check();
+  await page.getByRole('button', { name: 'Sign', exact: true }).click();
+  await expect(page.getByText('2 of 7 complete')).toBeVisible();
 });

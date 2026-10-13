@@ -8,6 +8,7 @@ import { StepCompany } from './StepCompany';
 import { StepLocations } from './StepLocations';
 import { StepScope } from './StepScope';
 import { StepContacts } from './StepContacts';
+import { StepPackage } from './StepPackage';
 
 export const STEPS = [
   { key: 'company', label: 'Company' },
@@ -130,7 +131,7 @@ export function NewClientWizard() {
   else if (step === 'locations') body = <StepLocations />;
   else if (step === 'scope') body = <StepScope />;
   else if (step === 'contacts') body = <StepContacts />;
-  else body = <Review onSubmit={submit} />;
+  else body = data.engagement.status === 'draft' ? <Review onSubmit={submit} /> : <StepPackage />;
 
   return (
     <WizardCtx.Provider value={{ clientId, data, editable, errors, autosave, flush }}>
@@ -143,12 +144,12 @@ export function NewClientWizard() {
         <nav aria-label="Steps" className="pills" style={{ marginBottom: 16 }}>
           {STEPS.map((s, i) => (
             <Link key={s.key} to={`/clients/${clientId}/setup/${s.key}`} className="pill" aria-current={s.key === step ? 'step' : undefined} aria-selected={s.key === step} style={{ display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }} onClick={(e) => { e.preventDefault(); void go(`/clients/${clientId}/setup/${s.key}`); }}>
-              {i + 1} · {s.label}{i < idx ? ' ✓' : ''}
+              {i + 1} · {s.key === 'submit' && !editable ? 'Initiation package' : s.label}{i < idx ? ' ✓' : ''}
             </Link>
           ))}
         </nav>
         {data.engagement.returned_comment && editable && <Alert tone="warn"><strong>Returned by the Chief Auditor:</strong> {data.engagement.returned_comment}</Alert>}
-        {!editable && <Alert tone="info">This engagement is with the Chief Auditor for approval, so it can't be edited. It can be changed if it is returned.</Alert>}
+        {!editable && step !== 'submit' && <Alert tone="info">This engagement is with the Chief Auditor for approval, so it can't be edited. It can be changed if it is returned.</Alert>}
         <div className="stack" style={{ marginTop: 12 }}>
           {body}
           <div className="row" style={{ justifyContent: 'space-between' }}>
