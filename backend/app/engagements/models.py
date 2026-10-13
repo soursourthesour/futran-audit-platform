@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from sqlalchemy import JSON, Date, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.models import Base, TimestampedTenantMixin
@@ -48,3 +48,17 @@ class EngagementTeam(TimestampedTenantMixin, Base):
     user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), index=True)
     role: Mapped[str] = mapped_column(String(30))  # engagement_manager | chief_auditor | auditor | qa_reviewer | legal_reviewer
     conflict_confirmed_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+
+class ClientRequirement(TimestampedTenantMixin, Base):
+    """A law or framework in scope for a client (spec §9.2). organization_id is the client."""
+
+    __tablename__ = "client_requirements"
+
+    engagement_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("engagements.id"), index=True)
+    regulation_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("regulations.id"), index=True)
+    source: Mapped[str] = mapped_column(String(20), default="auto")  # auto | manual | futran_default
+    reason_text: Mapped[str | None] = mapped_column(Text)
+    in_scope: Mapped[bool] = mapped_column(Boolean, default=True)
+    notes: Mapped[str | None] = mapped_column(Text)
+    free_text: Mapped[str | None] = mapped_column(Text)

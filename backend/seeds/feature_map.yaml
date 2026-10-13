@@ -1,0 +1,12 @@
+# Maps a law's category text (country sheets, Federal Laws) to one of the nine AI features (spec §10.2).
+# Rules are tried in order; the first regex that matches (case-insensitive) wins. Unmatched → government_other.
+rules:
+  - {match: "employ", feature: employment_hiring}
+  - {match: "minor|online safety|online harms|chatbot", feature: chatbots_minors}
+  - {match: "health", feature: health_insurance}
+  - {match: "privacy|data|automated", feature: privacy_profiling}
+  - {match: "deepfake|synthetic|content|likeness|election", feature: synthetic_content}
+  - {match: "frontier|general-purpose", feature: frontier_safety}
+  - {match: "biometric|surveillance|pricing", feature: biometrics_pricing}
+  - {match: "comprehensive|credit|housing|financial|securities|insurance", feature: consequential_decisions_admt}
+default: government_other

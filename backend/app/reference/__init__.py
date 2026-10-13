@@ -10,6 +10,23 @@ def _iso(db: Session) -> str:
     return seed_iso(db)
 
 
+def _law_matrix(db: Session) -> str:
+    """Import the bundled law matrix once, on a fresh install. Later updates go through Admin > Reference data."""
+    from sqlalchemy import select
+
+    from app.laws.importer import SEEDS, parse_workbook
+    from app.laws.models import MatrixVersion
+    from app.laws.publish import publish
+    from app.tenancy.models import Organization
+
+    if db.scalar(select(MatrixVersion.id).limit(1)):
+        return "already loaded"
+    futran = db.scalar(select(Organization).where(Organization.type == "futran", Organization.is_internal.is_(False)))
+    v = publish(db, parse_workbook(SEEDS / "law_matrix.xlsx"), None, {}, organization_id=futran.id if futran else None)
+    return f"published {v.summary['created']} laws (status {v.status_date})"
+
+
 LOADERS: list[tuple[str, Callable[[Session], str]]] = [
     ("Jurisdictions (ISO 3166, EU, built-in cities)", _iso),
+    ("Law matrix", _law_matrix),
 ]
