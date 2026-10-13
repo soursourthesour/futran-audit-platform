@@ -1,0 +1,14 @@
+.superpowers/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+node_modules/
+data/
+backend/app/static/*
+!backend/app/static/.gitkeep
+e2e/test-results/
+e2e/playwright-report/
+.env
+dist/
+*.egg-info/
