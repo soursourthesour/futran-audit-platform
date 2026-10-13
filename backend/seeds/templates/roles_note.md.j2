@@ -1,0 +1,25 @@
+# Roles and responsibilities: {{ engagement.name }}
+
+The platform asks for a small number of named people at {{ client.name }}. Please confirm or nominate each role in the platform. One person can hold more than one role, but nobody can approve an item they prepared.
+
+| Role | Required | What they do |
+|---|---|---|
+| Chief AI Compliance Officer | Yes | Leads the engagement for {{ client.name }}. Approves the inventory, responses to findings and any public summary. {% if contacts.caico.name %}Currently: {{ contacts.caico.name }}.{% endif %} |
+| Client Admin | Yes | Adds departments and users and assigns roles. Has no access to audit content. {% if contacts.client_admin.name %}Currently: {{ contacts.client_admin.name }}.{% endif %} |
+| Executive Sponsor | Optional | Signs the management representation and accepts the remediation plan. If not appointed, the Chief AI Compliance Officer signs. |
+| Data Protection Officer | Optional | Reviews data categories for higher-risk uses of AI and the privacy of the employee attestation. If not appointed, the Chief AI Compliance Officer covers this. |
+| Department Compliance Lead | Yes, one per department | Reviews and approves the AI tools and uses of AI in their department and responds to findings for it. |
+| Contributor | Optional | Prepares AI tool and use-case entries and uploads evidence for their department, or for one AI system. |
+
+Employees do not need an account. They answer a short attestation through a link. People named as users of higher-risk AI receive a separate link to confirm their training and oversight responsibilities.
+
+## Sign-offs you will see
+
+| # | Sign-off | Prepared by | Approved by |
+|---|---|---|---|
+| 1 | Engagement letter and scope | Futran | Chief AI Compliance Officer and Futran Chief Auditor |
+| 2 | Department inventory | Contributor | Department Compliance Lead |
+| 3 | Data categories for higher-risk AI | Department Compliance Lead | Chief AI Compliance Officer, after Data Protection Officer review |
+| 4 | Management representation | Chief AI Compliance Officer | Executive Sponsor (or Chief AI Compliance Officer) |
+| 6 | Management responses and remediation plan | Department Compliance Lead | Executive Sponsor (or Chief AI Compliance Officer) |
+| 8 | Public summary, where a law requires one | Futran | Chief AI Compliance Officer |

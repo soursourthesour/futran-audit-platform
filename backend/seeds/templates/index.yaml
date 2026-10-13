@@ -1,0 +1,11 @@
+# Document templates seeded on first install. Admin edits them in Templates; each save is a new version.
+templates:
+  - {key: engagement_letter, name: "Engagement letter and scope", type: engagement_letter, package_item: 1, requires_action: sign}
+  - {key: roles_note, name: "Roles and responsibilities note", type: roles_note, package_item: 2, requires_action: nominate}
+  - {key: user_csv, name: "User list upload template", type: user_csv, package_item: 3, requires_action: upload, format: csv}
+  - {key: department_csv, name: "Department list template", type: department_csv, package_item: 4, requires_action: upload, format: csv}
+  - {key: data_notice, name: "Employee data notice", type: data_notice, package_item: 5, requires_action: review}
+  - {key: getting_started, name: "Getting started guide", type: getting_started, package_item: 6, requires_action: read}
+  - {key: governance_request, name: "AI governance structure request", type: governance_request, package_item: 7, requires_action: answer}
+  - {key: document_request_email, name: "Pre-audit document request email", type: email}
+  - {key: management_representation, name: "Management representation", type: text}

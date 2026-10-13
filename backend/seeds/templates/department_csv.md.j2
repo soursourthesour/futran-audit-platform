@@ -1,0 +1,4 @@
+department,head_name,head_email,headcount
+{% for d in engagement.department_rows %}{{ d.name }},{{ d.head_name or "" }},{{ d.head_email or "" }},{{ d.headcount or "" }}
+{% else %}Human Resources,,,
+{% endfor %}

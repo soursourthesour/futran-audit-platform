@@ -1,0 +1,62 @@
+# Framework control catalog (spec §10.4). Used to map findings and governance roles.
+frameworks:
+  - code: OECD
+    name: OECD AI Principles
+    controls:
+      - {code: "1.1", title: "Inclusive growth, sustainable development and well-being"}
+      - {code: "1.2", title: "Human rights and democratic values, including fairness and privacy"}
+      - {code: "1.3", title: "Transparency and explainability"}
+      - {code: "1.4", title: "Robustness, security and safety"}
+      - {code: "1.5", title: "Accountability"}
+  - code: NIST_AI_RMF
+    name: NIST AI Risk Management Framework 1.0
+    controls:
+      - {code: "GOVERN", title: "Govern — culture, policies and accountability for AI risk"}
+      - {code: "GOVERN 1", title: "Policies, processes and procedures for AI risk are in place"}
+      - {code: "GOVERN 2", title: "Accountability structures; roles and responsibilities are documented"}
+      - {code: "GOVERN 3", title: "Workforce diversity, equity, inclusion and accessibility inform AI risk decisions"}
+      - {code: "GOVERN 4", title: "Teams are committed to a culture that considers and communicates AI risk"}
+      - {code: "GOVERN 5", title: "Engagement with relevant AI actors"}
+      - {code: "GOVERN 6", title: "Policies address third-party software, data and supply-chain AI risk"}
+      - {code: "MAP", title: "Map — context is established and risks are identified"}
+      - {code: "MAP 1", title: "Context is established and understood"}
+      - {code: "MAP 2", title: "The AI system is categorized"}
+      - {code: "MAP 3", title: "Capabilities, use, goals and expected benefits and costs are understood"}
+      - {code: "MAP 4", title: "Risks and benefits are mapped for all components, including third-party"}
+      - {code: "MAP 5", title: "Impacts to individuals, groups, communities and society are characterized"}
+      - {code: "MEASURE", title: "Measure — risks are analysed, assessed and tracked"}
+      - {code: "MEASURE 1", title: "Appropriate methods and metrics are identified and applied"}
+      - {code: "MEASURE 2", title: "AI systems are evaluated for trustworthy characteristics"}
+      - {code: "MEASURE 2.9", title: "The AI model is explained, validated and documented; output is interpreted in context"}
+      - {code: "MEASURE 2.11", title: "Fairness and bias are evaluated and results documented"}
+      - {code: "MEASURE 3", title: "Mechanisms for tracking identified AI risks over time are in place"}
+      - {code: "MEASURE 4", title: "Feedback about efficacy of measurement is gathered and assessed"}
+      - {code: "MANAGE", title: "Manage — risks are prioritized and acted upon"}
+      - {code: "MANAGE 1", title: "AI risks are prioritized, responded to and managed"}
+      - {code: "MANAGE 2", title: "Strategies to maximize benefits and minimize negative impacts are planned"}
+      - {code: "MANAGE 3", title: "Risks and benefits from third-party entities are managed"}
+      - {code: "MANAGE 4", title: "Risk treatments, including response and recovery, are documented and monitored"}
+  - code: EU_AI_ACT
+    name: EU Artificial Intelligence Act (Regulation (EU) 2024/1689)
+    controls:
+      - {code: "Art. 4", title: "AI literacy"}
+      - {code: "Art. 5", title: "Prohibited AI practices"}
+      - {code: "Art. 9", title: "Risk management system (high-risk)"}
+      - {code: "Art. 10", title: "Data and data governance (high-risk)"}
+      - {code: "Art. 13", title: "Transparency and provision of information to deployers"}
+      - {code: "Art. 14", title: "Human oversight"}
+      - {code: "Art. 26", title: "Obligations of deployers of high-risk AI systems"}
+      - {code: "Art. 27", title: "Fundamental rights impact assessment"}
+      - {code: "Art. 50", title: "Transparency obligations for certain AI systems"}
+      - {code: "Art. 73", title: "Reporting of serious incidents"}
+      - {code: "Art. 86", title: "Right to explanation of individual decision-making"}
+  - code: ISO_42001
+    name: ISO/IEC 42001:2023 AI management system
+    controls:
+      - {code: "4", title: "Context of the organization"}
+      - {code: "5", title: "Leadership"}
+      - {code: "6", title: "Planning"}
+      - {code: "7", title: "Support"}
+      - {code: "8", title: "Operation"}
+      - {code: "9", title: "Performance evaluation"}
+      - {code: "10", title: "Improvement"}

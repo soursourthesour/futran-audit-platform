@@ -1,0 +1,22 @@
+# AI governance structure request
+
+**Requested by:** {{ chief_auditor.name }}, Chief Auditor · **Please answer by:** {{ due_date or "the date shown in the platform" }}
+
+For each item below, choose one answer in the platform:
+
+- **In place** — upload the document, or name the people who hold the role.
+- **Will create / will constitute** — give a target date and an interim owner. We track this as a commitment.
+- **Not applicable** — tell us why.
+
+{% for group in groups %}
+## {{ group.title }}
+{% if group.note %}
+
+{{ group.note }}
+{% endif %}
+
+{% for item in group["items"] %}- **{{ item.title }}** — {{ item.description }}
+{% endfor %}
+{% endfor %}
+
+When every item is answered, confirm that the answers are accurate and submit.

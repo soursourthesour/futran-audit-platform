@@ -1,0 +1,15 @@
+Dear {{ contacts.caico.name }},
+
+To support our AI governance audit of {{ client.name }} ({{ engagement.audit_ref }}), please provide the following documents by {{ due_date }}. Upload each one against its line in the Futran Audit Platform. If any item does not exist, please confirm that in the platform — this will be noted as a finding.
+
+{% for cat in categories %}
+**{{ cat.title }}**
+
+{% for r in cat.requests %}- {{ r.title }}{% if r.system %} — {{ r.system }}{% endif %}
+{% endfor %}
+{% endfor %}
+
+Thank you,
+
+{{ sender.name }}
+{{ sender.role_label }}, Futran Solutions

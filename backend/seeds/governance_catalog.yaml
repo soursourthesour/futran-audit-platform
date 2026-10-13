@@ -1,0 +1,23 @@
+# Governance catalog (spec §10.5). Drives the AI governance structure request (screen 10a).
+documents:
+  - {code: GD-01, title: "AI compliance department charter (constitution)", description: "The document that establishes the AI compliance function, its mandate, authority and reporting line.", control_refs: ["OECD 1.5", "NIST_AI_RMF GOVERN 2"]}
+  - {code: GD-02, title: "Committee terms of reference", description: "Membership, quorum, frequency and decision rights of each AI governance committee.", control_refs: ["OECD 1.5", "NIST_AI_RMF GOVERN 2"]}
+  - {code: GD-03, title: "RACI for AI systems", description: "Who is responsible, accountable, consulted and informed for each AI system and lifecycle step.", control_refs: ["NIST_AI_RMF GOVERN 2", "EU_AI_ACT Art. 26"]}
+  - {code: GD-04, title: "AI acceptable use policy", description: "Rules for staff use of AI tools: approved tools, prohibited data and uses, and how to request new tools.", control_refs: ["NIST_AI_RMF GOVERN 1", "EU_AI_ACT Art. 4"]}
+  - {code: GD-05, title: "Leadership or board resolution on AI", description: "Optional. The resolution or minute in which leadership adopted the AI governance framework.", control_refs: ["OECD 1.5", "NIST_AI_RMF GOVERN 1"], optional: true}
+security_documents:
+  - {code: SD-01, title: "Information security policy", description: "Reviewed only for how it covers AI systems, models and AI vendors.", control_refs: ["OECD 1.4", "NIST_AI_RMF MANAGE"]}
+  - {code: SD-02, title: "Data governance and classification policy", description: "Reviewed for AI training data, prompts and outputs.", control_refs: ["OECD 1.2", "EU_AI_ACT Art. 10"]}
+  - {code: SD-03, title: "Privacy policy and DPIAs", description: "Reviewed for disclosure of AI use and impact assessments of AI processing.", control_refs: ["OECD 1.2", "EU_AI_ACT Art. 27"]}
+  - {code: SD-04, title: "Third-party and AI vendor risk procedure", description: "How AI vendors are assessed before onboarding and reviewed afterwards.", control_refs: ["NIST_AI_RMF GOVERN 6", "NIST_AI_RMF MANAGE 3"]}
+  - {code: SD-05, title: "Incident response plan and data retention schedule", description: "Reviewed for AI incidents, model rollback and retention of AI logs and outputs.", control_refs: ["OECD 1.4", "NIST_AI_RMF MANAGE 4"]}
+security_scope_note: "Futran reviews how these cover AI; it does not audit the full security program. SOC 2 or ISO 27001 reports may be uploaded as evidence."
+roles:
+  - {code: GR-01, title: "AI governance committee", description: "Senior cross-functional body that approves AI policy, high-risk use cases and risk acceptance.", control_refs: ["OECD 1.5", "NIST_AI_RMF GOVERN 2", "EU_AI_ACT Art. 26"], committee: true}
+  - {code: GR-02, title: "Bias and fairness review committee", description: "Reviews bias testing and fairness results before and after deployment (including NYC LL144 bias audits).", control_refs: ["OECD 1.2", "NIST_AI_RMF MEASURE 2.11", "EU_AI_ACT Art. 10"], committee: true}
+  - {code: GR-03, title: "Explainability owner", description: "Makes sure decisions can be explained to the people affected.", control_refs: ["OECD 1.3", "NIST_AI_RMF MEASURE 2.9", "EU_AI_ACT Art. 13", "EU_AI_ACT Art. 86"]}
+  - {code: GR-04, title: "Accountable owner per high-risk system", description: "A named business owner for each high-risk AI system.", control_refs: ["OECD 1.5", "NIST_AI_RMF GOVERN 2", "EU_AI_ACT Art. 26"]}
+  - {code: GR-05, title: "Human oversight lead", description: "Designs and monitors human review of AI outputs.", control_refs: ["OECD 1.2", "NIST_AI_RMF MANAGE", "EU_AI_ACT Art. 14", "EU_AI_ACT Art. 26"]}
+  - {code: GR-06, title: "AI incident response owner", description: "Leads the response when an AI system causes or nearly causes harm.", control_refs: ["OECD 1.4", "NIST_AI_RMF MANAGE 4", "EU_AI_ACT Art. 26"]}
+  - {code: GR-07, title: "AI literacy and training owner", description: "Runs AI training for staff and keeps completion records.", control_refs: ["NIST_AI_RMF GOVERN 2", "EU_AI_ACT Art. 4"]}
+  - {code: GR-08, title: "EU representative contact", description: "Point of contact for EU AI Act obligations. Only for organizations with EU operations.", control_refs: ["EU_AI_ACT Art. 26"], conditional: eu_operations}

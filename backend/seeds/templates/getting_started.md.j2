@@ -1,0 +1,22 @@
+# Getting started with the Futran Audit Platform
+
+Welcome, {{ contacts.caico.name }}. This guide covers the first two weeks of {{ client.name }}'s {{ engagement.name | lower }}.
+
+## Week 1
+
+1. **Sign the engagement letter.** Read the scope and laws in scope, then sign in the platform.
+2. **Confirm your role holders.** Nominate an Executive Sponsor and a Data Protection Officer, or mark them as not appointed.
+3. **Set up departments and users.** Your Client Admin uploads the department list and the user list (CSV templates are in your package), or adds people one by one. Each department in scope needs a Department Compliance Lead.
+4. **Circulate the employee data notice.** You will be asked to confirm you have reviewed it before the attestation can start.
+
+## Week 2
+
+5. **Answer the AI governance structure request.** For each document and role, upload it, name the people, or tell us when you will put it in place.
+6. **Launch the employee attestation.** Copy the link into an email to the departments in scope. You can see responses come in by department.
+7. **Build the AI inventory.** Contributors and Department Compliance Leads add each use of AI and the tools it relies on. The platform proposes a risk tier as you go.
+
+## Good to know
+
+- Everything you upload is visible only to {{ client.name }} and the assigned Futran team.
+- Nothing is sent as an email attachment. Documents open after you sign in.
+- Your Futran contacts: {% for m in team %}{{ m.name }} ({{ m.role_label }}){% if not loop.last %}, {% endif %}{% endfor %}.

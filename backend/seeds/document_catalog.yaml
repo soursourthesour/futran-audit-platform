@@ -1,0 +1,46 @@
+# Pre-audit document request list (Template v1.0 Appendix A; spec §18.5).
+# per_system items are requested once for each AI system in scope. condition limits an item to some engagements.
+categories:
+  1: Governance documents
+  2: System and technical documentation
+  3: Data privacy and legal documents
+  4: Security documents
+  5: Incident and training records
+  6: Vendor and contract documents
+items:
+  - {category: 1, code: DR-101, title: "AI use policy / acceptable use policy", description: "Current version, signed by the appropriate authority.", section: "4"}
+  - {category: 1, code: DR-102, title: "AI risk classification framework or risk appetite statement", section: "4"}
+  - {category: 1, code: DR-103, title: "AI governance committee charter and last 3 meeting minutes", section: "4"}
+  - {category: 1, code: DR-104, title: "Organizational chart showing AI governance roles", section: "4.2"}
+  - {category: 1, code: DR-105, title: "RACI matrix for AI systems", description: "If available.", section: "4.2"}
+  - {category: 1, code: DR-106, title: "AI-related board or executive committee minutes (last 12 months)", section: "4.1"}
+  - {category: 2, code: DR-201, title: "Model card", description: "For each AI system in scope.", per_system: true, section: "6.1"}
+  - {category: 2, code: DR-202, title: "System architecture diagrams", description: "Showing data flows in and out of AI systems.", section: "3.2"}
+  - {category: 2, code: DR-203, title: "Training data inventory / data lineage documentation", section: "5.1"}
+  - {category: 2, code: DR-204, title: "Feature engineering documentation", description: "List of input variables and their sources.", section: "6.1"}
+  - {category: 2, code: DR-205, title: "Model validation report", description: "Most recent, for each system.", per_system: true, section: "6.3"}
+  - {category: 2, code: DR-206, title: "Bias and fairness test report", description: "Most recent, for each system.", per_system: true, section: "6.2"}
+  - {category: 2, code: DR-207, title: "Change management records for model updates (last 12 months)", section: "6.1"}
+  - {category: 2, code: DR-208, title: "Model monitoring reports (last 6 months)", description: "Reports or dashboard exports.", per_system: true, section: "8.2"}
+  - {category: 3, code: DR-301, title: "Privacy policy / privacy notice", description: "Current version; must cover AI use.", section: "5.2"}
+  - {category: 3, code: DR-302, title: "Data protection impact assessment (DPIA)", description: "For each AI system.", per_system: true, section: "5.2"}
+  - {category: 3, code: DR-303, title: "Records of processing activities (ROPA)", description: "If GDPR applies.", condition: gdpr, section: "5.2"}
+  - {category: 3, code: DR-304, title: "HIPAA business associate agreements with AI vendors", description: "If PHI is processed.", condition: hipaa, section: "5.3"}
+  - {category: 3, code: DR-305, title: "HIPAA risk analysis (most recent)", condition: hipaa, section: "5.3"}
+  - {category: 3, code: DR-306, title: "Data processing agreements (DPAs) with AI vendors", section: "9.2"}
+  - {category: 3, code: DR-307, title: "Consent records / consent mechanism documentation", section: "5.2"}
+  - {category: 3, code: DR-308, title: "Cross-border data transfer documentation", description: "Standard contractual clauses, adequacy decisions and similar.", section: "5.2"}
+  - {category: 4, code: DR-401, title: "Information security policy (current version)", section: "8.1"}
+  - {category: 4, code: DR-402, title: "Most recent penetration test report covering AI systems or APIs", section: "8.1"}
+  - {category: 4, code: DR-403, title: "Vulnerability assessment results (last 12 months)", section: "8.1"}
+  - {category: 4, code: DR-404, title: "Access control list / IAM policy for AI systems", section: "8.1"}
+  - {category: 4, code: DR-405, title: "Encryption standards documentation", section: "8.1"}
+  - {category: 5, code: DR-501, title: "AI incident log (last 12 months)", description: "Any incident where AI contributed to harm or error.", section: "8.3"}
+  - {category: 5, code: DR-502, title: "AI incident response procedure", section: "8.3"}
+  - {category: 5, code: DR-503, title: "Employee AI training records / completion logs", section: "4.3"}
+  - {category: 5, code: DR-504, title: "Third-party AI audit reports", description: "If any.", section: "6.3"}
+  - {category: 5, code: DR-505, title: "Regulatory correspondence related to AI", description: "If any.", section: "4.1"}
+  - {category: 6, code: DR-601, title: "List of all AI vendors / tools in use", section: "9.1"}
+  - {category: 6, code: DR-602, title: "Vendor contracts including AI-specific clauses", section: "9.2"}
+  - {category: 6, code: DR-603, title: "Vendor SOC 2 Type II or ISO 27001 certificates", section: "9.2"}
+  - {category: 6, code: DR-604, title: "Vendor subprocessor lists", section: "9.2"}

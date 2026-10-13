@@ -26,7 +26,28 @@ def _law_matrix(db: Session) -> str:
     return f"published {v.summary['created']} laws (status {v.status_date})"
 
 
+def _frameworks(db: Session) -> str:
+    from app.reference.frameworks import load_frameworks
+
+    return load_frameworks(db)
+
+
+def _catalogs(db: Session) -> str:
+    from app.reference.catalogs import load_catalogs
+
+    return load_catalogs(db)
+
+
+def _templates(db: Session) -> str:
+    from app.reference.templates import load_templates
+
+    return load_templates(db)
+
+
 LOADERS: list[tuple[str, Callable[[Session], str]]] = [
     ("Jurisdictions (ISO 3166, EU, built-in cities)", _iso),
     ("Law matrix", _law_matrix),
+    ("Frameworks", _frameworks),
+    ("Governance and document catalogs, risk methodology", _catalogs),
+    ("Document templates", _templates),
 ]

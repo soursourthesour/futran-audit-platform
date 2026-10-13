@@ -1,0 +1,36 @@
+# Employee notice: AI tool attestation
+
+**From:** {{ client.name }} · **About:** {{ engagement.name }}
+
+{{ client.name }} is reviewing how AI tools are used at work, with the help of Futran Solutions, an independent firm. As part of this review we will ask employees in {{ engagement.departments | join(", ") if engagement.departments else "the departments in scope" }} to answer a short questionnaire.
+
+## What we will ask
+
+- Your department.
+- Which AI tools you use for work, and whether you use a company, team or personal account.
+- What you use them for, and what kinds of information you enter into them.
+- Whether you have read the company's AI acceptable use policy.
+
+The questionnaire takes about five minutes. It does not monitor your devices, browsing, keystrokes or messages.
+
+## Who will see your answers
+
+Your individual answers are seen only by the Chief AI Compliance Officer{% if contacts.dpo.name %}, the Data Protection Officer{% endif %} and the assigned Futran auditors. Department leads see totals only, and only where at least three people in a department have answered. Answers are used to build an inventory of AI use and to improve policies and training, not to discipline anyone for honest answers.
+
+## How long we keep them
+
+Answers are kept with the audit records for {{ engagement.retention_years or 7 }} years after the review is completed, then deleted.
+{% if has_ny %}
+
+## Notice under New York Civil Rights Law §52-c
+
+{{ client.name }} gives this notice to employees in New York State. This attestation collects information you choose to provide about your use of AI tools for work. It does not monitor or intercept your telephone, email or internet access or usage. Please acknowledge that you have received this notice when you open the questionnaire.
+{% endif %}
+{% if has_eu %}
+
+## For employees in the European Union
+
+The legal basis for this processing is {{ client.name }}'s legitimate interest in governing the AI systems it uses and meeting its obligations under the EU AI Act. You may ask to see, correct or delete your answers by contacting {{ contacts.dpo.name or contacts.caico.name }}.
+{% endif %}
+
+Questions: contact {{ contacts.caico.name }}{% if contacts.caico.email %} ({{ contacts.caico.email }}){% endif %}.

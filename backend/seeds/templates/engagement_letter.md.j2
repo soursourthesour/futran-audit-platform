@@ -1,0 +1,75 @@
+# Engagement letter: {{ engagement.name }}
+
+**Audit reference:** {{ engagement.audit_ref }} · **Date:** {{ today }}
+
+{{ client.legal_name or client.name }}
+{% if client.hq_address %}{{ client.hq_address }}{% endif %}
+
+Dear {{ contacts.caico.name }},
+
+This letter confirms the terms on which Futran Solutions will carry out an AI governance assessment for {{ client.name }}. Please read it, then sign it in the Futran Audit Platform by {{ engagement.letter_due or "the date agreed with your Chief Auditor" }}.
+
+## 1. Objective
+
+We will assess how {{ client.name }} governs the AI systems and AI tools it uses, against the laws and frameworks listed below, and report findings and recommendations. The assessment follows the {{ engagement.methodology_version }}.
+
+## 2. Scope
+
+| Item | Scope |
+|---|---|
+| Engagement type | {{ engagement.type_label }} |
+| Audit period | {{ engagement.period_start }} to {{ engagement.period_end }} |
+| Departments in scope | {{ engagement.departments | join(", ") if engagement.departments else "To be confirmed in setup" }} |
+| AI systems in scope | {{ engagement.systems | join(", ") if engagement.systems else "To be confirmed during discovery" }} |
+| Business processes | {{ engagement.business_processes or "As identified during discovery" }} |
+| Geographic scope | {{ engagement.geographic_scope or "As listed under laws in scope" }} |
+
+**Exclusions and limitations:** {{ engagement.exclusions or "None recorded." }}
+
+## 3. Laws and frameworks in scope
+
+| Law or framework | Jurisdiction | Area |
+|---|---|---|
+{% for law in laws %}| {{ law.short_name }} | {{ law.jurisdiction_name }} | {{ law.feature_label }} |
+{% endfor %}
+
+Adding a law, framework or AI system after this letter is signed requires the agreement of the Futran Engagement Manager and is recorded in the platform.
+
+## 4. What we will do
+
+1. Confirm your AI governance structure and named owners.
+2. Run a short attestation with employees in the departments in scope to find AI tools in use.
+3. Build an AI inventory with you and agree a risk tier for each use of AI.
+4. Assess each AI system in scope: data, model development and validation (or vendor assurance), bias testing, human oversight, security, monitoring and incident management.
+5. Review evidence, interview system owners, record findings and agree a remediation plan with you.
+6. Issue a draft report for your response, then a final report.
+
+## 5. What we need from you
+
+- A Chief AI Compliance Officer who leads the engagement for {{ client.name }}, and a Client Admin who sets up users.
+- A Department Compliance Lead for each department in scope.
+- The documents on our request list, at least 5 business days before fieldwork begins. A document that does not exist is recorded as a finding.
+- A signed management representation that the AI inventory is complete and accurate.
+
+## 6. Engagement team
+
+| Name | Role |
+|---|---|
+{% for m in team %}| {{ m.name }} | {{ m.role_label }} |
+{% endfor %}
+
+## 7. Reporting
+
+We will issue a draft report by {{ engagement.draft_report_target or engagement.report_due or "the date agreed" }} and a final report by {{ engagement.final_report_target or engagement.report_due or "the date agreed" }}. Draft findings are not shared until they have passed Futran quality review. You will have the opportunity to respond to each finding before the report is final.
+
+## 8. Confidentiality and data
+
+Futran treats everything you share as confidential. Evidence is stored in the Futran Audit Platform, separated from every other client, and kept for {{ engagement.retention_years or 7 }} years after the engagement is completed unless we agree otherwise. Employee attestation responses are seen only by your Chief AI Compliance Officer, your Data Protection Officer and the assigned Futran auditors; department leads see totals only.
+
+## 9. Limitations
+
+An audit gives reasonable, not absolute, assurance. Our findings rely on the information and evidence you provide. This assessment is not legal advice; confirm the legal position on any finding with your counsel.
+
+Signed for Futran Solutions: {{ chief_auditor.name }}, Chief Auditor
+
+Accepted for {{ client.name }}: {{ contacts.caico.name }}, Chief AI Compliance Officer — signed electronically in the Futran Audit Platform.

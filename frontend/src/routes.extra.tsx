@@ -4,6 +4,7 @@ import { AuditLogScreen } from '@/screens/admin/AuditLog';
 import { OutboxScreen } from '@/screens/admin/Outbox';
 import { SettingsScreen } from '@/screens/admin/Settings';
 import { ReferenceData } from '@/screens/admin/ReferenceData';
+import { TemplatesAdmin } from '@/screens/admin/Templates';
 
 /** Screens added by later tasks register here, so routes.tsx stays stable. */
 export const futranRoutes: RouteObject[] = [
@@ -12,6 +13,7 @@ export const futranRoutes: RouteObject[] = [
   { path: '/admin/outbox', element: <OutboxScreen /> },
   { path: '/admin/settings', element: <SettingsScreen /> },
   { path: '/admin/reference', element: <ReferenceData /> },
+  { path: '/admin/templates', element: <TemplatesAdmin /> },
 ];
 export const clientRoutes: RouteObject[] = [];
 export const publicRoutes: RouteObject[] = [];

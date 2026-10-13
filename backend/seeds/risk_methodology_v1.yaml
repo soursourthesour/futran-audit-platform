@@ -1,0 +1,44 @@
+# Per-system risk scoring method v1.0 (spec §19.2–19.4). The scoring engine (app/scoring/engine.py) reads this.
+version: "1.0"
+effective_date: 2026-10-12
+factors:
+  decision_type:    {weight: 0.20, question: "3.3.02", scores: {fully_automated: 5, human_assisted: 3, alert_only: 2, analytics_only: 1}}
+  consequence:      {weight: 0.20, question: "3.3.05", source: auditor_severity}
+  protected_classes: {weight: 0.15, question: "3.3.07", scores: {"yes": 5, unknown: 4, "no": 1}}
+  data_sensitivity: {weight: 0.15, questions: ["5.1.02", "5.1.03", "5.1.04"], scores: {special: 5, pii: 3, none: 1}}
+  regulated_context: {weight: 0.10, question: "3.3.06", scores: {"yes": 5, "no": 1}}
+  volume:           {weight: 0.10, question: "3.3.04", bands: [{max: 99, score: 1}, {max: 999, score: 2}, {max: 9999, score: 3}, {max: 99999, score: 4}, {max: null, score: 5}]}
+  system_type:      {weight: 0.05, question: "3.2.01", scores: {agentic: 5, genai_llm: 4, ml: 3, deep_learning: 3, computer_vision: 3, nlp: 3, rule_based: 1, other: 3}}
+  exposure:         {weight: 0.05, question: "3.1.10", scores: {client_facing_decision: 5, internal_and_external: 5, regulatory_reporting: 4, internal_only: 2}}
+eu_ai_act: {prohibited: critical, high_floor: 70}
+domains:
+  governance:   "Governance and accountability"
+  data:         "Data governance and privacy"
+  model:        "Model development and validation"
+  bias:         "Bias, fairness and ethics"
+  oversight:    "Human oversight and explainability"
+  security:     "Security and monitoring"
+  incident:     "Incident management"
+  vendor_risk:  "Vendor and third-party AI risk"
+domain_weights_by_build_type:
+  in_house: {governance: 0.15, data: 0.15, model: 0.15, bias: 0.15, oversight: 0.15, security: 0.10, incident: 0.05, vendor_risk: 0.10}
+  vendor:   {governance: 0.15, data: 0.15, model: 0.10, bias: 0.15, oversight: 0.15, security: 0.10, incident: 0.05, vendor_risk: 0.15}
+build_type_weights: {in_house: in_house, open_source_customized: in_house, hybrid: in_house, vendor: vendor}
+light_domains: [governance, data, oversight, vendor_risk]   # schematic D17: weights rescaled over these for Tier 2 light assessments
+proposed_score_bands: [{min_pct: 80, score: 5}, {min_pct: 60, score: 4}, {min_pct: 40, score: 3}, {min_pct: 20, score: 2}, {min_pct: 0, score: 1}]
+override_rationale_threshold: 1
+max_control_reduction: 0.75
+bands:
+  - {min: 75, rating: critical}
+  - {min: 50, rating: high}
+  - {min: 25, rating: medium}
+  - {min: 0, rating: low}
+knockouts:
+  - {code: phi_vendor_no_baa, force: critical, label: "PHI processed by a vendor without a BAA (5.3.02)"}
+  - {code: no_legal_basis, force: critical, label: "No documented legal basis for personal data (§5.2)"}
+  - {code: eu_prohibited, force: critical, label: "EU AI Act prohibited practice (3.3.08)"}
+  - {code: automated_severe_no_override, force: critical, label: "Fully automated, consequence 4 or more, no human override (3.3.02, 3.3.05, 7.1.02)"}
+  - {code: no_bias_testing, force: high, label: "No bias testing on a system affecting people (6.2.01)"}
+  - {code: no_encryption, force: high, label: "No encryption at rest or in transit (8.1.07, 8.1.08)"}
+  - {code: null_compliance_high, force: high, label: "Null-compliance risk High (5.1a.05)"}
+  - {code: validation_required_not_done, force: high, label: "Independent validation required but not performed (6.3.01, 6.3.02)"}
