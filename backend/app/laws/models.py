@@ -56,3 +56,14 @@ class Regulation(IdMixin, Base):
     retired_in_version_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("matrix_versions.id"))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     updated_by: Mapped[str | None] = mapped_column(String(36))
+
+
+class LawImportPreview(IdMixin, Base):
+    """A parsed workbook awaiting Admin review (spec §10.1 rule 2)."""
+
+    __tablename__ = "law_import_previews"
+
+    payload: Mapped[dict] = mapped_column(JSON)
+    created_by: Mapped[str | None] = mapped_column(String(36))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    published_version_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("matrix_versions.id"))
