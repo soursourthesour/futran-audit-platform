@@ -1,0 +1,6 @@
+{% extends "_layout.html.j2" %}{% block body %}
+<p>Dear {{ name }},</p>
+<p>{{ reviewer }} returned the engagement for {{ client }} ({{ audit_ref }}) with this comment:</p>
+<blockquote style="margin:16px 0;padding:12px 16px;border-left:3px solid #1B3A6B;background:#f5f7fa">{{ comment }}</blockquote>
+<p style="margin:24px 0"><a href="{{ link }}" style="background:#1B3A6B;color:#ffffff;padding:12px 20px;text-decoration:none;display:inline-block">Open the draft</a></p>
+{% endblock %}

@@ -3,7 +3,7 @@ import importlib
 
 from fastapi import APIRouter
 
-ROUTER_MODULES: list[str] = ["auth.router", "invitations.router", "mail.router", "tenancy.router", "audit_log.router", "laws.router", "reference.router", "reference.templates_router", "engagements.router"]
+ROUTER_MODULES: list[str] = ["auth.router", "invitations.router", "mail.router", "tenancy.router", "audit_log.router", "laws.router", "reference.router", "reference.templates_router", "engagements.router", "engagements.wizard_router"]
 
 
 def api_routers() -> list[APIRouter]:

@@ -1,0 +1,5 @@
+{% extends "_layout.html.j2" %}{% block body %}
+<p>Dear {{ name }},</p>
+<p>{{ preparer }} has submitted the new engagement for {{ client }} ({{ audit_ref }}) for your approval. Nothing has been sent to the client yet.</p>
+<p style="margin:24px 0"><a href="{{ link }}" style="background:#1B3A6B;color:#ffffff;padding:12px 20px;text-decoration:none;display:inline-block">Review the engagement</a></p>
+{% endblock %}

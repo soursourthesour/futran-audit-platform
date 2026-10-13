@@ -37,6 +37,10 @@ class Suggestion:
         return asdict(self) | {"feature_label": FEATURE_LABELS.get(self.feature, self.feature)}
 
 
+def _lower_first(label: str) -> str:
+    return label[:1].lower() + label[1:]
+
+
 def matched_features(org: Organization, engagement: Engagement | None = None) -> set[str]:
     text = " ".join(filter(None, [org.industry, org.engagement_reason, engagement.business_processes if engagement else None])).lower() + " "
     return {feature for feature, words in KEYWORDS.items() if any(w in text for w in words)}
@@ -89,9 +93,9 @@ def suggest_requirements(db: Session, org: Organization, engagement: Engagement 
             d = defaults[r.id]
             out.append(Suggestion(r.id, r.short_name, j.code, j.name, r.feature, d["reason"], d["source"], True))
         elif r.feature in features:
-            out.append(Suggestion(r.id, r.short_name, j.code, j.name, r.feature, f"{sites}: {FEATURE_LABELS[r.feature].lower()} matches the client's AI use", "auto", True))
+            out.append(Suggestion(r.id, r.short_name, j.code, j.name, r.feature, f"{sites}: {_lower_first(FEATURE_LABELS[r.feature])} matches how the client uses AI", "auto", True))
         else:
-            out.append(Suggestion(r.id, r.short_name, j.code, j.name, r.feature, f"{sites}: include if the client uses AI for {FEATURE_LABELS[r.feature].lower()}", "auto", False))
+            out.append(Suggestion(r.id, r.short_name, j.code, j.name, r.feature, f"{sites}: include if the client's AI use covers {_lower_first(FEATURE_LABELS[r.feature])}", "auto", False))
 
     level = {j.code: LEVEL_ORDER.get(j.level, 9) for j in juris.values()}
     out.sort(key=lambda s: (not s.prechecked, s.source == "futran_default", level.get(s.jurisdiction_code, 9), s.jurisdiction_name, s.feature, s.label))
