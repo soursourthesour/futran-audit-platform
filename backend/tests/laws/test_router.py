@@ -111,3 +111,15 @@ def test_jurisdiction_admin_add_city_and_list(client, db, people):
     assert any(s["code"] == "US-NY" for s in states)
     resolved = client.get("/api/v1/jurisdictions/resolve?country=US&subdivision=US-NY&city=Brooklyn").json()
     assert [j["code"] for j in resolved] == ["US-NYC", "US-NY", "US"]
+
+
+def test_law_summary_moves_parenthetical_to_end():
+    from app.laws.models import Regulation
+    from app.laws.service import law_summary
+
+    r = Regulation(short_name="AI Video Interview Act", full_text="AI Video Interview Act (2020): notice, explanation and consent.")
+    assert law_summary(r) == "Notice, explanation and consent. (2020)"
+    r2 = Regulation(short_name="SB 947", full_text="SB 947: employers may not rely solely on an ADS.")
+    assert law_summary(r2) == "Employers may not rely solely on an ADS."
+    r3 = Regulation(short_name="X", full_text="X", obligations_text="Explicit obligations.")
+    assert law_summary(r3) == "Explicit obligations."

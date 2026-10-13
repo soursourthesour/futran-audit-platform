@@ -1,0 +1,388 @@
+# Futran AI System Audit — question bank (Template v1.0 + Addendum 5.1a; spec §18.4).
+# Codes are stable keys. Labels and notes follow the template wording.
+#   respondent: client (pre-filled by the client, verified by the auditor) | auditor (assessment questions)
+#   applies: applicability rule (see app/questionnaire/rules.py)   finding: auto-draft finding rule
+#   build_types default: all. Section `light: true` = part of the Tier 2 light assessment (§3, §5, §7.2, §9).
+template: {name: "Futran AI System Audit", version: "1.0", addenda: ["5.1a"], effective_date: "2026-10-12"}
+
+option_sets:
+  yes_no: [{value: "yes", label: "Yes"}, {value: "no", label: "No"}]
+  yes_no_unknown: [{value: "yes", label: "Yes"}, {value: "no", label: "No"}, {value: unknown, label: "Unknown"}]
+  yes_no_partial: [{value: "yes", label: "Yes"}, {value: "no", label: "No"}, {value: partial, label: "Partial"}]
+  yes_no_informal: [{value: "yes", label: "Yes"}, {value: "no", label: "No"}, {value: informal, label: "Informal"}]
+  yes_no_na: [{value: "yes", label: "Yes"}, {value: "no", label: "No"}, {value: na, label: "Not applicable"}]
+  frequency: [{value: realtime, label: "Real-time"}, {value: daily, label: "Daily"}, {value: weekly, label: "Weekly"}, {value: monthly, label: "Monthly"}, {value: adhoc, label: "Ad hoc"}]
+  severity_1_5: [{value: "1", label: "1 — negligible"}, {value: "2", label: "2 — minor"}, {value: "3", label: "3 — moderate"}, {value: "4", label: "4 — serious"}, {value: "5", label: "5 — severe or irreversible harm"}]
+
+sections:
+  # ---------------------------------------------------------------- §3 AI system inventory (per system)
+  - code: "3.1"
+    title: System identification
+    scope: system
+    light: true
+    note: "Complete this for every AI system in scope. The system name recorded here becomes the reference for the rest of the audit. Ask to see the architecture diagram — do not rely on a verbal description alone."
+    questions:
+      - {code: "3.1.01", label: "Official system name", help: "The name used in technical documentation — not a nickname.", type: text, required: true}
+      - {code: "3.1.02", label: "System reference ID", help: "Internal system ID, for example SYS-042, used for cross-referencing.", type: text, required: true}
+      - {code: "3.1.03", label: "System version audited", help: "The version or release in production at the time of the audit.", type: text, required: true}
+      - {code: "3.1.04", label: "System owner — name and title", help: "The business person accountable for this system.", type: person, required: true}
+      - {code: "3.1.05", label: "System owner — department", help: "For example Credit Risk, Claims Operations, Clinical Analytics.", type: text, required: true}
+      - {code: "3.1.06", label: "Technical owner / lead engineer", help: "The engineer responsible for model maintenance. For a vendor system, the internal administrator.", type: person, required: true}
+      - {code: "3.1.07", label: "Date deployed to production", help: "First production go-live date.", type: date, required: true}
+      - {code: "3.1.08", label: "Date of last major update", help: "Most recent version change in production.", type: date}
+      - {code: "3.1.09", label: "Date of last audit or review", help: "Leave blank and tick 'Never' if there has been none.", type: text}
+      - {code: "3.1.10", label: "System classification", type: single, required: true, scoring: exposure,
+         options: [{value: internal_only, label: "Internal tool only"}, {value: client_facing_decision, label: "Client-facing decision system"}, {value: regulatory_reporting, label: "Regulatory reporting"}, {value: internal_and_external, label: "Both internal and external"}]}
+
+  - code: "3.2"
+    title: AI/ML technology profile
+    scope: system
+    light: true
+    note: "Ask the technical owner to walk you through the architecture. If they use terms you do not know, write them down exactly and flag them for the Lead Auditor. Do not guess at AI types — each has different risk implications."
+    questions:
+      - {code: "3.2.01", label: "AI system type", type: multi, required: true, scoring: system_type,
+         options: [{value: ml, label: "Machine learning"}, {value: deep_learning, label: "Deep learning / neural network"}, {value: genai_llm, label: "Generative AI / LLM"}, {value: rule_based, label: "Rule-based / expert system"}, {value: computer_vision, label: "Computer vision"}, {value: nlp, label: "Natural language processing"}, {value: agentic, label: "Agentic AI"}, {value: other, label: "Other"}]}
+      - {code: "3.2.02", label: "Model architecture", help: "For example random forest, XGBoost, GPT-based, BERT, CNN, transformer.", type: text}
+      - {code: "3.2.03", label: "Foundation model and version (generative AI)", help: "For example GPT-4o, Claude, Gemini, Llama — include the version.", type: text, applies: {q: "3.2.01", contains: genai_llm}}
+      - {code: "3.2.04", label: "Model built by", type: single, required: true, detail_label: "Describe (hybrid)",
+         options: [{value: in_house, label: "Developed in-house"}, {value: vendor, label: "Purchased from a vendor"}, {value: open_source_customized, label: "Open-source with customization"}, {value: hybrid, label: "Hybrid"}]}
+      - {code: "3.2.05", label: "Vendor legal name", help: "Full legal name of the AI vendor.", type: text, required: true, applies: {q: "3.2.04", in: [vendor, hybrid]}}
+      - {code: "3.2.06", label: "Cloud / hosting environment", type: single, required: true, detail_label: "Region(s)",
+         options: [{value: aws, label: "AWS"}, {value: azure, label: "Azure"}, {value: gcp, label: "GCP"}, {value: on_prem, label: "On-premise"}, {value: vendor_hosted, label: "Vendor-hosted"}, {value: hybrid, label: "Hybrid"}]}
+      - {code: "3.2.07", label: "Programming languages / frameworks", help: "For example Python/TensorFlow, Python/PyTorch, R.", type: text}
+      - {code: "3.2.08", label: "Training data sources", help: "List every data source used to train the model. For a vendor system, what the vendor says it was trained on.", type: long_text, required: true}
+      - {code: "3.2.09", label: "Inference environment", help: "Where predictions are generated — same cloud, edge device, vendor API.", type: text}
+      - {code: "3.2.10", label: "External APIs / services called at runtime", help: "For example OpenAI API, AWS Rekognition.", type: long_text}
+
+  - code: "3.3"
+    title: Business use and decision impact
+    scope: system
+    light: true
+    note: "This is the most important section for risk classification. The higher the impact of the system's decisions on people, the higher the inherent risk and the stricter the governance requirements."
+    questions:
+      - {code: "3.3.01", label: "Business purpose", help: "Plain English: what does this system do? What decision does it inform or make?", type: long_text, required: true}
+      - {code: "3.3.02", label: "Decision type", type: single, required: true, scoring: decision_type,
+         options: [{value: fully_automated, label: "Fully automated decision (no human review)"}, {value: human_assisted, label: "Human-assisted (AI recommends, human decides)"}, {value: alert_only, label: "Alert or flag only (human investigates)"}, {value: analytics_only, label: "Analytics or reporting only"}]}
+      - {code: "3.3.03", label: "Population affected", help: "Who is affected by this system's outputs? For example loan applicants, patients, job applicants.", type: text, required: true}
+      - {code: "3.3.04", label: "Estimated decisions per month", help: "How many times a month does the system produce an output used in a decision?", type: number, scoring: volume}
+      - {code: "3.3.05", label: "Consequence of incorrect output", help: "The worst realistic outcome if the system gets it wrong — for example 'qualified candidate rejected'.", type: long_text, required: true}
+      - {code: "3.3.05s", label: "Severity of that consequence", help: "Auditor's rating, 1 (negligible) to 5 (severe or irreversible harm).", type: single, option_set: severity_1_5, required: true, respondent: auditor, scoring: consequence}
+      - {code: "3.3.06", label: "Used in a regulated context?", type: yes_no, option_set: yes_no, required: true, detail_label: "Which regulations", scoring: regulated_context}
+      - {code: "3.3.07", label: "Could outputs affect protected classes?", help: "For example race, gender, age, disability, religion.", type: single, option_set: yes_no_unknown, scoring: protected_classes}
+      - {code: "3.3.08", label: "EU AI Act risk classification", type: single, respondent: auditor, applies: {engagement: eu_in_scope, eq: true},
+         options: [{value: prohibited, label: "Unacceptable (prohibited)"}, {value: high, label: "High risk"}, {value: limited, label: "Limited risk"}, {value: minimal, label: "Minimal risk"}],
+         finding: {when: {in: [prohibited]}, severity: critical, title: "AI system falls under a prohibited EU AI Act practice"}}
+      - {code: "3.3.09", label: "NIST AI RMF risk tier", type: single, respondent: auditor,
+         options: [{value: "1", label: "Tier 1 — partial"}, {value: "2", label: "Tier 2 — risk informed"}, {value: "3", label: "Tier 3 — repeatable"}, {value: "4", label: "Tier 4 — adaptive"}]}
+      - {code: "3.3.10", label: "Risk classification justification", help: "Why these classifications — which factors drove the rating?", type: long_text, required: true, respondent: auditor}
+
+  # ---------------------------------------------------------------- §4 governance (engagement level; with screen 10a)
+  - code: "4.1"
+    title: Governance structure
+    scope: engagement
+    note: "Good governance means the right people are accountable, policies exist in writing, and there are processes — not just intentions. Always ask: who is accountable if this system causes harm? If no one has a clear answer, that is a High finding."
+    questions:
+      - {code: "4.1.01", label: "Board-level AI oversight", help: "Is a board member or executive named as accountable for AI governance?", type: yes_no, option_set: yes_no, required: true, detail_label: "Name",
+         finding: {when: {in: ["no"]}, severity: high, title: "No executive is accountable for AI governance"}}
+      - {code: "4.1.02", label: "AI policy owner", help: "Name and title of the person who owns the AI use policy.", type: person, required: true}
+      - {code: "4.1.03", label: "AI use policy exists", type: single, required: true, detail_label: "Date last updated",
+         options: [{value: "yes", label: "Yes"}, {value: draft, label: "Draft"}, {value: "no", label: "No"}],
+         finding: {when: {in: ["no", draft]}, severity: high, title: "No approved AI use policy"}}
+      - {code: "4.1.04", label: "AI use policy covers employees' use of AI tools", type: yes_no, option_set: yes_no, required: true,
+         finding: {when: {in: ["no"]}, severity: medium, title: "AI use policy does not cover employees' use of AI tools"}}
+      - {code: "4.1.05", label: "AI use policy covers AI used in decisions about clients, patients or applicants", type: yes_no, option_set: yes_no, required: true,
+         finding: {when: {in: ["no"]}, severity: medium, title: "AI use policy does not cover client-facing AI decisions"}}
+      - {code: "4.1.06", label: "AI risk appetite statement", help: "Has the board or senior management approved a statement of acceptable AI risk?", type: single, option_set: yes_no_informal}
+      - {code: "4.1.07", label: "AI incident escalation path", help: "Who does an employee call if an AI system produces a harmful or unexpected output? Describe the process.", type: long_text, required: true}
+
+  - code: "4.2"
+    title: Roles and responsibilities
+    scope: engagement
+    note: "AI accountability is often vague — 'the data science team owns it'. Press for specific named people. A RACI for AI is a sign of maturity."
+    questions:
+      - {code: "4.2.01", label: "Model risk manager", help: "Especially relevant in banking and insurance.", type: person}
+      - {code: "4.2.02", label: "Data steward / data owner", help: "Accountable for the quality and provenance of training data.", type: person, required: true}
+      - {code: "4.2.03", label: "AI ethics / responsible AI lead", type: person}
+      - {code: "4.2.04", label: "Security owner for AI systems", type: person}
+      - {code: "4.2.05", label: "Privacy officer / DPO", type: person, required: true}
+      - {code: "4.2.06", label: "Third-party AI oversight owner", help: "Who manages relationships with external AI vendors?", type: person}
+      - {code: "4.2.07", label: "RACI matrix exists for AI", type: single, option_set: yes_no_partial, evidence: true}
+
+  # ---------------------------------------------------------------- §5 data governance and privacy (per system)
+  - code: "5.1"
+    title: Data inventory and classification
+    scope: system
+    light: true
+    note: "This is the most legally sensitive area. Ask which regulations apply — HIPAA, GDPR, DPDP — before filling it in. Anything touching health, financial or biometric data is automatically high-sensitivity."
+    questions:
+      - {code: "5.1.01", label: "Data types used in training or sent to the system", help: "Every category: names, dates of birth, financial transactions, medical records, biometric data, IP addresses, behavioural data.", type: long_text, required: true}
+      - {code: "5.1.02", label: "Does the data include PHI?", help: "Protected health information: anything that could identify a patient.", type: single, option_set: yes_no_unknown, scoring: data_sensitivity,
+         finding: {when: {in: [unknown]}, severity: high, title: "Organization does not know whether the AI system processes PHI"}}
+      - {code: "5.1.03", label: "Does the data include PII?", help: "Name, address, government ID, email, phone, financial account numbers.", type: single, option_set: yes_no, scoring: data_sensitivity}
+      - {code: "5.1.04", label: "Does the data include special-category data?", help: "Under GDPR: racial or ethnic origin, political opinions, biometric data, health data, sexual orientation.", type: single, option_set: yes_no_unknown, scoring: data_sensitivity}
+      - {code: "5.1.05", label: "Data classification policy exists", type: single, option_set: yes_no, evidence: true,
+         finding: {when: {in: ["no"]}, severity: medium, title: "No data classification policy covering AI data"}}
+      - {code: "5.1.06", label: "Data inventory or catalog maintained", help: "A formal inventory of all datasets used in AI.", type: single, option_set: yes_no_informal}
+      - {code: "5.1.07", label: "Data retention period", help: "How long is training data kept? Is this documented and enforced?", type: text}
+      - {code: "5.1.08", label: "Deletion / model unlearning capability", help: "If a person asks for deletion, can their data be removed from the model?", type: single, option_set: yes_no_partial, detail_label: "Explain"}
+
+  - code: "5.1a"
+    title: Data sufficiency and null-compliance risk (Addendum 5.1a)
+    scope: system
+    light: true
+    applies: {engagement: bias_audit_in_scope, eq: true}
+    note: "Shown when an AEDT or other bias audit is in scope. A bias audit that excludes most of the candidate pool because demographic data is missing can be procedurally compliant but substantively empty. Quote the client's answer to 5.1a.02 exactly."
+    questions:
+      - {code: "5.1a.01", label: "Does the organization collect applicant demographic data?", type: single, required: true,
+         options: [{value: voluntary_self_id, label: "Yes — voluntary self-identification"}, {value: other_source, label: "Yes — another source"}, {value: "no", label: "No"}]}
+      - {code: "5.1a.02", label: "If not, is that a deliberate choice or an unaddressed gap?", help: "Record the client's answer verbatim.", type: long_text, required: true, applies: {q: "5.1a.01", eq: "no"}}
+      - {code: "5.1a.03", label: "Share of the candidate pool with unknown race/ethnicity or sex", type: percent, required: true}
+      - {code: "5.1a.04", label: "Bias audit data source", type: single, required: true, detail_label: "Representativeness note",
+         options: [{value: employer_historical, label: "Employer's historical data"}, {value: vendor_supplied, label: "Vendor-supplied data"}, {value: third_party_inferred, label: "Third-party inferred demographics"}, {value: pooled_same_aedt, label: "Pooled data from other employers using the same tool"}, {value: test_data, label: "Test data"}]}
+      - {code: "5.1a.05", label: "Null-compliance risk rating", help: "Low: under 20% excluded. Medium: 20–50% with a documented rationale. High: over 50%, no rationale, or designed to avoid the audit.", type: single, required: true, respondent: auditor,
+         options: [{value: low, label: "Low"}, {value: medium, label: "Medium"}, {value: high, label: "High"}],
+         finding: {when: {in: [high]}, severity: high, title: "Bias audit at high risk of null compliance: most of the candidate pool is excluded", null_compliance: true}}
+      - {code: "5.1a.06", label: "Recommended remediation", type: long_text, required: true, respondent: auditor}
+
+  - code: "5.2"
+    title: Legal basis and consent
+    scope: system
+    light: true
+    note: "Every use of personal data in an AI system needs a legal basis. Under GDPR and DPDP this is usually consent, contract or legitimate interest. Under HIPAA, treatment, payment or operations, or a patient authorization. No documented legal basis is a Critical finding."
+    questions:
+      - {code: "5.2.01", label: "Legal basis for processing — GDPR", type: multi, applies: {engagement: gdpr_in_scope, eq: true},
+         options: [{value: consent, label: "Consent"}, {value: contract, label: "Contract"}, {value: legal_obligation, label: "Legal obligation"}, {value: vital_interests, label: "Vital interests"}, {value: public_task, label: "Public task"}, {value: legitimate_interests, label: "Legitimate interests"}]}
+      - {code: "5.2.02", label: "Legal basis for processing — HIPAA", type: multi, applies: {engagement: hipaa_in_scope, eq: true},
+         options: [{value: treatment, label: "Treatment"}, {value: payment, label: "Payment"}, {value: operations, label: "Healthcare operations"}, {value: authorization, label: "Patient authorization"}, {value: other, label: "Other HIPAA exception"}]}
+      - {code: "5.2.03", label: "Legal basis for processing — DPDP", type: multi, applies: {engagement: dpdp_in_scope, eq: true},
+         options: [{value: consent, label: "Consent"}, {value: legitimate_use, label: "Certain legitimate uses"}, {value: government, label: "Government purpose"}]}
+      - {code: "5.2.04", label: "Consent mechanism", type: single, detail_label: "If none, explain the legal basis",
+         options: [{value: online_form, label: "Online form"}, {value: paper, label: "Paper"}, {value: implied, label: "Implied"}, {value: none, label: "None"}, {value: na, label: "Not applicable"}]}
+      - {code: "5.2.05", label: "Consent records retained", type: single, option_set: yes_no_na, detail_label: "For how long"}
+      - {code: "5.2.06", label: "Privacy notice discloses that AI is used in decisions", type: single, option_set: yes_no, evidence: true,
+         finding: {when: {in: ["no"]}, severity: medium, title: "Privacy notice does not disclose AI use in decisions"}}
+      - {code: "5.2.07", label: "Data subject rights handled", help: "Can individuals access, correct or delete their data?", type: single, option_set: yes_no_partial}
+      - {code: "5.2.08", label: "Cross-border data transfers", type: single, option_set: yes_no, detail_label: "Transfer mechanism"}
+      - {code: "5.2.09", label: "Legal basis documented for every personal data type the system uses", type: single, required: true,
+         options: [{value: "yes", label: "Yes"}, {value: "no", label: "No"}, {value: no_personal_data, label: "The system uses no personal data"}],
+         finding: {when: {in: ["no"]}, severity: critical, title: "No documented legal basis for personal data used by the AI system"}}
+
+  - code: "5.3"
+    title: HIPAA-specific assessment
+    scope: system
+    light: true
+    applies: {any: [{engagement: hipaa_in_scope, eq: true}, {q: "5.1.02", eq: "yes"}]}
+    note: "If the client is a US healthcare provider, payer or their business associate, HIPAA applies to any AI system touching PHI. Fill every row. Any 'No' is a finding."
+    questions:
+      - {code: "5.3.01", label: "Is the organization a HIPAA covered entity?", type: single,
+         options: [{value: provider, label: "Healthcare provider"}, {value: plan, label: "Health plan / payer"}, {value: clearinghouse, label: "Healthcare clearinghouse"}, {value: not_covered, label: "Not a covered entity"}]}
+      - {code: "5.3.02", label: "Is the AI vendor a business associate?", help: "A vendor that processes PHI for the client must have a signed BAA.", type: single, evidence: true,
+         options: [{value: baa_in_place, label: "Yes — BAA in place"}, {value: baa_not_in_place, label: "Yes — BAA not in place"}, {value: "no", label: "No"}],
+         finding: {when: {in: [baa_not_in_place]}, severity: critical, title: "PHI processed by an AI vendor without a business associate agreement"}}
+      - {code: "5.3.03", label: "BAA date signed, and covers AI use", type: text, applies: {q: "5.3.02", eq: baa_in_place}}
+      - {code: "5.3.04", label: "Minimum necessary standard", help: "Does the system use only the minimum PHI needed?", type: single, options: [{value: "yes", label: "Yes — documented"}, {value: "no", label: "No"}, {value: unknown, label: "Unknown"}]}
+      - {code: "5.3.05", label: "PHI de-identification method", type: single,
+         options: [{value: expert, label: "Expert determination"}, {value: safe_harbor, label: "Safe harbor (18 identifiers removed)"}, {value: not_deidentified, label: "Not de-identified"}, {value: na, label: "Not applicable"}]}
+      - {code: "5.3.06", label: "PHI access by the AI system logged and retained for 6 years", type: single, option_set: yes_no,
+         finding: {when: {in: ["no"]}, severity: high, title: "PHI access by the AI system is not logged and retained for 6 years"}}
+      - {code: "5.3.07", label: "HIPAA Security Rule controls", type: multi,
+         options: [{value: access_control, label: "Access controls"}, {value: encryption_rest, label: "Encryption at rest"}, {value: encryption_transit, label: "Encryption in transit"}, {value: training, label: "Workforce training completed"}, {value: emergency_access, label: "Emergency access procedure"}]}
+      - {code: "5.3.08", label: "Breach notification procedure", help: "Is notification within HIPAA's 60-day window?", type: long_text}
+      - {code: "5.3.09", label: "HIPAA risk analysis last completed", help: "Must include AI systems. More than 12 months ago is a finding.", type: date,
+         finding: {when: {older_than_months: 12}, severity: medium, title: "HIPAA risk analysis is more than 12 months old"}}
+
+  - code: "OS"
+    title: Open-source licence and provenance
+    scope: system
+    build_types: [open_source_customized]
+    note: "For open-source models, check the licence permits the client's use and that the model's origin and training data are known."
+    questions:
+      - {code: "OS.01", label: "Model licence and whether it permits this commercial use", type: text, required: true}
+      - {code: "OS.02", label: "Source and version of the base model, and how it was verified", type: long_text, required: true}
+      - {code: "OS.03", label: "Known training data of the base model, and any licensing or bias concerns", type: long_text}
+
+  # ---------------------------------------------------------------- §6 model development, testing and validation
+  - code: "6.1"
+    title: Model development process
+    scope: system
+    build_types: [in_house, open_source_customized, hybrid]
+    note: "A model that has never been tested for bias or validated independently is a significant risk. In regulated industries validation is mandatory. Ask to see the actual test reports — not a summary from the developer who built the model."
+    questions:
+      - {code: "6.1.01", label: "Model development methodology", type: single, required: true,
+         options: [{value: agile, label: "Agile / iterative"}, {value: waterfall, label: "Waterfall"}, {value: mlops, label: "MLOps pipeline"}, {value: none, label: "No formal methodology"}],
+         finding: {when: {in: [none]}, severity: medium, title: "No formal model development methodology"}}
+      - {code: "6.1.02", label: "Model card or model documentation exists", type: single, option_set: yes_no, evidence: true,
+         finding: {when: {in: ["no"]}, severity: medium, title: "No model card or equivalent documentation"}}
+      - {code: "6.1.03", label: "Feature engineering documentation", help: "Are input variables documented with their sources and rationale?", type: single, option_set: yes_no}
+      - {code: "6.1.04", label: "Training / validation / test split", help: "Percentages, for example 70 / 15 / 15.", type: text}
+      - {code: "6.1.05", label: "Hyperparameter tuning method", type: text}
+      - {code: "6.1.06", label: "Explainability / interpretability method", type: single,
+         options: [{value: shap, label: "SHAP values"}, {value: lime, label: "LIME"}, {value: feature_importance, label: "Feature importance scores"}, {value: rule_extraction, label: "Rule extraction"}, {value: none, label: "None"}],
+         finding: {when: {in: [none]}, severity: medium, title: "No explainability method for the model"}}
+      - {code: "6.1.07", label: "Model reproducibility", help: "Retrained today on the same data, would it produce the same results?", type: single, option_set: yes_no_unknown}
+      - {code: "6.1.08", label: "Change management for model updates", help: "Is there a formal approval gate before an updated model is deployed?", type: long_text}
+
+  - code: "6.2"
+    title: Bias, fairness and ethics testing
+    scope: system
+    note: "Ask to see bias test results by demographic group. Overall accuracy alone is not bias testing. For vendor systems, results must come from the vendor or the client's own testing on its own population."
+    questions:
+      - {code: "6.2.01", label: "Bias testing performed", type: single, required: true, evidence: true,
+         options: [{value: "yes", label: "Yes"}, {value: "no", label: "No"}, {value: planned, label: "Planned"}],
+         finding: {when: {in: ["no", planned]}, severity: high, title: "No bias testing on an AI system that affects people", unless: {q: "3.3.07", eq: "no"}}}
+      - {code: "6.2.02", label: "Last bias test date", type: date}
+      - {code: "6.2.03", label: "Bias testing tool or method", help: "For example IBM AI Fairness 360, Microsoft Fairlearn, manual analysis, third-party audit.", type: text}
+      - {code: "6.2.04", label: "Protected attributes tested", type: text}
+      - {code: "6.2.05", label: "Bias test results", help: "Summarize — for example selection rate 82% for group A vs 71% for group B.", type: long_text}
+      - {code: "6.2.06", label: "Disparate impact ratio", help: "Selection rate of the less-favoured group ÷ the favoured group. Below 0.80 fails the four-fifths rule.", type: number,
+         finding: {when: {lt: 0.8}, severity: high, title: "Disparate impact ratio below 0.80"}}
+      - {code: "6.2.07", label: "Remediation taken", type: long_text}
+      - {code: "6.2.08", label: "Ongoing bias monitoring in production", type: single, option_set: yes_no, detail_label: "Frequency",
+         finding: {when: {in: ["no"]}, severity: medium, title: "Bias is not monitored in production"}}
+      - {code: "6.2.09", label: "Ethics review before launch", type: single, option_set: yes_no_na}
+
+  - code: "6.3"
+    title: Independent model validation
+    scope: system
+    build_types: [in_house, open_source_customized, hybrid]
+    note: "Independent validation means someone other than the team that built the model reviews it. A developer reviewing their own model is not independent."
+    questions:
+      - {code: "6.3.01", label: "Is independent validation required?", type: single, required: true, respondent: auditor,
+         options: [{value: "yes", label: "Yes — required"}, {value: "no", label: "No — not required"}, {value: unclear, label: "Unclear — escalate to Lead Auditor"}]}
+      - {code: "6.3.02", label: "Validation performed", type: single, required: true, evidence: true,
+         options: [{value: internal_mrm, label: "Yes — internal model risk team"}, {value: external, label: "Yes — external third party"}, {value: "no", label: "No"}, {value: partial, label: "Partial"}],
+         finding: {when: {in: ["no"]}, severity: high, title: "Independent validation required but not performed", if: {q: "6.3.01", eq: "yes"}}}
+      - {code: "6.3.03", label: "Validator name and organization", type: text}
+      - {code: "6.3.04", label: "Validation date", type: date}
+      - {code: "6.3.05", label: "Validation report obtained", type: single, option_set: yes_no, evidence: true}
+      - {code: "6.3.06", label: "Key validation findings and their status", type: long_text}
+      - {code: "6.3.07", label: "Validation frequency", type: single,
+         options: [{value: annual, label: "Annually"}, {value: after_changes, label: "After major changes"}, {value: never, label: "Never"}, {value: adhoc, label: "Ad hoc"}],
+         finding: {when: {in: [never, adhoc]}, severity: medium, title: "Model is not re-validated on a defined schedule"}}
+      - {code: "6.3.08", label: "Validation covers bias", type: single, option_set: yes_no,
+         finding: {when: {in: ["no"]}, severity: medium, title: "Model validation does not assess bias"}}
+
+  - code: "V"
+    title: Vendor assurance
+    scope: system
+    build_types: [vendor, hybrid]
+    note: "For vendor-supplied systems this replaces 6.1 and 6.3. The client is responsible for how it uses the tool even though it did not build it. Ask for the vendor's documentation, not a sales summary."
+    questions:
+      - {code: "V.01", label: "Vendor provides a model card or technical documentation", type: single, option_set: yes_no_partial, evidence: true,
+         finding: {when: {in: ["no"]}, severity: medium, title: "Vendor provides no model documentation"}}
+      - {code: "V.02", label: "Vendor bias test results provided", type: single, option_set: yes_no, detail_label: "Date of results", evidence: true}
+      - {code: "V.03", label: "Vendor independent audit or bias audit (for example NYC LL144)", type: single, option_set: yes_no_na, detail_label: "Auditor and date", evidence: true}
+      - {code: "V.04", label: "Client has tested the system on its own population", type: single, option_set: yes_no}
+      - {code: "V.05", label: "Vendor trains on client data", type: single, required: true,
+         options: [{value: "no", label: "No"}, {value: "yes", label: "Yes"}, {value: opt_out, label: "Yes, but an opt-out is available and used"}, {value: unknown, label: "Unknown"}],
+         finding: {when: {in: [unknown]}, severity: medium, title: "Organization does not know whether the vendor trains on its data"}}
+      - {code: "V.06", label: "Configuration the client controls is documented", help: "Thresholds, features, knock-out questions.", type: single, option_set: yes_no_partial}
+      - {code: "V.07", label: "Vendor notifies the client of model changes and new versions", type: single, option_set: yes_no}
+      - {code: "V.08", label: "Contract allocates responsibility for bias audits and notices", type: single, option_set: yes_no, evidence: true}
+
+  # ---------------------------------------------------------------- §7 human oversight and explainability
+  - code: "7.1"
+    title: Human-in-the-loop design
+    scope: system
+    note: "Ask to see a real decision workflow — not a slide-deck version of it. A very low override rate may mean reviewers are rubber-stamping."
+    questions:
+      - {code: "7.1.01", label: "Decision workflow", help: "Step by step: the AI produces an output — what happens next? Who sees it? What do they do?", type: long_text, required: true}
+      - {code: "7.1.02", label: "Can a human override the AI?", type: single, required: true, detail_label: "In which circumstances",
+         options: [{value: always, label: "Yes — always"}, {value: specific, label: "Yes — in specific circumstances"}, {value: "no", label: "No"}],
+         finding: {when: {in: ["no"]}, severity: high, title: "No human override for a high-impact AI decision", if: {q: "3.3.02", in: [fully_automated, human_assisted]}}}
+      - {code: "7.1.03", label: "Override process documented and trained", type: single, option_set: yes_no}
+      - {code: "7.1.04", label: "Override rate over the last 6 months", type: percent}
+      - {code: "7.1.05", label: "Escalation path for edge cases", type: long_text}
+      - {code: "7.1.06", label: "Human reviewer training", type: single, option_set: yes_no_informal}
+      - {code: "7.1.07", label: "Time pressure on human review", help: "Do reviewers have enough time, or do productivity targets create a rubber-stamp environment?", type: long_text}
+      - {code: "7.1.08", label: "Right to human review honoured", help: "GDPR Art. 22, DPDP and similar rights not to be subject to solely automated decisions.", type: single, option_set: yes_no_na}
+
+  - code: "7.2"
+    title: Explainability to affected individuals
+    scope: system
+    light: true
+    questions:
+      - {code: "7.2.01", label: "Can decisions be explained in plain language?", help: "If a loan is denied or a candidate rejected by AI, can the organization say why?", type: single, option_set: yes_no, required: true,
+         finding: {when: {in: ["no"]}, severity: high, title: "AI decisions cannot be explained to the people affected"}}
+      - {code: "7.2.02", label: "Explanation format", type: single,
+         options: [{value: letter, label: "Automated letter"}, {value: call, label: "Human agent call"}, {value: portal, label: "Online portal"}, {value: not_provided, label: "Not provided"}],
+         finding: {when: {in: [not_provided]}, severity: medium, title: "No explanation is provided to affected individuals"}}
+      - {code: "7.2.03", label: "Adverse action notices include required AI disclosures", type: single, option_set: yes_no_na, applies: {engagement: industry, in: [banking, insurance, financial_services, bfsi]}}
+      - {code: "7.2.04", label: "Explanations tested with users", type: single, option_set: yes_no}
+      - {code: "7.2.05", label: "Individuals told AI is used in decisions about them", type: single, option_set: yes_no_partial}
+
+  # ---------------------------------------------------------------- §8 security, monitoring and incidents
+  - code: "8.1"
+    title: AI-specific security controls
+    scope: system
+    note: "AI systems face specific threats: data poisoning, adversarial inputs, model theft and prompt injection. Ask the security owner whether they have tested for these specifically. For vendor systems, cover the client-side controls."
+    questions:
+      - {code: "8.1.01", label: "Data poisoning controls", type: single, option_set: yes_no_unknown}
+      - {code: "8.1.02", label: "Adversarial attack testing", type: single, option_set: yes_no}
+      - {code: "8.1.03", label: "Model access controls", help: "Who can access model weights, training data and API endpoints? Are controls documented and enforced?", type: long_text, required: true}
+      - {code: "8.1.04", label: "API security", type: multi,
+         options: [{value: auth, label: "Authentication (keys / OAuth)"}, {value: rate_limit, label: "Rate limiting"}, {value: input_validation, label: "Input validation"}, {value: output_filtering, label: "Output filtering"}, {value: logging, label: "Logging of all calls"}]}
+      - {code: "8.1.05", label: "Prompt injection testing", type: single, option_set: yes_no, applies: {q: "3.2.01", contains: genai_llm}}
+      - {code: "8.1.06", label: "Model theft / extraction controls", type: single, option_set: yes_no}
+      - {code: "8.1.07", label: "Encryption at rest", type: single, option_set: yes_no, required: true, detail_label: "Algorithm",
+         finding: {when: {in: ["no"]}, severity: high, title: "AI data and model storage are not encrypted at rest"}}
+      - {code: "8.1.08", label: "Encryption in transit (TLS 1.2 or later)", type: single, option_set: yes_no, required: true,
+         finding: {when: {in: ["no"]}, severity: high, title: "Data to and from the AI system is not encrypted in transit"}}
+      - {code: "8.1.09", label: "Last penetration test covering the AI system or its API", type: date,
+         finding: {when: {older_than_months: 12}, severity: medium, title: "No penetration test of the AI system in the last 12 months"}}
+      - {code: "8.1.10", label: "Dependency patching", type: single, option_set: yes_no, detail_label: "Frequency"}
+
+  - code: "8.2"
+    title: Production monitoring
+    scope: system
+    note: "Models degrade as the world changes (model drift). Ask for the monitoring dashboard or reports. 'We check it occasionally' is not monitoring."
+    questions:
+      - {code: "8.2.01", label: "Monitoring in place", type: single, required: true, detail_label: "Tool or process",
+         options: [{value: "yes", label: "Yes"}, {value: manual, label: "Manual only"}, {value: "no", label: "No"}],
+         finding: {when: {in: ["no"]}, severity: high, title: "AI system in production is not monitored"}}
+      - {code: "8.2.02", label: "Metrics tracked", type: long_text}
+      - {code: "8.2.03", label: "Model drift alert", type: single, option_set: yes_no, detail_label: "Threshold"}
+      - {code: "8.2.04", label: "Data drift detection", type: single, option_set: yes_no}
+      - {code: "8.2.05", label: "Monitoring frequency", type: single, option_set: frequency,
+         finding: {when: {in: [adhoc, monthly]}, severity: medium, title: "High-risk AI system is monitored less than weekly", if: {system: depth, eq: full}}}
+      - {code: "8.2.06", label: "Monitoring logs retained for", type: text}
+      - {code: "8.2.07", label: "Performance review cadence", type: single,
+         options: [{value: monthly, label: "Monthly"}, {value: quarterly, label: "Quarterly"}, {value: annually, label: "Annually"}, {value: never, label: "Never"}],
+         finding: {when: {in: [never]}, severity: medium, title: "AI system is never formally reviewed for fitness for purpose"}}
+      - {code: "8.2.08", label: "Retraining process with change control", type: long_text}
+
+  - code: "8.3"
+    title: AI incident management
+    scope: system
+    questions:
+      - {code: "8.3.01", label: "Written definition of an AI incident", type: single, option_set: yes_no}
+      - {code: "8.3.02", label: "AI incident response procedure", type: single, option_set: yes_no, required: true, evidence: true,
+         finding: {when: {in: ["no"]}, severity: high, title: "No AI incident response procedure"}}
+      - {code: "8.3.03", label: "Incident response team roles", type: long_text}
+      - {code: "8.3.04", label: "Incident log maintained", help: "Request the last 12 months.", type: single, option_set: yes_no, evidence: true}
+      - {code: "8.3.05", label: "AI incidents in the last 12 months", help: "Number, and the most serious.", type: long_text}
+      - {code: "8.3.06", label: "Regulatory notification process", help: "HIPAA breach, GDPR 72-hour rule and similar.", type: single, option_set: yes_no,
+         finding: {when: {in: ["no"]}, severity: medium, title: "Incident procedure does not cover regulatory notification"}}
+      - {code: "8.3.07", label: "EU AI Act serious-incident reporting", type: single, option_set: yes_no_na, applies: {engagement: eu_in_scope, eq: true}}
+      - {code: "8.3.08", label: "Post-incident review process", type: single, option_set: yes_no}
+
+  # ---------------------------------------------------------------- §9 vendor due diligence
+  - code: "9.2"
+    title: Vendor due diligence
+    scope: system
+    light: true
+    build_types: [vendor, hybrid]
+    note: "Most organizations use AI from vendors. Under HIPAA, GDPR and the EU AI Act the deployer shares accountability. Procurement or IT often knows of AI vendors the compliance team does not."
+    questions:
+      - {code: "9.2.01", label: "Vendor AI risk assessment process", type: single,
+         options: [{value: "yes", label: "Yes"}, {value: "no", label: "No"}, {value: generic, label: "Generic IT vendor process only"}],
+         finding: {when: {in: ["no"]}, severity: medium, title: "No vendor risk assessment for AI vendors"}}
+      - {code: "9.2.02", label: "Vendors asked AI-specific due diligence questions", help: "About AI governance, bias testing and model documentation.", type: single, option_set: yes_no}
+      - {code: "9.2.03", label: "Vendors required to hold SOC 2 Type II or ISO 27001", type: single,
+         options: [{value: "yes", label: "Yes"}, {value: "no", label: "No"}, {value: encouraged, label: "Encouraged but not required"}]}
+      - {code: "9.2.04", label: "AI transparency from the vendor", help: "Model cards, bias results or technical documentation.", type: single, option_set: yes_no_partial}
+      - {code: "9.2.05", label: "Right-to-audit clause in the contract", type: single, option_set: yes_no}
+      - {code: "9.2.06", label: "Data localization specified in the contract", type: single, option_set: yes_no}
+      - {code: "9.2.07", label: "Vendor subprocessors disclosed", type: single, option_set: yes_no}
+      - {code: "9.2.08", label: "Vendor incident notification timeframe", type: single, option_set: yes_no, detail_label: "Timeframe",
+         finding: {when: {in: ["no"]}, severity: medium, title: "Vendor contract has no AI incident notification timeframe"}}

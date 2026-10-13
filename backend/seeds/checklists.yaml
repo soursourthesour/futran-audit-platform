@@ -1,0 +1,101 @@
+# Audit checklists (Template v1.0; spec §18.4). An item can be ticked only with evidence linked.
+# maturity_domain feeds the proposed domain score (spec §19.3).
+# pending_review: drafted by the platform team, awaiting Futran review (not in the template text).
+checklists:
+  - section: "4.3"
+    title: Governance checklist
+    scope: engagement
+    items:
+      - {code: "4.3.01", domain: governance, text: "A formal written AI Use Policy exists and is reviewed at least annually"}
+      - {code: "4.3.02", domain: governance, text: "All employees with AI access have signed acknowledgement of the AI Use Policy"}
+      - {code: "4.3.03", domain: governance, text: "A named executive is accountable for AI governance outcomes"}
+      - {code: "4.3.04", domain: governance, text: "An AI governance committee or steering body meets at least quarterly"}
+      - {code: "4.3.05", domain: governance, text: "Minutes of AI governance meetings are formally recorded and retained"}
+      - {code: "4.3.06", domain: incident, text: "There is a documented AI incident response procedure"}
+      - {code: "4.3.07", domain: governance, text: "AI projects require formal approval before moving to production"}
+      - {code: "4.3.08", domain: vendor_risk, text: "Third-party AI vendors are subject to vendor risk management assessment"}
+      - {code: "4.3.09", domain: governance, text: "A process exists to retire or decommission AI systems that become unsafe or outdated"}
+      - {code: "4.3.10", domain: governance, text: "AI governance requirements are included in employee onboarding training"}
+  - section: "5.4"
+    title: Data governance checklist
+    scope: system
+    items:
+      - {code: "5.4.01", domain: data, text: "A formal Data Classification Policy exists covering AI training data"}
+      - {code: "5.4.02", domain: data, text: "All personal data used in AI training has a documented legal basis"}
+      - {code: "5.4.03", domain: data, text: "Consent records are retained for the minimum required period"}
+      - {code: "5.4.04", domain: data, text: "The organization's Privacy Notice discloses AI use in decisions"}
+      - {code: "5.4.05", domain: data, text: "Data subject access and deletion requests can be fulfilled within regulatory deadlines"}
+      - {code: "5.4.06", domain: data, text: "Cross-border data transfers are covered by appropriate safeguards (SCCs, adequacy decision, etc.)"}
+      - {code: "5.4.07", domain: data, text: "HIPAA Business Associate Agreements are in place with all AI vendors processing PHI (if applicable)", applies: {any: [{engagement: hipaa_in_scope, eq: true}, {q: "5.1.02", eq: "yes"}]}}
+      - {code: "5.4.08", domain: data, text: "PHI in AI systems is limited to the minimum necessary for the stated purpose", applies: {any: [{engagement: hipaa_in_scope, eq: true}, {q: "5.1.02", eq: "yes"}]}}
+      - {code: "5.4.09", domain: data, text: "A Data Protection Impact Assessment (DPIA) has been completed for high-risk AI systems"}
+      - {code: "5.4.10", domain: data, text: "Training data is deleted or anonymized when no longer needed"}
+      - {code: "5.4.11", domain: data, text: "Data lineage is documented from source to AI model training"}
+      - {code: "5.4.12", domain: data, text: "Third-party datasets are licensed for AI use — licensing agreements reviewed"}
+      # Addendum 5.1a — drafted from the 5.1a questions; the addendum's own wording was not available.
+      - {code: "5.4.13", domain: bias, pending_review: true, applies: {engagement: bias_audit_in_scope, eq: true}, text: "Applicant demographic data is collected, or its absence is a documented and deliberate decision"}
+      - {code: "5.4.14", domain: bias, pending_review: true, applies: {engagement: bias_audit_in_scope, eq: true}, text: "The share of the candidate pool with unknown demographic categories is measured and reported"}
+      - {code: "5.4.15", domain: bias, pending_review: true, applies: {engagement: bias_audit_in_scope, eq: true}, text: "The bias audit data source is documented and its representativeness assessed"}
+      - {code: "5.4.16", domain: bias, pending_review: true, applies: {engagement: bias_audit_in_scope, eq: true}, text: "Fewer than 20% of candidates are excluded from the bias audit, or a documented rationale exists"}
+      - {code: "5.4.17", domain: bias, pending_review: true, applies: {engagement: bias_audit_in_scope, eq: true}, text: "A remediation plan addresses any data sufficiency gap before the next bias audit"}
+  - section: "6.4"
+    title: Model development checklist
+    scope: system
+    items:
+      - {code: "6.4.01", domain: model, build_types: [in_house, open_source_customized, hybrid], text: "A Model Card or equivalent technical documentation exists for each AI system"}
+      - {code: "6.4.02", domain: model, build_types: [in_house, open_source_customized, hybrid], text: "Training data is documented including source, date, size, and any known limitations"}
+      - {code: "6.4.03", domain: bias, text: "The model has been tested for bias across all relevant protected attributes"}
+      - {code: "6.4.04", domain: bias, text: "Disparate impact analysis results are documented and within acceptable thresholds"}
+      - {code: "6.4.05", domain: model, build_types: [in_house, open_source_customized, hybrid], text: "An independent validation has been conducted by a party not involved in development"}
+      - {code: "6.4.06", domain: model, build_types: [in_house, open_source_customized, hybrid], text: "Model validation reports are retained and available for regulatory inspection"}
+      - {code: "6.4.07", domain: model, build_types: [in_house, open_source_customized, hybrid], text: "A formal change management process governs model updates and retraining"}
+      - {code: "6.4.08", domain: model, build_types: [in_house, open_source_customized, hybrid], text: "Model performance metrics are tracked over time (not just at launch)"}
+      - {code: "6.4.09", domain: oversight, text: "The model can be explained to affected individuals in plain language if required"}
+      - {code: "6.4.10", domain: bias, text: "An ethics review was conducted before the model was deployed to production"}
+  - section: "V.C"
+    title: Vendor assurance checklist
+    scope: system
+    build_types: [vendor, hybrid]
+    items:
+      - {code: "V.C.01", domain: model, pending_review: true, text: "The vendor's model documentation has been obtained and reviewed"}
+      - {code: "V.C.02", domain: model, pending_review: true, text: "The vendor notifies the client before material model changes, and changes are reviewed"}
+      - {code: "V.C.03", domain: model, pending_review: true, text: "Configuration the client controls (thresholds, features) is documented and change-controlled"}
+      - {code: "V.C.04", domain: model, pending_review: true, text: "The client has tested the system's performance on its own population"}
+  - section: "7.3"
+    title: Human oversight checklist
+    scope: system
+    items:
+      - {code: "7.3.01", domain: oversight, text: "Every high-impact AI decision has a defined human review step before action is taken"}
+      - {code: "7.3.02", domain: oversight, text: "Human reviewers are trained specifically on how to review and challenge AI outputs"}
+      - {code: "7.3.03", domain: oversight, text: "A documented process exists for humans to override or escalate AI decisions"}
+      - {code: "7.3.04", domain: oversight, text: "Override decisions are logged with the reason and reviewer identity"}
+      - {code: "7.3.05", domain: oversight, text: "Affected individuals can request a human review of AI-driven decisions"}
+      - {code: "7.3.06", domain: oversight, text: "The organization can provide a plain-language explanation for every AI-driven decision"}
+      - {code: "7.3.07", domain: oversight, text: "Automated adverse action notices include required disclosures about AI use (BFSI)"}
+      - {code: "7.3.08", domain: oversight, text: "The time allocated for human review is sufficient to enable genuine oversight"}
+      - {code: "7.3.09", domain: oversight, text: "AI systems are designed to express confidence levels / uncertainty — not just binary outputs"}
+      - {code: "7.3.10", domain: oversight, text: "The organization monitors override rates to detect rubber-stamping or disuse of oversight"}
+  - section: "8.4"
+    title: Security and monitoring checklist
+    scope: system
+    items:
+      - {code: "8.4.01", domain: security, text: "AI training data and model storage are encrypted at rest with a documented algorithm"}
+      - {code: "8.4.02", domain: security, text: "All data transmitted to/from AI systems is encrypted in transit (minimum TLS 1.2)"}
+      - {code: "8.4.03", domain: security, text: "Access to AI model weights, training data, and APIs is controlled and logged"}
+      - {code: "8.4.04", domain: security, text: "A penetration test covering AI systems has been conducted in the last 12 months"}
+      - {code: "8.4.05", domain: security, text: "The AI system is monitored in production with automated drift and performance alerts"}
+      - {code: "8.4.06", domain: security, text: "Monitoring logs are retained for the minimum regulatory period"}
+      - {code: "8.4.07", domain: incident, text: "A formal AI incident response procedure exists and has been tested"}
+      - {code: "8.4.08", domain: incident, text: "Regulatory notification obligations (HIPAA, GDPR, EU AI Act) are covered in the incident procedure"}
+      - {code: "8.4.09", domain: security, text: "AI library and framework dependencies are patched within 30 days of critical vulnerability disclosure"}
+      - {code: "8.4.10", domain: security, text: "For GenAI systems: prompt injection has been tested and mitigated", applies: {q: "3.2.01", contains: genai_llm}}
+      - {code: "8.4.11", domain: security, text: "Model retraining triggered by performance degradation goes through change control before re-deployment"}
+  - section: "9.3"
+    title: Vendor risk checklist
+    scope: system
+    build_types: [vendor, hybrid]
+    items:
+      - {code: "9.3.01", domain: vendor_risk, pending_review: true, text: "The AI vendor was assessed with AI-specific due diligence before onboarding"}
+      - {code: "9.3.02", domain: vendor_risk, pending_review: true, text: "A current SOC 2 Type II report or ISO 27001 certificate for the vendor is on file"}
+      - {code: "9.3.03", domain: vendor_risk, pending_review: true, text: "The contract includes a right to audit, data location terms and an incident notification timeframe"}
+      - {code: "9.3.04", domain: vendor_risk, pending_review: true, text: "The vendor's subprocessors, including any foundation-model provider, are disclosed"}

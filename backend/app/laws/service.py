@@ -16,14 +16,21 @@ LEVEL_ORDER = {"city": 0, "state": 1, "country": 2, "supranational": 3}
 
 
 def law_summary(r: Regulation) -> str:
+    """A one-line description for pickers: obligations if recorded, else the source text after the name."""
     if r.obligations_text:
         return r.obligations_text
-    text = r.full_text or ""
+    text = (r.full_text or "").strip()
+    paren = ""
     if text.startswith(r.short_name):
-        text = text[len(r.short_name):].lstrip(" :;—-.(")
-        if text.endswith(")") and "(" not in text:
-            text = text[:-1]
-    return text.strip() or r.short_name
+        rest = text[len(r.short_name):].lstrip()
+        m = re.match(r"^\(([^()]*)\)\s*", rest)
+        if m:
+            paren, rest = m.group(1).strip(), rest[m.end():]
+        rest = rest.lstrip(" :;—-.").strip()
+        if rest:
+            rest = rest[0].upper() + rest[1:]
+            return f"{rest} ({paren})" if paren else rest
+    return text or r.short_name
 
 
 def law_out(r: Regulation, j: Jurisdiction | None = None) -> dict:
