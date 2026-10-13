@@ -129,7 +129,7 @@ def edit_law(db: Session, actor: User, reg_id: str, fields: dict) -> Regulation:
     return new
 
 
-def add_law(db: Session, actor: User, jurisdiction_code: str, fields: dict) -> Regulation:
+def add_law(db: Session, actor: User, jurisdiction_code: str, fields: dict, version: MatrixVersion | None = None, origin: str = "manual") -> Regulation:
     j = db.scalar(select(Jurisdiction).where(Jurisdiction.code == jurisdiction_code))
     if j is None:
         raise Invalid(errors=[{"field": "jurisdiction_code", "message": "Unknown jurisdiction."}])
@@ -137,8 +137,8 @@ def add_law(db: Session, actor: User, jurisdiction_code: str, fields: dict) -> R
     fields.setdefault("feature", "government_other")
     fields.setdefault("type", "statute")
     _validate(fields | {"short_name": fields.get("short_name", "")})
-    v = new_manual_version(db, actor, f"Manual addition — {fields['short_name'][:80]}")
-    reg = Regulation(jurisdiction_id=j.id, matrix_version_id=v.id, last_seen_version_id=v.id, origin="manual", updated_by=actor.id, full_text=fields.get("full_text") or fields["short_name"], **{k: v_ for k, v_ in fields.items() if k != "full_text"})
+    v = version or new_manual_version(db, actor, f"Manual addition — {fields['short_name'][:80]}")
+    reg = Regulation(jurisdiction_id=j.id, matrix_version_id=v.id, last_seen_version_id=v.id, origin=origin, updated_by=actor.id, full_text=fields.get("full_text") or fields["short_name"], **{k: v_ for k, v_ in fields.items() if k != "full_text"})
     db.add(reg)
     j.has_laws = True
     db.flush()

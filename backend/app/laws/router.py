@@ -1,7 +1,7 @@
 import tempfile
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Request, UploadFile
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -150,3 +150,105 @@ def post_law(body: LawIn, actor: Actor = Depends(current_actor), db: Session = D
         raise Invalid(errors=[{"field": "jurisdiction_code", "message": "Choose a jurisdiction."}])
     reg = add_law(db, actor.user, body.jurisdiction_code.upper(), body.model_dump(exclude_unset=True, exclude={"jurisdiction_code"}))
     return law_out(reg, db.get(Jurisdiction, reg.jurisdiction_id))
+
+
+class RefreshIn(BaseModel):
+    jurisdiction_codes: list[str]
+
+
+class DecideIn(BaseModel):
+    accept: list[str] = []
+    reject: list[str] = []
+
+
+def _run_in_background(app, run_id: str, actor_id: str, jurisdiction_ids: list[str]) -> None:
+    from app.laws.models import LawRefreshRun
+    from app.laws.refresh import default_factory, run_refresh
+    from app.tenancy.models import User
+
+    db = app.state.sessionmaker()
+    try:
+        run = db.get(LawRefreshRun, run_id)
+        actor = db.get(User, actor_id)
+        client = getattr(app.state, "claude_factory", None) or default_factory
+        run_refresh(db, actor, jurisdiction_ids, client(app.state.settings), run=run)
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        run = db.get(LawRefreshRun, run_id)
+        if run is not None:
+            run.status, run.error = "failed", str(exc)[:2000]
+            db.commit()
+    finally:
+        db.close()
+
+
+def _run_out(db: Session, run, with_proposals: bool = False) -> dict:
+    from app.laws.models import RegulationProposal
+
+    names = dict(db.execute(select(Jurisdiction.id, Jurisdiction.name).where(Jurisdiction.id.in_(run.jurisdiction_ids))).all())
+    out = {
+        "id": run.id, "status": run.status, "error": run.error, "warnings": run.warnings or [], "model": run.model,
+        "jurisdictions": [names.get(j, j) for j in run.jurisdiction_ids],
+        "created_at": run.created_at.isoformat(), "finished_at": run.finished_at.isoformat() if run.finished_at else None,
+    }
+    props = list(db.scalars(select(RegulationProposal).where(RegulationProposal.run_id == run.id)))
+    out["counts"] = {"pending": sum(p.status == "pending" for p in props), "accepted": sum(p.status == "accepted" for p in props), "rejected": sum(p.status == "rejected" for p in props)}
+    if with_proposals:
+        items = []
+        for p in props:
+            cur = db.get(Regulation, p.regulation_id) if p.regulation_id else None
+            items.append({
+                "id": p.id, "change_type": p.change_type, "status": p.status, "jurisdiction": names.get(p.jurisdiction_id), "proposed": p.proposed,
+                "rationale": p.rationale, "sources": p.sources, "current": law_out(cur, db.get(Jurisdiction, cur.jurisdiction_id)) if cur else None,
+            })
+        out["proposals"] = items
+    return out
+
+
+@router.post("/admin/laws/refresh")
+def start_refresh(body: RefreshIn, background: BackgroundTasks, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    from app.laws.models import LawRefreshRun
+
+    authorize(db, actor, Action.RUN_LAW_REFRESH)
+    settings = request.app.state.settings
+    if not settings.anthropic_api_key:
+        raise Conflict("Add an Anthropic API key in settings to use law updates.")
+    js = list(db.scalars(select(Jurisdiction).where(Jurisdiction.code.in_([c.upper() for c in body.jurisdiction_codes]))))
+    if not js:
+        raise Invalid(errors=[{"field": "jurisdiction_codes", "message": "Choose at least one jurisdiction."}])
+    if len(js) > 10:
+        raise Invalid(errors=[{"field": "jurisdiction_codes", "message": "Choose up to 10 jurisdictions per run."}])
+    run = LawRefreshRun(jurisdiction_ids=[j.id for j in js], requested_by=actor.id, model=settings.claude_model, status="running", warnings=[])
+    db.add(run)
+    db.commit()
+    background.add_task(_run_in_background, request.app, run.id, actor.id, run.jurisdiction_ids)
+    return _run_out(db, run)
+
+
+@router.get("/admin/laws/refresh")
+def list_runs(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    from app.laws.models import LawRefreshRun
+
+    authorize(db, actor, Action.RUN_LAW_REFRESH)
+    return [_run_out(db, r) for r in db.scalars(select(LawRefreshRun).order_by(LawRefreshRun.created_at.desc()).limit(50))]
+
+
+@router.get("/admin/laws/refresh/{run_id}")
+def get_run(run_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    from app.laws.models import LawRefreshRun
+
+    authorize(db, actor, Action.RUN_LAW_REFRESH)
+    run = db.get(LawRefreshRun, run_id)
+    if run is None:
+        raise NotFound()
+    return _run_out(db, run, with_proposals=True)
+
+
+@router.post("/admin/laws/proposals/decide")
+def decide(body: DecideIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    from app.laws.refresh import accept_proposals
+
+    authorize(db, actor, Action.RUN_LAW_REFRESH)
+    v = accept_proposals(db, actor.user, body.accept, body.reject)
+    return {"version_id": v.id if v else None}

@@ -21,7 +21,8 @@ class Settings(BaseSettings):
     smtp_from: str = "Futran Audit Platform <no-reply@futransolutions.com>"
     smtp_starttls: bool = True
     anthropic_api_key: str | None = None
-    claude_model: str = "claude-sonnet-4-5"
+    claude_model: str = "claude-sonnet-5-5"
+    claude_web_search_tool: str = "web_search_20250305"
     data_region_label: str = "us-east"
     session_idle_min: int = 30
     session_max_hours: int = 12

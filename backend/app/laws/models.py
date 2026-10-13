@@ -67,3 +67,35 @@ class LawImportPreview(IdMixin, Base):
     created_by: Mapped[str | None] = mapped_column(String(36))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     published_version_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("matrix_versions.id"))
+
+
+class LawRefreshRun(IdMixin, Base):
+    """One Admin-triggered Claude research run over a set of jurisdictions."""
+
+    __tablename__ = "law_refresh_runs"
+
+    jurisdiction_ids: Mapped[list] = mapped_column(JSON)
+    requested_by: Mapped[str | None] = mapped_column(String(36))
+    model: Mapped[str | None] = mapped_column(String(80))
+    status: Mapped[str] = mapped_column(String(12), default="running")  # running | completed | failed
+    error: Mapped[str | None] = mapped_column(Text)
+    warnings: Mapped[list | None] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+
+class RegulationProposal(IdMixin, Base):
+    """A change Claude proposes to the law matrix. Nothing changes until Admin accepts it."""
+
+    __tablename__ = "regulation_proposals"
+
+    run_id: Mapped[str] = mapped_column(String(36), ForeignKey("law_refresh_runs.id"), index=True)
+    jurisdiction_id: Mapped[str] = mapped_column(String(36), ForeignKey("jurisdictions.id"))
+    regulation_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("regulations.id"))
+    change_type: Mapped[str] = mapped_column(String(10))  # add | update | retire
+    proposed: Mapped[dict] = mapped_column(JSON)
+    rationale: Mapped[str | None] = mapped_column(Text)
+    sources: Mapped[list] = mapped_column(JSON)
+    status: Mapped[str] = mapped_column(String(10), default="pending")  # pending | accepted | rejected
+    reviewed_by: Mapped[str | None] = mapped_column(String(36))
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime)
