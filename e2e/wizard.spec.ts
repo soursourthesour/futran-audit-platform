@@ -185,5 +185,35 @@ test('auditor sets up a client, the Chief Auditor approves and the client signs 
   await page.reload();
   await expect(page.getByRole('cell', { name: 'ChatGPT · personal, free', exact: true }).first()).toBeVisible();
   await page.screenshot({ path: 'screenshots/p4-attestation-tracker.png', fullPage: true });
+
+  // AI inventory (Phase 4): a Tier 3 use case with a named user, then the auditor sets the final tier
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'AI inventory' }).click();
+  await page.getByRole('link', { name: 'Add use case' }).click();
+  await page.getByLabel('Use case name *').fill('Résumé screening for NYC roles');
+  await page.getByLabel('Department *').selectOption({ label: 'HR and recruiting' });
+  await page.getByLabel(/OpenAI ChatGPT/).check();
+  await page.getByLabel('Purpose *').fill('Recruiters paste CVs and ask ChatGPT to rank applicants before interviews.');
+  await page.getByLabel('Personal information (PII)').check();
+  await page.getByLabel(/Substantially assists or makes decisions/).check();
+  await expect(page.getByText('Tier 3 · High-risk')).toBeVisible();
+  await page.getByLabel('Role').first().fill('Recruiter');
+  await page.getByLabel('Headcount').fill('4');
+  await page.getByRole('button', { name: 'Add named user' }).click();
+  await page.getByLabel('Name', { exact: true }).fill('Lee Park');
+  await page.getByLabel('Work email').fill('lee.park@abccorp.example');
+  await page.getByLabel('Human oversight role *').fill('Reviews the ranked list before interviews');
+  await page.screenshot({ path: 'screenshots/p4-use-case.png', fullPage: true });
+  await page.getByRole('button', { name: 'Submit to Department Lead' }).click();
+  await expect(page.getByRole('link', { name: 'Résumé screening for NYC roles' })).toBeVisible();
+  await page.screenshot({ path: 'screenshots/p4-inventory.png', fullPage: true });
+  await signOut(page);
+  await signIn(page, 'auditor1@futran.demo');
+  await page.getByRole('table').getByRole('link', { name: 'ABC Corp' }).click();
+  await page.getByRole('link', { name: 'AI inventory and tiers' }).click();
+  await page.getByRole('link', { name: 'Résumé screening for NYC roles' }).click();
+  await page.getByLabel('Rationale').fill('Ranks applicants for NYC roles; likely an AEDT under Local Law 144.');
+  await page.getByLabel('AEDT determination (NYC employment use)').selectOption('in_scope');
+  await page.getByRole('button', { name: 'Save final tier' }).click();
+  await expect(page.getByText('Final tier (Futran)')).toBeVisible();
 });
 

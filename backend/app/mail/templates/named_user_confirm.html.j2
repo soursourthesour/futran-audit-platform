@@ -1,0 +1,6 @@
+{% extends "_layout.html.j2" %}{% block body %}
+<p>Hello {{ name }},</p>
+<p>{{ client }} is reviewing how its teams use AI. You are named as someone who uses AI for <strong>{{ use_case }}</strong>. Please answer three short questions: whether you have had training, whether you have read the AI use policy, and whether you carry out the human review described for this use.</p>
+<p style="margin:24px 0"><a href="{{ link }}" style="background:#1B3A6B;color:#ffffff;padding:12px 20px;text-decoration:none;display:inline-block">Answer (about one minute)</a></p>
+<p style="font-size:13px;color:#5b6474">No sign-in needed. The link is personal to you and works for {{ days }} days.</p>
+{% endblock %}

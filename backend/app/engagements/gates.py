@@ -2,7 +2,7 @@
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.audit_log import service as audit
@@ -83,6 +83,11 @@ def _stage3(db: Session, e: Engagement) -> GateResult:
     req = current_request(db, e)
     if req is None or req.status == "open":
         unmet.append("The client has not submitted the AI governance structure.")
+    from app.inventory.models import UseCase
+
+    drafts = db.scalar(select(func.count()).select_from(UseCase).where(UseCase.engagement_id == e.id, UseCase.deleted_at.is_(None), UseCase.status.in_(["draft", "returned"])))
+    if drafts:
+        unmet.append(f"{drafts} use case{' is' if drafts == 1 else 's are'} still a draft or returned. Submit {'it' if drafts == 1 else 'them'} or delete {'it' if drafts == 1 else 'them'}.")
     return _result(unmet)
 
 
