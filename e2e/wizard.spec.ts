@@ -137,5 +137,22 @@ test('auditor sets up a client, the Chief Auditor approves and the client signs 
   await page.getByLabel('Not appointed').first().click();
   await expect(page.getByText('Not appointed: the Chief AI Compliance Officer covers this role').first()).toBeVisible();
   await page.screenshot({ path: 'screenshots/p4-people.png', fullPage: true });
+
+  // Governance structure request (Phase 4)
+  await page.getByRole('link', { name: 'Governance' }).click();
+  await expect(page.getByRole('heading', { name: 'AI governance structure' })).toBeVisible();
+  const committee = page.getByRole('group', { name: 'Answer for AI governance committee' });
+  await committee.getByRole('button', { name: 'In place' }).click();
+  await page.getByLabel('Chair').fill('Maria Lopez');
+  await page.getByLabel('Member 1').fill('Raj Iyer');
+  await page.getByRole('button', { name: 'Save answer' }).click();
+  await expect(page.getByText('In place · chair Maria Lopez, Raj Iyer')).toBeVisible();
+  const bias = page.getByRole('group', { name: 'Answer for Bias and fairness review committee' });
+  await bias.getByRole('button', { name: 'Will constitute' }).click();
+  await page.getByLabel('Target date *').fill('2027-03-31');
+  await page.getByLabel('Interim owner *').fill('Priya Shah');
+  await page.getByRole('button', { name: 'Save answer' }).click();
+  await expect(page.getByText('Constitute bias and fairness review committee')).toBeVisible();
+  await page.screenshot({ path: 'screenshots/p4-governance.png', fullPage: true });
 });
 

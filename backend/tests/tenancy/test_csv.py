@@ -12,7 +12,7 @@ from app.tenancy.csv_import import parse_department_csv, parse_user_csv
 from app.tenancy.models import Department, User
 from app.tenancy.service import roles_of
 from tests.factories import login_as, make_user
-from tests.initiation.conftest import APPROVAL, people, submitted  # noqa: F401
+from tests.initiation.conftest import live, people, submitted  # noqa: F401
 
 USERS_HEADER = "first_name,last_name,email,job_title,department,role,location"
 
@@ -56,28 +56,6 @@ def test_department_csv_parse():
         "Email 'bad' is not a valid email address.",
         "Headcount must be a whole number.",
     ]
-
-
-@pytest.fixture
-def live(client, db, people, submitted):
-    """An approved engagement with Maria (CAICO and Client Admin) active."""
-    cid, e = submitted()
-    login_as(client, db, people["chief"])
-    client.get(f"/api/v1/clients/{cid}/package")
-    assert client.post(f"/api/v1/clients/{cid}/approve", json=APPROVAL).status_code == 200
-    maria = db.scalar(select(User).where(User.email == "maria@abc.test"))
-    maria.status = "active"
-    db.commit()
-    from app.signoffs.models import SignOff
-
-    so = db.scalar(select(SignOff).where(SignOff.engagement_id == e.id))
-    login_as(client, db, maria)
-    assert client.post(f"/api/v1/signoffs/{so.id}/sign", json={"typed_name": "Maria Lopez"}).status_code == 200
-    login_as(client, db, people["chief"])
-    assert client.post(f"/api/v1/signoffs/{so.id}/sign", json={"typed_name": "Cara Chief"}).status_code == 200
-    db.expire_all()
-    assert db.get(Engagement, e.id).stage == 2
-    return cid, e, maria
 
 
 def test_department_csv_prefilled_from_scope(client, db, live):

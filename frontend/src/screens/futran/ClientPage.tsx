@@ -119,6 +119,9 @@ export function ClientPage() {
                 ))}
               </ul>
             </Card>
+            {e.status !== 'draft' && e.status !== 'pending_approval' && (
+              <Card title="AI governance structure"><Link to={`/clients/${clientId}/governance`}>Open the governance request</Link></Card>
+            )}
             <Card title="Futran team">
               <ul className="small" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                 {p.team.map((m, i) => <li key={i} style={{ padding: '6px 0' }}><strong>{m.name}</strong><div className="muted">{m.role_label}</div></li>)}

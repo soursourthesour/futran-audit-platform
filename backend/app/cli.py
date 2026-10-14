@@ -48,6 +48,32 @@ def cmd_create_admin(args) -> int:
     return 0
 
 
+def cmd_admin_link(args) -> int:
+    """Print a fresh set-password link for an administrator, creating the account if it does not exist yet."""
+    from app.invitations.service import invite_user
+    from app.tenancy.service import assign_role, create_user, find_user_by_email, roles_of
+
+    settings, db = _session()
+    org = _futran_org(db)
+    user = find_user_by_email(db, args.email)
+    if user is None:
+        if not args.name:
+            print("No account uses that email yet. Run again with --name to create it.", file=sys.stderr)
+            return 2
+        user = create_user(db, org, name=args.name, email=args.email)
+    if user.organization_id != org.id:
+        print("That email belongs to a client user, not a Futran administrator.", file=sys.stderr)
+        return 2
+    if "admin" not in {r.role for r in roles_of(db, user.id)}:
+        assign_role(db, user, "admin")
+    user.status = "invited"
+    user.password_hash = None
+    inv = invite_user(db, settings, None, user)
+    db.commit()
+    print(f"Open this link within 7 days to set the password for {user.email}:\n{settings.base_url}/invite/{inv.raw_token}")
+    return 0
+
+
 def cmd_seed_reference(args) -> int:
     from app.reference import LOADERS
 
@@ -129,6 +155,10 @@ def main(argv: list[str] | None = None) -> int:
     a.add_argument("--email", required=True)
     a.add_argument("--name", required=True)
     a.set_defaults(func=cmd_create_admin)
+    al = sub.add_parser("admin-link")
+    al.add_argument("--email", required=True)
+    al.add_argument("--name")
+    al.set_defaults(func=cmd_admin_link)
     sub.add_parser("seed-reference").set_defaults(func=cmd_seed_reference)
     sub.add_parser("seed-e2e").set_defaults(func=cmd_seed_e2e)
     sub.add_parser("reset-demo").set_defaults(func=cmd_reset_demo)

@@ -31,6 +31,8 @@ You need Python 3.11 or later (python.org, tick "Add python.exe to PATH").
 2. Double-click `run.bat`. The platform opens at http://localhost:8000.
 3. Open the link from step 1 and set a password.
 
+There is no default password. If you skipped the email question in setup, lost the link, or forgot your password, double-click `admin-link.bat` while `run.bat` is running, enter your email (and your name for a new account), and open the link it prints.
+
 The Python packages, database and uploaded files are kept in `%LOCALAPPDATA%\FutranAuditPlatform`, not in this folder, so OneDrive never syncs a live database. Settings are in `.env` in this folder.
 
 ## Before real client data goes in

@@ -182,6 +182,10 @@ def approve_and_send(db: Session, settings: Settings, actor: User, e: Engagement
     now = utcnow()
     pkg.status, pkg.approved_by, pkg.approved_at, pkg.sent_at = "sent", actor.id, now, now
     pkg.client_message, pkg.approval_checklist = client_message, {k: True for k in CHECKLIST}
+    from app.governance.service import create_request
+
+    codes = next((d.merge_values or {} for d in documents(db, pkg) if d.item == 7), {}).get("governance_codes")
+    create_request(db, actor, e, codes)
     create_sign_off(db, e, 1, preparer_id=e.created_by, required_roles=["caico", "chief_auditor"], document_id=letter.id, excluded=excluded)
     audit.record(db, actor_id=actor.id, action="package.send", obj=pkg, summary=f"Approved {e.audit_ref} and sent the initiation package (7 items) to {', '.join(u.name for u in to_invite.values())}")
     return pkg

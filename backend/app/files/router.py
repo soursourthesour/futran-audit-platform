@@ -47,7 +47,12 @@ def _futran_only(db: Session, actor: Actor, f: FileObject) -> None:
 
 # Who may download a file depends on what it is attached to. A link type not listed here is Futran-only until
 # the task that introduces it registers its own rule.
+def _governance_access(db: Session, actor: Actor, f: FileObject) -> None:
+    authorize(db, actor, Action.VIEW_GOVERNANCE, engagement_id=f.engagement_id)
+
+
 FILE_ACCESS = {
+    "governance_document": _governance_access,
     "package_document": _package_document_access,
     "evidence": _evidence_access,
 }

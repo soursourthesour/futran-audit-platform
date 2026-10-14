@@ -1,6 +1,9 @@
 import pytest
 
+from sqlalchemy import select
+
 from app.engagements.models import Engagement
+from app.tenancy.models import User
 from tests.engagements.helpers import _new, complete
 from tests.factories import login_as, make_org, make_user
 
@@ -43,3 +46,25 @@ def submitted(client, db, people, settings, tmp_path):
 
 
 APPROVAL = {"client_message": "We look forward to working with you.", "checklist": {"scope_ok": True, "no_conflict": True, "letter_previewed": True}}
+
+
+@pytest.fixture
+def live(client, db, people, submitted):
+    """An approved engagement with Maria (CAICO and Client Admin) active."""
+    cid, e = submitted()
+    login_as(client, db, people["chief"])
+    client.get(f"/api/v1/clients/{cid}/package")
+    assert client.post(f"/api/v1/clients/{cid}/approve", json=APPROVAL).status_code == 200
+    maria = db.scalar(select(User).where(User.email == "maria@abc.test"))
+    maria.status = "active"
+    db.commit()
+    from app.signoffs.models import SignOff
+
+    so = db.scalar(select(SignOff).where(SignOff.engagement_id == e.id))
+    login_as(client, db, maria)
+    assert client.post(f"/api/v1/signoffs/{so.id}/sign", json={"typed_name": "Maria Lopez"}).status_code == 200
+    login_as(client, db, people["chief"])
+    assert client.post(f"/api/v1/signoffs/{so.id}/sign", json={"typed_name": "Cara Chief"}).status_code == 200
+    db.expire_all()
+    assert db.get(Engagement, e.id).stage == 2
+    return cid, e, maria
