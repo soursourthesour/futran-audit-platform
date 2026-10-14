@@ -65,7 +65,7 @@ export function SystemAssessment() {
               <h2 style={{ margin: '0 0 8px' }}>§{sec.code} {sec.title}</h2>
               {sec.note && <div className="intern-note" style={{ marginBottom: 12 }}><strong>Intern note:</strong> {sec.note}</div>}
               {d.questions.filter((x) => x.sub_section === current).map((x) => (
-                <QuestionCard key={`${x.id}-${JSON.stringify(x.response)}`} q={x} futran locked={d.locked} evidenceFiles={d.evidence_files ?? []} drafts={d.draft_findings ?? []} onSave={save(x.code)} onVerify={verify} onUpload={upload} />
+                <QuestionCard key={x.id} q={x} futran locked={d.locked} evidenceFiles={d.evidence_files ?? []} drafts={d.draft_findings ?? []} onSave={save(x.code)} onVerify={verify} onUpload={upload} />
               ))}
             </>
           )}

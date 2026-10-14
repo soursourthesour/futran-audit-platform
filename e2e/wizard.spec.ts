@@ -215,5 +215,56 @@ test('auditor sets up a client, the Chief Auditor approves and the client signs 
   await page.getByLabel('AEDT determination (NYC employment use)').selectOption('in_scope');
   await page.getByRole('button', { name: 'Save final tier' }).click();
   await expect(page.getByText('Final tier (Futran)')).toBeVisible();
+
+  // Phase 5: the Tier 3 use case becomes a system in scope, with the Engagement Manager's approval
+  const clientId = page.url().match(/\/clients\/([^/]+)\//)![1];
+  await page.goto(`/clients/${clientId}/systems`);
+  await expect(page.getByText('1 Tier 3 use case is not mapped to a system')).toBeVisible();
+  await page.getByRole('button', { name: 'Map use case' }).click();
+  await page.getByLabel('Built by').selectOption({ label: 'Vendor' });
+  await page.getByRole('button', { name: 'Send for approval' }).click();
+  await expect(page.getByText('Sent to the Engagement Manager for approval.')).toBeVisible();
+  await signOut(page);
+  await signIn(page, 'manager@futran.demo');
+  await page.goto(`/clients/${clientId}/systems`);
+  await page.getByRole('button', { name: 'Approve' }).click();
+  await expect(page.getByText('System added to the scope.')).toBeVisible();
+  await signOut(page);
+
+  // The auditor works through the assessment; a "No" raises a draft finding
+  await signIn(page, 'auditor1@futran.demo');
+  await page.goto(`/clients/${clientId}/systems`);
+  await page.getByRole('table').getByRole('link', { name: 'Résumé screening for NYC roles' }).click();
+  const card = (code: string) => page.locator(`[id="q-${code}"]`);
+  await card('3.1.01').getByLabel('Answer', { exact: true }).fill('ScreenRank for Recruiting');
+  await card('3.1.01').getByRole('button', { name: 'Save' }).click();
+  await expect(card('3.1.01').getByText('Saved')).toBeVisible();
+  await page.getByRole('navigation', { name: 'Sections' }).getByRole('button', { name: /§3.3 / }).click();
+  await card('3.3.02').getByLabel(/Human-assisted/).check();
+  await card('3.3.02').getByLabel('Source person').fill('Priya Shah');
+  await card('3.3.02').getByLabel('Source title').fill('Head of HR');
+  await card('3.3.02').getByLabel('Verified').check();
+  await card('3.3.02').getByRole('button', { name: 'Save' }).click();
+  await expect(card('3.3.02').getByText('Verified', { exact: true }).first()).toBeVisible();
+  await page.getByRole('navigation', { name: 'Sections' }).getByRole('button', { name: /§6.2 / }).click();
+  await card('6.2.01').getByLabel('No', { exact: true }).check();
+  await card('6.2.01').getByRole('button', { name: 'Save' }).click();
+  await expect(card('6.2.01').getByText(/Draft finding F-001/)).toBeVisible();
+  await page.screenshot({ path: 'screenshots/p5-assessment.png', fullPage: true });
+  await page.getByRole('link', { name: 'View risk score' }).click();
+  await expect(page.getByRole('heading', { name: /Risk score:/ })).toBeVisible();
+  await expect(page.getByText('Triggered · at least High')).toBeVisible();
+  await page.screenshot({ path: 'screenshots/p5-score.png', fullPage: true });
+  await page.goto(`/clients/${clientId}/systems`);
+  await expect(page.getByRole('cell', { name: /SYS-003/ })).toBeVisible();
+  await page.screenshot({ path: 'screenshots/p5-systems-register.png', fullPage: true });
+
+  // Document request register: preview the email, send it
+  await page.goto(`/clients/${clientId}/documents`);
+  await page.getByRole('button', { name: 'Preview and send request' }).click();
+  await expect(page.getByText('To: maria.lopez@abccorp.example')).toBeVisible();
+  await page.getByRole('button', { name: /Send request/ }).click();
+  await expect(page.getByText(/Request sent\./)).toBeVisible();
+  await page.screenshot({ path: 'screenshots/p5-documents.png', fullPage: true });
 });
 

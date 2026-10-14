@@ -75,7 +75,7 @@ export function SystemPrefill() {
         </nav>
         <div>
           {d.questions.filter((x) => x.sub_section === current).map((x) => (
-            <QuestionCard key={`${x.id}-${JSON.stringify(x.response)}`} q={x} futran={false} locked={d.locked} evidenceFiles={[]} drafts={[]} onSave={save(x.code)} onUpload={upload} />
+            <QuestionCard key={x.id} q={x} futran={false} locked={d.locked} evidenceFiles={[]} drafts={[]} onSave={save(x.code)} onUpload={upload} />
           ))}
           <div className="row" style={{ justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
             {idx >= 0 && idx < d.sections.length - 1 ? <Button variant="primary" onClick={() => { setSection(d.sections[idx + 1].code); window.scrollTo(0, 0); }}>Next: §{d.sections[idx + 1].code}</Button>

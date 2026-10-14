@@ -116,7 +116,7 @@ export function QuestionCard({ q, futran, locked, evidenceFiles, drafts, onSave,
       {err && <Alert tone="danger">{err}</Alert>}
       <div className="stack-sm">
         <div className="row" role="radiogroup" aria-label="Answer status" style={{ gap: 6, flexWrap: 'wrap' }}>
-          {[['answered', 'Answer'], ['not_yet_in_place', 'Planned → not yet in place'], ['na', 'Not applicable']].map(([k, label]) => (
+          {[['answered', 'Answered'], ['not_yet_in_place', 'Planned → not yet in place'], ['na', 'Not applicable']].map(([k, label]) => (
             <label key={k} className="radio-pill"><input type="radio" name={`${q.id}-status`} checked={status === k} onChange={() => setStatus(k)} disabled={locked} />{label}</label>
           ))}
         </div>
