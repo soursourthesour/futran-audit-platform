@@ -17,7 +17,7 @@ def test_tier2_pii():
 def test_tier2_personal_account_tool():
     for acct in ("personal_free", "personal_paid", "unknown"):
         assert propose_tier("none", ["none"], [AITool(vendor="OpenAI", product="ChatGPT", account_type=acct, training_on_inputs="no")]) == 2
-    assert propose_tier("none", [], [AITool(vendor="OpenAI", product="ChatGPT", account_type="enterprise", training_on_inputs="unknown")]) == 2
+    assert propose_tier("none", [], [AITool(vendor="OpenAI", product="ChatGPT", account_type="enterprise", training_on_inputs="unknown")]) == 1  # spec §11 has no training-on-inputs rule
 
 
 def test_tier1_otherwise():

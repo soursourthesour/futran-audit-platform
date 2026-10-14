@@ -50,7 +50,7 @@ def test_user_csv_wrong_header_and_required_fields():
 
 def test_department_csv_parse():
     r = parse_department_csv("﻿department,head_name,head_email,headcount\nHuman Resources , Priya Shah,priya@abc.com, 14\nhuman resources,,,\nFinance,,bad,lots\n")
-    assert r.rows_ok == [{"department": "Human Resources", "head_name": "Priya Shah", "head_email": "priya@abc.com", "headcount": 14}]
+    assert r.rows_ok == [{"row": 2, "department": "Human Resources", "head_name": "Priya Shah", "head_email": "priya@abc.com", "headcount": 14}]
     assert [e["message"] for e in r.errors] == [
         "Department 'human resources' appears more than once in this file.",
         "Email 'bad' is not a valid email address.",
@@ -105,17 +105,17 @@ def test_sign_off_role_change_notifies_futran(client, db, people, live):
     assert r.status_code == 200, r.text
     omar = db.scalar(select(User).where(User.email == "omar@abc.test"))
     notes = db.scalars(select(Notification).where(Notification.kind == "sign_off_role_changed")).all()
-    assert {n.user_id for n in notes} == {people["chief"].id, people["aud"].id, people["em"].id}
+    assert {n.user_id for n in notes} == {people["chief"].id, people["aud"].id, people["em"].id, maria.id}  # Futran team and the client's CAICO
     assert "Omar Haddad" in notes[0].title and "Executive Sponsor" in notes[0].title
     assert db.scalar(select(AuditLog).where(AuditLog.action == "role.assign", AuditLog.object_id == omar.id)) is not None
     ra = next(x for x in roles_of(db, omar.id) if x.role == "exec_sponsor")
     assert client.delete(f"/api/v1/clients/{cid}/users/{omar.id}/roles/{ra.id}").status_code == 200
-    assert len(db.scalars(select(Notification).where(Notification.kind == "sign_off_role_changed")).all()) == 6
+    assert len(db.scalars(select(Notification).where(Notification.kind == "sign_off_role_changed")).all()) == 8
     assert db.scalar(select(AuditLog).where(AuditLog.action == "role.remove")) is not None
     # a contributor is not a sign-off role: no notification
     client.post(f"/api/v1/clients/{cid}/departments", json={"name": "Finance"})
     client.post(f"/api/v1/clients/{cid}/users", json={"first_name": "Tom", "last_name": "Reyes", "email": "tom@abc.test", "job_title": "", "department": "Finance", "role": "contributor"})
-    assert len(db.scalars(select(Notification).where(Notification.kind == "sign_off_role_changed")).all()) == 6
+    assert len(db.scalars(select(Notification).where(Notification.kind == "sign_off_role_changed")).all()) == 8
 
 
 def test_role_holders_not_appointed(client, db, people, live):

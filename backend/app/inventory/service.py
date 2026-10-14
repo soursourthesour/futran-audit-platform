@@ -32,12 +32,12 @@ class Gone(AppError):
 
 
 def propose_tier(decision_impact: str | None, data_categories: list[str], tools: list[AITool]) -> int:
-    """Spec §11, first match wins."""
+    """Spec §11, first match wins. (The plan's extra "training on inputs unknown" rule is not in the spec and is not applied.)"""
     if decision_impact == "consequential":
         return 3
     if SENSITIVE_DATA & set(data_categories or []):
         return 2
-    if any(t.account_type in RISKY_ACCOUNTS or t.training_on_inputs == "unknown" for t in tools):
+    if any(t.account_type in RISKY_ACCOUNTS for t in tools):
         return 2
     return 1
 
@@ -49,8 +49,6 @@ def tier_reason(decision_impact: str | None, data_categories: list[str], tools: 
         return "Personal, health, client or confidential data goes into the tool."
     if any(t.account_type in RISKY_ACCOUNTS for t in tools):
         return "At least one tool is used on a personal or unknown account."
-    if any(t.training_on_inputs == "unknown" for t in tools):
-        return "It is not known whether the vendor trains on what staff enter."
     return "No personal data, company accounts only, and no effect on decisions about people."
 
 
@@ -70,7 +68,8 @@ def _find_tool(db: Session, org_id: str, vendor: str, product: str, account_type
     ))
 
 
-def save_tool(db: Session, actor: User, org: Organization, data: dict, tool: AITool | None = None) -> AITool:
+def save_tool(db: Session, actor: User, org: Organization, data: dict, tool: AITool | None = None, can_approve: bool = False) -> AITool:
+    """Create or edit a tool. Only the CAICO approves tools (spec §5), so `approval_status` is ignored otherwise."""
     vendor, product = " ".join(str(data.get("vendor") or "").split())[:120], " ".join(str(data.get("product") or "").split())[:120]
     acct = data.get("account_type", tool.account_type if tool else "unknown")
     errs = []
@@ -84,35 +83,45 @@ def save_tool(db: Session, actor: User, org: Organization, data: dict, tool: AIT
         errs.append({"field": "training_on_inputs", "message": "Choose yes, no or unknown."})
     if errs:
         raise Invalid(errors=errs)
+    dup = _find_tool(db, org.id, vendor, product, acct)
+    if dup is not None and (tool is None or dup.id != tool.id):
+        raise Conflict(f"{vendor} {product} on that account type is already in the inventory.")
     if tool is None:
-        if _find_tool(db, org.id, vendor, product, acct):
-            raise Conflict(f"{vendor} {product} on that account type is already in the inventory.")
         tool = AITool(organization_id=org.id, source="manual", created_by=actor.id)
         db.add(tool)
     tool.vendor, tool.product, tool.account_type = vendor, product, acct
-    tool.plan = (data.get("plan") or "").strip()[:80] or None
+    tool.plan = str(data.get("plan") or "").strip()[:80] or None
     tool.training_on_inputs = data.get("training_on_inputs", tool.training_on_inputs or "unknown")
     if "sso" in data:
         tool.sso = None if data["sso"] is None else bool(data["sso"])
     if "retention_terms" in data:
-        tool.retention_terms = (data.get("retention_terms") or "").strip() or None
-    if data.get("approval_status") in ("unreviewed", "approved", "not_approved"):
+        tool.retention_terms = str(data.get("retention_terms") or "").strip()[:4000] or None
+    if can_approve and data.get("approval_status") in ("unreviewed", "approved", "not_approved"):
         tool.approval_status = data["approval_status"]
     db.flush()
     audit.record(db, actor_id=actor.id, action="inventory.tool", obj=tool, summary=f"Saved AI tool {vendor} {product} ({acct.replace('_', ' ')})")
     return tool
 
 
-def upsert_tools_from_attestation(db: Session, attestation) -> None:
-    """Every tool an employee declares becomes (or counts toward) an inventory tool, matched case-insensitively."""
-    for t in attestation.tools_declared or []:
-        vendor, product = ATTESTATION_TOOLS.get(t["tool"], ("Other", t.get("name") or "Unnamed AI tool"))
-        acct = ATTESTATION_ACCOUNTS.get(t["account_type"], "unknown")
-        tool = _find_tool(db, attestation.organization_id, vendor, product, acct)
+def sync_tools_from_attestations(db: Session, org_id: str) -> None:
+    """Every tool employees declare becomes an inventory tool (matched case-insensitively); declared counts are
+    recomputed from current answers, so replaced answers and repeated entries never inflate them."""
+    from app.attestation.models import Attestation
+
+    counts: dict[tuple[str, str, str], int] = {}
+    for a in db.scalars(select(Attestation).where(Attestation.organization_id == org_id, Attestation.superseded_by_id.is_(None), Attestation.deleted_at.is_(None))):
+        for t in {(t["tool"], t["account_type"], (t.get("name") or "")) for t in a.tools_declared or []}:
+            vendor, product = ATTESTATION_TOOLS.get(t[0], ("Other", t[2] or "Unnamed AI tool"))
+            key = (vendor, product, ATTESTATION_ACCOUNTS.get(t[1], "unknown"))
+            counts[key] = counts.get(key, 0) + 1
+    for tool in tools_for(db, org_id):
+        tool.declared_count = 0
+    for (vendor, product, acct), n in counts.items():
+        tool = _find_tool(db, org_id, vendor, product, acct)
         if tool is None:
-            tool = AITool(organization_id=attestation.organization_id, vendor=vendor, product=product, account_type=acct, source="attestation", declared_count=0)
+            tool = AITool(organization_id=org_id, vendor=vendor, product=product, account_type=acct, source="attestation")
             db.add(tool)
-        tool.declared_count = (tool.declared_count or 0) + 1
+        tool.declared_count = n
     db.flush()
 
 
@@ -126,22 +135,24 @@ def _clean_use_case(db: Session, org: Organization, data: dict) -> dict:
     if dept is None or dept.organization_id != org.id or dept.deleted_at:
         errs.append({"field": "department_id", "message": "Choose the department."})
     valid_tools = {t.id for t in tools_for(db, org.id)}
-    tool_ids = [t for t in dict.fromkeys(data.get("tool_ids") or []) if t in valid_tools]
+    raw_tools = data.get("tool_ids") if isinstance(data.get("tool_ids"), list) else []
+    tool_ids = [t for t in dict.fromkeys(x for x in raw_tools if isinstance(x, str)) if t in valid_tools]
     if not tool_ids:
         errs.append({"field": "tool_ids", "message": "Choose at least one AI tool."})
-    cats = [c for c in dict.fromkeys(data.get("data_categories") or []) if c in DATA_CATEGORIES]
+    raw_cats = data.get("data_categories") if isinstance(data.get("data_categories"), list) else []
+    cats = [c for c in dict.fromkeys(x for x in raw_cats if isinstance(x, str)) if c in DATA_CATEGORIES]
     if "none" in cats and len(cats) > 1:
         cats = [c for c in cats if c != "none"]
     impact = data.get("decision_impact")
-    if impact not in IMPACTS:
+    if not isinstance(impact, str) or impact not in IMPACTS:
         errs.append({"field": "decision_impact", "message": "Say how the output affects people."})
     usage = []
-    for u in data.get("usage") or []:
+    for u in (data.get("usage") if isinstance(data.get("usage"), list) else [])[:50]:
         if isinstance(u, dict) and str(u.get("role_name") or "").strip():
-            hc = u.get("headcount")
-            usage.append({"role_name": str(u["role_name"]).strip()[:120], "headcount": int(hc) if str(hc or "").isdigit() else None, "frequency": (str(u.get("frequency") or "").strip()[:20] or None)})
+            hc = str(u.get("headcount") or "").strip()
+            usage.append({"role_name": str(u["role_name"]).strip()[:120], "headcount": int(hc) if hc.isascii() and hc.isdigit() else None, "frequency": (str(u.get("frequency") or "").strip()[:20] or None)})
     named = []
-    for n in data.get("named_users") or []:
+    for n in (data.get("named_users") if isinstance(data.get("named_users"), list) else [])[:200]:
         if isinstance(n, dict) and str(n.get("person_name") or "").strip():
             email = str(n.get("email") or "").strip().lower() or None
             if email and ("@" not in email or " " in email):
@@ -166,6 +177,7 @@ def save_use_case(db: Session, actor: User, org: Organization, e: Engagement, da
     for k in ("name", "department_id", "purpose", "tool_ids", "data_categories", "decision_impact"):
         setattr(uc, k, v[k])
     uc.updated_by = actor.id
+    uc.editor_ids = list(dict.fromkeys([*(uc.editor_ids or []), actor.id]))
     db.flush()
     uc.proposed_tier = propose_tier(uc.decision_impact, uc.data_categories, _tools(db, uc))
     for r in db.scalars(select(UsageRecord).where(UsageRecord.use_case_id == uc.id, UsageRecord.deleted_at.is_(None))):
@@ -187,9 +199,15 @@ def save_use_case(db: Session, actor: User, org: Organization, e: Engagement, da
     for key, row in existing.items():
         if key not in keep:
             row.deleted_at = utcnow()
+            _revoke_links(db, row)
     db.flush()
     audit.record(db, actor_id=actor.id, action="inventory.use_case", obj=uc, after={"proposed_tier": uc.proposed_tier, "status": uc.status}, summary=f"Saved use case {uc.name} (proposed tier {uc.proposed_tier})")
     return uc
+
+
+def _revoke_links(db: Session, n: NamedUser) -> None:
+    for link in db.scalars(select(NamedUserLink).where(NamedUserLink.named_user_id == n.id, NamedUserLink.revoked_at.is_(None))):
+        link.revoked_at = utcnow()
 
 
 def named_users(db: Session, uc: UseCase) -> list[NamedUser]:
@@ -234,7 +252,7 @@ def submit_use_case(db: Session, settings: Settings, actor: User, uc: UseCase) -
         raise Conflict("This use case has already been submitted.")
     uc.proposed_tier = propose_tier(uc.decision_impact, uc.data_categories, _tools(db, uc))
     _check_named(db, uc, effective_tier(uc))
-    uc.status, uc.submitted_at, uc.returned_comment = "submitted", utcnow(), None
+    uc.status, uc.submitted_at, uc.returned_comment, uc.submitted_by = "submitted", utcnow(), None, actor.id
     sent = send_links(db, settings, actor, uc) if effective_tier(uc) >= 2 else 0
     audit.record(db, actor_id=actor.id, action="inventory.submit", obj=uc, summary=f"Submitted use case {uc.name} (proposed tier {uc.proposed_tier}; {sent} confirmation links sent)")
     return uc
@@ -246,7 +264,7 @@ def review_use_case(db: Session, actor: User, uc: UseCase, approve: bool, commen
     if approve:
         from app.policy.sod import assert_not_self_approval
 
-        assert_not_self_approval(actor.id, uc.created_by)
+        assert_not_self_approval(actor.id, uc.created_by, uc.submitted_by, *(uc.editor_ids or []))
         uc.status = "dept_approved"
     else:
         if not (comment or "").strip():
@@ -272,10 +290,13 @@ def set_final_tier(db: Session, settings: Settings, actor: User, uc: UseCase, ti
         uc.aedt_determination = aedt_determination
     resent = 0
     if tier > before and tier >= 2:
-        if named_users(db, uc):
-            resent = send_links(db, settings, actor, uc)
+        try:
+            _check_named(db, uc, tier)
+        except Invalid as exc:
+            detail = "; ".join(e["message"] for e in exc.errors) or exc.detail
+            uc.status, uc.returned_comment = "returned", f"Futran set this use case to tier {tier}. {detail}"
         else:
-            uc.status, uc.returned_comment = "returned", f"Futran set this use case to tier {tier}. Name the people who use it, with their work email."
+            resent = send_links(db, settings, actor, uc)
     audit.record(db, actor_id=actor.id, action="inventory.final_tier", obj=uc, before=prev, after={"final_tier": tier, "rationale": uc.final_tier_rationale, "aedt": uc.aedt_determination}, summary=f"Set the final tier of {uc.name} to {tier}{f'; {resent} links re-sent' if resent else ''}")
     return uc
 
@@ -285,12 +306,18 @@ def link_by_token(db: Session, token: str) -> NamedUserLink:
     link = db.scalar(select(NamedUserLink).where(NamedUserLink.token_hash == hashlib.sha256(token.encode()).hexdigest()))
     if link is None or link.revoked_at is not None:
         raise NotFound("This link is not valid. A newer link may have been sent to you.")
+    n = db.get(NamedUser, link.named_user_id)
+    uc = db.get(UseCase, n.use_case_id) if n else None
+    if n is None or n.deleted_at is not None or uc is None or uc.deleted_at is not None:
+        raise NotFound("This link is not valid. A newer link may have been sent to you.")
     return link
 
 
 def public_confirm_view(db: Session, link: NamedUserLink) -> dict:
     from app.attestation.service import POLICY_TEXT
 
+    if link.completed_at is None and link.expires_at < utcnow():
+        raise Gone("This link has expired. Ask your compliance team for a new one.")
     n = db.get(NamedUser, link.named_user_id)
     uc = db.get(UseCase, n.use_case_id)
     org = db.get(Organization, uc.organization_id)

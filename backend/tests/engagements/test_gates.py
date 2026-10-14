@@ -1,5 +1,6 @@
 import pytest
 
+from app.core.clock import utcnow
 from app.core.errors import Conflict
 from app.engagements import gates
 from app.engagements.gates import GATES, advance_stage, gate_status
@@ -47,7 +48,10 @@ def test_stage2_gate_requires_lead_per_department(db, eng):
     contrib = make_user(db, client, name="Hal Staff", email="hal@abc.test")
     assign_role(db, contrib, "contributor", scope_type="department", scope_id=hr.id)
     r = gate_status(db, e)
-    assert r.unmet == ["HR has no Department Compliance Lead."]
+    assert r.unmet == ["The client has not confirmed the department list.", "HR has no Department Compliance Lead."]
+    e.departments_confirmed_at = utcnow()
+    db.flush()
+    assert gate_status(db, e).unmet == ["HR has no Department Compliance Lead."]
     # a disabled lead does not count
     lead2 = make_user(db, client, name="Hana Lead", email="hana@abc.test")
     assign_role(db, lead2, "dept_compliance_lead", scope_type="department", scope_id=hr.id)

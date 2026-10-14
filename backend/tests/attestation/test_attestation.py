@@ -81,9 +81,10 @@ def test_submission_audited_and_counted(client, db, ready):
     assert a.respondent_email == "sam@abc.test" and a.tools_declared == [{"tool": "chatgpt", "account_type": "personal_free", "name": None}]
     log = db.scalar(select(AuditLog).where(AuditLog.action == "attestation.submit"))
     assert log is not None and log.organization_id == cid and log.actor_id is None
-    # the same email again replaces the earlier answer
+    # the same email again supersedes the earlier answer, which is kept
     client.post(f"/api/v1/public/attest/{token}", json=_answer(depts["HR"], email="SAM@abc.test", tools=[{"tool": "copilot", "account_type": "company"}]))
-    assert db.query(Attestation).count() == 1
+    assert db.query(Attestation).count() == 2
+    assert db.query(Attestation).filter(Attestation.superseded_by_id.is_(None)).count() == 1
 
 
 def test_bad_submissions_rejected(client, db, ready):

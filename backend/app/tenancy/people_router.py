@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.deps import Actor, current_actor
 from app.core.db import get_db
-from app.core.errors import Forbidden, NotFound
+from app.core.errors import Forbidden, Invalid, NotFound
 from app.engagements.client_router import invite_status
 from app.engagements.gates import gate_status
 from app.policy.actions import Action
@@ -106,10 +106,17 @@ def patch_department(client_id: str, dept_id: str, body: dict, actor: Actor = De
     if d is None or d.organization_id != org.id or d.deleted_at:
         raise NotFound()
     before = {"in_scope": d.in_scope, "headcount": d.headcount}
-    if "in_scope" in body:
-        d.in_scope = bool(body["in_scope"])
+    if "in_scope" in body and not isinstance(body["in_scope"], bool):
+        raise Invalid(errors=[{"field": "in_scope", "message": "Choose in scope or out of scope."}])
     if "headcount" in body:
-        d.headcount = int(body["headcount"]) if body["headcount"] not in (None, "") else None
+        hc = str(body["headcount"] if body["headcount"] is not None else "").strip()
+        if hc and not (hc.isascii() and hc.isdecimal() and len(hc) < 8):
+            raise Invalid(errors=[{"field": "headcount", "message": "Headcount must be a whole number."}])
+    if "in_scope" in body and body["in_scope"] != d.in_scope:
+        people.scope_changed(db, org)
+        d.in_scope = body["in_scope"]
+    if "headcount" in body:
+        d.headcount = int(hc) if hc else None
     audit.record(db, actor_id=actor.id, action="department.edit", obj=d, before=before, after={"in_scope": d.in_scope, "headcount": d.headcount}, summary=f"Edited department {d.name}")
     people.advance_if_ready(db, actor.user, people.current_engagement(db, org))
     return {"id": d.id, "in_scope": d.in_scope, "headcount": d.headcount}
@@ -128,9 +135,9 @@ def import_departments(client_id: str, body: CsvIn, actor: Actor = Depends(curre
 
 
 @router.post("/departments/confirm")
-def confirm_departments(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def confirm_departments(client_id: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
     org = _org(db, actor, client_id, Action.MANAGE_CLIENT_USERS)
-    people.confirm_departments(db, actor.user, org)
+    people.confirm_departments(db, request.app.state.settings, actor.user, org)
     return {"confirmed": True}
 
 

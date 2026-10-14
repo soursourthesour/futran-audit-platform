@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.auth.deps import Actor, current_actor
 from app.core.db import get_db
 from app.core.errors import Forbidden, NotFound
-from app.core.ratelimit import limiter
+from app.core.ratelimit import client_ip, limiter
 from app.engagements.models import Engagement
 from app.inventory import service as inv
 from app.inventory.models import AITool, NamedUserLink, UsageRecord, UseCase
@@ -47,8 +47,16 @@ def _ctx(db: Session, actor: Actor, client_id: str, action: Action, department_i
     return org, e
 
 
-def tool_out(t: AITool) -> dict:
-    return {"id": t.id, "vendor": t.vendor, "product": t.product, "plan": t.plan, "account_type": t.account_type, "sso": t.sso, "training_on_inputs": t.training_on_inputs, "retention_terms": t.retention_terms, "approval_status": t.approval_status, "source": t.source, "declared_count": t.declared_count}
+def _may(db: Session, actor: Actor, action: Action, engagement_id: str) -> bool:
+    try:
+        authorize(db, actor, action, engagement_id=engagement_id)
+    except (Forbidden, NotFound):
+        return False
+    return True
+
+
+def tool_out(t: AITool, counts: bool = True) -> dict:
+    return {"id": t.id, "vendor": t.vendor, "product": t.product, "plan": t.plan, "account_type": t.account_type, "sso": t.sso, "training_on_inputs": t.training_on_inputs, "retention_terms": t.retention_terms, "approval_status": t.approval_status, "source": t.source, "declared_count": t.declared_count if counts else None}
 
 
 def use_case_out(db: Session, uc: UseCase, detail: bool = False) -> dict:
@@ -81,8 +89,11 @@ def get_inventory(client_id: str, actor: Actor = Depends(current_actor), db: Ses
     ucs = [u for u in db.scalars(select(UseCase).where(UseCase.engagement_id == e.id, UseCase.deleted_at.is_(None)).order_by(UseCase.name)) if scope is None or u.department_id in scope]
     tiers = {t: sum(1 for u in ucs if inv.effective_tier(u) == t) for t in (1, 2, 3)}
     depts = db.scalars(select(Department).where(Department.organization_id == org.id, Department.deleted_at.is_(None), Department.in_scope.is_(True)).order_by(Department.name))
+    # Declared counts and employee-typed tool names come from individual attestations: aggregate viewers don't see them.
+    individual = _may(db, actor, Action.VIEW_INDIVIDUAL_ATTESTATIONS, e.id)
+    tools = [t for t in inv.tools_for(db, org.id) if individual or not (t.source == "attestation" and t.vendor == "Other" and t.approval_status == "unreviewed")]
     return {
-        "tools": [tool_out(t) for t in inv.tools_for(db, org.id)],
+        "tools": [tool_out(t, counts=individual) for t in tools],
         "use_cases": [use_case_out(db, u) for u in ucs],
         "tiers": tiers,
         "departments": [{"id": d.id, "name": d.name} for d in depts if scope is None or d.id in scope],
@@ -93,7 +104,7 @@ def get_inventory(client_id: str, actor: Actor = Depends(current_actor), db: Ses
 @router.post("/clients/{client_id}/tools")
 def post_tool(client_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
     org, e = _ctx(db, actor, client_id, Action.REGISTER_AI_TOOL, list_view=True)
-    return tool_out(inv.save_tool(db, actor.user, org, data))
+    return tool_out(inv.save_tool(db, actor.user, org, {k: v for k, v in data.items() if k != "approval_status"}))
 
 
 @router.patch("/tools/{tool_id}")
@@ -102,7 +113,12 @@ def patch_tool(tool_id: str, data: dict, actor: Actor = Depends(current_actor), 
     if t is None or t.deleted_at:
         raise NotFound()
     org, e = _ctx(db, actor, t.organization_id, Action.REGISTER_AI_TOOL, list_view=True)
-    return tool_out(inv.save_tool(db, actor.user, org, {**tool_out(t), **data}, tool=t))
+    caico = not actor.is_futran and actor.has_role("caico")
+    if not caico and not actor.is_futran:
+        raise Forbidden("Only the Chief AI Compliance Officer can change a tool already in the inventory.")
+    if "approval_status" in data and data["approval_status"] != t.approval_status and not caico:
+        raise Forbidden("Only the Chief AI Compliance Officer can approve tools.")
+    return tool_out(inv.save_tool(db, actor.user, org, {**tool_out(t), **data}, tool=t, can_approve=caico))
 
 
 @router.post("/clients/{client_id}/use-cases/tier-preview")
@@ -175,6 +191,6 @@ def public_confirm_get(token: str, db: Session = Depends(get_db)):
 
 @router.post("/public/confirm/{token}")
 def public_confirm_post(token: str, payload: dict, request: Request, db: Session = Depends(get_db)):
-    limiter(request, "confirm", 30).check(request.client.host if request.client else "unknown")
+    limiter(request, "confirm", 30).check(f"{token}:{client_ip(request)}")
     inv.confirm(db, token, payload, request)
     return {"received": True}

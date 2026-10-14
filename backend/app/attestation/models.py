@@ -37,3 +37,4 @@ class Attestation(TimestampedTenantMixin, Base):
     data_entered: Mapped[list] = mapped_column(JSON, default=list)
     policy_acknowledged: Mapped[bool] = mapped_column(Boolean, default=False)
     submitted_at: Mapped[datetime] = mapped_column(DateTime)
+    superseded_by_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("attestations.id"))  # a later answer with the same email

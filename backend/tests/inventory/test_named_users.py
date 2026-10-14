@@ -120,7 +120,7 @@ def test_admin_cannot_set_final_tier(client, db, people, inv):
 
 def test_raise_tier_resends_links(client, db, people, inv):
     cid, e, maria, hr, copilot, chatgpt = inv
-    uc = _uc(client, cid, hr, [chatgpt["id"]], named_users=[{"person_name": "Lee Park", "email": "lee@abc.test"}])
+    uc = _uc(client, cid, hr, [chatgpt["id"]], named_users=[{"person_name": "Lee Park", "email": "lee@abc.test", "oversight_role": "Checks each shortlist"}])
     client.post(f"/api/v1/use-cases/{uc['id']}/submit")
     lee = db.scalar(select(NamedUser).where(NamedUser.email == "lee@abc.test"))
     first = db.scalar(select(NamedUserLink).where(NamedUserLink.named_user_id == lee.id))

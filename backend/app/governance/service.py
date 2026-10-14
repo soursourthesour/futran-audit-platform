@@ -116,7 +116,10 @@ def answer_item(db: Session, actor: User, it: GovernanceItem, payload: dict) -> 
         raise Conflict("The governance request has been submitted. Ask your Futran Chief Auditor if an answer must change.")
     status = payload.get("status")
     errs: list[dict] = []
-    if status not in STATUSES:
+    payload = {k: (v if k in ("names",) or v is None or isinstance(v, str) else str(v)) for k, v in payload.items()}
+    if not isinstance(payload.get("names"), list):
+        payload["names"] = []
+    if not isinstance(status, str) or status not in STATUSES:
         raise Invalid(errors=[{"field": "status", "message": "Choose an answer."}])
     names = [{"name": " ".join(str(n.get("name", "")).split())[:120], "title": " ".join(str(n.get("title") or "").split())[:120] or None} for n in payload.get("names") or [] if isinstance(n, dict) and str(n.get("name", "")).strip()]
     target = None
@@ -142,7 +145,8 @@ def answer_item(db: Session, actor: User, it: GovernanceItem, payload: dict) -> 
     it.status = status
     it.names = names if status == "in_place" else []
     it.chair = (payload.get("chair") or "").strip()[:120] or None if status == "in_place" else None
-    it.member_count = int(payload["member_count"]) if status == "in_place" and str(payload.get("member_count") or "").isdigit() else None
+    mc = str(payload.get("member_count") or "").strip()
+    it.member_count = int(mc) if status == "in_place" and mc.isascii() and mc.isdecimal() and len(mc) < 6 else None
     it.meeting_frequency = (payload.get("meeting_frequency") or "").strip()[:40] or None if status == "in_place" else None
     it.target_date = target
     it.interim_owner = payload["interim_owner"].strip()[:120] if status == "planned" else None

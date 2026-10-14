@@ -2,6 +2,7 @@
 
 Commands:
   create-admin --email E --name N     create the first Futran admin and print a one-time invitation link
+  admin-link --email E [--name N]     print a set-password link for an administrator (--enable, --grant-admin)
   seed-reference                      load reference data (idempotent)
   reset-demo                          recreate the database with reference data and demo tenants (test mode only)
   seed-e2e                            minimal users for automated browser tests (test mode only)
@@ -49,26 +50,45 @@ def cmd_create_admin(args) -> int:
 
 
 def cmd_admin_link(args) -> int:
-    """Print a fresh set-password link for an administrator, creating the account if it does not exist yet."""
+    """Print a fresh set-password link for a Futran administrator, creating the account if it does not exist yet.
+
+    A disabled account is only re-enabled with --enable; a Futran user who is not an administrator only becomes one
+    with --grant-admin. Every change is written to the audit log.
+    """
+    from app.audit_log import service as audit
     from app.invitations.service import invite_user
     from app.tenancy.service import assign_role, create_user, find_user_by_email, roles_of
 
     settings, db = _session()
     org = _futran_org(db)
     user = find_user_by_email(db, args.email)
+    created = False
     if user is None:
         if not args.name:
             print("No account uses that email yet. Run again with --name to create it.", file=sys.stderr)
             return 2
-        user = create_user(db, org, name=args.name, email=args.email)
+        user, created = create_user(db, org, name=args.name, email=args.email), True
     if user.organization_id != org.id:
         print("That email belongs to a client user, not a Futran administrator.", file=sys.stderr)
         return 2
-    if "admin" not in {r.role for r in roles_of(db, user.id)}:
+    if user.status == "disabled" and not args.enable:
+        print("That account is disabled. Run again with --enable if it should be turned back on.", file=sys.stderr)
+        return 2
+    is_admin = "admin" in {r.role for r in roles_of(db, user.id)}
+    if not is_admin and not created and not args.grant_admin:
+        print("That user is not an administrator. Run again with --grant-admin to make them one.", file=sys.stderr)
+        return 2
+    log = {"actor_id": None, "actor_name": "Command line", "object_type": "User", "object_id": user.id, "organization_id": org.id}
+    if created:
+        audit.record(db, action="cli.admin_link.create", after={"email": user.email}, summary=f"Created administrator account {user.email} from the command line", **log)
+    if not is_admin:
         assign_role(db, user, "admin")
+        audit.record(db, action="cli.admin_link.grant_admin", after={"role": "admin"}, summary=f"Gave {user.name} the administrator role from the command line", **log)
+    before = user.status
     user.status = "invited"
     user.password_hash = None
     inv = invite_user(db, settings, None, user)
+    audit.record(db, action="cli.admin_link.reset", before={"status": before}, after={"status": "invited"}, summary=f"Issued a set-password link for {user.email} from the command line; the old password no longer works", **log)
     db.commit()
     print(f"Open this link within 7 days to set the password for {user.email}:\n{settings.base_url}/invite/{inv.raw_token}")
     return 0
@@ -158,6 +178,8 @@ def main(argv: list[str] | None = None) -> int:
     al = sub.add_parser("admin-link")
     al.add_argument("--email", required=True)
     al.add_argument("--name")
+    al.add_argument("--enable", action="store_true", help="re-enable a disabled account")
+    al.add_argument("--grant-admin", action="store_true", help="give an existing Futran user the administrator role")
     al.set_defaults(func=cmd_admin_link)
     sub.add_parser("seed-reference").set_defaults(func=cmd_seed_reference)
     sub.add_parser("seed-e2e").set_defaults(func=cmd_seed_e2e)

@@ -67,7 +67,8 @@ def _stage2(db: Session, e: Engagement) -> GateResult:
         )
     )
     led = {sid for sid, start, end in rows if (start is None or start <= d) and (end is None or end >= d)}
-    return _result([f"{x.name} has no Department Compliance Lead." for x in depts if x.id not in led])
+    unmet = [] if e.departments_confirmed_at else ["The client has not confirmed the department list."]
+    return _result(unmet + [f"{x.name} has no Department Compliance Lead." for x in depts if x.id not in led])
 
 
 @register(3)

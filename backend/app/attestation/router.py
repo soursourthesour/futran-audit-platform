@@ -8,7 +8,7 @@ from app.attestation import service as att
 from app.auth.deps import Actor, current_actor
 from app.core.db import get_db
 from app.core.errors import Forbidden, NotFound
-from app.core.ratelimit import limiter
+from app.core.ratelimit import client_ip, limiter
 from app.engagements.models import Engagement
 from app.policy.actions import Action
 from app.policy.authorize import authorize, departments_for
@@ -79,6 +79,6 @@ def public_get(token: str, db: Session = Depends(get_db)):
 
 @router.post("/public/attest/{token}")
 def public_post(token: str, payload: dict, request: Request, db: Session = Depends(get_db)):
-    limiter(request, "attest", 30).check(request.client.host if request.client else "unknown")
+    limiter(request, "attest", 30).check(f"{token}:{client_ip(request)}")
     att.submit(db, token, payload, request)
     return {"received": True}

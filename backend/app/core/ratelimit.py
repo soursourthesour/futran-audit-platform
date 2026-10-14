@@ -33,3 +33,12 @@ def limiter(request: Request, name: str, limit: int) -> RateLimiter:
     if name not in store:
         store[name] = RateLimiter(limit)
     return store[name]
+
+
+def client_ip(request: Request) -> str:
+    """The caller's address; behind a trusted proxy, the first X-Forwarded-For entry."""
+    settings = request.app.state.settings
+    fwd = request.headers.get("x-forwarded-for")
+    if getattr(settings, "trust_proxy_headers", False) and fwd:
+        return fwd.split(",")[0].strip()[:64]
+    return request.client.host if request.client else "unknown"

@@ -44,6 +44,8 @@ class UseCase(TimestampedTenantMixin, Base):
     status: Mapped[str] = mapped_column(String(14), default="draft")  # draft | submitted | dept_approved | returned
     returned_comment: Mapped[str | None] = mapped_column(Text)
     submitted_at: Mapped[datetime | None] = mapped_column(DateTime)
+    submitted_by: Mapped[str | None] = mapped_column(String(36))
+    editor_ids: Mapped[list] = mapped_column(JSON, default=list)  # everyone who edited it: none of them may approve it
     created_from_attestation_id: Mapped[str | None] = mapped_column(String(36))
 
 

@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     secret_key: str = "change-me-in-env"
     disable_scheduler: bool = False
     max_upload_mb: int = 50
+    trust_proxy_headers: bool = False  # true behind Render/Azure so rate limits see the real client address
 
     @property
     def test_mode(self) -> bool:
