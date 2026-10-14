@@ -177,3 +177,4 @@ table.table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .assess-nav .count { color: var(--muted); font-variant-numeric: tabular-nums; }
 .intern-note { border-left: 3px solid var(--warn-line); background: var(--warn-bg); padding: 10px 14px; border-radius: var(--radius-sm); font-size: 14px; }
 @media (max-width: 860px) { .assess { grid-template-columns: 1fr; } .assess-nav { position: static; flex-direction: row; overflow-x: auto; } .assess-nav button { white-space: nowrap; } }
+.email-preview { white-space: pre-wrap; font: inherit; font-size: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 14px; max-height: 50vh; overflow: auto; margin: 0; }

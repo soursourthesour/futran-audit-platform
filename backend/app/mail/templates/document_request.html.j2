@@ -1,0 +1,4 @@
+{% extends "_layout.html.j2" %}{% block body %}
+{% if reminder is defined and reminder %}<p><strong>Reminder:</strong> these documents are still outstanding.</p>{% endif %}
+{{ body_html|safe }}
+{% endblock %}
