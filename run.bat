@@ -1,9 +1,10 @@
 @echo off
-REM Futran Audit Platform - start on this computer. Use "run.bat --reset-demo" to rebuild the demo data.
+REM Futran Audit Platform - start on this computer, then open http://localhost:8000
 setlocal
 cd /d "%~dp0"
-if not exist .venv (echo Run setup.bat first. & pause & exit /b 1)
-call .venv\Scripts\activate.bat
+set "VENV=%LOCALAPPDATA%\FutranAuditPlatform\venv"
+if not exist "%VENV%\Scripts\activate.bat" (echo Run setup.bat first. & pause & exit /b 1)
+call "%VENV%\Scripts\activate.bat"
 cd backend
 copy /y ..\.env .env >nul
 alembic upgrade head || (echo Database update failed. & pause & exit /b 1)

@@ -93,8 +93,13 @@ def cmd_seed_e2e(args) -> int:
 def cmd_reset_demo(args) -> int:
     import os
 
+    import importlib.util
+
     settings, _ = _session()
     _require_test_mode(settings)
+    if importlib.util.find_spec("app.demo") is None:  # check before deleting anything
+        print("The demo clients are not in this build yet. Your data was left as it is.")
+        return 0
     url = settings.database_url
     if url.startswith("sqlite:///"):
         path = url.replace("sqlite:///", "", 1)
