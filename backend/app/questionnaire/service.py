@@ -437,15 +437,13 @@ def completion(db: Session, t: Target, futran: bool = True) -> dict:
 
 
 def after_change(db: Session, t: Target) -> None:
-    """Keep the system's completion current. The scoring engine hooks in here."""
-    if t.system is None:
-        return
-    t.system.completion_pct = completion(db, t)["pct"]
-    try:
-        from app.scoring.service import recalculate
-    except ImportError:
-        return
-    recalculate(db, t.system)
+    """Keep completion and risk scores current. An engagement-level change (§4, checklist 4.3) touches every system."""
+    from app.scoring.service import recalculate
+    from app.systems.service import systems_for
+
+    for s in [t.system] if t.system else systems_for(db, t.engagement):
+        s.completion_pct = completion(db, Target(t.engagement, s))["pct"]
+        recalculate(db, s)
 
 
 def submit_prefill(db: Session, settings, actor: User, t: Target) -> list[str]:

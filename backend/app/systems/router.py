@@ -60,9 +60,19 @@ def system_out(db: Session, s: AISystem) -> dict:
         "owner": person(s.owner_user_id), "technical_owner": person(s.technical_owner_user_id),
         "use_cases": [{"id": u.id, "name": u.name, "tier": effective_tier(u)} for u in ucs], "tools": [{"id": t.id, "label": f"{t.vendor} {t.product}"} for t in tools],
         "assessment_depth": s.assessment_depth, "status": s.status, "completion_pct": s.completion_pct, "methodology_version": s.methodology_version, "source": s.source,
-        # filled by the scoring engine (Task 25)
-        "inherent": None, "maturity": None, "residual": None, "rating": None, "knockouts": [],
+        **_score(db, s),
     }
+
+
+def _score(db: Session, s: AISystem) -> dict:
+    from app.scoring.service import latest, methodology
+
+    row = latest(db, s)
+    if row is None:
+        return {"inherent": None, "maturity": None, "residual": None, "rating": None, "knockouts": []}
+    labels = {k["code"]: k["label"].split(" (")[0] for k in methodology(db, s.methodology_version).knockout_rules}
+    return {"inherent": row.inherent, "maturity": row.maturity, "residual": row.residual, "rating": row.final_rating.capitalize() if row.final_rating and row.maturity is not None else None,
+            "knockouts": [labels.get(k, k) for k in row.knockouts_triggered or []]}
 
 
 def request_out(db: Session, r: SystemAdditionRequest) -> dict:

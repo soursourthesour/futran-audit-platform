@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
-import { Alert, Badge, Button, Card, Loading, PageHeader, TextField, fileUrl } from '@/components/ui';
+import { Alert, Badge, Button, ButtonLink, Card, Loading, PageHeader, TextField, fileUrl } from '@/components/ui';
 import { QuestionCard, type DraftFinding, type FileRef, type QuestionView, type SaveBody } from '@/components/QuestionCard';
 
 export type Section = { code: string; title: string; answered: number; applicable: number; note?: string | null };
@@ -49,7 +49,7 @@ export function SystemAssessment() {
       <PageHeader title={s ? s.name : 'Governance and accountability (§4)'}
         crumbs={[{ to: '/audits', label: 'Audits' }, { to: `/clients/${d.target.client_id}`, label: `${d.target.client} · ${d.target.audit_ref}` }, { to: `/clients/${d.target.client_id}/systems`, label: 'AI systems' }, { label: s ? s.reference_id : '§4' }]}
         subtitle={s ? <>Built by {s.built_by ? BUILT[s.built_by] : <strong>not set — choose it on the systems register to see the right questions</strong>} · {s.assessment_depth} assessment · Template v1.0 + Addendum 5.1a{s.built_by === 'vendor' ? ' · Vendor assurance replaces §6.1 and §6.3' : ''}</> : 'Engagement-level questions shared by every system.'}
-        actions={<span className="small muted">{d.completion.answered}/{d.completion.applicable} answered · {d.completion.pct}%</span>} />
+        actions={<><span className="small muted">{d.completion.answered}/{d.completion.applicable} answered · {d.completion.pct}%</span>{s && <ButtonLink to={`/systems/${s.id}/score`}>View risk score</ButtonLink>}</>} />
       {d.locked && <Alert tone="info">This assessment is locked. Answers can no longer change.</Alert>}
       {(d.draft_findings?.length ?? 0) > 0 && current !== 'drafts' && (
         <Alert tone="warn"><div className="row" style={{ justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}><span><strong>{d.draft_findings!.length} draft finding{d.draft_findings!.length === 1 ? '' : 's'}</strong> raised by answers. Keep or dismiss each one.</span><Button size="sm" onClick={() => setSection('drafts')}>Review</Button></div></Alert>
