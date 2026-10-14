@@ -154,5 +154,36 @@ test('auditor sets up a client, the Chief Auditor approves and the client signs 
   await page.getByRole('button', { name: 'Save answer' }).click();
   await expect(page.getByText('Constitute bias and fairness review committee')).toBeVisible();
   await page.screenshot({ path: 'screenshots/p4-governance.png', fullPage: true });
+
+  // Attestation campaign (Phase 4): acknowledge the notice, launch, staff answer on a phone
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Getting started' }).click();
+  await page.getByRole('button', { name: 'Acknowledge' }).click();
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Attestation' }).click();
+  await page.getByRole('button', { name: 'Launch and get the staff link' }).click();
+  await expect(page.getByRole('button', { name: 'Copy staff link' })).toBeVisible();
+  const me = await (await page.request.get('/api/v1/auth/me')).json();
+  const tracker = await (await page.request.get(`/api/v1/clients/${me.organization.id}/attestation`)).json();
+  const phone = await page.context().browser()!.newContext({ viewport: { width: 390, height: 844 }, baseURL: page.url().split('/attestation')[0] });
+  const p2 = await phone.newPage();
+  for (const [i, name] of ['Sam Lee', 'Ana Diaz', 'Tom Reyes'].entries()) {
+    await p2.goto(tracker.campaign.link);
+    await p2.getByLabel('Your name').fill(name);
+    await p2.getByLabel('Department').selectOption({ label: 'HR and recruiting' });
+    await p2.getByRole('button', { name: 'Next' }).click();
+    await p2.getByLabel('ChatGPT').check();
+    await p2.getByLabel('Personal, free').check();
+    if (i === 0) await p2.screenshot({ path: 'screenshots/p4-phone-attestation.png', fullPage: true });
+    await p2.getByRole('button', { name: 'Next: what you use it for' }).click();
+    await p2.getByLabel('Writing and editing').check();
+    await p2.getByLabel('Client or customer data').check();
+    await p2.getByRole('button', { name: 'Next', exact: true }).click();
+    await p2.getByLabel('I have read the AI use policy').check();
+    await p2.getByRole('button', { name: 'Submit' }).click();
+    await expect(p2.getByRole('heading', { name: 'Thank you' })).toBeVisible();
+  }
+  await phone.close();
+  await page.reload();
+  await expect(page.getByRole('cell', { name: 'ChatGPT · personal, free', exact: true }).first()).toBeVisible();
+  await page.screenshot({ path: 'screenshots/p4-attestation-tracker.png', fullPage: true });
 });
 

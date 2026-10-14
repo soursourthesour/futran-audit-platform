@@ -70,6 +70,22 @@ def _stage2(db: Session, e: Engagement) -> GateResult:
     return _result([f"{x.name} has no Department Compliance Lead." for x in depts if x.id not in led])
 
 
+@register(3)
+def _stage3(db: Session, e: Engagement) -> GateResult:
+    """Discovery ends when the attestation campaign is closed and the governance request is submitted (spec §7)."""
+    from app.attestation.service import current_campaign, is_open
+    from app.governance.service import current_request
+
+    unmet = []
+    c = current_campaign(db, e)
+    if c is None or is_open(c):
+        unmet.append("Run and close the employee attestation campaign.")
+    req = current_request(db, e)
+    if req is None or req.status == "open":
+        unmet.append("The client has not submitted the AI governance structure.")
+    return _result(unmet)
+
+
 def gate_status(db: Session, engagement: Engagement) -> GateResult:
     if engagement.status in ("draft", "pending_approval"):
         return GateResult(False, ["The engagement has not been approved and sent to the client yet."])
@@ -98,3 +114,9 @@ def advance_stage(db: Session, actor: User, engagement: Engagement) -> Engagemen
     db.flush()
     audit.record(db, actor_id=actor.id, action="engagement.advance", obj=engagement, before={"stage": frm}, after={"stage": engagement.stage}, summary=f"{engagement.audit_ref}: stage {frm} → {engagement.stage} ({STAGE_NAMES[engagement.stage]})")
     return engagement
+
+
+def advance_if_ready(db: Session, actor: User, e: Engagement | None) -> None:
+    """Move on automatically when the current stage's exit gate is met (called after the events that can meet it)."""
+    if e is not None and e.status in ("initiated", "in_progress") and e.stage < 9 and gate_status(db, e).ready:
+        advance_stage(db, actor, e)

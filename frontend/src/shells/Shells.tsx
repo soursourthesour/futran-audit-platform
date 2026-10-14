@@ -60,7 +60,7 @@ export function FutranShell() {
 }
 
 /** Client screens that exist so far; later phases add theirs here. */
-const BUILT_CLIENT_ROUTES = new Set(['/start', '/users', '/governance']);
+const BUILT_CLIENT_ROUTES = new Set(['/start', '/users', '/governance', '/attestation']);
 
 export function ClientShell() {
   const { data: me } = useMe();

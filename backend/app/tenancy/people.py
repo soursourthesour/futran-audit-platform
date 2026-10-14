@@ -45,10 +45,10 @@ def _mark_item(db: Session, e: Engagement | None, item: int, actor: User) -> Non
 
 def advance_if_ready(db: Session, actor: User, e: Engagement | None) -> None:
     """Setup (stage 2) finishes on its own once every in-scope department has a lead."""
-    from app.engagements.gates import advance_stage, gate_status
+    from app.engagements.gates import advance_if_ready as advance
 
-    if e is not None and e.stage == 2 and e.status in ("initiated", "in_progress") and gate_status(db, e).ready:
-        advance_stage(db, actor, e)
+    if e is not None and e.stage == 2:
+        advance(db, actor, e)
 
 
 # ---- departments

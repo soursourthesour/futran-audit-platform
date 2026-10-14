@@ -10,6 +10,8 @@ import { ClientPage } from '@/screens/futran/ClientPage';
 import { UsersDepartments } from '@/screens/client/UsersDepartments';
 import { Governance } from '@/screens/client/Governance';
 import { GovernanceRequestSetup } from '@/screens/futran/GovernanceRequestSetup';
+import { AttestationTracker, FutranAttestation } from '@/screens/client/AttestationTracker';
+import { PhoneAttestation } from '@/screens/phone/Attestation';
 
 /** Screens added by later tasks register here, so routes.tsx stays stable. */
 export const futranRoutes: RouteObject[] = [
@@ -23,6 +25,7 @@ export const futranRoutes: RouteObject[] = [
   { path: '/clients/:clientId/setup/:step', element: <NewClientWizard /> },
   { path: '/clients/:clientId', element: <ClientPage /> },
   { path: '/clients/:clientId/governance', element: <GovernanceRequestSetup /> },
+  { path: '/clients/:clientId/attestation', element: <FutranAttestation /> },
 ];
-export const clientRoutes: RouteObject[] = [{ path: '/users', element: <UsersDepartments /> }, { path: '/governance', element: <Governance /> }];
-export const publicRoutes: RouteObject[] = [];
+export const clientRoutes: RouteObject[] = [{ path: '/users', element: <UsersDepartments /> }, { path: '/governance', element: <Governance /> }, { path: '/attestation', element: <AttestationTracker /> }];
+export const publicRoutes: RouteObject[] = [{ path: '/attest/:token', element: <PhoneAttestation /> }];
