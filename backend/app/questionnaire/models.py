@@ -5,7 +5,7 @@ from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Tex
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.clock import utcnow
-from app.core.models import Base, IdMixin
+from app.core.models import Base, IdMixin, TimestampedTenantMixin
 
 
 class TemplateVersion(IdMixin, Base):
@@ -63,3 +63,71 @@ class ChecklistItem(IdMixin, Base):
     build_types: Mapped[list | None] = mapped_column(JSON)
     pending_review: Mapped[bool] = mapped_column(Boolean, default=False)
     order: Mapped[int] = mapped_column(Integer, default=0)
+
+
+RESPONSE_STATUSES = ("answered", "na", "not_yet_in_place", "unanswered")
+
+
+class Response(TimestampedTenantMixin, Base):
+    """An answer to a question for the engagement (ai_system_id None) or one AI system (spec §18.1).
+
+    `value`/`status` is the answer of record. The client's own pre-fill is kept in the `client_*` columns: the client
+    only ever sees those, so an auditor's correction or verification never shows on the client side.
+    """
+
+    __tablename__ = "responses"
+    __table_args__ = (UniqueConstraint("engagement_id", "ai_system_id", "question_id", name="uq_responses_target_question"),)
+
+    engagement_id: Mapped[str] = mapped_column(String(36), ForeignKey("engagements.id"), index=True)
+    ai_system_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("ai_systems.id"), index=True)
+    question_id: Mapped[str] = mapped_column(String(36), ForeignKey("questions.id"), index=True)
+    value: Mapped[object | None] = mapped_column(JSON)
+    detail: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(18), default="unanswered")
+    na_reason: Mapped[str | None] = mapped_column(Text)
+    source_person_name: Mapped[str | None] = mapped_column(String(160))
+    source_person_title: Mapped[str | None] = mapped_column(String(160))
+    evidence_ids: Mapped[list] = mapped_column(JSON, default=list)
+    answered_by: Mapped[str | None] = mapped_column(String(36))
+    answered_side: Mapped[str | None] = mapped_column(String(7))  # client | futran
+    answered_at: Mapped[datetime | None] = mapped_column(DateTime)
+    verified_by: Mapped[str | None] = mapped_column(String(36))
+    verified_at: Mapped[datetime | None] = mapped_column(DateTime)
+    client_value: Mapped[object | None] = mapped_column(JSON)
+    client_detail: Mapped[str | None] = mapped_column(Text)
+    client_status: Mapped[str | None] = mapped_column(String(18))
+    client_na_reason: Mapped[str | None] = mapped_column(Text)
+    client_evidence_ids: Mapped[list] = mapped_column(JSON, default=list)
+    client_answered_by: Mapped[str | None] = mapped_column(String(36))
+    client_answered_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+
+class ResponseVersion(TimestampedTenantMixin, Base):
+    """Append-only history of every save of a response."""
+
+    __tablename__ = "response_versions"
+
+    response_id: Mapped[str] = mapped_column(String(36), ForeignKey("responses.id"), index=True)
+    side: Mapped[str] = mapped_column(String(7))
+    value: Mapped[object | None] = mapped_column(JSON)
+    detail: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(18))
+    na_reason: Mapped[str | None] = mapped_column(Text)
+    source_person_name: Mapped[str | None] = mapped_column(String(160))
+    source_person_title: Mapped[str | None] = mapped_column(String(160))
+    evidence_ids: Mapped[list] = mapped_column(JSON, default=list)
+    verified: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class ChecklistResult(TimestampedTenantMixin, Base):
+    __tablename__ = "checklist_results"
+    __table_args__ = (UniqueConstraint("engagement_id", "ai_system_id", "checklist_item_id", name="uq_checklist_results_target_item"),)
+
+    engagement_id: Mapped[str] = mapped_column(String(36), ForeignKey("engagements.id"), index=True)
+    ai_system_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("ai_systems.id"), index=True)
+    checklist_item_id: Mapped[str] = mapped_column(String(36), ForeignKey("checklist_items.id"), index=True)
+    confirmed: Mapped[bool] = mapped_column(Boolean, default=False)
+    evidence_ids: Mapped[list] = mapped_column(JSON, default=list)
+    auditor_note: Mapped[str | None] = mapped_column(Text)
+    confirmed_by: Mapped[str | None] = mapped_column(String(36))
+    confirmed_at: Mapped[datetime | None] = mapped_column(DateTime)

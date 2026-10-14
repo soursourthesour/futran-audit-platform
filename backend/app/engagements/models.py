@@ -40,6 +40,7 @@ class Engagement(TimestampedTenantMixin, Base):
     retention_years: Mapped[int | None] = mapped_column(Integer)
     wizard_state: Mapped[dict | None] = mapped_column(JSON)
     departments_confirmed_at: Mapped[datetime | None] = mapped_column(DateTime)  # cleared when the list changes during setup
+    client_answers_locked_at: Mapped[datetime | None] = mapped_column(DateTime)  # set when the stage 4 snapshot locks the pre-fill
     completed_at: Mapped[datetime | None] = mapped_column(DateTime)
 
 

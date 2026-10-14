@@ -166,3 +166,14 @@ table.table { width: 100%; border-collapse: collapse; font-size: 14px; }
 /* A button that reads as a link (table row titles that open a dialog) */
 .linklike { background: none; border: 0; padding: 0; font: inherit; color: var(--navy); cursor: pointer; text-align: left; }
 .linklike:hover { text-decoration: underline; }
+
+/* Assessment */
+.chip { display: inline-flex; align-items: center; gap: 2px; padding: 2px 8px; margin: 2px 4px 2px 0; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+.question-card { padding: 16px 18px; margin-bottom: 12px; }
+.assess { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 24px; align-items: start; }
+.assess-nav { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 2px; }
+.assess-nav button { display: flex; justify-content: space-between; gap: 8px; width: 100%; text-align: left; padding: 8px 10px; border: 0; border-radius: var(--radius-sm); background: none; font: inherit; font-size: 14px; color: var(--ink); cursor: pointer; }
+.assess-nav button[aria-current="true"] { background: #eef3fb; color: var(--navy); font-weight: 600; }
+.assess-nav .count { color: var(--muted); font-variant-numeric: tabular-nums; }
+.intern-note { border-left: 3px solid var(--warn-line); background: var(--warn-bg); padding: 10px 14px; border-radius: var(--radius-sm); font-size: 14px; }
+@media (max-width: 860px) { .assess { grid-template-columns: 1fr; } .assess-nav { position: static; flex-direction: row; overflow-x: auto; } .assess-nav button { white-space: nowrap; } }

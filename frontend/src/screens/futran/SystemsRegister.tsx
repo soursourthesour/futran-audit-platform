@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
 import { Alert, Badge, Button, Card, Checkbox, Dialog, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField, fmtDate } from '@/components/ui';
@@ -43,7 +43,7 @@ export function SystemsRegister() {
     <div className="page">
       <PageHeader title="AI systems in scope" crumbs={[{ to: '/audits', label: 'Audits' }, { to: `/clients/${clientId}`, label: `${d.client.name} · ${d.audit_ref}` }, { label: 'AI systems' }]}
         subtitle="Template §3–9 per system. Tier 3 use cases get a full assessment and Tier 2 a light one (§3, §5, §7.2, §9). The engagement rating follows the highest system rating."
-        actions={d.can_manage ? <Button variant="primary" onClick={() => setAdding([])}>Add system</Button> : undefined} />
+        actions={<><Link to={`/clients/${clientId}/assessment`} className="btn">§4 governance questions</Link>{d.can_manage && <Button variant="primary" onClick={() => setAdding([])}>Add system</Button>}</>} />
       {flash && <Alert tone="success">{flash}</Alert>}
       <div className="grid-tiles" style={{ margin: '16px 0 24px' }}>
         <div className="tile"><div className="label">Systems in scope</div><div className="value">{d.systems.length}</div><div className="hint">{full} full · {d.systems.length - full} light</div></div>
@@ -68,7 +68,8 @@ export function SystemsRegister() {
             <tbody>{d.systems.map((s) => (
               <tr key={s.id}>
                 <td>
-                  {d.can_manage ? <button type="button" className="linklike" onClick={() => setEditing(s)}><strong>{s.name}</strong></button> : <strong>{s.name}</strong>}
+                  <Link to={`/systems/${s.id}/assess`}><strong>{s.name}</strong></Link>
+                  {d.can_manage && <> <button type="button" className="linklike small" onClick={() => setEditing(s)}>Edit</button></>}
                   <div className="small muted">{[s.reference_id, s.department, s.use_cases.some((u) => u.tier === 3) ? 'from Tier 3 use case' : s.source === 'wizard' ? 'listed at initiation' : null].filter(Boolean).join(' · ')}</div>
                 </td>
                 <td>{s.built_by ? s.built_by_label : <span className="muted">Not set</span>}{s.vendor && <div className="small muted">{s.vendor}</div>}</td>
