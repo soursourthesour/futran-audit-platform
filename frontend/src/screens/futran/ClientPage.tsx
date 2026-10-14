@@ -121,7 +121,7 @@ export function ClientPage() {
             </Card>
             {e.status !== 'draft' && e.status !== 'pending_approval' && (
               <Card title="Discovery">
-                <div className="stack-sm small"><Link to={`/clients/${clientId}/governance`}>AI governance structure</Link><Link to={`/clients/${clientId}/attestation`}>Employee attestation</Link><Link to={`/clients/${clientId}/inventory`}>AI inventory and tiers</Link></div>
+                <div className="stack-sm small"><Link to={`/clients/${clientId}/governance`}>AI governance structure</Link><Link to={`/clients/${clientId}/attestation`}>Employee attestation</Link><Link to={`/clients/${clientId}/inventory`}>AI inventory and tiers</Link><Link to={`/clients/${clientId}/systems`}>AI systems in scope</Link></div>
               </Card>
             )}
             <Card title="Futran team">

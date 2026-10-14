@@ -186,6 +186,9 @@ def approve_and_send(db: Session, settings: Settings, actor: User, e: Engagement
 
     codes = next((d.merge_values or {} for d in documents(db, pkg) if d.item == 7), {}).get("governance_codes")
     create_request(db, actor, e, codes)
+    from app.systems.service import convert_planned
+
+    convert_planned(db, actor, e)
     create_sign_off(db, e, 1, preparer_id=e.created_by, required_roles=["caico", "chief_auditor"], document_id=letter.id, excluded=excluded)
     audit.record(db, actor_id=actor.id, action="package.send", obj=pkg, summary=f"Approved {e.audit_ref} and sent the initiation package (7 items) to {', '.join(u.name for u in to_invite.values())}")
     return pkg
