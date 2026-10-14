@@ -38,6 +38,8 @@ class Department(TimestampedTenantMixin, Base):
     name: Mapped[str] = mapped_column(String(120))
     head_user_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("users.id", use_alter=True))
     headcount: Mapped[int | None] = mapped_column(Integer)
+    head_name: Mapped[str | None] = mapped_column(String(120))
+    head_email: Mapped[str | None] = mapped_column(String(254))
     parent_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("departments.id"))
     in_scope: Mapped[bool] = mapped_column(Boolean, default=True)
 

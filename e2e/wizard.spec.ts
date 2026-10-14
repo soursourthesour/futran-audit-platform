@@ -119,4 +119,23 @@ test('auditor sets up a client, the Chief Auditor approves and the client signs 
   await page.getByLabel(/I have read the document and agree/).check();
   await page.getByRole('button', { name: 'Sign', exact: true }).click();
   await expect(page.getByText('2 of 7 complete')).toBeVisible();
+
+  // Client sets up departments and users (Phase 4)
+  await page.getByRole('link', { name: 'People' }).click();
+  for (const d of ['HR and recruiting', 'Engineering and IT']) {
+    await page.getByLabel('New department').fill(d);
+    await page.getByRole('button', { name: 'Add', exact: true }).click();
+    await expect(page.getByText(d, { exact: true })).toBeVisible();
+  }
+  await page.getByRole('button', { name: 'Confirm the department list' }).click();
+  await expect(page.getByText('Department list confirmed.')).toBeVisible();
+  const csv = 'first_name,last_name,email,job_title,department,role,location\nPriya,Shah,priya.shah@abccorp.example,Head of HR,HR and recruiting,Department Compliance Lead,New York NY\nRaj,Iyer,raj.iyer@abccorp.example,CTO,Engineering and IT,Department Compliance Lead,Chicago IL\nLee,Park,lee.park@abccorp.example,Counsel,Legal,Contributor,Chicago IL\n';
+  await page.getByLabel('User list CSV').setInputFiles({ name: 'user_list.csv', mimeType: 'text/csv', buffer: Buffer.from(csv) });
+  await expect(page.getByText("Row 4: Department 'Legal' is not in the department list.")).toBeVisible();
+  await page.getByRole('button', { name: 'Import 2 ready rows' }).click();
+  await expect(page.getByText('Imported 2 users.')).toBeVisible();
+  await page.getByLabel('Not appointed').first().click();
+  await expect(page.getByText('Not appointed: the Chief AI Compliance Officer covers this role').first()).toBeVisible();
+  await page.screenshot({ path: 'screenshots/p4-people.png', fullPage: true });
 });
+

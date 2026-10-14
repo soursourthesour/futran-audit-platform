@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError, errorMessage } from '@/api/client';
 import { useMe } from '@/api/auth';
@@ -9,7 +10,8 @@ import { DocPreview } from '@/components/DocPreview';
 type Item = { key: string; title: string; description: string; done: boolean; self_complete: boolean; document: { id: string; pdf_file_id: string | null; docx_file_id: string | null; csv_file_id: string | null } | null };
 type Checklist = { engagement: { id: string; audit_ref: string; name: string }; items: Item[]; done: number; total: number; requested_by: string | null; sign_off_1_id: string | null; chief_auditor: string | null };
 
-const LATER: Record<string, string> = { nominate: 'Nominate', departments: 'Confirm', users: 'Add users', governance: 'Start' };
+const LATER: Record<string, string> = { governance: 'Start' };
+const PEOPLE: Record<string, string> = { nominate: 'Nominate', departments: 'Confirm', users: 'Add users' };
 
 export function InitiationChecklist() {
   const { data: me } = useMe();
@@ -25,6 +27,7 @@ export function InitiationChecklist() {
   if (!q.data) return <div className="page"><Alert tone="danger">{errorMessage(q.error)}</Alert></div>;
   const c = q.data;
   const isCaico = !!me?.roles.some((r) => r.role === 'caico');
+  const canManage = !!me?.roles.some((r) => r.role === 'caico' || r.role === 'client_admin');
 
   async function markDone(key: string) {
     setErr(null);
@@ -63,6 +66,7 @@ export function InitiationChecklist() {
                     : it.key === 'sign' && c.sign_off_1_id && isCaico ? <Button variant="primary" onClick={() => setSigning(true)}>Review and sign</Button>
                     : it.key === 'guide' ? <Button onClick={() => markDone('guide')}>Mark as read</Button>
                     : it.key === 'notice' && isCaico ? <Button onClick={() => markDone('notice')}>Acknowledge</Button>
+                    : PEOPLE[it.key] && canManage ? <Link className="btn" to="/users">{PEOPLE[it.key]}</Link>
                     : LATER[it.key] ? <span className="small muted">{LATER[it.key]}: opens with the next step</span> : <span className="small muted">Open</span>}
                 </div>
               </li>

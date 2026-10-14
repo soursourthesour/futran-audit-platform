@@ -59,6 +59,9 @@ export function FutranShell() {
   );
 }
 
+/** Client screens that exist so far; later phases add theirs here. */
+const BUILT_CLIENT_ROUTES = new Set(['/start', '/users']);
+
 export function ClientShell() {
   const { data: me } = useMe();
   if (!me) return null;
@@ -72,7 +75,7 @@ export function ClientShell() {
     { to: '/documents', label: 'Documents' },
     { to: '/report', label: 'Report' },
     { to: '/remediation', label: 'Remediation' },
-  ].filter((n) => n.show !== false);
+  ].filter((n) => n.show !== false && BUILT_CLIENT_ROUTES.has(n.to));
   return (
     <>
       <TestModeBar me={me} />

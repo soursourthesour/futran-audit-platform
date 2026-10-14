@@ -201,10 +201,20 @@ def my_initiation(actor: Actor = Depends(current_actor), db: Session = Depends(g
 
     signed = so1 is not None and any(s.role == "caico" for s in signatures(db, so1))
     chief = db.scalar(select(User.name).join(EngagementTeam, EngagementTeam.user_id == User.id).where(EngagementTeam.engagement_id == e.id, EngagementTeam.role == "chief_auditor", EngagementTeam.deleted_at.is_(None)))
+    from app.tenancy.people import role_holders
+
+    holders = role_holders(db, db.get(Organization, e.client_id))
+    named = all(holders[r]["user"] or holders[r]["not_appointed"] for r in ("exec_sponsor", "dpo"))
+    leads_ok = e.stage > 2 or (e.stage == 2 and gate_status(db, e).ready)
     items = []
     for key, n, title, desc in CHECKLIST:
         d = docs.get(n)
-        done = signed if key == "sign" else bool(d and d.completed_at)
+        if key == "sign":
+            done = signed
+        elif key == "nominate":
+            done = named and leads_ok
+        else:
+            done = bool(d and d.completed_at)
         items.append({"key": key, "title": title, "description": desc, "done": done, "document": {"id": d.id, "pdf_file_id": d.pdf_file_id, "docx_file_id": d.docx_file_id, "csv_file_id": d.csv_file_id} if d else None, "self_complete": key in SELF_COMPLETE})
     return {
         "engagement": {"id": e.id, "audit_ref": e.audit_ref, "name": e.name, "stage": e.stage},

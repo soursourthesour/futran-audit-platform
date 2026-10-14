@@ -90,12 +90,14 @@ def sign(db: Session, settings, actor: Actor, so: SignOff, typed_name: str, requ
     # take the row lock first so two signers cannot both miss each other's signature
     db.execute(update(SignOff).where(SignOff.id == so.id).values(updated_at=utcnow()))
     db.refresh(so)
-    if so.status == "approved":
-        raise Conflict("This sign-off is already complete.")
+    if not any(actor.has_role(r) for r in so.required_approver_roles):
+        raise Forbidden("You are not one of the people who sign this.")
     if any(s.user_id == actor.id for s in signatures(db, so)):
         raise Conflict("You have already signed this.")
     if is_excluded(so, actor.id):
         raise Forbidden("You prepared this item, so you cannot approve it. Another approver must sign it off.")
+    if so.status == "approved":
+        raise Conflict("This sign-off is already complete.")
     role = signer_role(db, actor, so)
     if role is None:
         raise Forbidden("You are not one of the people who sign this.")
