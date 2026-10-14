@@ -176,7 +176,8 @@ def _clean_value(q: Question, value):
     return text
 
 
-def _evidence(db: Session, t: Target, ids) -> list[str]:
+def _evidence(db: Session, t: Target, ids, client_only: bool = False) -> list[str]:
+    """Evidence files of this engagement. A client may only link files uploaded on the client side."""
     if ids in (None, ""):
         return []
     if not isinstance(ids, list) or not all(isinstance(i, str) for i in ids):
@@ -184,10 +185,15 @@ def _evidence(db: Session, t: Target, ids) -> list[str]:
     out = []
     for fid in dict.fromkeys(ids):
         f = db.get(FileObject, fid)
-        if f is None or f.deleted_at is not None or f.engagement_id != t.engagement.id or f.linked_type != "evidence":
+        if f is None or f.deleted_at is not None or f.engagement_id != t.engagement.id or f.linked_type != "evidence" or (client_only and not uploaded_by_client(db, f, t.engagement)):
             raise Invalid(errors=[{"field": "evidence_ids", "message": "Choose evidence files from this engagement."}])
         out.append(fid)
     return out
+
+
+def uploaded_by_client(db: Session, f: FileObject, e: Engagement) -> bool:
+    u = db.get(User, f.uploaded_by) if f.uploaded_by else None
+    return u is not None and u.organization_id == e.client_id
 
 
 def _text(v, limit: int) -> str | None:
@@ -218,8 +224,8 @@ def save_response(db: Session, actor: User, t: Target, code: str, body: dict, fu
         errs.append({"field": "value", "message": "Enter an answer, or mark the question not applicable."})
     if status == "na" and not na_reason:
         errs.append({"field": "na_reason", "message": "Say why this question does not apply."})
-    evidence = _evidence(db, t, body.get("evidence_ids"))
-    verified = bool(body.get("verified")) and futran
+    evidence = _evidence(db, t, body.get("evidence_ids"), client_only=not futran)
+    verified = body.get("verified") is True and futran
     src_name, src_title = _text(body.get("source_person_name"), 160), _text(body.get("source_person_title"), 160)
     if verified and status != "unanswered":
         if not src_name:
@@ -330,6 +336,7 @@ def sync_draft_finding(db: Session, actor: User, t: Target, q: Question, r: Resp
             link, f = active
             f.deleted_at = utcnow()
             link.dismissed_at, link.dismissed_reason = utcnow(), "The answer changed and no longer raises this finding."
+            audit.record(db, actor_id=actor.id, action="finding.withdraw_draft", obj=f, after={"reason": link.dismissed_reason}, summary=f"Withdrew draft finding {f.ref}: the answer to {q.code} changed")
         return None
     nyip = " The client says this is planned but not yet in place." if draft.not_yet_in_place else ""
     description = f"Raised automatically from {q.code} ({q.label}). Answer: {_display(q, r.value) if r.status == 'answered' else 'not yet in place'}.{nyip}"
@@ -365,7 +372,15 @@ def draft_findings(db: Session, t: Target) -> list[dict]:
     return out
 
 
+def _link_target(db: Session, link: DraftFindingLink) -> Target:
+    r = db.get(Response, link.response_id)
+    t = Target(db.get(Engagement, r.engagement_id), db.get(AISystem, r.ai_system_id) if r.ai_system_id else None)
+    _check_locks(db, t, True)
+    return t
+
+
 def dismiss_draft(db: Session, actor: User, link: DraftFindingLink, reason: str | None) -> None:
+    t = _link_target(db, link)
     reason = " ".join(str(reason or "").split())
     if not reason:
         raise Invalid(errors=[{"field": "reason", "message": "Say why this is not a finding."}])
@@ -375,9 +390,11 @@ def dismiss_draft(db: Session, actor: User, link: DraftFindingLink, reason: str 
     link.dismissed_at, link.dismissed_by, link.dismissed_reason = utcnow(), actor.id, reason[:2000]
     f.deleted_at = utcnow()
     audit.record(db, actor_id=actor.id, action="finding.dismiss_draft", obj=f, after={"reason": reason}, summary=f"Dismissed draft finding {f.ref}: {reason[:120]}")
+    after_change(db, t)
 
 
 def confirm_draft(db: Session, actor: User, link: DraftFindingLink) -> Finding:
+    _link_target(db, link)
     f = db.get(Finding, link.finding_id)
     if link.dismissed_at is not None or f is None or f.deleted_at is not None:
         raise Conflict("This draft finding has already been dealt with.")
@@ -436,12 +453,33 @@ def completion(db: Session, t: Target, futran: bool = True) -> dict:
     return {"answered": answered, "applicable": applicable, "pct": round(100 * answered / applicable) if applicable else 0, "sections": list(sections.values())}
 
 
+def withdraw_inapplicable_drafts(db: Session, t: Target) -> int:
+    """Untouched auto-drafts raised by a question that no longer applies (answers, build type or depth changed) are withdrawn."""
+    applicable = {q.id for q in questions_for(db, t, True)}
+    n = 0
+    rows = db.execute(
+        select(DraftFindingLink, Finding, Response).join(Finding, Finding.id == DraftFindingLink.finding_id).join(Response, Response.id == DraftFindingLink.response_id)
+        .where(Response.engagement_id == t.engagement.id, Response.ai_system_id.is_(None) if t.system is None else Response.ai_system_id == t.system.id,
+               DraftFindingLink.dismissed_at.is_(None), Finding.deleted_at.is_(None), Finding.status == "draft", Finding.confirmed_at.is_(None))
+    )
+    for link, f, r in rows:
+        if r.question_id not in applicable:
+            f.deleted_at = link.dismissed_at = utcnow()
+            link.dismissed_reason = "The question no longer applies."
+            audit.record(db, actor_id=None, action="finding.withdraw_draft", obj=f, after={"reason": link.dismissed_reason}, summary=f"Withdrew draft finding {f.ref}: the question no longer applies")
+            n += 1
+    return n
+
+
 def after_change(db: Session, t: Target) -> None:
-    """Keep completion and risk scores current. An engagement-level change (§4, checklist 4.3) touches every system."""
+    """Keep completion, auto-drafts and risk scores current. An engagement-level change (§4, checklist 4.3) touches every system."""
     from app.scoring.service import recalculate
     from app.systems.service import systems_for
 
+    withdraw_inapplicable_drafts(db, t)
     for s in [t.system] if t.system else systems_for(db, t.engagement):
+        if t.system is None:
+            withdraw_inapplicable_drafts(db, Target(t.engagement, s))
         s.completion_pct = completion(db, Target(t.engagement, s))["pct"]
         recalculate(db, s)
 
@@ -462,3 +500,36 @@ def submit_prefill(db: Session, settings, actor: User, t: Target) -> list[str]:
     link = f"/systems/{t.system.id}/assess" if t.system else f"/clients/{org.id}/assessment"
     notify(db, futran_team(db, t.engagement), "prefill_submitted", f"{org.name}: pre-fill submitted for {t.label}", f"Submitted by {actor.name}.", link, engagement=t.engagement, settings=settings)
     return []
+
+
+# Governance request extra fields (spec §9.4) answer template §4.1–4.2; the client gives them once.
+GOVERNANCE_TO_QUESTIONS = {
+    "board_oversight": ("4.1.01", "yes_with_name"), "policy_owner": ("4.1.02", "person"), "policy_last_updated": ("4.1.03", "yes_with_date"),
+    "policy_covers_employees": ("4.1.04", "value"), "policy_covers_client_facing": ("4.1.05", "value"), "risk_appetite": ("4.1.06", "value"),
+    "incident_escalation": ("4.1.07", "value"), "model_risk_manager": ("4.2.01", "person"), "data_steward": ("4.2.02", "person"), "ethics_lead": ("4.2.03", "person"),
+    "security_owner": ("4.2.04", "person"), "privacy_officer": ("4.2.05", "person"), "third_party_owner": ("4.2.06", "person"), "raci_exists": ("4.2.07", "value"),
+}
+
+
+def prefill_from_governance(db: Session, actor: User, e: Engagement, extra: dict) -> int:
+    """Copy the governance request's answers into the client's §4 pre-fill (the auditor still verifies them)."""
+    n = 0
+    t = Target(e)
+    for key, raw in (extra or {}).items():
+        if key not in GOVERNANCE_TO_QUESTIONS or raw in (None, ""):
+            continue
+        code, how = GOVERNANCE_TO_QUESTIONS[key]
+        body = {"status": "answered", "value": raw}
+        if how == "person":
+            body["value"] = {"name": raw, "title": None}
+        elif how == "yes_with_name":
+            body = {"status": "answered", "value": "yes", "detail": raw}
+        elif how == "yes_with_date":
+            body = {"status": "answered", "value": "yes", "detail": f"Last updated {raw}"}
+        try:
+            with db.begin_nested():
+                save_response(db, actor, t, code, body, futran=False)
+            n += 1
+        except (Invalid, NotFound, Conflict):
+            continue
+    return n

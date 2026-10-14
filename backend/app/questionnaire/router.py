@@ -159,6 +159,7 @@ def submit_prefill(system_id: str, request: Request, actor: Actor = Depends(curr
 def _evidence_upload(db: Session, request: Request, actor: Actor, t: qs.Target, file: UploadFile) -> dict:
     if actor.is_futran:
         authorize(db, actor, Action.UPLOAD_EVIDENCE if not actor.has_role("chief_auditor") else Action.VERIFY_SYSTEM_ANSWERS, engagement_id=t.engagement.id)
+    qs._check_locks(db, t, actor.is_futran)
     settings = request.app.state.settings
     data = file.file.read(settings.max_upload_mb * 1024 * 1024 + 1)
     if not data:

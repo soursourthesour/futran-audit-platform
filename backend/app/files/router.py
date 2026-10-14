@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.audit_log import service as audit
 from app.auth.deps import Actor, current_actor
 from app.core.db import get_db
-from app.core.errors import NotFound
+from app.core.errors import Forbidden, NotFound
 from app.files.models import FileObject
 from app.files.service import content_type_for, read
 from app.policy.actions import Action
@@ -31,7 +31,27 @@ def _package_document_access(db: Session, actor: Actor, f: FileObject) -> None:
 
 
 def _evidence_access(db: Session, actor: Actor, f: FileObject) -> None:
-    authorize(db, actor, Action.VIEW_EVIDENCE, engagement_id=f.engagement_id)
+    """Futran sees the engagement's evidence. A client sees only files uploaded on the client side, within the
+    department or system scope of the thing the file is attached to."""
+    if actor.is_futran:
+        authorize(db, actor, Action.VIEW_EVIDENCE, engagement_id=f.engagement_id)
+        return
+    from app.engagements.models import Engagement
+    from app.questionnaire.service import uploaded_by_client
+    from app.systems.models import AISystem
+
+    e = db.get(Engagement, f.engagement_id) if f.engagement_id else None
+    if e is None or not uploaded_by_client(db, f, e):
+        raise NotFound()
+    s = db.get(AISystem, f.linked_id) if f.linked_id and f.linked_id != e.id else None
+    if s is not None and s.engagement_id == e.id:
+        try:
+            authorize(db, actor, Action.VIEW_EVIDENCE, engagement_id=e.id, department_id=s.department_id, system_id=s.id)
+            return
+        except Forbidden:
+            authorize(db, actor, Action.UPLOAD_REQUESTED_DOCUMENT, engagement_id=e.id, department_id=s.department_id, system_id=s.id)
+            return
+    authorize(db, actor, Action.VIEW_EVIDENCE, engagement_id=e.id)
 
 
 def _futran_only(db: Session, actor: Actor, f: FileObject) -> None:

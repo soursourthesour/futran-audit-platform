@@ -142,11 +142,20 @@ def issue_register(db: Session, settings: Settings, actor: User, e: Engagement) 
 
 
 # ---- client actions
+def _rescore(db: Session, req: DocumentRequest) -> None:
+    from app.questionnaire.service import Target, after_change
+
+    e = db.get(Engagement, req.engagement_id)
+    after_change(db, Target(e, db.get(AISystem, req.ai_system_id) if req.ai_system_id else None))
+
+
 def _withdraw_finding(db: Session, req: DocumentRequest) -> None:
     f = db.get(Finding, req.finding_id) if req.finding_id else None
     if f is not None and f.deleted_at is None and f.status == "draft" and f.confirmed_at is None:
         f.deleted_at = utcnow()
         req.finding_id = None
+        audit.record(db, actor_id=None, action="finding.withdraw_draft", obj=f, after={"reason": "The document was received."}, summary=f"Withdrew draft finding {f.ref}: the document was received")
+        _rescore(db, req)
 
 
 def receive(db: Session, actor: User, req: DocumentRequest, file_ids: list[str]) -> DocumentRequest:
@@ -182,6 +191,7 @@ def mark_not_available(db: Session, actor: User, req: DocumentRequest, note: str
         db.add(f)
         db.flush()
         req.finding_id = f.id
+    _rescore(db, req)
     audit.record(db, actor_id=actor.id, action="documents.not_available", obj=req, after={"note": note, "finding": f.ref}, summary=f"Marked {item.title} not available; draft finding {f.ref}")
     return req
 

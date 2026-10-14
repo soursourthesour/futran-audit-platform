@@ -180,6 +180,9 @@ def save_use_case(db: Session, actor: User, org: Organization, e: Engagement, da
     uc.editor_ids = list(dict.fromkeys([*(uc.editor_ids or []), actor.id]))
     db.flush()
     uc.proposed_tier = propose_tier(uc.decision_impact, uc.data_categories, _tools(db, uc))
+    from app.systems.service import sync_depth_for_use_case
+
+    sync_depth_for_use_case(db, actor, uc)
     for r in db.scalars(select(UsageRecord).where(UsageRecord.use_case_id == uc.id, UsageRecord.deleted_at.is_(None))):
         r.deleted_at = utcnow()
     for u in v["usage"]:
@@ -297,6 +300,9 @@ def set_final_tier(db: Session, settings: Settings, actor: User, uc: UseCase, ti
             uc.status, uc.returned_comment = "returned", f"Futran set this use case to tier {tier}. {detail}"
         else:
             resent = send_links(db, settings, actor, uc)
+    from app.systems.service import sync_depth_for_use_case
+
+    sync_depth_for_use_case(db, actor, uc)
     audit.record(db, actor_id=actor.id, action="inventory.final_tier", obj=uc, before=prev, after={"final_tier": tier, "rationale": uc.final_tier_rationale, "aedt": uc.aedt_determination}, summary=f"Set the final tier of {uc.name} to {tier}{f'; {resent} links re-sent' if resent else ''}")
     return uc
 

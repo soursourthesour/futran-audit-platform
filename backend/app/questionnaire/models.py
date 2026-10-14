@@ -1,7 +1,7 @@
 """Question bank (spec §18.1). Reference data: versioned, editable by Admin without code changes."""
 from datetime import datetime
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.clock import utcnow
@@ -76,7 +76,11 @@ class Response(TimestampedTenantMixin, Base):
     """
 
     __tablename__ = "responses"
-    __table_args__ = (UniqueConstraint("engagement_id", "ai_system_id", "question_id", name="uq_responses_target_question"),)
+    __table_args__ = (
+        UniqueConstraint("engagement_id", "ai_system_id", "question_id", name="uq_responses_target_question"),
+        # NULLs never collide in a unique constraint, so engagement-level answers need their own index
+        Index("uq_responses_engagement_question", "engagement_id", "question_id", unique=True, sqlite_where=text("ai_system_id IS NULL"), postgresql_where=text("ai_system_id IS NULL")),
+    )
 
     engagement_id: Mapped[str] = mapped_column(String(36), ForeignKey("engagements.id"), index=True)
     ai_system_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("ai_systems.id"), index=True)
@@ -121,7 +125,10 @@ class ResponseVersion(TimestampedTenantMixin, Base):
 
 class ChecklistResult(TimestampedTenantMixin, Base):
     __tablename__ = "checklist_results"
-    __table_args__ = (UniqueConstraint("engagement_id", "ai_system_id", "checklist_item_id", name="uq_checklist_results_target_item"),)
+    __table_args__ = (
+        UniqueConstraint("engagement_id", "ai_system_id", "checklist_item_id", name="uq_checklist_results_target_item"),
+        Index("uq_checklist_results_engagement_item", "engagement_id", "checklist_item_id", unique=True, sqlite_where=text("ai_system_id IS NULL"), postgresql_where=text("ai_system_id IS NULL")),
+    )
 
     engagement_id: Mapped[str] = mapped_column(String(36), ForeignKey("engagements.id"), index=True)
     ai_system_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("ai_systems.id"), index=True)

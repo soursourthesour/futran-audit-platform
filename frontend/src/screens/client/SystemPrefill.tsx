@@ -33,7 +33,7 @@ export function SystemsPrefillList() {
             ))}</tbody>
           </table></div>
         )}
-        {d.engagement?.can_answer_governance_questions && <p className="small" style={{ marginBottom: 0 }}><Link to="/systems/governance">Governance and accountability questions (§4)</Link> — answered once for the whole organisation.</p>}
+        {d.engagement?.can_answer_governance_questions && <p className="small" style={{ marginBottom: 0 }}><Link to="/systems/governance">Governance and accountability questions (§4)</Link> — answered once for the whole organization.</p>}
       </Card>
     </div>
   );

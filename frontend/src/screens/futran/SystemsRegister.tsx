@@ -19,7 +19,7 @@ type Register = {
   departments: { id: string; name: string }[]; people: { id: string; name: string }[]; pending_requests: Request[]; can_manage: boolean; can_approve_additions: boolean;
 };
 
-const BUILT_BY = [{ value: 'in_house', label: 'In-house' }, { value: 'vendor', label: 'Vendor' }, { value: 'open_source_customized', label: 'Open source (customised)' }, { value: 'hybrid', label: 'Hybrid' }];
+const BUILT_BY = [{ value: 'in_house', label: 'In-house' }, { value: 'vendor', label: 'Vendor' }, { value: 'open_source_customized', label: 'Open source (customized)' }, { value: 'hybrid', label: 'Hybrid' }];
 const RATING_TONE: Record<string, 'danger' | 'warn' | 'navy' | 'muted'> = { Critical: 'danger', High: 'danger', Medium: 'warn', Low: 'muted' };
 const yesNo = (v: boolean | null) => (v === null ? 'Not known' : v ? 'Yes' : 'No');
 

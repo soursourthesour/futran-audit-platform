@@ -48,7 +48,7 @@ def _request(db: Session, actor: Actor, req_id: str, client_action: Action = Act
         s = db.get(AISystem, req.ai_system_id) if req.ai_system_id else None
         if s is None:
             authorize(db, actor, client_action, engagement_id=req.engagement_id, org_id=req.organization_id)
-            if departments_for(actor, client_action) is not None:  # organisation-wide documents are for organisation-level roles
+            if departments_for(actor, client_action) is not None:  # organization-wide documents are for organization-level roles
                 raise NotFound()
         else:
             authorize(db, actor, client_action, engagement_id=req.engagement_id, department_id=s.department_id, system_id=s.id)
@@ -148,7 +148,7 @@ def not_available(req_id: str, body: NoteIn, actor: Actor = Depends(current_acto
 
 @router.get("/me/document-requests")
 def mine(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
-    """The client's own requests: organisation-wide ones for organisation-level roles, and those for systems in the person's departments."""
+    """The client's own requests: organization-wide ones for organization-level roles, and those for systems in the person's departments."""
     if actor.is_futran:
         raise NotFound()
     e = current_engagement(db, actor.organization)

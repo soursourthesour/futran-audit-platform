@@ -39,7 +39,7 @@ def _all_domains(db, people, s, scores):
     for d, v in scores.items():
         prop = latest.domain_scores_proposed.get(d)
         rationale = None if prop is not None and abs(prop - v) <= 1 else "Set from interviews and evidence review."
-        scoring.set_final_domain_score(db, people["aud"], s, d, v, rationale)
+        scoring.set_final_domain_score(db, people["chief"], s, d, v, rationale)  # the Lead Auditor
 
 
 def test_abc_sys001_scores_to_worked_example(client, db, ats, people):
@@ -58,7 +58,7 @@ def test_abc_sys001_scores_to_worked_example(client, db, ats, people):
 
 def test_rationale_required_when_diff_gt_1(client, db, ats, people):
     cid, e, maria, s = ats
-    login_as(client, db, people["aud"])
+    login_as(client, db, people["chief"])
     prop = scoring.latest(db, s).domain_scores_proposed["governance"]
     far = 5 if prop <= 2 else 1
     r = client.put(f"/api/v1/systems/{s.id}/score/domains/governance", json={"score": far})
@@ -95,7 +95,7 @@ def test_locked_score_not_recalculated(client, db, ats, people):
     assert locked.locked_at is not None and db.get(AISystem, s.id).status == "locked"
     scoring.recalculate(db, db.get(AISystem, s.id))
     assert db.query(SystemRiskScore).count() == before and scoring.latest(db, s).id == locked.id
-    login_as(client, db, people["aud"])
+    login_as(client, db, people["chief"])
     assert client.put(f"/api/v1/systems/{s.id}/score/domains/data", json={"score": 2}).status_code == 409
 
 

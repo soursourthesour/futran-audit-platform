@@ -231,6 +231,9 @@ def submit(db: Session, settings, actor: User, req: GovernanceRequest, accuracy_
     planned = sum(1 for i in items(db, req) if i.status == "planned")
     notify(db, futran_team(db, e), "governance_submitted", f"{org.name}: AI governance structure submitted", f"Submitted by {actor.name}, with {planned} commitments to create or constitute items.", f"/clients/{org.id}/governance", engagement=e, settings=settings)
     audit.record(db, actor_id=actor.id, action="governance.submit", obj=req, summary=f"Submitted the AI governance structure ({planned} commitments)")
+    from app.questionnaire.service import prefill_from_governance
+
+    prefill_from_governance(db, actor, e, req.extra_fields or {})
     from app.engagements.gates import advance_if_ready
 
     if e.stage == 3:

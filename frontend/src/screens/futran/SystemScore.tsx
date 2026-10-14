@@ -16,7 +16,7 @@ type Score = {
 
 const R = (r: string | null | undefined) => (r ? r[0].toUpperCase() + r.slice(1) : '—');
 const TONE: Record<string, 'danger' | 'warn' | 'navy' | 'muted'> = { critical: 'danger', high: 'danger', medium: 'warn', low: 'muted' };
-const BUILT: Record<string, string> = { in_house: 'In-house', vendor: 'Vendor-supplied', open_source_customized: 'Open source (customised)', hybrid: 'Hybrid' };
+const BUILT: Record<string, string> = { in_house: 'In-house', vendor: 'Vendor-supplied', open_source_customized: 'Open source (customized)', hybrid: 'Hybrid' };
 const pct = (w: number) => `${Math.round(w * 100)}%`;
 
 export function SystemScore() {
@@ -32,13 +32,16 @@ export function SystemScore() {
   if (!q.data) return <div className="page"><Alert tone="danger">{errorMessage(q.error)}</Alert></div>;
   const d = q.data;
   const s = d.system;
-  const editable = !d.locked && !!d.can_score;
+  const editable = !d.locked && !!d.is_lead_auditor;
+  const chosen = rating ?? d.override?.rating ?? d.final_rating ?? d.computed_rating ?? '';
   const triggered = d.knockouts.filter((k) => k.triggered);
-  async function saveOverride() {
+  async function saveOverride(clear = false) {
     setMsg(null);
+    if (!clear && !d.override && chosen === d.final_rating) { setMsg({ tone: 'success', text: 'No change: that is already the final rating.' }); return; }
     try {
-      await api.put(`/systems/${systemId}/score/override`, { rating: rating === (d.computed_rating ?? '') ? null : rating, rationale });
-      await qc.invalidateQueries({ queryKey: key }); setMsg({ tone: 'success', text: 'Final rating saved.' });
+      await api.put(`/systems/${systemId}/score/override`, clear ? { rating: null } : { rating: chosen, rationale: rationale || d.override?.rationale || '' });
+      await qc.invalidateQueries({ queryKey: key }); setRating(null); setRationale('');
+      setMsg({ tone: 'success', text: clear ? 'Override cleared. The final rating follows the score and knock-outs again.' : 'Final rating saved.' });
     } catch (e) { setMsg({ tone: 'danger', text: errorMessage(e) }); }
   }
   const changed = d.domains.filter((x) => x.final !== null && x.proposed !== null && x.final !== x.proposed);
@@ -93,13 +96,16 @@ export function SystemScore() {
               <div className="stack-sm">
                 <div className="stack-sm" role="radiogroup" aria-label="Final rating">
                   {['critical', 'high', 'medium', 'low'].map((r) => (
-                    <label key={r} className="radio-pill"><input type="radio" name="rating" checked={(rating ?? d.override?.rating ?? d.computed_rating ?? '') === r} onChange={() => setRating(r)} />{R(r)}{r === d.computed_rating ? ' (as computed)' : ''}</label>
+                    <label key={r} className="radio-pill"><input type="radio" name="rating" checked={chosen === r} onChange={() => setRating(r)} />{R(r)}{r === d.computed_rating ? ' (as computed)' : ''}</label>
                   ))}
                 </div>
                 <TextArea label="Rationale (required if changed)" value={rationale} onChange={(e) => setRationale(e.target.value)} />
-                <Button variant="primary" onClick={saveOverride}>Save final rating</Button>
+                <div className="row" style={{ gap: 8 }}>
+                  <Button variant="primary" onClick={() => saveOverride()}>Save final rating</Button>
+                  {d.override && <Button onClick={() => saveOverride(true)}>Clear override</Button>}
+                </div>
               </div>
-            ) : <p className="small muted" style={{ margin: 0 }}>{d.locked ? 'Locked at sign-off 5.' : 'Only the engagement’s Lead Auditor can change the final rating.'}</p>}
+            ) : <p className="small muted" style={{ margin: 0 }}>{d.locked ? 'Locked at sign-off 5.' : 'Only the engagement’s Lead Auditor sets domain scores and the final rating.'}</p>}
             <p className="small muted" style={{ marginBottom: 0 }}>Locking is part of sign-off 5. The engagement rating takes the highest final system rating. <Link to={`/systems/${s.id}/assess`}>Back to the assessment</Link></p>
           </Card>
         </div>

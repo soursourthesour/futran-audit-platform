@@ -13,7 +13,7 @@ export type Assessment = {
   checklists?: ChecklistRow[]; draft_findings?: DraftFinding[]; evidence_files?: FileRef[];
 };
 
-const BUILT: Record<string, string> = { in_house: 'in-house', vendor: 'vendor', open_source_customized: 'open source (customised)', hybrid: 'hybrid' };
+const BUILT: Record<string, string> = { in_house: 'in-house', vendor: 'vendor', open_source_customized: 'open source (customized)', hybrid: 'hybrid' };
 
 /** Futran view of one system's assessment (or, with no systemId, the engagement-level §4 questions). */
 export function SystemAssessment() {

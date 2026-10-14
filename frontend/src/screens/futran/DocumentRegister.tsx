@@ -33,7 +33,10 @@ export function DocumentRegister() {
   const d = q.data;
   const refresh = () => qc.invalidateQueries({ queryKey: key });
   const run = async (fn: () => Promise<string>) => { setMsg(null); try { const t = await fn(); await refresh(); setMsg({ tone: 'success', text: t }); } catch (e) { setMsg({ tone: 'danger', text: errorMessage(e) }); } };
-  const openPreview = () => run(async () => { setPreview(await api.get(`/clients/${clientId}/document-requests/preview`)); return ''; }).then(() => setMsg(null));
+  async function openPreview() {
+    setMsg(null);
+    try { setPreview(await api.get(`/clients/${clientId}/document-requests/preview`)); } catch (e) { setMsg({ tone: 'danger', text: errorMessage(e) }); }
+  }
   const issue = () => run(async () => { const r = await api.post<{ count: number }>(`/clients/${clientId}/document-requests/issue`); setPreview(null); return `Request sent. ${r.count} documents on the register.`; });
   const chaseAll = () => run(async () => { const r = await api.post<{ chased: number }>(`/clients/${clientId}/document-requests/chase`, { note: 'Reminder sent' }); return `Reminder sent for ${r.chased} documents.`; });
   const chaseOne = (r: DocRequest) => run(async () => { await api.post(`/document-requests/${r.id}/chase`, { note: 'Chased by phone or email' }); return `Chase recorded for ${r.title}.`; });

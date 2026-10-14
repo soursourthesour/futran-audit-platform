@@ -16,7 +16,7 @@ from app.policy.sod import assert_not_self_approval
 from app.systems.models import BUILT_BY, DEPTHS, RISK_LEVELS, AISystem, SystemAdditionRequest, Vendor
 from app.tenancy.models import Department, Organization, User
 
-BUILT_BY_LABELS = {"in_house": "In-house", "vendor": "Vendor", "open_source_customized": "Open source (customised)", "hybrid": "Hybrid"}
+BUILT_BY_LABELS = {"in_house": "In-house", "vendor": "Vendor", "open_source_customized": "Open source (customized)", "hybrid": "Hybrid"}
 
 
 def methodology_version(db: Session) -> str:
@@ -77,7 +77,7 @@ def _clean(db: Session, e: Engagement, data: dict, current: AISystem | None = No
         if bb is None and current is not None:
             out["built_by"] = None
         elif bb not in BUILT_BY:
-            errs.append({"field": "built_by", "message": "Choose who built the system: in-house, vendor, open source (customised) or hybrid."})
+            errs.append({"field": "built_by", "message": "Choose who built the system: in-house, vendor, open source (customized) or hybrid."})
         else:
             out["built_by"] = bb
     if "vendor_id" in data:
@@ -192,8 +192,32 @@ def update_system(db: Session, actor: User, s: AISystem, data: dict) -> AISystem
     if ucs is not None or requested:
         _apply_depth(s, linked, requested or (None if depth_for(linked) == "full" else s.assessment_depth))
     s.updated_by = actor.id
+    from app.questionnaire.service import Target, after_change
+
+    after_change(db, Target(e, s))
     audit.record(db, actor_id=actor.id, action="system.edit", obj=s, before=before, after={k: getattr(s, k) for k in before}, summary=f"Edited {s.reference_id} {s.name}")
     return s
+
+
+def sync_depth_for_use_case(db: Session, actor: User | None, uc: UseCase) -> list[AISystem]:
+    """A use case that becomes Tier 3 makes every light system it maps to a full assessment (never the other way)."""
+    changed = []
+    for s in db.scalars(select(AISystem).where(AISystem.engagement_id == uc.engagement_id, AISystem.deleted_at.is_(None))):
+        if uc.id not in (s.use_case_ids or []) or s.status == "locked" or s.assessment_depth == "full":
+            continue
+        linked = [u for u in (db.get(UseCase, i) for i in s.use_case_ids) if u is not None and u.deleted_at is None]
+        if depth_for(linked) == "full":
+            s.assessment_depth = "full"
+            audit.record(db, actor_id=actor.id if actor else None, action="system.edit", obj=s, before={"assessment_depth": "light"}, after={"assessment_depth": "full"},
+                         summary=f"{s.reference_id} {s.name} now needs a full assessment: {uc.name} is Tier 3")
+            changed.append(s)
+    if changed:
+        from app.questionnaire.service import Target, after_change
+
+        e = db.get(Engagement, uc.engagement_id)
+        for s in changed:
+            after_change(db, Target(e, s))
+    return changed
 
 
 def unmapped_tier3(db: Session, e: Engagement) -> list[UseCase]:

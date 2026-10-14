@@ -34,17 +34,33 @@ def latest(db: Session, s: AISystem) -> SystemRiskScore | None:
     return db.scalar(select(SystemRiskScore).where(SystemRiskScore.ai_system_id == s.id, SystemRiskScore.deleted_at.is_(None)).order_by(SystemRiskScore.seq.desc()).limit(1))
 
 
+def _no_like(q: Question) -> str:
+    """The answer "not yet in place" stands for (golden rule 2): the question's own no-like option."""
+    from app.questionnaire.rules import NO_LIKE
+
+    values = [str(o["value"]) for o in q.options or []]
+    specific = [v for v in values if v.casefold() in NO_LIKE and v.casefold() != "no"]  # e.g. baa_not_in_place, planned
+    return specific[0] if specific else "no"
+
+
 def scoring_answers(db: Session, s: AISystem) -> dict:
-    """Answers by question code for this system and its engagement. "Not yet in place" counts as "no" (golden rule 2)."""
-    codes = {q.id: q.code for q in db.scalars(select(Question))}
+    """Answers by question code for this system and its engagement, counting only questions that apply now.
+    "Not yet in place" counts as the question's "no" (golden rule 2)."""
+    from app.questionnaire.service import Target, questions_for
+
+    e = db.get(Engagement, s.engagement_id)
     out: dict = {}
-    for target in (None, s.id):
-        rows = db.scalars(select(Response).where(Response.engagement_id == s.engagement_id, Response.deleted_at.is_(None), Response.ai_system_id.is_(None) if target is None else Response.ai_system_id == target))
+    for t in (Target(e), Target(e, s)):
+        qs = {q.id: q for q in questions_for(db, t, True)}
+        rows = db.scalars(select(Response).where(Response.engagement_id == e.id, Response.deleted_at.is_(None), Response.ai_system_id.is_(None) if t.system is None else Response.ai_system_id == s.id))
         for r in rows:
+            q = qs.get(r.question_id)
+            if q is None:
+                continue
             if r.status == "answered":
-                out[codes.get(r.question_id, "")] = r.value
+                out[q.code] = r.value
             elif r.status == "not_yet_in_place":
-                out[codes.get(r.question_id, "")] = "no"
+                out[q.code] = _no_like(q)
     return out
 
 
@@ -134,7 +150,10 @@ def _editable(db: Session, s: AISystem) -> tuple[SystemRiskScore, engine.Methodo
 
 
 def set_final_domain_score(db: Session, actor: User, s: AISystem, domain: str, score, rationale: str | None) -> SystemRiskScore:
+    """The Lead Auditor (the engagement's Chief Auditor) sets each final domain score (spec §19.3)."""
     row, m = _editable(db, s)
+    if not is_lead_auditor(db, actor, db.get(Engagement, s.engagement_id)):
+        raise Forbidden("Only the engagement's Lead Auditor sets final domain scores.")
     if domain not in engine.domain_weights(s.built_by, s.assessment_depth, m):
         raise NotFound("That domain is not scored for this system.")
     if isinstance(score, bool) or not isinstance(score, int) or not 1 <= score <= 5:
@@ -161,6 +180,8 @@ def override_rating(db: Session, actor: User, s: AISystem, rating: str | None, r
         raise Forbidden("Only the engagement's Lead Auditor can change the final rating.")
     if rating is not None and rating not in engine.RATINGS:
         raise Invalid(errors=[{"field": "rating", "message": "Choose critical, high, medium or low."}])
+    if rating not in (None, "critical") and str(row.eu_classification or "").casefold() == "prohibited":
+        raise Invalid(errors=[{"field": "rating", "message": "An EU AI Act prohibited practice is always rated Critical."}])
     rationale = " ".join(str(rationale or "").split()) or None
     if rating is not None and not rationale:
         raise Invalid(errors=[{"field": "rationale", "message": "Explain why the rating differs from the computed one."}])

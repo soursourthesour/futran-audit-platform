@@ -100,7 +100,8 @@ def get_score(system_id: str, actor: Actor = Depends(current_actor), db: Session
 def put_domain(system_id: str, domain: str, body: DomainIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
     s = get_system(db, system_id)
     authorize(db, actor, Action.SCORE_SYSTEM, engagement_id=s.engagement_id)
-    score = body.score if isinstance(body.score, int) else (int(body.score) if isinstance(body.score, str) and body.score.isdigit() else body.score)
+    raw = body.score
+    score = raw if isinstance(raw, int) else (int(raw) if isinstance(raw, str) and raw.strip().isascii() and raw.strip().isdecimal() else raw)
     row = svc.set_final_domain_score(db, actor.user, s, domain, score, body.rationale)
     return score_out(db, s, row, True)
 
