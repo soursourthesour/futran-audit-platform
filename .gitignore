@@ -13,3 +13,4 @@ e2e/playwright-report/
 dist/
 *.egg-info/
 e2e/screenshots/
+frontend/tsconfig.tsbuildinfo
