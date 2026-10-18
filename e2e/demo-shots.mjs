@@ -1,0 +1,31 @@
+import { chromium } from '@playwright/test';
+const base = 'http://127.0.0.1:8798';
+const exe = process.env.PW_CHROMIUM;
+const browser = await chromium.launch(exe ? { executablePath: exe } : {});
+const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+async function signIn(portal, email) {
+  await page.context().clearCookies();
+  await page.goto(base + portal);
+  await page.getByLabel('Work email').fill(email);
+  await page.getByLabel('Password').fill('Demo-Password-2026');
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await page.waitForURL((u) => !u.pathname.includes('login'));
+  await page.waitForLoadState('networkidle');
+}
+const shot = async (name) => { await page.waitForLoadState('networkidle'); await page.screenshot({ path: `screenshots/demo/${name}.png`, fullPage: true }); };
+await signIn('/staff/login', 'chief@futran.demo');
+await shot('01-dashboard');
+const eng = await (await page.request.get(base + '/api/v1/engagements?filter=all&q=')).json();
+const id = eng.rows.find((r) => r.client_name.includes('ABC') && r.status === 'completed').client_id;
+await page.goto(`${base}/clients/${id}`); await shot('02-abc-client-page');
+await page.goto(`${base}/clients/${id}/systems`); await shot('03-abc-systems');
+const sys = await (await page.request.get(`${base}/api/v1/clients/${id}/systems`)).json();
+const s1 = (sys.systems || sys).find((s) => s.reference_id === 'SYS-001');
+await page.goto(`${base}/systems/${s1.id}/score`); await shot('04-sys001-score');
+await page.goto(`${base}/clients/${id}/findings`); await shot('05-abc-findings');
+await page.goto(`${base}/clients/${id}/report`); await shot('06-abc-report');
+await page.goto(`${base}/clients/${id}/remediation`); await shot('07-abc-remediation');
+await signIn('/login', 'maria.lopez@abccorp.example');
+await page.goto(`${base}/report`); await shot('08-client-report');
+await page.goto(`${base}/remediation`); await shot('09-client-remediation');
+await browser.close();

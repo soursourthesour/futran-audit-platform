@@ -526,19 +526,27 @@ def _abc_report_and_close(m: Demo, cid: str) -> None:
 
 
 def abc_annual_review(m: Demo, cid: str) -> None:
-    """A second ABC engagement waiting for the Chief Auditor, so the approval screen has data."""
-    from app.engagements.models import Engagement, EngagementTeam
-    from app.engagements.service import transition
+    """A second ABC engagement waiting for the Chief Auditor, so the approval screen has data. It reuses the first
+    engagement's scope, laws and contacts, as the auditor would when drafting a follow-up."""
+    from app.engagements.models import ClientContact, ClientRequirement, Engagement, EngagementTeam
+    from app.engagements.service import next_audit_ref, transition
 
     done = m.db.scalar(select(Engagement).where(Engagement.client_id == cid, Engagement.status == "completed"))
     aud = m.user("auditor1@futran.demo")
-    e = Engagement(organization_id=cid, client_id=cid, name="Annual review 2027", type="annual_review", period_start=date(m.today.year + 1, 1, 1), period_end=date(m.today.year + 1, 12, 31),
-                   frameworks=done.frameworks, methodology_version=done.methodology_version, status="draft", stage=1, created_by=aud.id, submitted_by=aud.id,
-                   wizard_state={"note": "Follow-up to the completed initial assessment."})
+    y = m.today.year + 1
+    e = Engagement(organization_id=cid, client_id=cid, name="Annual review 2027", type="annual_review", audit_ref=next_audit_ref(m.db), period_start=date(y, 1, 1), period_end=date(y, 12, 31),
+                   letter_due=date(y, 1, 15), fieldwork_start=date(y, 3, 1), draft_report_target=date(y, 4, 15), final_report_target=date(y, 5, 15),
+                   frameworks=done.frameworks, methodology_version=done.methodology_version, business_processes=done.business_processes, data_environments=done.data_environments,
+                   geographic_scope=done.geographic_scope, planned_systems=done.planned_systems, status="draft", stage=1, created_by=aud.id, submitted_by=aud.id,
+                   wizard_state={"departments": (done.wizard_state or {}).get("departments", [])})
     m.db.add(e)
     m.db.flush()
     for t in m.db.scalars(select(EngagementTeam).where(EngagementTeam.engagement_id == done.id, EngagementTeam.deleted_at.is_(None))):
         m.db.add(EngagementTeam(organization_id=cid, engagement_id=e.id, user_id=t.user_id, role=t.role, conflict_confirmed_at=t.conflict_confirmed_at))
+    for r in m.db.scalars(select(ClientRequirement).where(ClientRequirement.engagement_id == done.id, ClientRequirement.deleted_at.is_(None))):
+        m.db.add(ClientRequirement(organization_id=cid, engagement_id=e.id, regulation_id=r.regulation_id, source=r.source, reason_text=r.reason_text, in_scope=r.in_scope, notes=r.notes, free_text=r.free_text))
+    for c in m.db.scalars(select(ClientContact).where(ClientContact.engagement_id == done.id, ClientContact.deleted_at.is_(None))):
+        m.db.add(ClientContact(organization_id=cid, engagement_id=e.id, contact_role=c.contact_role, name=c.name, title=c.title, email=c.email, phone=c.phone, not_appointed=c.not_appointed, user_id=c.user_id))
     transition(m.db, aud, e, "pending_approval")
     m.db.commit()
 
