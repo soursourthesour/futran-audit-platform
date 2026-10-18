@@ -194,3 +194,27 @@ def public_confirm_post(token: str, payload: dict, request: Request, db: Session
     limiter(request, "confirm", 30).check(f"{token}:{client_ip(request)}")
     inv.confirm(db, token, payload, request)
     return {"received": True}
+
+
+class UnableIn(BaseModel):
+    reason: str | None = None
+
+
+@router.post("/named-users/{named_user_id}/unable")
+def mark_unable(named_user_id: str, body: UnableIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    """The Department Lead records that a named user cannot confirm (left, on leave), so sign-off 2 can proceed (§8a)."""
+    from app.audit_log import service as audit
+    from app.core.errors import Invalid
+    from app.inventory.models import NamedUser
+
+    n = db.get(NamedUser, named_user_id)
+    uc = db.get(UseCase, n.use_case_id) if n is not None and n.deleted_at is None else None
+    if uc is None or uc.deleted_at is not None:
+        raise NotFound()
+    authorize(db, actor, Action.APPROVE_USE_CASE, engagement_id=uc.engagement_id, department_id=uc.department_id)
+    reason = " ".join(str(body.reason or "").split())
+    if not reason:
+        raise Invalid(errors=[{"field": "reason", "message": "Say why this person cannot confirm."}])
+    n.unable_reason, n.unable_marked_by = reason[:2000], actor.id
+    audit.record(db, actor_id=actor.id, action="inventory.named_user_unable", obj=n, after={"reason": n.unable_reason}, summary=f"Marked {n.person_name} unable to confirm ({uc.name})")
+    return {"ok": True}

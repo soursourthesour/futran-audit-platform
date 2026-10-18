@@ -8,10 +8,15 @@ export type SignOffView = {
   parties: { role: string; role_label: string; signed: boolean; signed_by: string | null; signed_at: string | null }[];
   document: { id: string; title: string; pdf_file_id: string | null; docx_file_id: string | null } | null;
   can_sign: boolean; my_name: string;
+  version?: number; comment?: string | null; statement?: string | null; correction_reason?: string | null; preparer?: string | null; can_return?: boolean;
+};
+
+const STATUS: Record<string, { label: string; tone: 'success' | 'warn' | 'danger' | 'navy' }> = {
+  approved: { label: 'Approved', tone: 'success' }, returned: { label: 'Returned', tone: 'danger' }, in_review: { label: 'Awaiting signatures', tone: 'warn' }, pending: { label: 'Awaiting signatures', tone: 'warn' },
 };
 
 /** Click-to-sign (schematic D8): open the document, type your name, sign. */
-export function SignPanel({ signOffId, onSigned }: { signOffId: string; onSigned?: () => void }) {
+export function SignPanel({ signOffId, onSigned, agreeText, hideTitle }: { signOffId: string; onSigned?: () => void; agreeText?: string; hideTitle?: boolean }) {
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ['signoff', signOffId], queryFn: () => api.get<SignOffView>(`/signoffs/${signOffId}`) });
   const [name, setName] = useState('');
@@ -19,6 +24,8 @@ export function SignPanel({ signOffId, onSigned }: { signOffId: string; onSigned
   const [err, setErr] = useState<string | null>(null);
   const [fe, setFe] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [returning, setReturning] = useState(false);
+  const [comment, setComment] = useState('');
   if (q.isLoading || !q.data) return <Loading />;
   const so = q.data;
 
@@ -36,12 +43,20 @@ export function SignPanel({ signOffId, onSigned }: { signOffId: string; onSigned
     }
   }
 
+  async function sendBack() {
+    setErr(null); setFe({});
+    try { await api.post(`/signoffs/${signOffId}/return`, { comment }); await qc.invalidateQueries(); setReturning(false); onSigned?.(); } catch (ex) { setErr(errorMessage(ex)); setFe(fieldErrors(ex)); }
+  }
+  const st = STATUS[so.status] ?? STATUS.pending;
   return (
     <div className="stack">
-      <div className="row" style={{ justifyContent: 'space-between' }}>
-        <strong>Sign-off {so.number}: {so.title}</strong>
-        {so.status === 'approved' ? <Badge tone="success">Approved</Badge> : <Badge tone="warn">Awaiting signatures</Badge>}
+      <div className="row" style={{ justifyContent: 'space-between', gap: 8 }}>
+        {hideTitle ? <span className="small muted">{so.preparer ? `Prepared by ${so.preparer}` : ''}{so.version && so.version > 1 ? ` · version ${so.version}` : ''}</span> : <strong>Sign-off {so.number}: {so.title}{so.version && so.version > 1 ? ` (version ${so.version})` : ''}</strong>}
+        <Badge tone={st.tone}>{st.label}</Badge>
       </div>
+      {so.correction_reason && <p className="small" style={{ margin: 0 }}>Reopened: {so.correction_reason}</p>}
+      {so.status === 'returned' && so.comment && <Alert tone="warn">Returned: {so.comment}</Alert>}
+      {so.statement && <blockquote className="statement">{so.statement}</blockquote>}
       {so.document && (
         <p className="small">
           Read the document before signing: {so.document.pdf_file_id && <a href={fileUrl(so.document.pdf_file_id)}>PDF</a>}
@@ -57,9 +72,18 @@ export function SignPanel({ signOffId, onSigned }: { signOffId: string; onSigned
         <form className="stack" onSubmit={submit} noValidate>
           {err && <Alert tone="danger">{err}</Alert>}
           <TextField label="Type your full name to sign" value={name} onChange={(e) => setName(e.target.value)} placeholder={so.my_name} error={fe.typed_name} autoComplete="name" />
-          <label className="check"><input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} /><span>I have read the document and agree to it. Typing my name and selecting Sign is my signature.</span></label>
-          <div><Button type="submit" variant="primary" disabled={!agree || !name.trim() || busy}>Sign</Button></div>
+          <label className="check"><input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} /><span>{agreeText ?? 'I have read the document and agree to it.'} Typing my name and selecting Sign is my signature.</span></label>
+          <div className="row" style={{ gap: 8 }}>
+            <Button type="submit" variant="primary" disabled={!agree || !name.trim() || busy}>Sign</Button>
+            {so.can_return && !returning && <Button onClick={() => setReturning(true)}>Return with a comment</Button>}
+          </div>
         </form>
+      )}
+      {returning && (
+        <div className="stack-sm">
+          <TextField label="What needs to change" value={comment} onChange={(e) => setComment(e.target.value)} error={fe.comment} />
+          <div className="row" style={{ gap: 8 }}><Button onClick={sendBack}>Return to preparer</Button><Button variant="ghost" onClick={() => setReturning(false)}>Cancel</Button></div>
+        </div>
       )}
     </div>
   );

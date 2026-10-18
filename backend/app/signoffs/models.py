@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.models import Base, TimestampedTenantMixin
@@ -39,6 +39,9 @@ class SignOff(TimestampedTenantMixin, Base):
     version: Mapped[int] = mapped_column(Integer, default=1)
     supersedes_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("sign_offs.id"))
     correction_reason: Mapped[str | None] = mapped_column(Text)
+    sequential: Mapped[bool] = mapped_column(Boolean, default=False)  # reviewer signs before approver (sign-offs 2–8)
+    fallback_roles: Mapped[list] = mapped_column(JSON, default=list)  # roles standing in for one not appointed (DPO/Sponsor → CAICO)
+    statement: Mapped[str | None] = mapped_column(Text)  # the text signed when there is no package document (management representation)
 
 
 class Signature(TimestampedTenantMixin, Base):

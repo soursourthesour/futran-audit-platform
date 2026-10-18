@@ -126,3 +126,21 @@ def advance_if_ready(db: Session, actor: User, e: Engagement | None) -> None:
     """Move on automatically when the current stage's exit gate is met (called after the events that can meet it)."""
     if e is not None and e.status in ("initiated", "in_progress") and e.stage < 9 and gate_status(db, e).ready:
         advance_stage(db, actor, e)
+
+
+@register(4)
+def _stage4(db: Session, e: Engagement) -> GateResult:
+    """Client review ends when sign-offs 2 (every department), 3 and 4 are approved; the snapshot is then locked (spec §7)."""
+    from app.signoffs.client_review import in_scope_departments
+    from app.signoffs.service import current
+
+    unmet = []
+    for d in in_scope_departments(db, e):
+        so = current(db, e, 2, d.id)
+        if so is None or so.status != "approved":
+            unmet.append(f"Sign-off 2 for {d.name} is not approved yet.")
+    for n, label in ((3, "Sign-off 3 (data categories for Tier 2–3 use cases)"), (4, "Sign-off 4 (management representation)")):
+        so = current(db, e, n)
+        if so is None or so.status != "approved":
+            unmet.append(f"{label} is not approved yet.")
+    return _result(unmet)

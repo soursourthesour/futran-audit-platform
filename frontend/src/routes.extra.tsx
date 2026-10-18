@@ -21,6 +21,7 @@ import { SystemPrefill, SystemsPrefillList } from '@/screens/client/SystemPrefil
 import { DocumentRegister } from '@/screens/futran/DocumentRegister';
 import { SystemScore } from '@/screens/futran/SystemScore';
 import { DocumentUploads } from '@/screens/client/DocumentUploads';
+import { InventoryReview } from '@/screens/client/InventoryReview';
 
 /** Screens added by later tasks register here, so routes.tsx stays stable. */
 export const futranRoutes: RouteObject[] = [
@@ -44,5 +45,5 @@ export const futranRoutes: RouteObject[] = [
   { path: '/clients/:clientId/documents', element: <DocumentRegister /> },
   { path: '/systems/:systemId/score', element: <SystemScore /> },
 ];
-export const clientRoutes: RouteObject[] = [{ path: '/users', element: <UsersDepartments /> }, { path: '/governance', element: <Governance /> }, { path: '/attestation', element: <AttestationTracker /> }, { path: '/inventory', element: <Inventory /> }, { path: '/inventory/new', element: <UseCaseForm /> }, { path: '/inventory/:useCaseId', element: <UseCaseForm /> }, { path: '/systems', element: <SystemsPrefillList /> }, { path: '/systems/:systemId', element: <SystemPrefill /> }, { path: '/documents', element: <DocumentUploads /> }];
+export const clientRoutes: RouteObject[] = [{ path: '/users', element: <UsersDepartments /> }, { path: '/governance', element: <Governance /> }, { path: '/attestation', element: <AttestationTracker /> }, { path: '/inventory', element: <Inventory /> }, { path: '/inventory/new', element: <UseCaseForm /> }, { path: '/inventory/:useCaseId', element: <UseCaseForm /> }, { path: '/systems', element: <SystemsPrefillList /> }, { path: '/systems/:systemId', element: <SystemPrefill /> }, { path: '/documents', element: <DocumentUploads /> }, { path: '/review', element: <InventoryReview /> }];
 export const publicRoutes: RouteObject[] = [{ path: '/attest/:token', element: <PhoneAttestation /> }, { path: '/confirm/:token', element: <NamedUserConfirm /> }];

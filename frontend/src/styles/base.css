@@ -208,3 +208,4 @@ table.table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .bell-panel .t { font-size: 14px; font-weight: 600; }
 .bell-panel .b { font-size: 13px; color: var(--muted); }
 .bell-panel .d { font-size: 12px; color: var(--muted); }
+.statement { margin: 0; padding: 12px 16px; border-left: 3px solid var(--navy); background: #f3f7fd; font-size: 15px; line-height: 1.55; }

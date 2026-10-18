@@ -72,6 +72,8 @@ class NamedUser(TimestampedTenantMixin, Base):
     training_complete: Mapped[bool | None] = mapped_column(Boolean)
     policy_acknowledged: Mapped[bool | None] = mapped_column(Boolean)
     oversight_role_confirmed: Mapped[bool | None] = mapped_column(Boolean)
+    unable_reason: Mapped[str | None] = mapped_column(Text)  # Department Lead: this person cannot confirm (§8a)
+    unable_marked_by: Mapped[str | None] = mapped_column(String(36))
 
 
 class NamedUserLink(TimestampedTenantMixin, Base):
@@ -89,3 +91,26 @@ class NamedUserLink(TimestampedTenantMixin, Base):
     policy_acknowledged: Mapped[bool | None] = mapped_column(Boolean)
     oversight_role_confirmed: Mapped[bool | None] = mapped_column(Boolean)
     unable_reason: Mapped[str | None] = mapped_column(Text)
+
+
+class InventorySnapshot(TimestampedTenantMixin, Base):
+    """The client's inventory and pre-fill answers, frozen when sign-off 4 is approved (spec §7 stage 4)."""
+
+    __tablename__ = "inventory_snapshots"
+
+    engagement_id: Mapped[str] = mapped_column(String(36), ForeignKey("engagements.id"), index=True)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    locked_at: Mapped[datetime] = mapped_column(DateTime)
+    sign_off_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("sign_offs.id"))
+    payload: Mapped[dict] = mapped_column(JSON)
+
+
+class SnapshotAddendum(TimestampedTenantMixin, Base):
+    """Something that arrived after the lock (a late named-user confirmation). Appended, never merged into the snapshot."""
+
+    __tablename__ = "snapshot_addenda"
+
+    snapshot_id: Mapped[str] = mapped_column(String(36), ForeignKey("inventory_snapshots.id"), index=True)
+    kind: Mapped[str] = mapped_column(String(40))
+    payload: Mapped[dict] = mapped_column(JSON)
+    recorded_at: Mapped[datetime] = mapped_column(DateTime)

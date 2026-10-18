@@ -63,7 +63,7 @@ export function FutranShell() {
 }
 
 /** Client screens that exist so far; later phases add theirs here. */
-const BUILT_CLIENT_ROUTES = new Set(['/start', '/users', '/governance', '/attestation', '/inventory', '/systems', '/documents']);
+const BUILT_CLIENT_ROUTES = new Set(['/start', '/users', '/governance', '/attestation', '/inventory', '/systems', '/documents', '/review']);
 
 export function ClientShell() {
   const { data: me } = useMe();
@@ -74,6 +74,7 @@ export function ClientShell() {
     { to: '/governance', label: 'Governance', show: hasRole(me, 'caico', 'dpo', 'exec_sponsor') },
     { to: '/attestation', label: 'Attestation', show: hasRole(me, 'caico', 'dpo', 'dept_compliance_lead') },
     { to: '/inventory', label: 'AI inventory' },
+    { to: '/review', label: 'Review', show: hasRole(me, 'caico', 'dpo', 'exec_sponsor', 'dept_compliance_lead', 'contributor') },
     { to: '/systems', label: 'AI systems', show: hasRole(me, 'caico', 'dept_compliance_lead', 'contributor') },
     { to: '/documents', label: 'Documents', show: hasRole(me, 'caico', 'dpo', 'dept_compliance_lead', 'contributor') },
     { to: '/report', label: 'Report' },

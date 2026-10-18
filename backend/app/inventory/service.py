@@ -350,5 +350,12 @@ def confirm(db: Session, token: str, payload: dict, request=None) -> NamedUserLi
     link.completed_at = utcnow()
     n.training_complete, n.policy_acknowledged, n.oversight_role_confirmed = link.training_complete, link.policy_acknowledged, link.oversight_role_confirmed
     db.flush()
+    from app.inventory.snapshot import add_snapshot_addendum, current_snapshot
+
+    uc = db.get(UseCase, n.use_case_id)
+    snap = current_snapshot(db, db.get(Engagement, uc.engagement_id)) if uc else None
+    if snap is not None:  # arrived after the lock: recorded as a dated addendum, the snapshot itself is unchanged
+        add_snapshot_addendum(db, snap, "named_user_confirmation", {"person_name": n.person_name, "use_case": uc.name, "training_complete": n.training_complete,
+                                                                     "policy_acknowledged": n.policy_acknowledged, "oversight_role_confirmed": n.oversight_role_confirmed, "unable_reason": link.unable_reason})
     audit.record(db, actor_id=None, actor_name=n.person_name, action="inventory.named_user_confirm", obj=n, request=request, after={"training_complete": n.training_complete, "policy_acknowledged": n.policy_acknowledged, "oversight_role_confirmed": n.oversight_role_confirmed}, summary=f"{n.person_name} answered the use-case confirmation")
     return link
