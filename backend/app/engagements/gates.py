@@ -193,3 +193,17 @@ def _stage8(db: Session, e: Engagement) -> GateResult:
     if requires_public_summary(db, e) and not signoff_approved(db, e, 8):
         unmet.append("Sign-off 8 (public summary) is not approved yet.")
     return _result(unmet)
+
+
+@register(7)
+def _stage7(db: Session, e: Engagement) -> GateResult:
+    """Response ends when the client accepts the remediation plan (sign-off 6)."""
+    return _result([] if signoff_approved(db, e, 6) else ["Sign-off 6 (management responses and remediation plan) is not approved yet."])
+
+
+@register(9)
+def _stage9(db: Session, e: Engagement) -> GateResult:
+    """Remediation ends when every item is closed; the engagement is then completed."""
+    from app.remediation.service import items_for
+
+    return _result([f"Not closed yet: {i.action[:80]}" for i in items_for(db, e) if i.status != "closed"])

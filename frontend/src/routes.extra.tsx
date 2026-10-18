@@ -24,6 +24,8 @@ import { FieldworkUseCase } from '@/screens/futran/FieldworkUseCase';
 import { FindingsQA } from '@/screens/futran/FindingsQA';
 import { FinalReport } from '@/screens/futran/FinalReport';
 import { ClientReport } from '@/screens/client/Report';
+import { ManagementResponse } from '@/screens/client/ManagementResponse';
+import { Remediation } from '@/screens/shared/Remediation';
 import { DocumentUploads } from '@/screens/client/DocumentUploads';
 import { InventoryReview } from '@/screens/client/InventoryReview';
 
@@ -51,6 +53,8 @@ export const futranRoutes: RouteObject[] = [
   { path: '/clients/:clientId/fieldwork/:useCaseId', element: <FieldworkUseCase /> },
   { path: '/clients/:clientId/findings', element: <FindingsQA /> },
   { path: '/clients/:clientId/report', element: <FinalReport /> },
+  { path: '/clients/:clientId/responses', element: <ManagementResponse /> },
+  { path: '/clients/:clientId/remediation', element: <Remediation /> },
 ];
-export const clientRoutes: RouteObject[] = [{ path: '/users', element: <UsersDepartments /> }, { path: '/governance', element: <Governance /> }, { path: '/attestation', element: <AttestationTracker /> }, { path: '/inventory', element: <Inventory /> }, { path: '/inventory/new', element: <UseCaseForm /> }, { path: '/inventory/:useCaseId', element: <UseCaseForm /> }, { path: '/systems', element: <SystemsPrefillList /> }, { path: '/systems/:systemId', element: <SystemPrefill /> }, { path: '/documents', element: <DocumentUploads /> }, { path: '/review', element: <InventoryReview /> }, { path: '/report', element: <ClientReport /> }];
+export const clientRoutes: RouteObject[] = [{ path: '/users', element: <UsersDepartments /> }, { path: '/governance', element: <Governance /> }, { path: '/attestation', element: <AttestationTracker /> }, { path: '/inventory', element: <Inventory /> }, { path: '/inventory/new', element: <UseCaseForm /> }, { path: '/inventory/:useCaseId', element: <UseCaseForm /> }, { path: '/systems', element: <SystemsPrefillList /> }, { path: '/systems/:systemId', element: <SystemPrefill /> }, { path: '/documents', element: <DocumentUploads /> }, { path: '/review', element: <InventoryReview /> }, { path: '/report', element: <ClientReport /> }, { path: '/responses', element: <ManagementResponse /> }, { path: '/remediation', element: <Remediation /> }];
 export const publicRoutes: RouteObject[] = [{ path: '/attest/:token', element: <PhoneAttestation /> }, { path: '/confirm/:token', element: <NamedUserConfirm /> }];
