@@ -105,6 +105,15 @@ def _document_requests_due(db: Session, settings: Settings, today: date) -> int:
 DUE_SOON_SOURCES.append(_document_requests_due)
 
 
+def _evidence_requests_due(db: Session, settings: Settings, today: date) -> int:
+    from app.docrequests.evidence_requests import due_soon
+
+    return due_soon(db, settings, today)
+
+
+DUE_SOON_SOURCES.append(_evidence_requests_due)
+
+
 def run_escalations(db: Session, settings: Settings, now) -> int:
     from app.docrequests.service import escalate_due
 

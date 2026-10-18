@@ -144,3 +144,27 @@ def _stage4(db: Session, e: Engagement) -> GateResult:
         if so is None or so.status != "approved":
             unmet.append(f"{label} is not approved yet.")
     return _result(unmet)
+
+
+@register(5)
+def _stage5(db: Session, e: Engagement) -> GateResult:
+    """Fieldwork ends when every Tier 3 use case maps to a system, every system's assessment is complete and scored,
+    and every finding is submitted (schematic §8a)."""
+    from app.findings.models import Finding
+    from app.questionnaire.service import Target, questions_for, _responses
+    from app.scoring.service import latest
+    from app.systems.service import systems_for, unmapped_tier3
+
+    unmet = [f"{u.name} (Tier 3) is not mapped to a system." for u in unmapped_tier3(db, e)]
+    for s in systems_for(db, e):
+        t = Target(e, s)
+        rs = _responses(db, t)
+        missing = [q for q in questions_for(db, t, True) if q.required and (q.id not in rs or rs[q.id].status == "unanswered")]
+        if missing:
+            unmet.append(f"{s.reference_id} {s.name} has {len(missing)} required question{'s' if len(missing) != 1 else ''} unanswered.")
+        row = latest(db, s)
+        if row is None or row.inherent is None or row.maturity is None:
+            unmet.append(f"{s.reference_id} {s.name} is not scored yet.")
+    for f in db.scalars(select(Finding).where(Finding.engagement_id == e.id, Finding.deleted_at.is_(None), Finding.status.in_(["draft", "returned"])).order_by(Finding.ref)):
+        unmet.append(f"{f.ref} {f.title} is {'still a draft' if f.status == 'draft' else 'returned to its author'}. Submit it or dismiss it.")
+    return _result(unmet)

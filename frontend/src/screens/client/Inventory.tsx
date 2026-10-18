@@ -49,7 +49,7 @@ function InventoryView({ clientId }: { clientId: string }) {
                 <thead><tr><th>Use case</th><th>Department</th><th>Tool · account</th><th>Proposed</th><th>Final</th><th>Status</th></tr></thead>
                 <tbody>{d.use_cases.map((u) => (
                   <tr key={u.id}>
-                    <td><Link to={`${base}/${u.id}`}><strong>{u.name}</strong></Link>{u.returned_comment && u.status === 'returned' && <div className="small" style={{ color: 'var(--warn)' }}>{u.returned_comment}</div>}</td>
+                    <td><Link to={`${base}/${u.id}`}><strong>{u.name}</strong></Link>{d.is_futran && <> · <Link className="small" to={`/clients/${clientId}/fieldwork/${u.id}`}>Fieldwork</Link></>}{u.returned_comment && u.status === 'returned' && <div className="small" style={{ color: 'var(--warn)' }}>{u.returned_comment}</div>}</td>
                     <td>{u.department}</td><td className="small">{u.tools.join(', ')}</td>
                     <td>{tierBadge(u.proposed_tier)}</td><td>{tierBadge(u.final_tier)}</td>
                     <td><Badge tone={STATUS_LABELS[u.status]?.tone ?? 'muted'}>{STATUS_LABELS[u.status]?.label ?? u.status}</Badge></td>

@@ -37,3 +37,24 @@ class DocumentChase(TimestampedTenantMixin, Base):
     chased_at: Mapped[datetime] = mapped_column(DateTime)
     chased_by: Mapped[str | None] = mapped_column(String(36))
     note: Mapped[str | None] = mapped_column(Text)
+
+
+class EvidenceRequest(TimestampedTenantMixin, Base):
+    """A specific item the auditor asks for during fieldwork (spec §9.6), usually about one use case."""
+
+    __tablename__ = "evidence_requests"
+
+    engagement_id: Mapped[str] = mapped_column(String(36), ForeignKey("engagements.id"), index=True)
+    ref: Mapped[str] = mapped_column(String(10))  # ER-001 per engagement
+    use_case_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("use_cases.id"), index=True)
+    ai_system_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("ai_systems.id"))
+    description: Mapped[str] = mapped_column(Text)
+    requested_by: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"))
+    owner_user_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("users.id"))
+    due_date: Mapped[date] = mapped_column(Date)
+    status: Mapped[str] = mapped_column(String(12), default="outstanding")  # outstanding | received | answered | waived
+    answer: Mapped[str | None] = mapped_column(Text)
+    file_ids: Mapped[list] = mapped_column(JSON, default=list)
+    waived_reason: Mapped[str | None] = mapped_column(Text)
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime)
+    due_warned_at: Mapped[datetime | None] = mapped_column(DateTime)

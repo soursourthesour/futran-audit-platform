@@ -165,3 +165,80 @@ def mine(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
                 continue
         out.append(request_out(db, r, False))
     return {"requests": out, "due": out[0]["due_at"] if out else None}
+
+
+# ---- fieldwork evidence requests
+from app.docrequests import evidence_requests as er  # noqa: E402
+from app.docrequests.models import EvidenceRequest  # noqa: E402
+from app.inventory.models import UseCase  # noqa: E402
+
+
+class AnswerIn(BaseModel):
+    answer: str | None = None
+
+
+class WaiveIn(BaseModel):
+    reason: str | None = None
+
+
+@router.post("/use-cases/{uc_id}/evidence-requests")
+def create_evidence_request(uc_id: str, data: dict, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    uc = db.get(UseCase, uc_id)
+    if uc is None or uc.deleted_at is not None or not actor.is_futran:
+        raise NotFound()
+    authorize(db, actor, Action.MANAGE_DOCUMENT_REQUESTS, engagement_id=uc.engagement_id)
+    return er.request_out(db, er.create(db, request.app.state.settings, actor.user, db.get(Engagement, uc.engagement_id), data, uc), True)
+
+
+def _er(db: Session, actor: Actor, req_id: str) -> EvidenceRequest:
+    r = db.get(EvidenceRequest, req_id)
+    if r is None or r.deleted_at is not None:
+        raise NotFound()
+    if actor.is_futran:
+        authorize(db, actor, Action.MANAGE_DOCUMENT_REQUESTS, engagement_id=r.engagement_id)
+    else:
+        authorize(db, actor, Action.VIEW_ENGAGEMENT, engagement_id=r.engagement_id)
+        if r.owner_user_id != actor.id and not actor.has_role("caico"):
+            raise NotFound()
+    return r
+
+
+@router.post("/evidence-requests/{req_id}/answer")
+def answer_evidence_request(req_id: str, body: AnswerIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    r = _er(db, actor, req_id)
+    return er.request_out(db, er.answer(db, actor.user, r, body.answer), actor.is_futran)
+
+
+@router.post("/evidence-requests/{req_id}/files")
+def evidence_request_file(req_id: str, request: Request, file: UploadFile = File(...), actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    r = _er(db, actor, req_id)
+    settings = request.app.state.settings
+    data = file.file.read(settings.max_upload_mb * 1024 * 1024 + 1)
+    if not data:
+        raise Invalid(errors=[{"field": "file", "message": "The file is empty."}])
+    f = upload(db, settings, actor.user, data=data, filename=file.filename or "evidence", content_type=file.content_type, organization_id=r.organization_id,
+               engagement_id=r.engagement_id, linked_type="evidence", linked_id=r.engagement_id)
+    return er.request_out(db, er.add_file(db, actor.user, r, f.id), actor.is_futran)
+
+
+@router.post("/evidence-requests/{req_id}/waive")
+def waive_evidence_request(req_id: str, body: WaiveIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    if not actor.is_futran:
+        raise NotFound()
+    r = _er(db, actor, req_id)
+    return er.request_out(db, er.waive(db, actor.user, r, body.reason), True)
+
+
+@router.get("/me/evidence-requests")
+def my_evidence_requests(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    if actor.is_futran:
+        raise NotFound()
+    from sqlalchemy import select
+
+    e = current_engagement(db, actor.organization)
+    if e is None:
+        return {"requests": []}
+    authorize(db, actor, Action.VIEW_ENGAGEMENT, engagement_id=e.id)
+    q = select(EvidenceRequest).where(EvidenceRequest.engagement_id == e.id, EvidenceRequest.deleted_at.is_(None)).order_by(EvidenceRequest.ref)
+    rows = [r for r in db.scalars(q) if actor.has_role("caico") or r.owner_user_id == actor.id]
+    return {"requests": [er.request_out(db, r, False) for r in rows]}

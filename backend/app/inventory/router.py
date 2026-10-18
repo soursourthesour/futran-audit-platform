@@ -218,3 +218,14 @@ def mark_unable(named_user_id: str, body: UnableIn, actor: Actor = Depends(curre
     n.unable_reason, n.unable_marked_by = reason[:2000], actor.id
     audit.record(db, actor_id=actor.id, action="inventory.named_user_unable", obj=n, after={"reason": n.unable_reason}, summary=f"Marked {n.person_name} unable to confirm ({uc.name})")
     return {"ok": True}
+
+
+@router.get("/use-cases/{uc_id}/fieldwork")
+def fieldwork(uc_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    """Screen 16, Futran only."""
+    from app.inventory.fieldwork import fieldwork_view
+
+    if not actor.is_futran:
+        raise NotFound()
+    uc = _uc(db, actor, uc_id, Action.VIEW_INVENTORY)
+    return fieldwork_view(db, uc)

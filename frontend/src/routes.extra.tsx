@@ -20,6 +20,7 @@ import { SystemAssessment } from '@/screens/futran/SystemAssessment';
 import { SystemPrefill, SystemsPrefillList } from '@/screens/client/SystemPrefill';
 import { DocumentRegister } from '@/screens/futran/DocumentRegister';
 import { SystemScore } from '@/screens/futran/SystemScore';
+import { FieldworkUseCase } from '@/screens/futran/FieldworkUseCase';
 import { DocumentUploads } from '@/screens/client/DocumentUploads';
 import { InventoryReview } from '@/screens/client/InventoryReview';
 
@@ -44,6 +45,7 @@ export const futranRoutes: RouteObject[] = [
   { path: '/systems/:systemId/assess', element: <SystemAssessment /> },
   { path: '/clients/:clientId/documents', element: <DocumentRegister /> },
   { path: '/systems/:systemId/score', element: <SystemScore /> },
+  { path: '/clients/:clientId/fieldwork/:useCaseId', element: <FieldworkUseCase /> },
 ];
 export const clientRoutes: RouteObject[] = [{ path: '/users', element: <UsersDepartments /> }, { path: '/governance', element: <Governance /> }, { path: '/attestation', element: <AttestationTracker /> }, { path: '/inventory', element: <Inventory /> }, { path: '/inventory/new', element: <UseCaseForm /> }, { path: '/inventory/:useCaseId', element: <UseCaseForm /> }, { path: '/systems', element: <SystemsPrefillList /> }, { path: '/systems/:systemId', element: <SystemPrefill /> }, { path: '/documents', element: <DocumentUploads /> }, { path: '/review', element: <InventoryReview /> }];
 export const publicRoutes: RouteObject[] = [{ path: '/attest/:token', element: <PhoneAttestation /> }, { path: '/confirm/:token', element: <NamedUserConfirm /> }];
