@@ -278,6 +278,9 @@ def review_use_case(db: Session, actor: User, uc: UseCase, approve: bool, commen
 
 
 def set_final_tier(db: Session, settings: Settings, actor: User, uc: UseCase, tier: int, rationale: str, aedt_determination: str | None = None) -> UseCase:
+    from app.findings.service import assert_open
+
+    assert_open(db, db.get(Engagement, uc.engagement_id))  # sign-off 5 locks the final tiers
     if tier not in (1, 2, 3):
         raise Invalid(errors=[{"field": "tier", "message": "Choose tier 1, 2 or 3."}])
     if not (rationale or "").strip():

@@ -34,6 +34,11 @@ class Finding(TimestampedTenantMixin, Base):
     origin: Mapped[str] = mapped_column(String(14), default="manual")  # manual | auto_response | document_request
     confirmed_at: Mapped[datetime | None] = mapped_column(DateTime)  # an auditor accepted an auto draft
     confirmed_by: Mapped[str | None] = mapped_column(String(36))
+    review_role: Mapped[str | None] = mapped_column(String(14))  # chief_auditor | qa_reviewer (when the author is the Chief Auditor)
+    review_comment: Mapped[str | None] = mapped_column(Text)
+    submitted_at: Mapped[datetime | None] = mapped_column(DateTime)
+    submitted_by: Mapped[str | None] = mapped_column(String(36))
+    editor_ids: Mapped[list] = mapped_column(JSON, default=list)
 
 
 class DraftFindingLink(TimestampedTenantMixin, Base):

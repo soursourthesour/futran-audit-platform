@@ -177,7 +177,7 @@ export function ClientPage() {
 
 export const WORK_AREAS = [
   ['governance', 'AI governance structure'], ['attestation', 'Employee attestation'], ['inventory', 'AI inventory and tiers'], ['systems', 'AI systems in scope'],
-  ['documents', 'Document requests'],
+  ['documents', 'Document requests'], ['findings', 'Findings'], ['report', 'Report'], ['remediation', 'Remediation'],
 ] as const;
 
 function WorkAreas({ clientId }: { clientId: string }) {

@@ -213,3 +213,6 @@ table.table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .list-rows li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line-soft); font-size: 14px; }
 .list-rows li:first-child { border-top: 0; }
 .nc-panel { border: 2px solid var(--warn-line); background: var(--warn-bg); padding: 16px; }
+.table tbody tr.selected td { background: #f3f7fd; }
+.table tbody tr.selected td:first-child { box-shadow: inset 3px 0 0 var(--navy); }
+.selected-panel { border: 2px solid var(--navy); padding: 18px; }

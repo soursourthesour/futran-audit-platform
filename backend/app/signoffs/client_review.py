@@ -72,3 +72,13 @@ so_svc.PRECONDITIONS[2] = [department_unmet]
 so_svc.PRECONDITIONS[3] = [signoff3_unmet]
 so_svc.PRECONDITIONS[4] = [signoff4_unmet]
 so_svc.ON_APPROVED[4] = [_lock]
+
+
+def _register_signoff5() -> None:
+    from app.findings.service import _lock_on_signoff5, signoff5_unmet
+
+    so_svc.PRECONDITIONS[5] = [signoff5_unmet]
+    so_svc.ON_APPROVED[5] = [_lock_on_signoff5]
+
+
+_register_signoff5()

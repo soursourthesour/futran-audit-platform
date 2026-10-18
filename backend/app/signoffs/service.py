@@ -203,6 +203,7 @@ SIGNOFF_SPECS: dict[int, SignOffSpec] = {
     2: SignOffSpec(2, ("contributor", "dept_compliance_lead", "caico"), ("dept_compliance_lead",), per_department=True),
     3: SignOffSpec(3, ("dept_compliance_lead", "caico"), ("dpo", "caico")),
     4: SignOffSpec(4, ("caico",), ("dpo", "exec_sponsor")),
+    5: SignOffSpec(5, ("auditor", "chief_auditor"), ("chief_auditor",)),
 }
 ON_APPROVED: dict[int, list] = {}
 PRECONDITIONS: dict[int, list] = {}
@@ -215,6 +216,8 @@ def resolve_signers(db: Session, e: Engagement, spec: SignOffSpec) -> tuple[list
 
     org = db.get(Organization, e.client_id)
     roles, fallback = [], []
+    if all(r in FUTRAN_SIGNER_ROLES for r in spec.signers):
+        return list(spec.signers), []
     for r in spec.signers:
         if r in FALLBACKS and not active_holders(db, org, r):
             r = FALLBACKS[r]
@@ -225,6 +228,8 @@ def resolve_signers(db: Session, e: Engagement, spec: SignOffSpec) -> tuple[list
 
 
 def _can_prepare(actor: Actor, spec: SignOffSpec, scope_ref: str | None) -> bool:
+    if all(r in FUTRAN_SIGNER_ROLES for r in spec.preparer_roles) != actor.is_futran:
+        return False
     for role in spec.preparer_roles:
         if spec.per_department and role in ("contributor", "dept_compliance_lead"):
             if actor.has_role(role, "department", scope_ref):
