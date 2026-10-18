@@ -38,7 +38,7 @@ Screenshots: `e2e/screenshots/` (one per screen from the browser tests; `demo/` 
 
 ## Decisions taken during the build
 
-The build ledger records 130 decisions where the spec was silent or two parts of it pulled in different directions. The ones a Futran reviewer should confirm:
+The build ledger records 127 decisions where the spec was silent or two parts of it pulled in different directions. The ones a Futran reviewer should confirm:
 
 1. **Sign-offs 2–4 open during discovery (stage 3).** Departments can sign off as soon as their inventory is approved, rather than waiting for the campaign to close.
 2. **The inventory locks at sign-off 4.** Later changes need the CAICO to correct sign-off 4, which re-locks a new snapshot version. Corrections are possible up to fieldwork (stage 5); fieldwork cannot finish, and sign-off 5 cannot be sent, while any of sign-offs 2–4 is reopened. From stage 6 the inventory is fixed.
