@@ -1,0 +1,12 @@
+**/node_modules
+**/.venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+backend/data
+backend/app/static
+e2e
+.superpowers
+.git
+.env
+*.zip
