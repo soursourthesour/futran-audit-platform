@@ -77,4 +77,7 @@ def current_actor(request: Request, db: Session = Depends(get_db)) -> Actor:
     settings: Settings = request.app.state.settings
     if settings.mfa_required and not s.mfa_passed:
         raise Forbidden("mfa_required")
-    return build_actor(db, s, request)
+    actor = build_actor(db, s, request)
+    if not actor.is_futran and actor.user.terms_accepted_at is None and not request.url.path.startswith("/api/v1/auth/"):
+        raise Forbidden("terms_required")
+    return actor

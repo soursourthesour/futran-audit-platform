@@ -42,3 +42,13 @@ class LoginAttempt(IdMixin, Base):
     email: Mapped[str] = mapped_column(String(254), index=True)
     ip: Mapped[str | None] = mapped_column(String(64))
     at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
+
+
+class MfaRecoveryCode(IdMixin, Base):
+    __tablename__ = "mfa_recovery_codes"
+
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), index=True)
+    organization_id: Mapped[str] = mapped_column(String(36), index=True)
+    code_hash: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    used_at: Mapped[datetime | None] = mapped_column(DateTime)

@@ -38,6 +38,7 @@ export const futranRoutes: RouteObject[] = [
   { path: '/clients/:clientId/inventory', element: <FutranInventory /> },
   { path: '/clients/:clientId/inventory/:useCaseId', element: <UseCaseForm /> },
   { path: '/clients/:clientId/systems', element: <SystemsRegister /> },
+  { path: '/clients/:clientId/people', element: <UsersDepartments /> },
   { path: '/clients/:clientId/assessment', element: <SystemAssessment /> },
   { path: '/systems/:systemId/assess', element: <SystemAssessment /> },
   { path: '/clients/:clientId/documents', element: <DocumentRegister /> },

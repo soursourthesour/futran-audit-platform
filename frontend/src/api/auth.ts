@@ -10,6 +10,7 @@ export type Me = {
   mfa_required: boolean;
   email_mode: string;
   csrf_token: string;
+  terms_required?: boolean;
 };
 export type SessionState = {
   authenticated: boolean;
@@ -76,13 +77,13 @@ export function useMe() {
 
 export function useSignOut() {
   const qc = useQueryClient();
-  return async () => {
+  return async (staff?: boolean) => {
     try {
       await api.post('/auth/logout');
     } finally {
       setCsrf(null);
       qc.clear();
-      window.location.assign('/login');
+      window.location.assign(staff ? '/staff/login' : '/login');
     }
   };
 }

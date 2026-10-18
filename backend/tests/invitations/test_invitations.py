@@ -93,7 +93,7 @@ def test_accept_api_flow(client, db):
     db.commit()
     token = _token_from_last_email(db, u.email)
     info = client.get(f"/api/v1/invitations/accept/{token}").json()
-    assert info == {"email": "priya@abc.com", "name": "Priya Shah", "organization_name": "ABC Corp", "expired": False, "used": False}
+    assert info == {"email": "priya@abc.com", "name": "Priya Shah", "job_title": None, "organization_name": "ABC Corp", "roles": ["Chief AI Compliance Officer"], "expired": False, "used": False}
     r = client.post(f"/api/v1/invitations/accept/{token}", json={"password": "A-Long-Password-2026"})
     assert r.status_code == 200
     assert r.json()["csrf_token"]

@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 
 async function signIn(page: Page, email: string) {
-  await page.goto('/login');
+  await page.goto('/staff/login');
   await page.getByLabel('Work email').fill(email);
   await page.getByLabel('Password').fill('Demo-Password-2026');
   await page.getByRole('button', { name: 'Sign in' }).click();
@@ -107,9 +107,20 @@ test('auditor sets up a client, the Chief Auditor approves and the client signs 
 
   // Client accepts, reads the guide and signs
   await page.goto(link);
+  await expect(page.getByRole('heading', { name: 'Confirm your details' })).toBeVisible();
+  await expect(page.getByText('Chief AI Compliance Officer').first()).toBeVisible();
+  await page.screenshot({ path: 'screenshots/v03-accept-invitation.png' });
+  await page.getByRole('button', { name: 'These are my details' }).click();
+  await page.getByLabel('New password').fill('Password12345');
+  await page.getByLabel('Confirm password').fill('Password12345');
+  await page.getByRole('button', { name: 'Set password and continue' }).click();
+  await expect(page.getByText(/too common or appears in breached-password lists/)).toBeVisible();
   await page.getByLabel('New password').fill('Client-Password-2026');
   await page.getByLabel('Confirm password').fill('Client-Password-2026');
   await page.getByRole('button', { name: 'Set password and continue' }).click();
+  await expect(page.getByRole('heading', { name: 'Before you start' })).toBeVisible({ timeout: 15_000 });
+  await page.getByLabel(/I accept the terms of use/).check();
+  await page.getByRole('button', { name: 'Accept and continue' }).click();
   await expect(page.getByRole('heading', { name: 'Welcome to your AI governance assessment' })).toBeVisible({ timeout: 15_000 });
   await page.getByRole('button', { name: 'Mark as read' }).click();
   await expect(page.getByText('1 of 7 complete')).toBeVisible();

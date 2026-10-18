@@ -111,3 +111,18 @@ def revoke_pending_invitations(db: Session, user_id: str) -> int:
         inv.status = "revoked"
         n += 1
     return n
+
+
+def decline_invitation(db: Session, settings: Settings, raw: str) -> Invitation:
+    from app.notifications.service import notify
+
+    inv = find_invitation(db, raw)
+    if inv.status != "pending":
+        raise Conflict("This invitation is no longer active.")
+    inv.status = "revoked"
+    user = db.get(User, inv.user_id)
+    audit.record(db, actor_id=None, actor_name="Invitation recipient", action="invitation.declined", obj=inv, summary=f"The recipient of the invitation for {user.email} said it was not meant for them")
+    inviter = db.get(User, inv.created_by) if inv.created_by else None
+    if inviter is not None:
+        notify(db, [inviter], "invitation_declined", f"Invitation for {user.name} cancelled", f"The person who opened the invitation sent to {user.email} said it was not for them. Check the email address and invite again.", None, settings=settings)
+    return inv

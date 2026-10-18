@@ -19,6 +19,11 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 class LoginIn(BaseModel):
     email: str
     password: str
+    portal: str | None = None  # staff | client (spec v0.3 screens 1 and 9b)
+
+
+class TermsIn(BaseModel):
+    accepted: bool = False
 
 
 class CodeIn(BaseModel):
@@ -41,6 +46,14 @@ def set_session_cookie(response: Response, raw: str, settings: Settings) -> None
 def login(body: LoginIn, request: Request, response: Response, db: Session = Depends(get_db)):
     settings: Settings = request.app.state.settings
     user = authenticate(db, body.email, body.password, request)
+    from app.tenancy.models import Organization
+
+    side = "staff" if db.get(Organization, user.organization_id).type == "futran" else "client"
+    if body.portal in ("staff", "client") and body.portal != side:
+        audit.record(db, actor_id=user.id, action="auth.wrong_portal", obj=user, request=request, summary=f"Tried the {body.portal} sign-in")
+        db.commit()
+        raise Unauthorized("This is the Futran staff sign-in. Client users sign in on the client sign-in page." if side == "client"
+                           else "This is the client sign-in. Futran staff use the staff sign-in page.")
     enrolled = confirmed_mfa(db, user.id) is not None
     s, raw = create_session(db, user, settings, request, mfa_passed=not settings.mfa_required)
     audit.record(db, actor_id=user.id, action="auth.login", obj=user, request=request, summary="Signed in")
@@ -96,6 +109,12 @@ def mfa_verify(body: CodeIn, request: Request, response: Response, s: AuthSessio
         revoke(db, s)
         db.commit()
         raise TooManyAttempts(LOCKED)
+    from app.auth.recovery import issue_codes, use_code
+
+    if use_code(db, s.user_id, body.code):
+        s.mfa_passed = True
+        audit.record(db, actor_id=actor.id, action="auth.recovery_code_used", obj=actor.user, request=request, summary="Signed in with a recovery code")
+        return {"ok": True}
     rec = confirmed_mfa(db, s.user_id) or pending_mfa(db, s.user_id)
     step = None
     if rec is not None:
@@ -111,11 +130,12 @@ def mfa_verify(body: CodeIn, request: Request, response: Response, s: AuthSessio
         db.commit()
         raise Unauthorized("That code is not valid. Check the time on your phone and try the newest code.")
     rec.last_used_step = step
+    s.mfa_passed = True
     if rec.confirmed_at is None:
         rec.confirmed_at = utcnow()
         actor.user.mfa_enabled = True
         audit.record(db, actor_id=actor.id, action="auth.mfa_enrolled", obj=actor.user, request=request)
-    s.mfa_passed = True
+        return {"ok": True, "recovery_codes": issue_codes(db, actor.user)}
     return {"ok": True}
 
 
@@ -138,4 +158,22 @@ def me(request: Request, actor: Actor = Depends(current_actor)):
         "mfa_required": settings.mfa_required,
         "email_mode": settings.email_mode,
         "csrf_token": actor.session.csrf_token if actor.session else None,
+        "terms_required": terms_required(actor),
     }
+
+
+def terms_required(actor: Actor) -> bool:
+    return not actor.is_futran and actor.user.terms_accepted_at is None
+
+
+@router.post("/terms")
+def accept_terms(body: TermsIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    """Screen 9a, last step: the client user accepts the terms and that their actions are recorded in the audit log."""
+    from app.core.errors import Invalid
+
+    if not body.accepted:
+        raise Invalid(errors=[{"field": "accepted", "message": "Tick the box to accept the terms."}])
+    if actor.user.terms_accepted_at is None:
+        actor.user.terms_accepted_at = utcnow()
+        audit.record(db, actor_id=actor.id, action="auth.terms_accepted", obj=actor.user, request=request, summary="Accepted the terms of use and audit-log notice")
+    return {"ok": True}

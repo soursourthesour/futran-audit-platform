@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 
 async function signIn(page: Page, email: string) {
-  await page.goto('/login');
+  await page.goto('/staff/login');
   await page.getByLabel('Work email').fill(email);
   await page.getByLabel('Password').fill('Demo-Password-2026');
   await page.getByRole('button', { name: 'Sign in' }).click();
@@ -33,6 +33,6 @@ test('admin adds a Futran user, the invitation lands in the outbox and the audit
 test('auditor does not see admin navigation', async ({ page }) => {
   await signIn(page, 'auditor1@futran.demo');
   await expect(page.getByRole('link', { name: 'Users' })).toHaveCount(0);
-  await page.goto('/login');
+  await page.goto('/staff/login');
   await page.screenshot({ path: 'screenshots/p1-login.png' });
 });

@@ -2,6 +2,7 @@ import { useRef, useState, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
 import { useMe } from '@/api/auth';
+import { useParams } from 'react-router-dom';
 import { Alert, Badge, Button, Card, Checkbox, Dialog, EmptyState, Loading, PageHeader, SelectField, TextField } from '@/components/ui';
 
 type Role = { id: string; role: string; role_label: string; department: string | null; sign_off_role: boolean };
@@ -24,7 +25,8 @@ const DEPT_ROLES = new Set(['dept_compliance_lead', 'contributor']);
 
 export function UsersDepartments() {
   const { data: me } = useMe();
-  const cid = me?.organization.id ?? '';
+  const { clientId } = useParams();
+  const cid = clientId ?? me?.organization.id ?? '';
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ['people', cid], queryFn: () => api.get<People>(`/clients/${cid}/people`), enabled: !!cid });
   const [msg, setMsg] = useState<{ tone: 'success' | 'danger' | 'warn'; text: string } | null>(null);

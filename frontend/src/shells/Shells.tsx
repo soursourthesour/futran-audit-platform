@@ -17,7 +17,7 @@ function UserMenu({ me }: { me: Me }) {
   return (
     <div className="shell-user">
       <span>{me.user.name} · {primaryRole(me)}</span>
-      <button type="button" onClick={signOut}>Sign out</button>
+      <button type="button" onClick={() => signOut(me.organization.type === 'futran')}>Sign out</button>
     </div>
   );
 }
@@ -26,8 +26,9 @@ export function RequireAuth({ children, side }: { children: ReactNode; side?: 'f
   const { data: me, isLoading } = useMe();
   const loc = useLocation();
   if (isLoading) return <Loading />;
-  if (!me) return <Navigate to={`/login?next=${encodeURIComponent(loc.pathname + loc.search)}`} replace />;
+  if (!me) return <Navigate to={`${side === 'futran' ? '/staff/login' : '/login'}?next=${encodeURIComponent(loc.pathname + loc.search)}`} replace />;
   if (side && me.organization.type !== side) return <Navigate to={me.organization.type === 'futran' ? '/audits' : '/start'} replace />;
+  if (me.terms_required) return <Navigate to="/welcome/terms" replace />;
   return <>{children}</>;
 }
 

@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { ClientShell, FutranShell, RequireAuth } from '@/shells/Shells';
-import { Login } from '@/screens/auth/Login';
+import { Login, StaffLogin } from '@/screens/auth/Login';
+import { Terms } from '@/screens/auth/Terms';
 import { MfaSetup, MfaVerify } from '@/screens/auth/Mfa';
 import { AcceptInvite } from '@/screens/auth/AcceptInvite';
 import { Dashboard } from '@/screens/futran/Dashboard';
@@ -19,6 +20,8 @@ function Home() {
 export const router = createBrowserRouter([
   { path: '/', element: <Home /> },
   { path: '/login', element: <Login /> },
+  { path: '/staff/login', element: <StaffLogin /> },
+  { path: '/welcome/terms', element: <Terms /> },
   { path: '/mfa', element: <MfaVerify /> },
   { path: '/mfa/setup', element: <MfaSetup /> },
   { path: '/invite', element: <AcceptInvite /> },

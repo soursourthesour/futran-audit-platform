@@ -1,6 +1,6 @@
-from datetime import date
+from datetime import date, datetime
 
-from sqlalchemy import JSON, Boolean, Date, ForeignKey, Index, Integer, String, UniqueConstraint, text
+from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, Index, Integer, String, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.models import Base, TimestampedTenantMixin
@@ -59,6 +59,7 @@ class User(TimestampedTenantMixin, Base):
     location: Mapped[str | None] = mapped_column(String(160))
     password_hash: Mapped[str | None] = mapped_column(String(255))
     mfa_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    terms_accepted_at: Mapped[datetime | None] = mapped_column(DateTime)  # client users accept the terms when they first sign in (screen 9a)
     sso_subject: Mapped[str | None] = mapped_column(String(255))
     status: Mapped[str] = mapped_column(String(10), default="invited")  # invited | active | disabled
 

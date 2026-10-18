@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors, setCsrf } from '@/api/client';
 import type { Me } from '@/api/auth';
@@ -7,10 +7,12 @@ import { Alert, Button, Loading, TextField } from '@/components/ui';
 import { AuthLayout } from './AuthLayout';
 import { homeFor } from './Login';
 
-type Info = { email: string; name: string; organization_name: string; expired: boolean; used: boolean };
+type Info = { email: string; name: string; job_title: string | null; organization_name: string; roles: string[]; expired: boolean; used: boolean };
 
+/** Screen 9a: confirm details → password → sign-in codes → terms → checklist. */
 export function AcceptInvite() {
   const { token } = useParams();
+  const [step, setStep] = useState<'details' | 'password' | 'declined'>('details');
   const [pw, setPw] = useState('');
   const [pw2, setPw2] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -36,17 +38,24 @@ export function AcceptInvite() {
       setFe(fieldErrors(err));
     }
   }
+  async function decline() {
+    setError(null);
+    try { await api.post(`/invitations/decline/${token}`); setStep('declined'); } catch (err) { setError(errorMessage(err)); }
+  }
 
   if (!token) {
     return (
       <AuthLayout>
-        <div className="panel"><h1>Use your invitation</h1><p className="muted">Open the link in your invitation email. It is for you only and expires 7 days after it was sent.</p></div>
+        <div className="panel"><h1>Use your invitation</h1><p className="muted">Open the link in your invitation email. It is for you only and expires 7 days after it was sent.</p><Link to="/login">Back to sign in</Link></div>
       </AuthLayout>
     );
   }
   if (info.isLoading) return <AuthLayout><Loading /></AuthLayout>;
   if (info.isError || !info.data) return <AuthLayout><div className="panel"><h1>Invitation not found</h1><Alert tone="danger">{errorMessage(info.error)}</Alert></div></AuthLayout>;
   const d = info.data;
+  if (step === 'declined') {
+    return <AuthLayout><div className="panel"><h1>Invitation cancelled</h1><p className="muted">Thank you. We have told the person who sent it, so they can check the email address. You can close this page.</p></div></AuthLayout>;
+  }
   if (d.expired || d.used) {
     return (
       <AuthLayout>
@@ -58,17 +67,38 @@ export function AcceptInvite() {
       </AuthLayout>
     );
   }
+  if (step === 'details') {
+    return (
+      <AuthLayout>
+        <div className="stack">
+          <div><div className="small muted">Step 1 of 4</div><h1>Confirm your details</h1></div>
+          {error && <Alert tone="danger">{error}</Alert>}
+          <dl className="details">
+            <dt>Name</dt><dd>{d.name}</dd>
+            <dt>Work email</dt><dd>{d.email}</dd>
+            {d.job_title && <><dt>Job title</dt><dd>{d.job_title}</dd></>}
+            <dt>Organization</dt><dd>{d.organization_name}</dd>
+            {d.roles.length > 0 && <><dt>Your role</dt><dd>{d.roles.join(', ')}</dd></>}
+          </dl>
+          <Button variant="primary" block onClick={() => setStep('password')}>These are my details</Button>
+          <Button variant="ghost" block onClick={decline}>Not you? Cancel this invitation</Button>
+        </div>
+      </AuthLayout>
+    );
+  }
   return (
     <AuthLayout>
-      <form onSubmit={submit} noValidate>
+      <form onSubmit={submit} noValidate className="stack">
         <div>
-          <h1>Welcome, {d.name}</h1>
-          <p className="muted" style={{ marginTop: 8 }}>Set a password for {d.email} to open the Futran Audit Platform for {d.organization_name}.</p>
+          <div className="small muted">Step 2 of 4</div>
+          <h1>Set a password</h1>
+          <p className="muted" style={{ marginTop: 8 }}>For {d.email}. Next you will set up sign-in codes on your phone.</p>
         </div>
         {error && <Alert tone="danger">{error}</Alert>}
-        <TextField label="New password" type="password" autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} help="At least 12 characters. Do not reuse your email address." error={fe.password} />
+        <TextField label="New password" type="password" autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} help="At least 12 characters. Common or breached passwords are refused." error={fe.password} />
         <TextField label="Confirm password" type="password" autoComplete="new-password" value={pw2} onChange={(e) => setPw2(e.target.value)} error={fe.password2} />
         <Button type="submit" variant="primary" block>Set password and continue</Button>
+        <Button variant="ghost" block onClick={() => setStep('details')}>Back</Button>
       </form>
     </AuthLayout>
   );

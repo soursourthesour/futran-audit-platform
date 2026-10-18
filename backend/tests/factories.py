@@ -29,10 +29,13 @@ def make_department(db, org, name="Human Resources", **kw):
     return create_department(db, org, name=name, **kw)
 
 
-def login_as(client, db, user):
-    """Give `client` a signed-in, MFA-passed session for `user`; returns the client."""
+def login_as(client, db, user, accept_terms=True):
+    """Give `client` a signed-in, MFA-passed session for `user` (client users have accepted the terms); returns the client."""
     from app.auth.sessions import COOKIE_NAME, create_session
+    from app.core.clock import utcnow
 
+    if accept_terms and user.terms_accepted_at is None:
+        user.terms_accepted_at = utcnow()
     settings = client.app.state.settings
     s, raw = create_session(db, user, settings, mfa_passed=True)
     db.commit()
