@@ -119,6 +119,15 @@ def cmd_seed_e2e(args) -> int:
 
     settings, db = _session()
     _require_test_mode(settings)
+    if getattr(args, "late", False):
+        import json
+
+        from app.demo.seed_demo import e2e_late
+
+        out = e2e_late(db, settings)
+        db.commit()
+        print(json.dumps(out))
+        return 0
     org = _futran_org(db)
     people = [
         ("Ada Admin", "admin@futran.demo", "admin"),
@@ -182,7 +191,9 @@ def main(argv: list[str] | None = None) -> int:
     al.add_argument("--grant-admin", action="store_true", help="give an existing Futran user the administrator role")
     al.set_defaults(func=cmd_admin_link)
     sub.add_parser("seed-reference").set_defaults(func=cmd_seed_reference)
-    sub.add_parser("seed-e2e").set_defaults(func=cmd_seed_e2e)
+    se = sub.add_parser("seed-e2e")
+    se.add_argument("--late", action="store_true", help="ABC Corp at stage 6 and Meridian at stage 3, for the review-to-close journey")
+    se.set_defaults(func=cmd_seed_e2e)
     sub.add_parser("reset-demo").set_defaults(func=cmd_reset_demo)
     args = p.parse_args(argv)
     return args.func(args)

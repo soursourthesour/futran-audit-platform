@@ -153,7 +153,7 @@ function RoadmapCard({ clientId, d, approved, run }: { clientId: string; d: Data
             <thead><tr><th>Ref</th><th>Recommended action</th><th>Owner</th><th>Priority</th><th>Target date</th><th>How Futran can help</th>{d.can_edit && <th />}</tr></thead>
             <tbody>{d.roadmap.map((r) => (
               <tr key={r.id}>
-                <td>{r.ref}</td><td>{r.action}{r.finding_refs.length > 0 && <div className="small muted">{r.finding_refs.join(', ')}</div>}</td><td>{r.owner ?? '—'}</td>
+                <td style={{ whiteSpace: 'nowrap' }}>{r.ref}</td><td>{r.action}{r.finding_refs.length > 0 && <div className="small muted">{r.finding_refs.join(', ')}</div>}</td><td>{r.owner ?? '—'}</td>
                 <td><Badge tone={SEV_TONE[r.priority]}>{cap(r.priority)}</Badge></td><td>{fmtDate(r.target_date)}</td><td>{r.how_futran_can_help ?? '—'}</td>
                 {d.can_edit && <td><Button size="sm" variant="ghost" onClick={() => run(() => api.delete(`/roadmap-items/${r.id}`), `${r.ref} removed.`)}>Remove</Button></td>}
               </tr>
@@ -236,7 +236,7 @@ function PublicSummaryCard({ clientId, d, run }: { clientId: string; d: Data; ru
             {s.unmet.length > 0 && <ul className="small" style={{ margin: 0, paddingLeft: 18 }}>{s.unmet.map((m) => <li key={m}>{m}</li>)}</ul>}
             <div><Button disabled={s.unmet.length > 0} onClick={() => run(() => api.post(`/clients/${clientId}/signoffs/8/submit`, {}), 'Public summary sent to the CAICO for sign-off 8.')}>Send to the CAICO for sign-off 8</Button></div>
           </>
-        ) : s.text && <pre className="statement small" style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{s.text}</pre>}
+        ) : !so && s.text && <pre className="statement small" style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{s.text}</pre>}
         {so && <SignPanel signOffId={so.id} hideTitle onSigned={() => undefined} />}
       </div>
     </Card>

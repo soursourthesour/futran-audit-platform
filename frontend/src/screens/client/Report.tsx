@@ -77,7 +77,6 @@ export function ClientReport() {
           <Card title="Public summary · sign-off 8">
             <div className="stack">
               <p className="small muted" style={{ margin: 0 }}>Your organization publishes this summary. Approve the wording before it is released.</p>
-              {d.public_summary.text && <pre className="statement small" style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{d.public_summary.text}</pre>}
               <SignPanel signOffId={d.public_summary.sign_off.id} hideTitle onSigned={() => qc.invalidateQueries({ queryKey: key })} agreeText="I approve this public summary for release." />
             </div>
           </Card>

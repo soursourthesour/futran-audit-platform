@@ -215,7 +215,8 @@ def _people_titles(db: Session, titles: dict[str, str]) -> None:
 ABC = "abccorp.example"
 
 
-def abc(demo: Demo) -> str:
+def abc(demo: Demo, until_stage6: bool = False) -> str:
+    """ABC Corp from draft to completed; with until_stage6, stop when every finding is approved (sign-off 5 not sent)."""
     m = demo
     cid = m.new_client(
         company={"legal_name": "ABC Corp Inc.", "trading_name": "ABC Corp", "industry": "staffing", "employee_band": "250-999", "hq_street": "350 Fifth Avenue", "hq_city": "New York",
@@ -251,7 +252,8 @@ def abc(demo: Demo) -> str:
     depts = _abc_discovery(m, cid)
     _abc_client_review(m, cid, depts)
     _abc_fieldwork(m, cid, depts)
-    _abc_report_and_close(m, cid)
+    if not until_stage6:
+        _abc_report_and_close(m, cid)
     return cid
 
 
@@ -584,6 +586,45 @@ def internal(m: Demo) -> str:
     m.db.commit()
     m.approve_and_sign_letter(cid, "hannah.cole@internal.futran.example")
     return cid
+
+
+def e2e_late(db: Session, settings) -> dict:
+    """End-to-end test data: ABC Corp at stage 6 for the review-to-close journey, Meridian at stage 3 with an open
+    attestation campaign and a named-user confirmation link for the phone checks. Returns the links."""
+    import hashlib
+    import secrets
+
+    from app.core.clock import utcnow
+    from app.inventory.models import NamedUser, NamedUserLink
+    from app.main import create_app
+
+    if not settings.test_mode:
+        raise PermissionError("Test data can only be loaded while the platform is in test mode.")
+    client = TestClient(create_app(settings.model_copy(update={"disable_scheduler": True}), engine=db.get_bind()))
+    m = Demo(db, settings, client)
+    try:
+        m.futran_staff()
+        abc_id = abc(m, until_stage6=True)
+        mid = meridian(m)
+        katrin, aarav = m.user("katrin.vogel@meridian.example"), m.user("aarav.menon@meridian.example")
+        m.as_(katrin).post("/me/initiation/items/notice/done")
+        from app.tenancy.models import Department
+
+        depts = {d.name: d.id for d in db.scalars(select(Department).where(Department.organization_id == mid, Department.deleted_at.is_(None)))}
+        attest = m.post(f"/clients/{mid}/attestation/campaigns", {"department_ids": list(depts.values()), "closes_at": m.d(10) + "T17:00:00", "policy_version": "1.0"})["link"]
+        m.as_(aarav)
+        tool = m.post(f"/clients/{mid}/tools", {"vendor": "GitHub", "product": "Copilot", "account_type": "personal_paid"})["id"]
+        uc = m.post(f"/clients/{mid}/use-cases", {"name": "Code completion", "department_id": depts["Engineering"], "tool_ids": [tool], "purpose": "Suggests code in the IDE.", "data_categories": ["confidential"],
+                                                   "decision_impact": "none", "usage": [{"role_name": "Developer", "headcount": 40, "frequency": "daily"}],
+                                                   "named_users": [{"person_name": "Ravi Kumar", "email": "ravi.kumar@meridian.example", "role_name": "Developer"}]})
+        m.post(f"/use-cases/{uc['id']}/submit")
+        n = db.scalar(select(NamedUser).where(NamedUser.use_case_id == uc["id"], NamedUser.deleted_at.is_(None)))
+        raw = secrets.token_urlsafe(32)  # a link the test can open; the e-mailed one is redacted in the outbox
+        db.add(NamedUserLink(organization_id=mid, named_user_id=n.id, token_hash=hashlib.sha256(raw.encode()).hexdigest(), sent_at=utcnow(), expires_at=utcnow() + timedelta(days=14)))
+        db.commit()
+    finally:
+        client.close()
+    return {"abc": abc_id, "meridian": mid, "attest_link": attest, "confirm_link": f"/confirm/{raw}"}
 
 
 def run(db: Session, settings, client: TestClient | None = None) -> dict:

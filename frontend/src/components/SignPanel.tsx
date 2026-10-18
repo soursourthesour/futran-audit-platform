@@ -56,7 +56,7 @@ export function SignPanel({ signOffId, onSigned, agreeText, hideTitle }: { signO
       </div>
       {so.correction_reason && <p className="small" style={{ margin: 0 }}>Reopened: {so.correction_reason}</p>}
       {so.status === 'returned' && so.comment && <Alert tone="warn">Returned: {so.comment}</Alert>}
-      {so.statement && <blockquote className="statement">{so.statement}</blockquote>}
+      {so.statement && <blockquote className="statement" style={{ whiteSpace: 'pre-wrap' }}>{so.statement}</blockquote>}
       {so.document && (
         <p className="small">
           Read the document before signing: {so.document.pdf_file_id && <a href={fileUrl(so.document.pdf_file_id)}>PDF</a>}
