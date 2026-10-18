@@ -117,7 +117,11 @@ def respond(db: Session, actor: Actor, f: Finding, data: dict) -> ManagementResp
 
 
 def _sync_item(db: Session, e: Engagement, f: Finding, r: ManagementResponse) -> None:
+    """Keep the response's item in step with it while no work has started; an item already under way keeps its record."""
     item = db.scalar(select(RemediationItem).where(RemediationItem.response_id == r.id))
+    started = item is not None and item.deleted_at is None and item.status not in ("open",)
+    if started:
+        return
     if r.response == "disagree":
         if item is not None and item.deleted_at is None:
             item.deleted_at = utcnow()
@@ -300,10 +304,9 @@ def reopen(db: Session, actor: User, item: RemediationItem, note: str | None) ->
 
 
 def _complete_if_done(db: Session, actor: User, e: Engagement) -> None:
-    from app.engagements.gates import advance_stage, gate_status
+    from app.engagements.gates import advance_if_ready
 
-    if e.stage == 9 and e.status in ("initiated", "in_progress") and gate_status(db, e).ready:
-        advance_stage(db, actor, e)
+    advance_if_ready(db, actor, e)
 
 
 def item_out(db: Session, item: RemediationItem) -> dict:

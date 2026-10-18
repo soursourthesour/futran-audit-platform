@@ -87,6 +87,14 @@ def post_return(so_id: str, body: CommentIn, request: Request, actor: Actor = De
     return sign_off_out(db, actor, return_signoff(db, request.app.state.settings, actor, so, body.comment))
 
 
+@router.post("/{so_id}/withdraw")
+def post_withdraw(so_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    from app.signoffs.service import withdraw
+
+    so = _load(db, actor, so_id)
+    return sign_off_out(db, actor, withdraw(db, actor, so))
+
+
 @router.post("/{so_id}/correct")
 def post_correct(so_id: str, body: ReasonIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
     so = _load(db, actor, so_id)

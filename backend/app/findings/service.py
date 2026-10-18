@@ -144,14 +144,16 @@ def submit(db: Session, settings, actor: User, f: Finding) -> Finding:
         raise Invalid(errors=[{"field": "title", "message": "Give the finding a title and a severity."}])
     chiefs = {u.id for u in team_role_holders(db, e, "chief_auditor")}
     author = f.author_id or actor.id
-    role = "qa_reviewer" if author in chiefs or actor.id in chiefs else "chief_auditor"
+    # a finding the Chief Auditor wrote, edited or submitted goes to the QA Reviewer (the Chief cannot approve it)
+    role = "qa_reviewer" if chiefs & {author, actor.id, *(f.editor_ids or [])} else "chief_auditor"
     reviewers = team_role_holders(db, e, role)
     if role == "qa_reviewer" and not reviewers:
-        raise Conflict("A finding written by the Chief Auditor goes to the QA Reviewer. Add a QA Reviewer to the engagement team first.")
+        raise Conflict("A finding the Chief Auditor wrote or edited goes to the QA Reviewer. Add a QA Reviewer to the engagement team first.")
     f.author_id = author
     f.status, f.review_role, f.submitted_at, f.submitted_by, f.review_comment = "submitted", role, utcnow(), actor.id, None
     audit.record(db, actor_id=actor.id, action="finding.submit", obj=f, after={"review_role": role}, summary=f"Submitted finding {f.ref} for approval")
     notify(db, [u for u in reviewers if u.id != author], "finding_submitted", f"{e.audit_ref}: finding {f.ref} is waiting for your approval", f.title, f"/clients/{e.client_id}/findings", engagement=e, settings=settings)
+    _advance(db, actor, e)
     if f.severity == "critical":
         notify(db, team_role_holders(db, e, "chief_auditor"), "critical_finding", f"{e.audit_ref}: Critical finding {f.ref}", f"{f.title}. Critical findings are reported to the Lead Auditor at once (§18.6).",
                f"/clients/{e.client_id}/findings", engagement=e, settings=settings, email_template="notification")
@@ -204,6 +206,15 @@ def dismiss(db: Session, actor: User, f: Finding, reason: str | None) -> None:
     for link in db.scalars(select(DraftFindingLink).where(DraftFindingLink.finding_id == f.id, DraftFindingLink.dismissed_at.is_(None))):
         link.dismissed_at, link.dismissed_by, link.dismissed_reason = utcnow(), actor.id, reason[:2000]
     audit.record(db, actor_id=actor.id, action="finding.dismiss", obj=f, after={"reason": reason}, summary=f"Dismissed finding {f.ref}: {reason[:120]}")
+    _advance(db, actor, db.get(Engagement, f.engagement_id))
+
+
+def _advance(db: Session, actor: User, e: Engagement) -> None:
+    """The last finding submitted (or dismissed) can complete fieldwork."""
+    from app.engagements.gates import advance_if_ready
+
+    db.flush()
+    advance_if_ready(db, actor, e)
 
 
 def signoff5_unmet(db: Session, e: Engagement, _scope=None) -> list[str]:

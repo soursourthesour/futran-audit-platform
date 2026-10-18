@@ -103,7 +103,17 @@ def put_domain(system_id: str, domain: str, body: DomainIn, actor: Actor = Depen
     raw = body.score
     score = raw if isinstance(raw, int) else (int(raw) if isinstance(raw, str) and raw.strip().isascii() and raw.strip().isdecimal() else raw)
     row = svc.set_final_domain_score(db, actor.user, s, domain, score, body.rationale)
+    _advance(db, actor, s)
     return score_out(db, s, row, True)
+
+
+def _advance(db: Session, actor: Actor, s) -> None:
+    """The last score set can complete fieldwork."""
+    from app.engagements.gates import advance_if_ready
+    from app.engagements.models import Engagement
+
+    db.flush()
+    advance_if_ready(db, actor.user, db.get(Engagement, s.engagement_id))
 
 
 @router.put("/systems/{system_id}/score/override")
@@ -111,6 +121,7 @@ def put_override(system_id: str, body: OverrideIn, actor: Actor = Depends(curren
     s = get_system(db, system_id)
     authorize(db, actor, Action.SCORE_SYSTEM, engagement_id=s.engagement_id)
     row = svc.override_rating(db, actor.user, s, body.rating or None, body.rationale)
+    _advance(db, actor, s)
     return score_out(db, s, row, True)
 
 

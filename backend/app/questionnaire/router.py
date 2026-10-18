@@ -233,7 +233,14 @@ def _link(db: Session, actor: Actor, link_id: str) -> DraftFindingLink:
 
 @router.post("/draft-findings/{link_id}/dismiss")
 def dismiss(link_id: str, body: ReasonIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
-    qs.dismiss_draft(db, actor.user, _link(db, actor, link_id), body.reason)
+    link = _link(db, actor, link_id)
+    qs.dismiss_draft(db, actor.user, link, body.reason)
+    from app.engagements.gates import advance_if_ready
+    from app.engagements.models import Engagement
+    from app.findings.models import Finding
+
+    db.flush()
+    advance_if_ready(db, actor.user, db.get(Engagement, db.get(Finding, link.finding_id).engagement_id))
     return {"dismissed": True}
 
 

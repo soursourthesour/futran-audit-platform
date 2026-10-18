@@ -43,6 +43,14 @@ def _evidence_access(db: Session, actor: Actor, f: FileObject) -> None:
     e = db.get(Engagement, f.engagement_id) if f.engagement_id else None
     if e is None or not uploaded_by_client(db, f, e):
         raise NotFound()
+    from sqlalchemy import select
+
+    from app.docrequests.models import EvidenceRequest
+
+    owned = db.scalars(select(EvidenceRequest).where(EvidenceRequest.engagement_id == e.id, EvidenceRequest.owner_user_id == actor.id, EvidenceRequest.deleted_at.is_(None)))
+    if any(f.id in (r.file_ids or []) for r in owned):  # the owner of an evidence request sees what was sent for it
+        authorize(db, actor, Action.VIEW_ENGAGEMENT, engagement_id=e.id)
+        return
     s = db.get(AISystem, f.linked_id) if f.linked_id and f.linked_id != e.id else None
     if s is not None and s.engagement_id == e.id:
         try:

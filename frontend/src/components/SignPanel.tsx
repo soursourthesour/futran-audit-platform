@@ -8,7 +8,7 @@ export type SignOffView = {
   parties: { role: string; role_label: string; signed: boolean; signed_by: string | null; signed_at: string | null }[];
   document: { id: string; title: string; pdf_file_id: string | null; docx_file_id: string | null } | null;
   can_sign: boolean; my_name: string;
-  version?: number; comment?: string | null; statement?: string | null; correction_reason?: string | null; preparer?: string | null; can_return?: boolean;
+  version?: number; comment?: string | null; statement?: string | null; correction_reason?: string | null; preparer?: string | null; can_return?: boolean; can_withdraw?: boolean;
 };
 
 const STATUS: Record<string, { label: string; tone: 'success' | 'warn' | 'danger' | 'navy' }> = {
@@ -68,6 +68,9 @@ export function SignPanel({ signOffId, onSigned, agreeText, hideTitle }: { signO
           <li key={p.role}>{p.role_label}: {p.signed ? `signed by ${p.signed_by}, ${fmtDateTime(p.signed_at)}` : 'not signed yet'}</li>
         ))}
       </ul>
+      {so.can_withdraw && (
+        <div><Button size="sm" variant="ghost" onClick={async () => { setErr(null); try { await api.post(`/signoffs/${signOffId}/withdraw`); await qc.invalidateQueries(); onSigned?.(); } catch (ex) { setErr(errorMessage(ex)); } }}>Withdraw (you prepared this)</Button>{!so.can_sign && err && <Alert tone="danger">{err}</Alert>}</div>
+      )}
       {so.can_sign && (
         <form className="stack" onSubmit={submit} noValidate>
           {err && <Alert tone="danger">{err}</Alert>}

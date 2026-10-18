@@ -45,6 +45,16 @@ export function ClientPage() {
     }
   }
 
+  async function advance() {
+    setMsg(null);
+    try {
+      await api.post(`/engagements/${e.id}/advance`);
+      await qc.invalidateQueries({ queryKey: ['client-page', clientId] });
+    } catch (ex) {
+      setMsg({ tone: 'danger', text: errorMessage(ex) });
+    }
+  }
+
   const live = e.status !== 'draft' && e.status !== 'pending_approval';
   const tabs = [['overview', 'Overview'], ['engagements', 'Engagements'], ['laws', 'Locations and laws'], ['contacts', 'Contacts and users'], ['documents', 'Documents'], ['activity', 'Activity']] as const;
   const contacts = (
@@ -80,7 +90,12 @@ export function ClientPage() {
             <div className="stack">
               <StageTracker stage={e.stage} status={e.status} />
               {live && (
-                p.gate.ready ? <p className="small">Stage {e.stage} is complete.</p> : (
+                p.gate.ready ? (
+                  <div className="row" style={{ gap: 12, alignItems: 'center' }}>
+                    <span className="small">Stage {e.stage} is complete.</span>
+                    <Button size="sm" variant="primary" onClick={advance}>{e.stage >= 9 ? 'Complete the engagement' : `Move to stage ${e.stage + 1}`}</Button>
+                  </div>
+                ) : (
                   <div><strong className="small">What's left in this stage</strong><ul className="small" style={{ margin: '4px 0 0', paddingLeft: 18 }}>{p.gate.unmet.map((u) => <li key={u}>{u}</li>)}</ul></div>
                 )
               )}

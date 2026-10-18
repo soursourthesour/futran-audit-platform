@@ -145,16 +145,17 @@ function NcDraft({ clientId, draft, onDone }: { clientId: string; draft: Partial
 
 export function FindingForm({ clientId, controls, initial, prefill, onDone, existing }: { clientId: string; controls: string[]; initial: Partial<FindingRow>; prefill: Partial<FindingRow> | null; onDone: (t: string) => void; existing?: FindingRow }) {
   const src = existing ?? prefill ?? {};
-  const [f, setF] = useState({ title: src.title ?? '', severity: src.severity ?? 'medium', control: (src.control_refs ?? [])[0] ?? '', description: src.description ?? '', recommended_remediation: src.recommended_remediation ?? '' });
+  const [f, setF] = useState({ title: src.title ?? '', severity: src.severity ?? 'medium', control: (src.control_refs ?? [])[0] ?? '', description: src.description ?? '', recommended_remediation: src.recommended_remediation ?? '', proposed_owner: src.proposed_owner ?? '' });
+  const [others, setOthers] = useState<string[]>((src.control_refs ?? []).slice(1)); // further controls (auto-drafts can carry several) are kept
   const [err, setErr] = useState<string | null>(null);
   const [fe, setFe] = useState<Record<string, string>>({});
   async function save(submit: boolean) {
     setErr(null); setFe({});
-    const body = { ...initial, title: f.title, severity: f.severity, control_refs: f.control ? [f.control] : [], description: f.description, recommended_remediation: f.recommended_remediation };
+    const body = { ...initial, title: f.title, severity: f.severity, control_refs: [...new Set([f.control, ...others].filter(Boolean))], description: f.description, recommended_remediation: f.recommended_remediation, proposed_owner: f.proposed_owner };
     try {
       const out = existing ? await api.patch<FindingRow>(`/findings/${existing.id}`, body) : await api.post<FindingRow>(`/clients/${clientId}/findings`, body);
       if (submit) await api.post(`/findings/${out.id}/submit`);
-      if (!existing) setF({ title: '', severity: 'medium', control: '', description: '', recommended_remediation: '' });
+      if (!existing) { setF({ title: '', severity: 'medium', control: '', description: '', recommended_remediation: '', proposed_owner: '' }); setOthers([]); }
       onDone(submit ? `${out.ref} submitted for approval.` : `${out.ref} saved as a draft.`);
     } catch (e) { setErr(errorMessage(e)); setFe(fieldErrors(e)); }
   }
@@ -169,7 +170,9 @@ export function FindingForm({ clientId, controls, initial, prefill, onDone, exis
           <SelectField label="Control reference" value={f.control} placeholder="None" onChange={(e) => setF({ ...f, control: e.target.value })} options={[...new Set([...(f.control ? [f.control] : []), ...controls])].map((c) => ({ value: c, label: c }))} />
         </div>
         <TextArea label="Description (condition, criteria, cause, effect)" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} />
+        {others.length > 0 && <p className="small" style={{ margin: 0 }}>Also linked: {others.join(' · ')} <Button size="sm" variant="ghost" onClick={() => setOthers([])}>Remove these</Button></p>}
         <TextArea label="Recommended action" value={f.recommended_remediation} onChange={(e) => setF({ ...f, recommended_remediation: e.target.value })} />
+        <TextField label="Proposed owner" help="The role or person at the client who should fix this, for example Head of HR." value={f.proposed_owner} onChange={(e) => setF({ ...f, proposed_owner: e.target.value })} />
         <div className="row" style={{ gap: 8 }}><Button variant="primary" onClick={() => save(true)}>Submit to Chief Auditor</Button><Button onClick={() => save(false)}>Save draft</Button></div>
       </div>
     </Card>

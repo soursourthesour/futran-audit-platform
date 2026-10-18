@@ -123,8 +123,11 @@ def advance_stage(db: Session, actor: User, engagement: Engagement) -> Engagemen
 
 
 def advance_if_ready(db: Session, actor: User, e: Engagement | None) -> None:
-    """Move on automatically when the current stage's exit gate is met (called after the events that can meet it)."""
-    if e is not None and e.status in ("initiated", "in_progress") and e.stage < 9 and gate_status(db, e).ready:
+    """Move on automatically while the current stage's exit gate is met (called after the events that can meet it).
+    Several stages can complete at once (sign-offs 2–4 approved during discovery), and stage 9 completes the engagement."""
+    for _ in range(len(STAGE_NAMES)):
+        if e is None or e.status not in ("initiated", "in_progress") or not gate_status(db, e).ready:
+            return
         advance_stage(db, actor, e)
 
 

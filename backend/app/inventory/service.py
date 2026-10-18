@@ -68,8 +68,20 @@ def _find_tool(db: Session, org_id: str, vendor: str, product: str, account_type
     ))
 
 
+def assert_inventory_open(db: Session, e: Engagement | None) -> None:
+    """Sign-off 4 locks the inventory snapshot. Changing it means reopening sign-off 4, which re-locks a new version."""
+    from app.signoffs.service import current
+
+    so = current(db, e, 4) if e is not None else None
+    if so is not None and so.status == "approved":
+        raise Conflict("The AI inventory is locked by sign-off 4 (management representation). To change it, the CAICO corrects sign-off 4.")
+
+
 def save_tool(db: Session, actor: User, org: Organization, data: dict, tool: AITool | None = None, can_approve: bool = False) -> AITool:
     """Create or edit a tool. Only the CAICO approves tools (spec §5), so `approval_status` is ignored otherwise."""
+    from app.tenancy.people import current_engagement
+
+    assert_inventory_open(db, current_engagement(db, org))
     vendor, product = " ".join(str(data.get("vendor") or "").split())[:120], " ".join(str(data.get("product") or "").split())[:120]
     acct = data.get("account_type", tool.account_type if tool else "unknown")
     errs = []
@@ -168,6 +180,7 @@ def _tools(db: Session, uc: UseCase) -> list[AITool]:
 
 
 def save_use_case(db: Session, actor: User, org: Organization, e: Engagement, data: dict, uc: UseCase | None = None) -> UseCase:
+    assert_inventory_open(db, e)
     if uc is not None and uc.status not in ("draft", "returned"):
         raise Conflict("This use case has been submitted. Ask your Department Compliance Lead to return it if it needs changes.")
     v = _clean_use_case(db, org, data)
@@ -251,6 +264,7 @@ def send_links(db: Session, settings: Settings, actor: User | None, uc: UseCase)
 
 
 def submit_use_case(db: Session, settings: Settings, actor: User, uc: UseCase) -> UseCase:
+    assert_inventory_open(db, db.get(Engagement, uc.engagement_id))
     if uc.status not in ("draft", "returned"):
         raise Conflict("This use case has already been submitted.")
     uc.proposed_tier = propose_tier(uc.decision_impact, uc.data_categories, _tools(db, uc))
@@ -262,6 +276,7 @@ def submit_use_case(db: Session, settings: Settings, actor: User, uc: UseCase) -
 
 
 def review_use_case(db: Session, actor: User, uc: UseCase, approve: bool, comment: str | None = None) -> UseCase:
+    assert_inventory_open(db, db.get(Engagement, uc.engagement_id))
     if uc.status != "submitted":
         raise Conflict("Only a submitted use case can be approved or returned.")
     if approve:

@@ -142,7 +142,9 @@ def test_signoff4_locks_snapshot(client, db, rev):
 def test_signed_item_edit_creates_version(client, db, rev):
     cid, e, maria, hr, copilot, chatgpt = rev
     so = _approved_dept(client, db, cid, hr, copilot)
-    login_as(client, db, _u(db, "priya@abc.test"))
+    login_as(client, db, _u(db, "priya@abc.test"))  # the only HR lead cannot reopen it: she would have to sign her own correction
+    assert client.post(f"/api/v1/signoffs/{so['id']}/correct", json={"reason": "A use case was left out."}).status_code == 409
+    login_as(client, db, _u(db, "tom@abc.test"))
     assert client.post(f"/api/v1/signoffs/{so['id']}/correct", json={"reason": ""}).status_code == 422
     r = client.post(f"/api/v1/signoffs/{so['id']}/correct", json={"reason": "A use case was left out."})
     assert r.status_code == 200 and r.json()["version"] == 2 and r.json()["status"] == "in_review"

@@ -121,6 +121,9 @@ def sign(db: Session, settings, actor: Actor, so: SignOff, typed_name: str, requ
         raise Forbidden("You are not one of the people who sign this.")
     if _norm(typed_name) != _norm(actor.user.name):
         raise Invalid("Type your name exactly as it appears on your account.", [{"field": "typed_name", "message": f"Type your full name: {actor.user.name}."}])
+    unmet = [m for check in PRECONDITIONS.get(so.number, []) for m in check(db, db.get(Engagement, so.engagement_id), so.scope_ref)]
+    if unmet:  # something changed since it was sent (spec §6): the signer must not approve what they have not seen
+        raise Conflict("This can't be signed: things have changed since it was sent. Return it to the preparer.", [{"field": "precondition", "message": m} for m in unmet])
     sig = Signature(
         organization_id=so.organization_id, sign_off_id=so.id, user_id=actor.id, role=role, typed_name=" ".join(typed_name.split()),
         signed_at=utcnow(), ip=request.client.host if request is not None and request.client else None,
@@ -158,10 +161,9 @@ def _superseded(db: Session, so: SignOff) -> bool:
 
 
 def _advance_if_ready(db: Session, user: User, e: Engagement) -> None:
-    from app.engagements.gates import advance_stage, gate_status
+    from app.engagements.gates import advance_if_ready
 
-    if gate_status(db, e).ready:
-        advance_stage(db, user, e)
+    advance_if_ready(db, user, e)
 
 
 def sign_off_out(db: Session, actor: Actor, so: SignOff) -> dict:
@@ -181,6 +183,7 @@ def sign_off_out(db: Session, actor: Actor, so: SignOff) -> dict:
         ],
         "document": {"id": doc.id, "title": doc.title, "pdf_file_id": doc.pdf_file_id, "docx_file_id": doc.docx_file_id} if doc else None,
         "can_sign": so.status in ("pending", "in_review") and actor.id not in (so.approver_ids or []) and signer_role(db, actor, so) is not None,
+        "can_withdraw": so.status in ("pending", "in_review") and so.number != 1 and so.preparer_id == actor.id,
         "can_return": so.status in ("pending", "in_review") and so.number != 1 and actor.id not in (so.approver_ids or []) and signer_role(db, actor, so) is not None,
         "my_name": actor.user.name,
     }
@@ -208,6 +211,8 @@ SIGNOFF_SPECS: dict[int, SignOffSpec] = {
     7: SignOffSpec(7, ("auditor", "chief_auditor"), ("chief_auditor",)),
     8: SignOffSpec(8, ("auditor", "chief_auditor"), ("caico",)),
 }
+# the last stage at which a signed item may still be reopened; later stages build on it (the snapshot, the released report)
+CORRECTABLE_UNTIL = {2: 5, 3: 5, 4: 5, 5: 6, 6: 7, 7: 8, 8: 8}
 ON_APPROVED: dict[int, list] = {}
 PRECONDITIONS: dict[int, list] = {}
 STATEMENTS: dict = {}  # number -> fn(db, engagement) -> the text signed when there is no package document
@@ -285,11 +290,44 @@ def submit_signoff(db: Session, settings, actor: Actor, e: Engagement, number: i
     if cur is not None and cur.status == "approved":
         raise Conflict("This sign-off is approved. To change it, correct it with a reason.")
     roles, fallback = resolve_signers(db, e, spec)
+    _assert_signable(db, e, roles, fallback, scope_ref, actor.id)
     so = create_sign_off(db, e, number, preparer_id=actor.id, required_roles=roles, scope_ref=scope_ref, version=cur.version + 1 if cur else 1, supersedes_id=cur.id if cur else None)
     so.status, so.sequential, so.fallback_roles, so.statement = "in_review", True, fallback, statement
     db.flush()
     audit.record(db, actor_id=actor.id, action="signoff.submit", obj=so, after={"version": so.version, "signers": roles}, summary=f"{actor.user.name} sent sign-off {number} ({so.title}) for signature")
     _notify_next(db, settings, so)
+    return so
+
+
+def _assert_signable(db: Session, e: Engagement, roles: list[str], fallback: list[str], scope_ref: str | None, preparer_id: str) -> None:
+    """Every signer role needs someone other than the preparer, or the sign-off could never be completed (spec §6 rule 2)."""
+    from app.tenancy.models import Organization, RoleAssignment
+    from app.tenancy.people import active_holders
+
+    for role in roles:
+        if role in fallback:
+            continue  # a stand-in CAICO may sign what they prepared when nobody holds the role
+        if role in FUTRAN_SIGNER_ROLES:
+            org = db.scalar(select(Organization).where(Organization.type == "futran", Organization.is_internal.is_(False)))
+            users = active_holders(db, org, role) if org else []
+        else:
+            users = active_holders(db, db.get(Organization, e.client_id), role)
+            if role == "dept_compliance_lead" and scope_ref:
+                scoped = set(db.scalars(select(RoleAssignment.user_id).where(RoleAssignment.role == role, RoleAssignment.scope_id == scope_ref, RoleAssignment.deleted_at.is_(None))))
+                users = [u for u in users if u.id in scoped]
+        if not [u for u in users if u.id != preparer_id]:
+            label = ROLE_LABELS.get(role, role)
+            raise Conflict(f"You are the only {label} who could sign this, and you can't sign what you prepared. Ask someone else to prepare it, or appoint another {label}.")
+
+
+def withdraw(db: Session, actor: Actor, so: SignOff) -> SignOff:
+    """The preparer takes back a sign-off still waiting for signatures; it is kept as returned and can be sent again."""
+    if so.preparer_id != actor.id or so.number == 1:
+        raise Forbidden("Only the person who prepared this sign-off can withdraw it.")
+    if so.status not in ("pending", "in_review"):
+        raise Conflict("Only a sign-off waiting for signatures can be withdrawn.")
+    so.status, so.comment = "returned", "Withdrawn by the preparer."
+    audit.record(db, actor_id=actor.id, action="signoff.withdrawn", obj=so, summary=f"{actor.user.name} withdrew sign-off {so.number} ({so.title})")
     return so
 
 
@@ -319,7 +357,11 @@ def correct(db: Session, settings, actor: Actor, so: SignOff, reason: str | None
     if so.status != "approved" or _superseded(db, so):
         raise Conflict("Only the current approved version can be corrected.")
     e = db.get(Engagement, so.engagement_id)
+    last = CORRECTABLE_UNTIL.get(so.number, 0)
+    if e.status not in ("initiated", "in_progress") or e.stage > last:
+        raise Conflict(f"Sign-off {so.number} can no longer be corrected: later work relies on it (corrections are possible up to stage {last}).")
     roles, fallback = resolve_signers(db, e, spec)
+    _assert_signable(db, e, roles, fallback, so.scope_ref, actor.id)
     new = create_sign_off(db, e, so.number, preparer_id=actor.id, required_roles=roles, scope_ref=so.scope_ref, version=so.version + 1, supersedes_id=so.id)
     new.status, new.sequential, new.fallback_roles, new.statement = "in_review", True, fallback, so.statement
     new.correction_reason = reason[:2000]
