@@ -29,7 +29,7 @@ You need Python 3.11 or later from python.org (tick "Add python.exe to PATH" whe
 2. Double-click `run.bat`. The platform opens at http://localhost:8000.
 3. Open the link from step 1 and set your password.
 
-To load the demo clients, run `run.bat --reset-demo` from a command prompt in this folder. This deletes the database and starts again with the demo data, so only use it on a test copy.
+To load the demo clients, run `run.bat --reset-demo` from a command prompt in this folder. With the laptop's SQLite database this deletes the database and starts again with the demo data, so only use it on a test copy. Uploaded files from before are left in the data folder. On PostgreSQL it does not delete anything and adds the demo on top, so use an empty database.
 
 If you lose the administrator link or forget a password, keep `run.bat` open and double-click `admin-link.bat`.
 
@@ -41,7 +41,7 @@ The built web app is not stored in git. Build it once (Node.js 20 or later), the
 
 ```bash
 cd frontend && npm ci && npm run build && cd ..          # writes backend/app/static
-python -m venv .venv && .venv/bin/pip install -e backend    # on Windows: .venv\Scripts\pip
+python -m venv .venv && .venv/bin/pip install -e "backend[dev]"   # on Windows: .venv\Scripts\pip
 cd backend
 cp ../.env.example ../.env && cp ../.env .env               # then set SECRET_KEY
 ../.venv/bin/alembic upgrade head
@@ -70,7 +70,8 @@ All demo accounts use the password `Demo-Password-2026`. Sign-in codes are off i
 
 The demo contains:
 
-- **ABC Corp** (New York, Chicago and remote staff): one engagement taken through every stage to completed, with four AI systems. SYS-001, the résumé screening tool, scores to the methodology's worked example (inherent 76, maturity 2.25, residual 58.2, rated High). A second engagement, "Annual review 2027", is waiting for the Chief Auditor's approval.
+- **ABC Corp** (New York, Chicago and remote staff): one engagement taken through every stage to completed, with four AI systems. SYS-001, the résumé screening tool, scores to the methodology's worked example (inherent 76, maturity 2.25, residual 58.2, rated High).
+- **Northwind Logistics**: a new client drafted by the auditor and waiting for the Chief Auditor's approval.
 - **Meridian GmbH** (Berlin and Bangalore): at stage 3, discovery, with the EU AI Act, GDPR and India's DPDP Act in scope.
 - **Futran Solutions (internal)**: Futran auditing its own AI use, at stage 2.
 
@@ -81,7 +82,7 @@ Settings are read from `.env` (see `.env.example`).
 | Setting | Laptop default | Hosted (pilot or production) |
 |---|---|---|
 | `DATABASE_URL` | SQLite in `%LOCALAPPDATA%\FutranAuditPlatform` | Postgres, for example `postgresql+psycopg://user:pass@host/db` |
-| `FILE_STORE` | `local:` folder next to the database | `local:/data/files` on a persistent disk (Azure Blob is on the backlog) |
+| `FILE_STORE` | `local:` folder next to the database | leave the default `local:./data/files`; on Render this is the persistent disk mounted at `/app/backend/data` (Azure Blob is on the backlog) |
 | `MFA_REQUIRED` | `false` (test mode) | `true` |
 | `EMAIL_MODE` | `outbox` (emails stay in Admin > Outbox) | `smtp` |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` | empty | the sending mailbox |
@@ -121,7 +122,7 @@ The move to Azure (App Service, Azure Database for PostgreSQL, Blob storage and 
 
 ## Development
 
-- Backend tests: `cd backend && .venv/bin/pytest` (about 485 tests).
+- Backend tests: `cd backend && ../.venv/bin/pytest` (about 490 tests; needs the `[dev]` extras).
 - Browser tests: `bash e2e/run.sh` (Playwright: sign-in, admin, the wizard through fieldwork, the review-to-close journey, phone layouts and accessibility checks). Screenshots are written to `e2e/screenshots/`.
 - Database changes: `backend/scripts/makemigration.sh "message"`.
 - Specifications: `docs/spec/` (developer spec v0.3 and the build schematic). Build plan: `docs/superpowers/plans/`.

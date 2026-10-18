@@ -220,7 +220,9 @@ def _advance(db: Session, actor: User, e: Engagement) -> None:
 def signoff5_unmet(db: Session, e: Engagement, _scope=None) -> list[str]:
     if e.stage < 6:
         return ["Sign-off 5 opens at stage 6, once every finding is submitted."]
-    return [f"{f.ref} {f.title} is not approved yet." for f in findings_for(db, e) if f.status != "approved"]
+    from app.engagements.gates import client_review_unmet
+
+    return client_review_unmet(db, e) + [f"{f.ref} {f.title} is not approved yet." for f in findings_for(db, e) if f.status != "approved"]
 
 
 def _lock_on_signoff5(db: Session, settings, actor, so) -> None:

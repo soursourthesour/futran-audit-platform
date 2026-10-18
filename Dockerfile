@@ -23,4 +23,4 @@ USER futran
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s CMD python -c "import os,urllib.request; urllib.request.urlopen(f'http://127.0.0.1:{os.environ.get(\"PORT\",\"8000\")}/api/v1/health', timeout=4)"
 # Migrate, load reference data (only what is missing), then serve. Render and Azure set PORT.
-CMD ["sh", "-c", "alembic upgrade head && python -m app.cli seed-reference && exec uvicorn --factory app.main:create_app --host 0.0.0.0 --port ${PORT} --proxy-headers --forwarded-allow-ips='*'"]
+CMD ["sh", "-c", "alembic upgrade head && python -m app.cli seed-reference && exec uvicorn --factory app.main:create_app --host 0.0.0.0 --port ${PORT}"]

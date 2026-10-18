@@ -149,6 +149,11 @@ def _stage4(db: Session, e: Engagement) -> GateResult:
     return _result(unmet)
 
 
+def client_review_unmet(db: Session, e: Engagement) -> list[str]:
+    """Sign-offs 2 (every department), 3 and 4 must still be approved: a reopened one has to be signed again."""
+    return _stage4(db, e).unmet
+
+
 @register(5)
 def _stage5(db: Session, e: Engagement) -> GateResult:
     """Fieldwork ends when every Tier 3 use case maps to a system, every system's assessment is complete and scored,
@@ -158,7 +163,8 @@ def _stage5(db: Session, e: Engagement) -> GateResult:
     from app.scoring.service import latest
     from app.systems.service import systems_for, unmapped_tier3
 
-    unmet = [f"{u.name} (Tier 3) is not mapped to a system." for u in unmapped_tier3(db, e)]
+    unmet = client_review_unmet(db, e)
+    unmet += [f"{u.name} (Tier 3) is not mapped to a system." for u in unmapped_tier3(db, e)]
     for s in systems_for(db, e):
         t = Target(e, s)
         rs = _responses(db, t)

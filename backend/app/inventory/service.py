@@ -72,6 +72,10 @@ def assert_inventory_open(db: Session, e: Engagement | None) -> None:
     """Sign-off 4 locks the inventory snapshot. Changing it means reopening sign-off 4, which re-locks a new version."""
     from app.signoffs.service import current
 
+    from app.signoffs.service import CORRECTABLE_UNTIL
+
+    if e is not None and e.stage > CORRECTABLE_UNTIL[4]:
+        raise Conflict("The AI inventory is locked: fieldwork is complete and the audit is reported on this inventory.")
     so = current(db, e, 4) if e is not None else None
     if so is not None and so.status == "approved":
         raise Conflict("The AI inventory is locked by sign-off 4 (management representation). To change it, the CAICO corrects sign-off 4.")

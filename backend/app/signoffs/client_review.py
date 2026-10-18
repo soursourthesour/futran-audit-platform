@@ -36,18 +36,25 @@ def department_unmet(db: Session, e: Engagement, dept_id: str | None) -> list[st
     return out
 
 
-def signoff3_unmet(db: Session, e: Engagement, _scope=None) -> list[str]:
+def _departments_complete(db: Session, e: Engagement) -> list[str]:
+    """Every department's sign-off 2 is approved and nothing was added or left in draft since."""
     out = []
     for d in in_scope_departments(db, e):
         cur = so_svc.current(db, e, 2, d.id)
         if cur is None or cur.status != "approved":
             out.append(f"Sign-off 2 for {d.name} is not approved yet.")
-    return out or []
+        out += [f"{d.name}: {m}" for m in department_unmet(db, e, d.id)]
+    return out
+
+
+def signoff3_unmet(db: Session, e: Engagement, _scope=None) -> list[str]:
+    return _departments_complete(db, e)
 
 
 def signoff4_unmet(db: Session, e: Engagement, _scope=None) -> list[str]:
     cur = so_svc.current(db, e, 3)
-    return [] if cur is not None and cur.status == "approved" else ["Sign-off 3 (data categories) is not approved yet."]
+    out = [] if cur is not None and cur.status == "approved" else ["Sign-off 3 (data categories) is not approved yet."]
+    return out + _departments_complete(db, e)
 
 
 def representation_text(db: Session, e: Engagement) -> str:

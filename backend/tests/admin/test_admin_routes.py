@@ -84,7 +84,7 @@ def test_audit_log_client_sees_own_org_only(client, db):
     a = make_org(db, type="client", name="ABC Corp")
     b = make_org(db, type="client", name="BCD Inc")
     caico = make_user(db, a, roles=["caico"], name="Cai Co", email="caico@abc.test")
-    audit.record(db, actor_id=None, action="a.thing", obj=a)
+    audit.record(db, actor_id=caico.id, action="a.thing", obj=a)  # the client's own action
     audit.record(db, actor_id=None, action="b.thing", obj=b)
     db.commit()
     login_as(client, db, caico)

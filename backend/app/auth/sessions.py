@@ -9,6 +9,7 @@ from app.auth.models import AuthSession
 from app.core.clock import utcnow
 from app.core.config import Settings
 from app.tenancy.models import User
+from app.core.ratelimit import client_ip_or_none as _ip
 
 COOKIE_NAME = "fap_session"
 
@@ -29,7 +30,7 @@ def create_session(db: Session, user: User, settings: Settings, request=None, mf
         last_seen_at=now,
         expires_at=now + timedelta(hours=settings.session_max_hours),
         mfa_passed=mfa_passed,
-        ip=(request.client.host if request is not None and request.client else None),
+        ip=(_ip(request) if request is not None else None),
         user_agent=((request.headers.get("user-agent") or "")[:300] if request is not None else None),
     )
     db.add(s)

@@ -36,9 +36,19 @@ def limiter(request: Request, name: str, limit: int) -> RateLimiter:
 
 
 def client_ip(request: Request) -> str:
-    """The caller's address; behind a trusted proxy, the first X-Forwarded-For entry."""
+    """The caller's address. Behind a trusted proxy, the right-most X-Forwarded-For entry: the one the platform's own
+    proxy appended. Entries to its left come from the caller and can be forged."""
     settings = request.app.state.settings
     fwd = request.headers.get("x-forwarded-for")
     if getattr(settings, "trust_proxy_headers", False) and fwd:
-        return fwd.split(",")[0].strip()[:64]
+        return fwd.split(",")[-1].strip()[:64]
     return request.client.host if request.client else "unknown"
+
+
+def client_ip_or_none(request) -> str | None:
+    """client_ip for records (sessions, signatures, the audit log); None when there is no request."""
+    try:
+        ip = client_ip(request)
+    except AttributeError:  # a request-like object without app state
+        return request.client.host if getattr(request, "client", None) else None
+    return None if ip == "unknown" else ip

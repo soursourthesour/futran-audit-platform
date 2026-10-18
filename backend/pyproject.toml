@@ -27,6 +27,7 @@ dependencies = [
   "anthropic>=0.40",
   "itsdangerous>=2.2",
   "segno>=1.6",
+  "httpx>=0.27",  # the demo loader drives the API in-process (FastAPI TestClient)
 ]
 
 [project.optional-dependencies]

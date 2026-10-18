@@ -23,6 +23,10 @@ def _cell(value: str) -> str:
 
 
 CSV_COLUMNS = ["at", "actor", "action", "object_type", "object_id", "summary", "ip"]
+# Futran events a client may read: milestones they take part in. Futran's working notes (draft findings, scores,
+# report drafts, dismissals) stay internal; the client sees findings and scores with the draft report.
+CLIENT_SHARED_ACTIONS = ("signoff.", "engagement.", "package.", "invitation.", "report.release", "report.final", "report.acknowledged",
+                         "remediation.", "response.adequacy", "evidence_request.", "document_request.")
 
 
 @router.get("")
@@ -46,7 +50,13 @@ def list_audit_log(
         if Scope.ALL not in scopes:
             stmt = stmt.where(AuditLog.engagement_id.in_(assigned_engagement_ids(db, actor.id)))
     else:
-        stmt = stmt.where(AuditLog.organization_id == actor.organization.id)
+        from sqlalchemy import or_
+
+        from app.tenancy.models import User
+
+        own = select(User.id).where(User.organization_id == actor.organization.id)
+        stmt = stmt.where(AuditLog.organization_id == actor.organization.id,
+                          or_(AuditLog.actor_id.in_(own), *[AuditLog.action.like(f"{a}%") for a in CLIENT_SHARED_ACTIONS]))
     for col, val in ((AuditLog.object_type, object_type), (AuditLog.object_id, object_id), (AuditLog.actor_id, actor_id), (AuditLog.engagement_id, engagement_id)):
         if val:
             stmt = stmt.where(col == val)
@@ -61,9 +71,9 @@ def list_audit_log(
         w = csv.writer(buf)
         w.writerow(CSV_COLUMNS)
         for e in rows:
-            w.writerow([_cell(v) for v in (e.at.isoformat(), e.actor_name or e.actor_id or "", e.action, e.object_type, e.object_id or "", e.summary or "", e.ip or "")])
+            w.writerow([_cell(v) for v in (e.at.isoformat(), e.actor_name or e.actor_id or "", e.action, e.object_type, e.object_id or "", e.summary or "", (e.ip or "") if actor.is_futran else "")])
         return Response(buf.getvalue(), media_type="text/csv", headers={"Content-Disposition": 'attachment; filename="audit-log.csv"'})
-    return [
+    out = [
         {
             "id": e.id,
             "at": e.at.isoformat(),
@@ -78,3 +88,7 @@ def list_audit_log(
         }
         for e in rows
     ]
+    if not actor.is_futran:  # Futran staff addresses are not shown to clients
+        for row in out:
+            row.pop("ip")
+    return out

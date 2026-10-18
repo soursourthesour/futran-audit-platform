@@ -7,7 +7,7 @@ from app.findings.models import Finding
 from app.notifications.models import Notification
 from app.signoffs.service import current
 from app.systems.models import AISystem
-from tests.factories import login_as, make_user
+from tests.factories import approve_client_review, login_as, make_user
 from tests.initiation.conftest import live, people, submitted  # noqa: F401
 from tests.inventory.test_named_users import inv  # noqa: F401
 
@@ -105,6 +105,7 @@ def test_client_never_sees_draft_findings(client, db, inv, qa, people):
 
 def test_signoff5_requires_all_approved_and_locks_scores(client, db, inv, qa, people):
     cid, e, *_ = inv
+    approve_client_review(db, e)
     login_as(client, db, people["aud"])
     f = _new(client, cid)
     client.post(f"/api/v1/findings/{f['id']}/submit")

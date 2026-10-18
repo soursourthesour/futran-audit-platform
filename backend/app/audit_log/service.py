@@ -4,6 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.audit_log.models import AuditLog
+from app.core.ratelimit import client_ip_or_none as _ip
 
 
 def record(
@@ -32,7 +33,7 @@ def record(
         raise ValueError("audit.record needs an organization_id or an object with one")
     ip = ua = None
     if request is not None:
-        ip = request.client.host if request.client else None
+        ip = _ip(request)
         ua = (request.headers.get("user-agent") or "")[:300]
     if actor_id and actor_name is None:
         from app.tenancy.models import User

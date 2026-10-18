@@ -10,6 +10,7 @@ from app.auth.passwords import hash_password, verify_password
 from app.core.clock import utcnow
 from app.core.errors import AppError, Unauthorized
 from app.tenancy.models import User
+from app.core.ratelimit import client_ip_or_none
 
 LOCKOUT_FAILURES = 10
 LOCKOUT_WINDOW = timedelta(minutes=15)
@@ -30,7 +31,7 @@ def find_login_user(db: Session, email: str) -> User | None:
 
 
 def _ip(request) -> str | None:
-    return request.client.host if request is not None and request.client else None
+    return client_ip_or_none(request) if request is not None else None
 
 
 def recent_login_failures(db: Session, email: str, ip: str | None) -> int:

@@ -42,3 +42,17 @@ def login_as(client, db, user, accept_terms=True):
     client.cookies.set(COOKIE_NAME, raw)
     client.headers["X-CSRF-Token"] = s.csrf_token
     return client
+
+
+def approve_client_review(db, e):
+    """Record sign-offs 2 (each in-scope department), 3 and 4 as approved, as stage 4 leaves them."""
+    from app.engagements.models import Engagement
+    from app.signoffs.client_review import in_scope_departments
+    from app.signoffs.service import create_sign_off
+
+    e = db.get(Engagement, e.id)
+    rows = [create_sign_off(db, e, 2, preparer_id=None, required_roles=["dept_compliance_lead"], scope_ref=d.id) for d in in_scope_departments(db, e)]
+    rows += [create_sign_off(db, e, n, preparer_id=None, required_roles=["caico"]) for n in (3, 4)]
+    for so in rows:
+        so.status = "approved"
+    db.commit()

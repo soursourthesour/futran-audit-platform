@@ -11,7 +11,7 @@ from app.inventory.models import UseCase
 from app.remediation.models import RemediationItem
 from app.systems.models import AISystem
 from app.tenancy.models import Department, User
-from tests.factories import login_as, make_user
+from tests.factories import approve_client_review, login_as, make_user
 from tests.initiation.conftest import live, people, submitted  # noqa: F401
 from tests.inventory.test_named_users import _uc, inv  # noqa: F401
 from tests.reports.test_reports import _no_public_summary, _released, ready  # noqa: F401
@@ -24,9 +24,11 @@ def _stage(db, e, n):
 
 
 def _drop_systems(db, e):
+    """No systems to score, and the client review signed: only findings stand between fieldwork and QA."""
     for s in db.scalars(select(AISystem).where(AISystem.engagement_id == e.id)):
         s.deleted_at = utcnow()
     db.commit()
+    approve_client_review(db, e)
 
 
 def _new(client, cid, title="Personal AI accounts", severity="medium"):

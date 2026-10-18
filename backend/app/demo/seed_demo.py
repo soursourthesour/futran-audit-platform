@@ -5,7 +5,8 @@ obeys the same rules as real use. Only allowed in test mode (MFA off or email to
 
 - Futran: six staff users, password Demo-Password-2026, MFA off.
 - ABC Corp: New York, Chicago and remote; HR, Finance, Sales & Marketing; one engagement taken from draft to completed,
-  with SYS-001 to SYS-004 (SYS-001 reproduces the scoring worked example), and an "Annual review 2027" awaiting approval.
+  with SYS-001 to SYS-004 (SYS-001 reproduces the scoring worked example).
+- Northwind Logistics: a new client drafted by the auditor, waiting for the Chief Auditor's approval.
 - Meridian GmbH: Berlin and Bangalore, at stage 3 (discovery).
 - Futran Solutions (internal): an internal client at stage 2 (setup).
 """
@@ -525,30 +526,23 @@ def _abc_report_and_close(m: Demo, cid: str) -> None:
     assert m.db.scalar(select(Report).where(Report.engagement_id == done.id, Report.version == "v1.1", Report.status == "final")) is not None
 
 
-def abc_annual_review(m: Demo, cid: str) -> None:
-    """A second ABC engagement waiting for the Chief Auditor, so the approval screen has data. It reuses the first
-    engagement's scope, laws and contacts, as the auditor would when drafting a follow-up."""
-    from app.engagements.models import ClientContact, ClientRequirement, Engagement, EngagementTeam
-    from app.engagements.service import next_audit_ref, transition
-
-    done = m.db.scalar(select(Engagement).where(Engagement.client_id == cid, Engagement.status == "completed"))
-    aud = m.user("auditor1@futran.demo")
-    y = m.today.year + 1
-    e = Engagement(organization_id=cid, client_id=cid, name="Annual review 2027", type="annual_review", audit_ref=next_audit_ref(m.db), period_start=date(y, 1, 1), period_end=date(y, 12, 31),
-                   letter_due=date(y, 1, 15), fieldwork_start=date(y, 3, 1), draft_report_target=date(y, 4, 15), final_report_target=date(y, 5, 15),
-                   frameworks=done.frameworks, methodology_version=done.methodology_version, business_processes=done.business_processes, data_environments=done.data_environments,
-                   geographic_scope=done.geographic_scope, planned_systems=done.planned_systems, status="draft", stage=1, created_by=aud.id, submitted_by=aud.id,
-                   wizard_state={"departments": (done.wizard_state or {}).get("departments", [])})
-    m.db.add(e)
-    m.db.flush()
-    for t in m.db.scalars(select(EngagementTeam).where(EngagementTeam.engagement_id == done.id, EngagementTeam.deleted_at.is_(None))):
-        m.db.add(EngagementTeam(organization_id=cid, engagement_id=e.id, user_id=t.user_id, role=t.role, conflict_confirmed_at=t.conflict_confirmed_at))
-    for r in m.db.scalars(select(ClientRequirement).where(ClientRequirement.engagement_id == done.id, ClientRequirement.deleted_at.is_(None))):
-        m.db.add(ClientRequirement(organization_id=cid, engagement_id=e.id, regulation_id=r.regulation_id, source=r.source, reason_text=r.reason_text, in_scope=r.in_scope, notes=r.notes, free_text=r.free_text))
-    for c in m.db.scalars(select(ClientContact).where(ClientContact.engagement_id == done.id, ClientContact.deleted_at.is_(None))):
-        m.db.add(ClientContact(organization_id=cid, engagement_id=e.id, contact_role=c.contact_role, name=c.name, title=c.title, email=c.email, phone=c.phone, not_appointed=c.not_appointed, user_id=c.user_id))
-    transition(m.db, aud, e, "pending_approval")
-    m.db.commit()
+def northwind_pending(m: Demo) -> str:
+    """A new client drafted by the auditor and waiting for the Chief Auditor, so the approval screen has data."""
+    cid = m.new_client(
+        company={"legal_name": "Northwind Logistics LLC", "trading_name": "Northwind Logistics", "industry": "other", "employee_band": "1000+", "hq_street": "1 Harbor Way", "hq_city": "Newark",
+                 "hq_state": "US-NJ", "hq_postal_code": "07102", "hq_country": "US", "primary_jurisdictions": ["US"], "ai_systems_in_scope_count": 2,
+                 "engagement_reason": "Route optimisation and driver scheduling now use AI; the board asked for an independent review"},
+        locations=[{"site_name": "Headquarters", "street": "1 Harbor Way", "city": "Newark", "subdivision_code": "US-NJ", "country_code": "US", "employees_at_site": 900, "in_scope": True},
+                   {"site_name": "Dallas hub", "city": "Dallas", "subdivision_code": "US-TX", "country_code": "US", "employees_at_site": 400, "in_scope": True}],
+        scope={"type": "initial_assessment", "period_start": f"{m.today.year}-01-01", "period_end": f"{m.today.year}-12-31", "fieldwork_start": m.d(30), "letter_due": m.d(10),
+               "draft_report_target": m.d(80), "final_report_target": m.d(110), "frameworks": ["nist_ai_rmf"], "business_processes": "Route optimisation; driver scheduling",
+               "data_environments": ["production"], "geographic_scope": "United States (New Jersey, Texas)", "planned_systems": ["Route optimiser", "Driver scheduling assistant"],
+               "departments": ["Operations", "People"]},
+        contacts={"caico": {"name": "Hannah Ortiz", "title": "Chief Risk Officer", "email": "hannah.ortiz@northwind.example"}, "client_admin": {"same_as_caico": True},
+                  "dpo": {"not_appointed": True}, "exec_sponsor": {"not_appointed": True}, "project_lead": {"same_as_caico": True}},
+        team=[("chief@futran.demo", "chief_auditor"), ("em@futran.demo", "engagement_manager"), ("auditor1@futran.demo", "auditor")])
+    m.as_(m.user("auditor1@futran.demo")).post(f"/clients/{cid}/submit")
+    return cid
 
 
 # ---- Meridian GmbH (stage 3) and the internal client (stage 2)
@@ -649,7 +643,7 @@ def run(db: Session, settings, client: TestClient | None = None) -> dict:
     try:
         m.futran_staff()
         out = {"abc": abc(m)}
-        abc_annual_review(m, out["abc"])
+        out["northwind"] = northwind_pending(m)
         out["meridian"] = meridian(m)
         out["internal"] = internal(m)
     finally:

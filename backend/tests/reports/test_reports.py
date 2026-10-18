@@ -8,7 +8,7 @@ from sqlalchemy import select
 from app.engagements.models import ClientRequirement, Engagement, EngagementTeam
 from app.laws.models import Regulation
 from app.signoffs.service import current
-from tests.factories import login_as, make_user
+from tests.factories import approve_client_review, login_as, make_user
 from tests.initiation.conftest import live, people, submitted  # noqa: F401
 from tests.inventory.test_named_users import inv  # noqa: F401
 
@@ -23,6 +23,7 @@ def ready(client, db, inv, people):
     cid, e, maria, *_ = inv
     db.get(Engagement, e.id).stage = 5
     db.commit()
+    approve_client_review(db, e)
     login_as(client, db, people["aud"])
     f = client.post(f"/api/v1/clients/{cid}/findings", json={"title": "Personal AI accounts used with applicant data", "severity": "high",
                                                              "description": "Recruiters use personal accounts.", "recommended_remediation": "Move to company accounts.", "proposed_owner": "Head of HR"}).json()

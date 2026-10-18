@@ -17,6 +17,7 @@ from app.engagements.models import ClientRequirement, Engagement
 from app.findings.models import Finding
 from app.reports.models import CLIENT_DECLARATIONS, FUTRAN_DECLARATIONS, PRIORITIES, VERSIONS, Declaration, Report, ReportNarrative, RoadmapItem
 from app.tenancy.models import Department, Organization, User
+from app.core.ratelimit import client_ip_or_none as _ip
 
 VERSION_LABEL = {v: f"{label} {v}" for v, label in VERSIONS.items()}
 STATUS_TEXT = {"v0.1": "Draft for internal review", "v0.2": "Lead review", "v1.0": "Draft issued to the client", "v1.1": "Final"}
@@ -369,7 +370,7 @@ def _check_name(user: User, typed_name: str) -> str:
 
 def _record(db: Session, actor: User, e: Engagement, r: Report, kind: str, typed_name: str, text: str, text_version: str | None, request=None, **extra) -> Declaration:
     d = Declaration(organization_id=e.client_id, engagement_id=e.id, report_id=r.id, kind=kind, user_id=actor.id, typed_name=typed_name, title=actor.job_title, text=text,
-                    text_version=text_version, signed_at=utcnow(), ip=request.client.host if request is not None and request.client else None,
+                    text_version=text_version, signed_at=utcnow(), ip=_ip(request) if request is not None else None,
                     document_sha256=hashlib.sha256(r.body_md.encode()).hexdigest(), **extra)
     db.add(d)
     try:

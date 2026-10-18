@@ -13,6 +13,7 @@ from app.engagements.models import Engagement
 from app.policy.roles import ROLE_LABELS
 from app.signoffs.models import SIGN_OFF_TITLES, Signature, SignOff
 from app.tenancy.models import User
+from app.core.ratelimit import client_ip_or_none as _ip
 
 FUTRAN_SIGNER_ROLES = {"chief_auditor", "auditor", "qa_reviewer"}
 
@@ -126,7 +127,7 @@ def sign(db: Session, settings, actor: Actor, so: SignOff, typed_name: str, requ
         raise Conflict("This can't be signed: things have changed since it was sent. Return it to the preparer.", [{"field": "precondition", "message": m} for m in unmet])
     sig = Signature(
         organization_id=so.organization_id, sign_off_id=so.id, user_id=actor.id, role=role, typed_name=" ".join(typed_name.split()),
-        signed_at=utcnow(), ip=request.client.host if request is not None and request.client else None,
+        signed_at=utcnow(), ip=_ip(request) if request is not None else None,
         user_agent=(request.headers.get("user-agent") or "")[:300] if request is not None else None, document_sha256=document_hash(db, so, settings),
     )
     db.add(sig)
@@ -212,7 +213,7 @@ SIGNOFF_SPECS: dict[int, SignOffSpec] = {
     8: SignOffSpec(8, ("auditor", "chief_auditor"), ("caico",)),
 }
 # the last stage at which a signed item may still be reopened; later stages build on it (the snapshot, the released report)
-CORRECTABLE_UNTIL = {2: 5, 3: 5, 4: 5, 5: 6, 6: 7, 7: 8, 8: 8}
+CORRECTABLE_UNTIL = {2: 5, 3: 5, 4: 5, 5: 6, 8: 8}  # 6 and 7: approval moves the engagement on, and the final report is re-issued only through prepare_final
 ON_APPROVED: dict[int, list] = {}
 PRECONDITIONS: dict[int, list] = {}
 STATEMENTS: dict = {}  # number -> fn(db, engagement) -> the text signed when there is no package document
@@ -357,7 +358,9 @@ def correct(db: Session, settings, actor: Actor, so: SignOff, reason: str | None
     if so.status != "approved" or _superseded(db, so):
         raise Conflict("Only the current approved version can be corrected.")
     e = db.get(Engagement, so.engagement_id)
-    last = CORRECTABLE_UNTIL.get(so.number, 0)
+    last = CORRECTABLE_UNTIL.get(so.number)
+    if last is None:
+        raise Conflict(f"Sign-off {so.number} is not corrected this way." + (" Prepare the final report again instead." if so.number == 7 else ""))
     if e.status not in ("initiated", "in_progress") or e.stage > last:
         raise Conflict(f"Sign-off {so.number} can no longer be corrected: later work relies on it (corrections are possible up to stage {last}).")
     roles, fallback = resolve_signers(db, e, spec)
