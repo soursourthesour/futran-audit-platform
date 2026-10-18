@@ -74,7 +74,9 @@ client_router = APIRouter(tags=["sign-offs"])
 @client_router.post("/clients/{client_id}/signoffs/{number}/submit")
 def submit(client_id: str, number: int, body: SubmitIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
     org, e = _client_engagement(db, actor, client_id)
-    statement = client_review.representation_text(db, e) if number == 4 else None
+    from app.signoffs.service import STATEMENTS
+
+    statement = STATEMENTS[number](db, e) if number in STATEMENTS else None
     so = submit_signoff(db, request.app.state.settings, actor, e, number, body.scope_ref, statement=statement)
     return sign_off_out(db, actor, so)
 

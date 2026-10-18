@@ -1,0 +1,247 @@
+# AI governance audit report
+
+**{{ client.name }}** · {{ engagement.audit_ref }} · {{ report.version_label }}
+
+| Item | Detail |
+|---|---|
+| Client | {{ client.name | md_cell }} |
+| Industry | {{ client.industry | md_cell }} |
+| Audit reference | {{ engagement.audit_ref | md_cell }} |
+| Engagement | {{ engagement.type_label | md_cell }} |
+| Lead auditor | {{ lead_auditor | md_cell }} |
+| Audit period | {{ engagement.period | md_cell }} |
+| Frameworks | {{ engagement.frameworks | md_cell }} |
+| Methodology | {{ engagement.methodology_version | md_cell }} |
+| Report version | {{ report.version_label | md_cell }} |
+| Report status | {{ report.status_text | md_cell }} |
+| Overall risk rating | {{ overall_rating | md_cell }} |
+| Date | {{ report.date | md_cell }} |
+
+<!-- pagebreak -->
+
+## 1. Executive summary
+
+### Total findings
+
+| Critical | High | Medium | Low | Observations | Total |
+|---|---|---|---|---|---|
+| {{ counts.critical }} | {{ counts.high }} | {{ counts.medium }} | {{ counts.low }} | {{ counts.observation }} | {{ counts.total }} |
+
+**Overall risk rating:** {{ overall_rating }}
+
+**Overall maturity:** {{ overall_maturity }}
+
+### Most significant finding
+
+{% if summary.most_significant_ref %}
+**{{ summary.most_significant_ref }} {{ summary.most_significant_title }}**
+
+{% endif %}
+{{ summary.most_significant_text or "Not yet written." }}
+
+### Greatest strengths observed
+
+{{ summary.strengths or "Not yet written." }}
+
+### Immediate actions required (within 30 days)
+
+{% for f in summary.critical %}
+- {{ f.ref }} {{ f.title }}
+{% endfor %}
+
+{{ summary.immediate_actions or ("None beyond the Critical findings listed above." if summary.critical else "No immediate actions are required.") }}
+
+{% if scorecard.narrative %}
+### Overall assessment
+
+{{ scorecard.narrative }}
+{% endif %}
+
+<!-- pagebreak -->
+
+## 2. Findings
+
+| Ref | Finding | Severity | System | Owner | Due |
+|---|---|---|---|---|---|
+{% for f in findings %}
+| {{ f.ref | md_cell }} | {{ f.title | md_cell }} | {{ f.severity_label | md_cell }} | {{ f.system | md_cell }} | {{ f.owner | md_cell }} | {{ f.due | md_cell }} |
+{% endfor %}
+
+{% if not findings %}
+No findings were raised.
+{% endif %}
+
+{% for group in findings_by_severity %}
+### {{ group.label }}
+
+{% for f in group["items"] %}
+#### {{ f.ref }} {{ f.title }}
+
+{% if f.system %}**System:** {{ f.system }}
+{% endif %}
+{% if f.section %}**Template section:** {{ f.section }}
+{% endif %}
+{% if f.controls %}**Regulatory or standard reference:** {{ f.controls }}
+{% endif %}
+**Owner:** {{ f.owner or "To be confirmed" }} · **Remediation due:** {{ f.due }}
+
+{{ f.description or "" }}
+
+**Recommended remediation:** {{ f.remediation or "To be agreed with the owner." }}
+
+{% endfor %}
+{% endfor %}
+
+<!-- pagebreak -->
+
+## 3. AI systems in scope
+
+{% for s in systems %}
+### {{ s.ref }} {{ s.name }}
+
+| Item | Detail |
+|---|---|
+| Built by | {{ s.built_by | md_cell }} |
+| Vendor | {{ s.vendor | md_cell }} |
+| Department | {{ s.department | md_cell }} |
+| Use cases | {{ s.use_cases | md_cell }} |
+| Inherent risk (0–100) | {{ s.inherent | md_cell }} |
+| Control maturity (1–5) | {{ s.maturity | md_cell }} |
+| Residual risk (0–100) | {{ s.residual | md_cell }} |
+| Rating | {{ s.rating | md_cell }} |
+
+{% endfor %}
+{% if not systems %}
+No AI systems were assessed.
+{% endif %}
+
+## 4. Maturity scorecard
+
+Scale: 1 None · 2 Initial or ad hoc · 3 Defined and documented · 4 Managed and measured · 5 Optimized.
+
+| Domain | Maturity (1–5) |
+|---|---|
+{% for d in scorecard.domains %}
+| {{ d.label | md_cell }} | {{ d.score | md_cell }} |
+{% endfor %}
+| **Overall maturity** | {{ overall_maturity | md_cell }} |
+| **Overall risk rating** | {{ overall_rating | md_cell }} |
+
+<!-- pagebreak -->
+
+## 5. Remediation roadmap
+
+| Ref | Recommended action | Responsible owner | Priority | Target date | How Futran can help |
+|---|---|---|---|---|---|
+{% for r in roadmap %}
+| {{ r.ref | md_cell }} | {{ r.action | md_cell }} | {{ r.owner | md_cell }} | {{ r.priority | md_cell }} | {{ r.target_date | md_cell }} | {{ r.how_futran_can_help | md_cell }} |
+{% endfor %}
+
+{% if not roadmap %}
+No roadmap items have been recorded.
+{% endif %}
+
+## 6. Laws and frameworks in scope
+
+| Law or framework | Jurisdiction | Citation |
+|---|---|---|
+{% for l in laws %}
+| {{ l.name | md_cell }} | {{ l.jurisdiction | md_cell }} | {{ l.citation | md_cell }} |
+{% endfor %}
+
+{% if management_responses %}
+## 7. Management responses
+
+| Finding | Response | Owner | Target date |
+|---|---|---|---|
+{% for m in management_responses %}
+| {{ m.ref | md_cell }} | {{ m.response | md_cell }} | {{ m.owner | md_cell }} | {{ m.target_date | md_cell }} |
+{% endfor %}
+
+{% endif %}
+<!-- pagebreak -->
+
+## Sign-off and declarations
+
+### Futran Solutions declarations
+
+**Lead Auditor declaration.** {{ declarations.lead_auditor_text }}
+
+| Role | Name | Signed |
+|---|---|---|
+{% for d in declarations.futran %}
+| {{ d.label | md_cell }} | {{ d.name | md_cell }} | {{ d.signed_at | md_cell }} |
+{% endfor %}
+
+{% if declarations.no_qa %}
+No QA Reviewer assigned to this engagement.
+{% endif %}
+
+**Audit report version:** {{ report.version_label }} (Draft v0.1, Lead review v0.2, Client v1.0, Final v1.1)
+
+### Client acknowledgement
+
+{{ declarations.client_text }}
+
+Signing confirms receipt and reading of this report. It does not mean agreement with every finding.
+
+{% if declarations.client %}
+| Role | Name | Title | Signed |
+|---|---|---|---|
+| Client authorized representative | {{ declarations.client.name | md_cell }} | {{ declarations.client.title | md_cell }} | {{ declarations.client.signed_at | md_cell }} |
+
+**Remediation commitment:** {{ declarations.client.commitment }}
+{% else %}
+Awaiting the client's acknowledgement of the final report.
+{% endif %}
+
+<!-- pagebreak -->
+
+## Appendix B. Regulatory quick reference
+
+Use this as a quick reference. It is not legal advice; refer specific legal questions to the Lead Auditor or Legal Reviewer.
+
+| Requirement | HIPAA (US healthcare) | EU AI Act | GDPR (EU) | India DPDP Act |
+|---|---|---|---|---|
+| Applies to | Covered entities and business associates processing PHI in the US | Any organization placing AI systems on the EU market or affecting EU persons | Any organization processing personal data of EU residents | Any organization processing personal data of Indian residents |
+| Data consent or legal basis | Authorization for non-TPO uses; TPO uses do not require consent | Transparency required; consent for GPAI training in some cases | Explicit legal basis required (consent, contract, legitimate interest and others) | Explicit consent for most processing; certain legitimate uses exempt |
+| Bias and fairness testing | Not explicitly required but implied by non-discrimination laws | Mandatory for all high-risk AI systems | Non-discrimination principle applies | Fairness principle in the India AI Guidelines; mandatory for SDFs under DPDP |
+| Human oversight | Required for clinical decisions; not a universal mandate | Mandatory for all high-risk AI: meaningful human review | Right not to be subject to solely automated decisions (Art. 22) | Human oversight principle in the AI Guidelines; human in the loop for high-impact uses |
+| Model documentation | Not specifically mandated | Technical documentation and model cards mandatory for high-risk AI | DPIAs required for high-risk processing | DPIAs required for Significant Data Fiduciaries; AI impact assessments evolving |
+| Incident notification | 60 days for breaches affecting 500 or more individuals; annual report for smaller breaches | Serious incident reporting to the EU AI Office for high-risk AI providers | 72 hours to the supervisory authority for personal data breaches | Breach reporting timelines specified in the DPDP Rules 2025 |
+| Penalties | Up to $2M per violation category; criminal penalties for wilful neglect | Up to €35M or 7% of global turnover for prohibited AI practices | Up to €20M or 4% of global turnover | Up to INR 250 crore under DPDP; AI-specific penalties emerging |
+| Audit or assessment required | HIPAA risk analysis at least annually or when the environment changes | Conformity assessment for high-risk AI before market placement | DPIAs for high-risk processing; ongoing review | DPIAs for SDFs; IndiaAI Safety Institute audits evolving |
+| Explainability required | Not explicitly mandated (adverse action notices required in BFSI) | Mandatory for high-risk AI: decisions must be explainable | Right to explanation for automated decisions (Art. 22) | Transparency principle in the AI Guidelines; explanation emerging |
+| Template reference | BAA checklist (§9); HIPAA assessment (§5.3) | EU AI Act risk classification (§3.3); bias testing (§6.2) | Data privacy fields throughout §5 | DPDP consent fields (§5.2); India framework (§4) |
+
+## Appendix C. Glossary
+
+| Term | Plain English definition | Why it matters in an AI audit |
+|---|---|---|
+| Adversarial Attack | A deliberate input designed to trick an AI model into making an incorrect prediction | If the model is used in security, fraud detection or medical diagnosis, adversarial robustness is critical |
+| Algorithm | A set of rules or instructions that a computer follows to make a decision or prediction | All AI systems are built on algorithms; understanding what the algorithm does is the starting point of any audit |
+| Agentic AI | AI that can take actions on its own (browse the web, run code, send emails) without human approval for each step | Much higher risk than advisory AI; human oversight controls are especially important |
+| BAA (Business Associate Agreement) | A HIPAA-required contract between a healthcare organization and any vendor that handles patient health information on its behalf | Without a signed BAA, using a vendor for AI on PHI is a HIPAA violation |
+| Bias (Algorithmic) | When an AI model produces systematically different (worse) outcomes for one demographic group compared with another | Can cause illegal discrimination in credit, hiring, insurance or healthcare; must be tested before and during deployment |
+| Data Drift | When the real-world data an AI system meets in production starts to differ from the data it was trained on, so performance degrades | Left untreated, the model becomes less accurate over time without anyone noticing |
+| Data Fiduciary | Under India's DPDP Act, any entity that determines the purpose and means of processing personal data | Equivalent to a data controller under GDPR; has specific compliance obligations |
+| DPIA (Data Protection Impact Assessment) | A formal analysis of the privacy risks of a processing activity, required before high-risk processing begins | Required by GDPR and evolving under India DPDP for high-risk AI systems |
+| Disparate Impact | When a neutral-looking policy or algorithm produces different outcomes for different protected groups | Measured with the four-fifths rule: a selection rate for the less-favored group below 80% of the favored group's rate indicates disparate impact |
+| Explainability (XAI) | The ability to describe in plain language why an AI model made a particular prediction or decision | Required by the EU AI Act for high-risk AI and by GDPR Art. 22 for automated decisions; needed for consumer adverse action notices |
+| Feature | An input variable a model uses to make predictions, such as income, age, zip code or diagnosis code | Some features are proxies for protected characteristics (zip code correlates with race), creating indirect bias |
+| Foundation Model (LLM) | A large pre-trained AI model that can be adapted for many tasks | Governed under the EU AI Act GPAI provisions; prompt injection and output filtering are key security controls |
+| GenAI (Generative AI) | AI that generates new content (text, images, audio, code) rather than only classifying or predicting | Synthetic media labeling requirements apply (EU AI Act, India IT Amendment Rules 2026) |
+| High-Risk AI (EU AI Act) | AI systems used where errors can significantly harm people: healthcare, credit, employment, education, law enforcement | Subject to the strictest EU AI Act obligations: conformity assessment, documentation, human oversight, registration |
+| HIPAA | US law protecting patient health information; requires covered entities and business associates to protect PHI | Any AI touching US health data must comply; BAAs are required with all vendors processing PHI |
+| Human-in-the-Loop | A design in which a human reviews and approves AI outputs before they are acted on | Required by the EU AI Act for high-risk systems; prevents fully automated harmful decisions |
+| Model Card | A short document describing what a model does, how it was trained, how it performs and its limitations | Required for high-risk AI under the EU AI Act and good practice for all models |
+| Model Drift | When a model's predictive accuracy declines over time because the real world has changed | Requires continuous monitoring and periodic retraining; a model with no monitoring is a liability |
+| Model Risk | The risk of adverse consequences from decisions based on poorly developed, implemented or used AI models | Formally managed in banking (OCC SR 11-7); an emerging requirement across industries |
+| Model Validation | An independent review confirming a model is conceptually sound, performs as intended and suits its use case | Must be done by someone not involved in building the model; required in banking, evolving elsewhere |
+| PHI (Protected Health Information) | Under HIPAA, any individually identifiable health information, including names, dates, diagnoses, insurance numbers and images | The most sensitive data category in US healthcare AI; any AI touching PHI needs rigorous HIPAA compliance |
+| PII (Personally Identifiable Information) | Any data that could identify an individual: name, address, SSN, email, IP address, biometric data | Triggers privacy law obligations under GDPR, DPDP and state laws |
+| Prompt Injection | An attack in which malicious text in an input causes a GenAI system to behave in unintended ways | A critical security risk for GenAI systems; must be tested and mitigated before deployment |
+| SHAP and LIME | Mathematical tools that explain which features most influenced a model's prediction in a specific case | Their use shows the organization is thinking about explainability |
+| SDF (Significant Data Fiduciary) | Under India's DPDP Act, a data fiduciary classified as handling especially sensitive or large volumes of data | Subject to additional obligations, including DPIAs, audits and appointing a Data Protection Officer |
+| SOC 2 Type II | An independent audit confirming a vendor's security, availability and privacy controls exist and worked over 6–12 months | Expected evidence from high-risk AI vendors; Type II (tested over time) is stronger than Type I (point in time) |
+| Training Data | The dataset used to teach an AI model to make predictions | Its quality, bias, legal basis and provenance are the foundation of the audit |

@@ -168,3 +168,28 @@ def _stage5(db: Session, e: Engagement) -> GateResult:
     for f in db.scalars(select(Finding).where(Finding.engagement_id == e.id, Finding.deleted_at.is_(None), Finding.status.in_(["draft", "returned"])).order_by(Finding.ref)):
         unmet.append(f"{f.ref} {f.title} is {'still a draft' if f.status == 'draft' else 'returned to its author'}. Submit it or dismiss it.")
     return _result(unmet)
+
+
+@register(6)
+def _stage6(db: Session, e: Engagement) -> GateResult:
+    """Futran QA ends when sign-off 5 is approved and the client draft report (v1.0) is released."""
+    from app.reports.service import latest
+
+    unmet = [] if signoff_approved(db, e, 5) else ["Sign-off 5 (final risk tiers and findings) is not approved yet."]
+    if latest(db, e, "v1.0", released=True) is None:
+        unmet.append("Release the client draft report (v1.0).")
+    return _result(unmet)
+
+
+@register(8)
+def _stage8(db: Session, e: Engagement) -> GateResult:
+    """The final report stage ends with sign-off 7, the client's acknowledgement and, when a law needs one, sign-off 8."""
+    from app.reports.service import declarations_for, latest, requires_public_summary
+
+    unmet = [] if signoff_approved(db, e, 7) else ["Sign-off 7 (final report) is not approved yet."]
+    final = latest(db, e, "v1.1")
+    if final is None or final.status != "final" or not any(d.kind == "client_acknowledgement" for d in declarations_for(db, final)):
+        unmet.append("The client has not acknowledged the final report.")
+    if requires_public_summary(db, e) and not signoff_approved(db, e, 8):
+        unmet.append("Sign-off 8 (public summary) is not approved yet.")
+    return _result(unmet)

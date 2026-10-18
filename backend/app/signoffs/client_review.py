@@ -72,6 +72,7 @@ so_svc.PRECONDITIONS[2] = [department_unmet]
 so_svc.PRECONDITIONS[3] = [signoff3_unmet]
 so_svc.PRECONDITIONS[4] = [signoff4_unmet]
 so_svc.ON_APPROVED[4] = [_lock]
+so_svc.STATEMENTS[4] = representation_text
 
 
 def _register_signoff5() -> None:

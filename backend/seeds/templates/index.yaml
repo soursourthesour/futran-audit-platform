@@ -9,3 +9,6 @@ templates:
   - {key: governance_request, name: "AI governance structure request", type: governance_request, package_item: 7, requires_action: answer}
   - {key: document_request_email, name: "Pre-audit document request email", type: email}
   - {key: management_representation, name: "Management representation", type: text}
+  - {key: report, name: "AI governance audit report", type: report}
+  - {key: lead_auditor_declaration, name: "Lead Auditor declaration", type: text}
+  - {key: client_declaration, name: "Client acknowledgement declaration", type: text}

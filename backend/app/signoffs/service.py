@@ -204,9 +204,13 @@ SIGNOFF_SPECS: dict[int, SignOffSpec] = {
     3: SignOffSpec(3, ("dept_compliance_lead", "caico"), ("dpo", "caico")),
     4: SignOffSpec(4, ("caico",), ("dpo", "exec_sponsor")),
     5: SignOffSpec(5, ("auditor", "chief_auditor"), ("chief_auditor",)),
+    6: SignOffSpec(6, ("dept_compliance_lead", "caico"), ("caico", "exec_sponsor")),
+    7: SignOffSpec(7, ("auditor", "chief_auditor"), ("chief_auditor",)),
+    8: SignOffSpec(8, ("auditor", "chief_auditor"), ("caico",)),
 }
 ON_APPROVED: dict[int, list] = {}
 PRECONDITIONS: dict[int, list] = {}
+STATEMENTS: dict = {}  # number -> fn(db, engagement) -> the text signed when there is no package document
 
 
 def resolve_signers(db: Session, e: Engagement, spec: SignOffSpec) -> tuple[list[str], list[str]]:
@@ -257,7 +261,7 @@ def _notify_next(db: Session, settings, so: SignOff) -> None:
 
     e = db.get(Engagement, so.engagement_id)
     users = [u for r in next_roles(db, so) for u in role_holders_for(db, so, r) if not is_excluded(so, u.id) or _fallback_self_sign(db, so, r)]
-    link = "/review" if so.number in (2, 3, 4) else f"/clients/{so.organization_id}"
+    link = {2: "/review", 3: "/review", 4: "/review", 6: "/responses", 7: f"/clients/{so.organization_id}/report", 8: "/report"}.get(so.number, f"/clients/{so.organization_id}")
     notify(db, users, "sign_off_awaiting", f"Sign-off {so.number} is waiting for you: {so.title}", f"{e.audit_ref}. Prepared by {(db.get(User, so.preparer_id).name if so.preparer_id else 'the team')}.", link, engagement=e, settings=settings)
 
 
@@ -299,7 +303,8 @@ def return_signoff(db: Session, settings, actor: Actor, so: SignOff, comment: st
     audit.record(db, actor_id=actor.id, action="signoff.returned", obj=so, after={"comment": so.comment}, summary=f"{actor.user.name} returned sign-off {so.number} ({so.title})")
     from app.notifications.service import notify
 
-    notify(db, [db.get(User, so.preparer_id)] if so.preparer_id else [], "sign_off_returned", f"Sign-off {so.number} was returned: {so.title}", comment, "/review", engagement=db.get(Engagement, so.engagement_id), settings=settings)
+    notify(db, [db.get(User, so.preparer_id)] if so.preparer_id else [], "sign_off_returned", f"Sign-off {so.number} was returned: {so.title}", comment,
+           {5: f"/clients/{so.organization_id}/findings", 7: f"/clients/{so.organization_id}/report", 8: f"/clients/{so.organization_id}/report", 6: "/responses"}.get(so.number, "/review"), engagement=db.get(Engagement, so.engagement_id), settings=settings)
     return so
 
 
