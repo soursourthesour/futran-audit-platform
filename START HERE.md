@@ -1,8 +1,8 @@
 ---
 title: Futran Audit Platform — start here
 tags: [futran, ai-governance, audit-platform]
-status: in build
-updated: 2026-10-14
+status: v1 complete
+updated: 2026-10-18
 ---
 
 # Futran Audit Platform
@@ -11,17 +11,9 @@ Multi-tenant AI governance audit platform: onboarding through remediation in nin
 
 ## What works in this copy
 
-| Phase | Scope | State |
-|---|---|---|
-| 1 | Sign-in, MFA, roles and permissions, audit log, outbox, invitations, admin screens | Done |
-| 2 | Global law matrix import and versions, jurisdictions, Claude law updates, question bank, templates | Done |
-| 3 | New-client wizard, law suggestions, initiation package (Word and PDF), Chief Auditor approval, client checklist, sign-off 1 | Done |
-| 4 | Client users and departments, governance request, attestation, AI inventory | In build |
-| 5 | AI systems, per-system assessment, document register, risk scoring | Not started |
-| 6 | Notifications, sign-offs 2–8, fieldwork, findings, reports, remediation | Not started |
-| 7 | Demo data, end-to-end test, hand-over | Not started |
+All nine stages, from the new-client wizard to verified remediation and a completed engagement, plus demo data. See `README.md` for configuration and hosting and `docs/HANDOVER.md` for what was built, how it was checked, the decisions to confirm and the open items.
 
-An engagement can be set up, approved and signed. It stops at stage 2 until Phase 4 adds client users and departments.
+To look around with the demo clients, run `run.bat --reset-demo` from a command prompt in this folder (it replaces the database), then sign in at http://localhost:8000/staff/login as `chief@futran.demo` with the password `Demo-Password-2026`. Client users sign in at http://localhost:8000/login, for example `maria.lopez@abccorp.example`.
 
 ## Run it on this laptop
 
@@ -39,11 +31,11 @@ The Python packages, database and uploaded files are kept in `%LOCALAPPDATA%\Fut
 
 - The red test-mode bar must be gone: set `MFA_REQUIRED=true` in `.env` and restart.
 - Emails stay in Admin > Outbox until SMTP settings are added to `.env` and `EMAIL_MODE=smtp`.
-- Uploads are not virus-scanned yet, and the platform runs only on this laptop. Hosting (Render, then Azure) comes after the build.
+- Uploads are not virus-scanned unless `VIRUS_SCAN=clamav` is set with a ClamAV daemon. Hosting on Render is described in the README; Azure comes after.
 
 ## Where things are
 
-- `docs/spec/` — developer spec v0.2, build schematic, AI system questionnaire addendum
+- `docs/spec/` — developer spec v0.3, build schematic, AI system questionnaire addendum
 - `docs/superpowers/plans/` — the 34-task build plan
 - `backend/` — FastAPI application and tests
 - `frontend/` — React screens (already built into `backend/app/static`)
