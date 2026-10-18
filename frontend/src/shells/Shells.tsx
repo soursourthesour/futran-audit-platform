@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Link, NavLink, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { hasRole, primaryRole, useMe, useSignOut, type Me } from '@/api/auth';
 import { Loading } from '@/components/ui';
+import { NotificationBell } from '@/components/NotificationBell';
 
 export function TestModeBar({ me }: { me?: Pick<Me, 'test_mode' | 'mfa_required' | 'email_mode'> | null }) {
   if (!me?.test_mode) return null;
@@ -16,6 +17,7 @@ function UserMenu({ me }: { me: Me }) {
   const signOut = useSignOut();
   return (
     <div className="shell-user">
+      <NotificationBell />
       <span>{me.user.name} · {primaryRole(me)}</span>
       <button type="button" onClick={() => signOut(me.organization.type === 'futran')}>Sign out</button>
     </div>

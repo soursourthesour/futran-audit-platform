@@ -1,0 +1,5 @@
+{% extends "_layout.html.j2" %}{% block body %}
+<p>Hello {{ name }},</p>
+<p>Your invitation to the Futran Audit Platform for {{ organization }} expires on <strong>{{ expires }}</strong>. Use the link in the invitation email from {{ sent }} to set your password.</p>
+<p>If you can't find it, ask {{ contact }} to send a new one.</p>
+{% endblock %}

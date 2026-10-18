@@ -1,0 +1,10 @@
+Hello {{ name }},
+
+These commitments and remediation items for {{ organization }} are past their target date.
+{% for g in groups %}
+{{ g.owner }}
+{% for i in g["items"] %}- {{ i.description }} · due {{ i.due }} ({{ i.kind }})
+{% endfor %}{% endfor %}
+Open in Futran Audit: {{ link }}
+
+Futran Solutions

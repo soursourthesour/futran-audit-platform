@@ -26,6 +26,7 @@ class DocumentRequest(TimestampedTenantMixin, Base):
     not_available_note: Mapped[str | None] = mapped_column(Text)
     finding_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("findings.id"))
     escalated_at: Mapped[datetime | None] = mapped_column(DateTime)
+    due_warned_at: Mapped[datetime | None] = mapped_column(DateTime)
     escalated_chase_id: Mapped[str | None] = mapped_column(String(36))  # the chase the Lead Auditor was last told about
 
 
