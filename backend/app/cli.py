@@ -158,9 +158,14 @@ def cmd_reset_demo(args) -> int:
     url = settings.database_url
     if url.startswith("sqlite:///"):
         path = url.replace("sqlite:///", "", 1)
-        for suffix in ("", "-wal", "-shm"):
-            if os.path.exists(path + suffix):
-                os.remove(path + suffix)
+        try:
+            for suffix in ("", "-wal", "-shm"):
+                if os.path.exists(path + suffix):
+                    os.remove(path + suffix)
+        except PermissionError:
+            print("The database is in use, so it could not be replaced. Close every other Futran Audit Platform window "
+                  "(the black windows from run.bat or demo.bat), then try again.", file=sys.stderr)
+            return 2
     from alembic import command
     from alembic.config import Config
 
