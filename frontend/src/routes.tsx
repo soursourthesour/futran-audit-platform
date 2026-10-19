@@ -29,7 +29,7 @@ export const router = createBrowserRouter([
   ...publicRoutes,
   {
     element: <RequireAuth side="futran"><FutranShell /></RequireAuth>,
-    children: [{ path: '/audits', element: <Dashboard /> }, ...futranRoutes],
+    children: [{ path: '/audits', element: <Dashboard /> }, { path: '/clients', element: <Dashboard /> }, ...futranRoutes],
   },
   {
     element: <RequireAuth side="client"><ClientShell /></RequireAuth>,
