@@ -5,6 +5,7 @@ import { Terms } from '@/screens/auth/Terms';
 import { MfaSetup, MfaVerify } from '@/screens/auth/Mfa';
 import { AcceptInvite } from '@/screens/auth/AcceptInvite';
 import { Dashboard } from '@/screens/futran/Dashboard';
+import { ClientsList } from '@/screens/futran/ClientsList';
 import { InitiationChecklist } from '@/screens/client/InitiationChecklist';
 import { useMe } from '@/api/auth';
 import { Loading } from '@/components/ui';
@@ -29,7 +30,7 @@ export const router = createBrowserRouter([
   ...publicRoutes,
   {
     element: <RequireAuth side="futran"><FutranShell /></RequireAuth>,
-    children: [{ path: '/audits', element: <Dashboard /> }, { path: '/clients', element: <Dashboard /> }, ...futranRoutes],
+    children: [{ path: '/audits', element: <Dashboard /> }, { path: '/clients', element: <ClientsList /> }, ...futranRoutes],
   },
   {
     element: <RequireAuth side="client"><ClientShell /></RequireAuth>,

@@ -1,6 +1,6 @@
 """Dashboard (screen 1), client page (screen 9) and the client's initiation checklist (screen 10)."""
 from fastapi import APIRouter, Depends, Request
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.audit_log.models import AuditLog
@@ -89,6 +89,36 @@ def dashboard(filter: str = "all", q: str | None = None, actor: Actor = Depends(
             "status_label": status_label(e), "chief_auditor": chiefs.get(e.id), "target_date": target.isoformat() if target else None,
         })
     return {"kpis": kpis, "counts": counts, "rows": rows}
+
+
+@router.get("/clients")
+def clients_list(q: str | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    """The Clients page: each client the Futran user can see, with its current engagement."""
+    authorize(db, actor, Action.VIEW_ENGAGEMENT, list_view=True)
+    if not actor.is_futran:
+        raise NotFound()
+    from app.engagements.models import ClientLocation
+    from app.tenancy.models import User
+
+    latest: dict[str, Engagement] = {}
+    for e in _visible_engagements(db, actor):  # newest first; keep a live engagement over a later draft
+        cur = latest.get(e.client_id)
+        if cur is None or (cur.status in ("draft", "pending_approval") and e.status not in ("draft", "pending_approval")):
+            latest[e.client_id] = e
+    orgs = list(db.scalars(select(Organization).where(Organization.id.in_(list(latest)), Organization.deleted_at.is_(None)).order_by(Organization.name)))
+    out = []
+    for org in orgs:
+        if q and q.lower() not in f"{org.name} {org.legal_name or ''} {org.hq_city or ''}".lower():
+            continue
+        e = latest[org.id]
+        sites = db.scalar(select(func.count()).select_from(ClientLocation).where(ClientLocation.organization_id == org.id, ClientLocation.deleted_at.is_(None))) or 0
+        people_n = db.scalar(select(func.count()).select_from(User).where(User.organization_id == org.id, User.deleted_at.is_(None))) or 0
+        out.append({
+            "id": org.id, "name": org.name, "industry": INDUSTRIES.get(org.industry or "", org.industry), "internal": org.is_internal,
+            "headquarters": ", ".join(x for x in (org.hq_city, org.hq_state, org.hq_country) if x), "sites": sites, "people": people_n,
+            "engagement": {"id": e.id, "audit_ref": e.audit_ref, "type_label": TYPE_LABELS.get(e.type, e.type), "stage_label": stage_label(e), "status": e.status, "status_label": status_label(e)},
+        })
+    return {"clients": out}
 
 
 def _activity(db: Session, org_ids: list[str] | None, limit: int) -> list[dict]:
