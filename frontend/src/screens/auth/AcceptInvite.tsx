@@ -95,7 +95,7 @@ export function AcceptInvite() {
           <p className="muted" style={{ marginTop: 8 }}>For {d.email}. Next you will set up sign-in codes on your phone.</p>
         </div>
         {error && <Alert tone="danger">{error}</Alert>}
-        <TextField label="New password" type="password" autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} help="At least 12 characters. Common or breached passwords are refused." error={fe.password} />
+        <TextField label="New password" type="password" autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} help="At least 12 characters. Common passwords and keyboard patterns are refused." error={fe.password} />
         <TextField label="Confirm password" type="password" autoComplete="new-password" value={pw2} onChange={(e) => setPw2(e.target.value)} error={fe.password2} />
         <Button type="submit" variant="primary" block>Set password and continue</Button>
         <Button variant="ghost" block onClick={() => setStep('details')}>Back</Button>

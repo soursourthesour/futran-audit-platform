@@ -31,7 +31,7 @@ The Python packages, database and uploaded files are kept in `%LOCALAPPDATA%\Fut
 
 - The red test-mode bar must be gone: set `MFA_REQUIRED=true` in `.env` and restart.
 - Emails stay in Admin > Outbox until SMTP settings are added to `.env` and `EMAIL_MODE=smtp`.
-- Uploads are not virus-scanned unless `VIRUS_SCAN=clamav` is set with a ClamAV daemon. Hosting on Render is described in the README; Azure comes after.
+- Uploads are not virus-scanned yet (ClamAV is on the backlog; keep `VIRUS_SCAN=off`). Hosting on Render is described in the README; Azure comes after.
 
 ## Where things are
 

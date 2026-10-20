@@ -67,7 +67,7 @@ Minor findings from the reviews that were not fixed in v1:
 - The cross-tenant route test accepts a validation error (422) for 22 calls; a manual re-run with valid bodies refused every one.
 - GET score and scorecard views can write a recalculated row; escalation audit rows; several smaller items listed in the Phase 3–5 review notes.
 
-Configuration still to do before client data goes in: switch on sign-in codes and SMTP, set a strong `SECRET_KEY`, and decide on virus scanning (`VIRUS_SCAN=clamav` needs a ClamAV daemon). See the README.
+Configuration still to do before client data goes in: switch on sign-in codes and SMTP, set a strong `SECRET_KEY`, and note that uploads are not virus-scanned yet (ClamAV is on the backlog; leave `VIRUS_SCAN=off`). See the README.
 
 ## Backlog after v1
 
