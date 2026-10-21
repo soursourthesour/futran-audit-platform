@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
-import { Alert, Badge, Button, Card, Dialog, Loading, PageHeader, TextArea } from '@/components/ui';
+import { Alert, Badge, Button, Card, Dialog, FieldHelp, Loading, PageHeader, TextArea } from '@/components/ui';
+import { scoringHelp } from '@/help/fieldwork';
 
 type Score = {
   system: { id: string; reference_id: string; name: string; built_by: string | null; assessment_depth: string; status: string; vendor: string | null; engagement_id: string; client_id: string };
@@ -94,12 +95,13 @@ export function SystemScore() {
             {d.override && <p className="small" style={{ marginTop: 0 }}>Set to <Badge tone={TONE[d.override.rating]}>{R(d.override.rating)}</Badge> by {d.override.by}: “{d.override.rationale}”</p>}
             {d.is_lead_auditor && !d.locked ? (
               <div className="stack-sm">
+                <div className="label-row"><strong className="small">Final rating</strong><FieldHelp label="Final rating">{scoringHelp.rating}</FieldHelp></div>
                 <div className="stack-sm" role="radiogroup" aria-label="Final rating">
                   {['critical', 'high', 'medium', 'low'].map((r) => (
                     <label key={r} className="radio-pill"><input type="radio" name="rating" checked={chosen === r} onChange={() => setRating(r)} />{R(r)}{r === d.computed_rating ? ' (as computed)' : ''}</label>
                   ))}
                 </div>
-                <TextArea label="Rationale (required if changed)" value={rationale} onChange={(e) => setRationale(e.target.value)} />
+                <TextArea label="Rationale (required if changed)" help={scoringHelp.ratingRationale} value={rationale} onChange={(e) => setRationale(e.target.value)} />
                 <div className="row" style={{ gap: 8 }}>
                   <Button variant="primary" onClick={() => saveOverride()}>Save final rating</Button>
                   {d.override && <Button onClick={() => saveOverride(true)}>Clear override</Button>}
@@ -129,10 +131,11 @@ function DomainDialog({ systemId, domain, onClose, onDone }: { systemId: string;
       <div className="stack">
         {err && <Alert tone="danger">{err}</Alert>}
         <p className="small" style={{ margin: 0 }}>Proposed from evidence: <strong>{domain.proposed ?? 'none'}</strong>{domain.pct_confirmed !== null ? ` (${domain.pct_confirmed}% of checklist items confirmed${domain.open_findings ? `, less ${domain.open_findings} for open High/Critical findings` : ''})` : ''}.</p>
+        <div className="label-row"><strong className="small">Final score</strong><FieldHelp label="Final score">{scoringHelp.domainScore}</FieldHelp></div>
         <div className="row" role="radiogroup" aria-label="Final score" style={{ gap: 6 }}>
           {[1, 2, 3, 4, 5].map((n) => <label key={n} className="radio-pill"><input type="radio" checked={score === n} onChange={() => setScore(n)} />{n}</label>)}
         </div>
-        <TextArea label={needs ? 'Rationale (required: more than 1 from the proposed score)' : 'Rationale (optional)'} value={rationale} onChange={(e) => setRationale(e.target.value)} error={fe.rationale} />
+        <TextArea label={needs ? 'Rationale (required: more than 1 from the proposed score)' : 'Rationale (optional)'} help={scoringHelp.domainRationale} value={rationale} onChange={(e) => setRationale(e.target.value)} error={fe.rationale} />
         <div className="row"><Button variant="primary" onClick={save}>Save</Button><Button onClick={onClose}>Cancel</Button></div>
       </div>
     </Dialog>

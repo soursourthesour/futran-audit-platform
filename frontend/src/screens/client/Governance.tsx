@@ -2,7 +2,8 @@ import { useRef, useState, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
 import { useMe } from '@/api/auth';
-import { Alert, Badge, Button, Card, Checkbox, Loading, PageHeader, SelectField, TextArea, TextField, fileUrl, fmtDate } from '@/components/ui';
+import { Alert, Badge, Button, Card, Checkbox, FieldHelp, Loading, PageHeader, SelectField, TextArea, TextField, fileUrl, fmtDate } from '@/components/ui';
+import { governanceExtraHelp, governanceHelp as H } from '@/help/client';
 
 export type GovItem = {
   id: string; code: string; kind: 'document' | 'security_document' | 'role'; title: string; description: string | null; control_refs: string[];
@@ -106,7 +107,7 @@ export function GovernanceView({ clientId, canAnswer, header, crumbs }: { client
           {editable && (
             <Card>
               <div className="stack">
-                <Checkbox label="I confirm these answers are accurate as of today" checked={accurate} onChange={(e) => setAccurate(e.target.checked)} />
+                <Checkbox label="I confirm these answers are accurate as of today" help={H.accurate} checked={accurate} onChange={(e) => setAccurate(e.target.checked)} />
                 <Button variant="primary" onClick={submit} disabled={!!remaining.length || !accurate}>Submit to Chief Auditor</Button>
                 {remaining.length > 0 && <p className="small muted" style={{ margin: 0 }}>{remaining.length} {remaining.length === 1 ? 'item still needs' : 'items still need'} an answer.</p>}
               </div>
@@ -159,11 +160,14 @@ function ItemRow({ it, editable, onSaved }: { it: GovItem; editable: boolean; on
           {it.files.length > 0 && <div className="small">{it.files.map((x) => <a key={x.id} href={fileUrl(x.id)} style={{ marginRight: 10 }}>{x.filename}</a>)}</div>}
         </div>
         {editable && (
+          <div className="row" style={{ gap: 4, flexWrap: 'nowrap', alignItems: 'center' }}>
+          <FieldHelp label={`answer for ${it.title}`}>{isRole ? H.answerRole : H.answerDocument}</FieldHelp>
           <div className="pills" role="group" aria-label={`Answer for ${it.title}`}>
             {isRole ? <button type="button" className="pill" aria-pressed={mode === 'in_place'} onClick={() => choose('in_place')}>In place</button>
               : <button type="button" className="pill" onClick={() => file.current?.click()}>Upload</button>}
             <button type="button" className="pill" aria-pressed={mode === 'planned'} onClick={() => choose('planned')}>{plannedLabel}</button>
             <button type="button" className="pill" aria-pressed={mode === 'not_applicable'} onClick={() => choose('not_applicable')}>N/A</button>
+          </div>
           </div>
         )}
       </div>
@@ -173,11 +177,11 @@ function ItemRow({ it, editable, onSaved }: { it: GovItem; editable: boolean; on
           {err && <Alert tone="danger">{err}</Alert>}
           {mode === 'in_place' && isRole && (
             <>
-              {it.committee && <div className="grid-2"><TextField label="Chair" value={f.chair} onChange={(e) => setF({ ...f, chair: e.target.value })} /><TextField label="Number of members" inputMode="numeric" value={f.member_count} onChange={(e) => setF({ ...f, member_count: e.target.value })} /><SelectField label="Meets" value={f.meeting_frequency} onChange={(e) => setF({ ...f, meeting_frequency: e.target.value })} placeholder="Choose…" options={['Monthly', 'Quarterly', 'Twice a year', 'Annually', 'As needed'].map((x) => ({ value: x, label: x }))} /></div>}
+              {it.committee && <div className="grid-2"><TextField label="Chair" help={H.chair} value={f.chair} onChange={(e) => setF({ ...f, chair: e.target.value })} /><TextField label="Number of members" help={H.memberCount} inputMode="numeric" value={f.member_count} onChange={(e) => setF({ ...f, member_count: e.target.value })} /><SelectField label="Meets" help={H.meets} value={f.meeting_frequency} onChange={(e) => setF({ ...f, meeting_frequency: e.target.value })} placeholder="Choose…" options={['Monthly', 'Quarterly', 'Twice a year', 'Annually', 'As needed'].map((x) => ({ value: x, label: x }))} /></div>}
               {f.names.map((n, i) => (
                 <div className="grid-2" key={i}>
-                  <TextField label={it.committee ? `Member ${i + 1}` : 'Name'} value={n.name} onChange={(e) => setF({ ...f, names: f.names.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)) })} error={i === 0 ? fe.names : undefined} />
-                  <TextField label="Title" value={n.title ?? ''} onChange={(e) => setF({ ...f, names: f.names.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)) })} />
+                  <TextField label={it.committee ? `Member ${i + 1}` : 'Name'} help={i === 0 ? (it.committee ? H.member : H.name) : undefined} value={n.name} onChange={(e) => setF({ ...f, names: f.names.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)) })} error={i === 0 ? fe.names : undefined} />
+                  <TextField label="Title" help={i === 0 ? H.title : undefined} value={n.title ?? ''} onChange={(e) => setF({ ...f, names: f.names.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)) })} />
                 </div>
               ))}
               <div><Button size="sm" variant="ghost" onClick={() => setF({ ...f, names: [...f.names, { name: '', title: '' }] })}>Add another person</Button>
@@ -186,12 +190,12 @@ function ItemRow({ it, editable, onSaved }: { it: GovItem; editable: boolean; on
           )}
           {mode === 'planned' && (
             <div className="grid-2">
-              <TextField type="date" label="Target date *" value={f.target_date} onChange={(e) => setF({ ...f, target_date: e.target.value })} error={fe.target_date} />
-              <TextField label="Interim owner *" value={f.interim_owner} onChange={(e) => setF({ ...f, interim_owner: e.target.value })} error={fe.interim_owner} />
-              {isRole && it.committee && <TextField label="Planned members" value={f.planned_members} onChange={(e) => setF({ ...f, planned_members: e.target.value })} />}
+              <TextField type="date" label="Target date *" help={H.targetDate} value={f.target_date} onChange={(e) => setF({ ...f, target_date: e.target.value })} error={fe.target_date} />
+              <TextField label="Interim owner *" help={H.interimOwner} value={f.interim_owner} onChange={(e) => setF({ ...f, interim_owner: e.target.value })} error={fe.interim_owner} />
+              {isRole && it.committee && <TextField label="Planned members" help={H.plannedMembers} value={f.planned_members} onChange={(e) => setF({ ...f, planned_members: e.target.value })} />}
             </div>
           )}
-          {mode === 'not_applicable' && <TextArea label="Reason *" value={f.na_reason} onChange={(e) => setF({ ...f, na_reason: e.target.value })} error={fe.na_reason} />}
+          {mode === 'not_applicable' && <TextArea label="Reason *" help={H.naReason} value={f.na_reason} onChange={(e) => setF({ ...f, na_reason: e.target.value })} error={fe.na_reason} />}
           <div><Button size="sm" variant="primary" onClick={save}>Save answer</Button></div>
         </div>
       )}
@@ -211,8 +215,8 @@ function ExtraFacts({ g, clientId, editable, onSaved }: { g: Gov; clientId: stri
     <Card title="4 · Policy and accountability details">
       <div className="grid-2">
         {g.extra_field_defs.map((d) => d.type === 'choice'
-          ? <SelectField key={d.key} label={d.label} value={v[d.key] ?? ''} disabled={!editable} onChange={(e) => { setV({ ...v, [d.key]: e.target.value }); setSaved(false); }} placeholder="Choose…" options={(d.options ?? []).map((o) => ({ value: o, label: o[0].toUpperCase() + o.slice(1) }))} />
-          : <TextField key={d.key} type={d.type === 'date' ? 'date' : 'text'} label={d.label} value={v[d.key] ?? ''} disabled={!editable} onChange={(e) => { setV({ ...v, [d.key]: e.target.value }); setSaved(false); }} />)}
+          ? <SelectField key={d.key} label={d.label} help={governanceExtraHelp[d.key]} value={v[d.key] ?? ''} disabled={!editable} onChange={(e) => { setV({ ...v, [d.key]: e.target.value }); setSaved(false); }} placeholder="Choose…" options={(d.options ?? []).map((o) => ({ value: o, label: o[0].toUpperCase() + o.slice(1) }))} />
+          : <TextField key={d.key} type={d.type === 'date' ? 'date' : 'text'} label={d.label} help={governanceExtraHelp[d.key]} value={v[d.key] ?? ''} disabled={!editable} onChange={(e) => { setV({ ...v, [d.key]: e.target.value }); setSaved(false); }} />)}
       </div>
       {editable && <div className="row" style={{ marginTop: 12 }}><Button size="sm" onClick={save}>Save details</Button>{saved && <span className="small muted">Saved</span>}</div>}
     </Card>

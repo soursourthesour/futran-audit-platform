@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
 import { useMe } from '@/api/auth';
 import { Alert, Badge, Button, ButtonLink, Card, Dialog, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField } from '@/components/ui';
+import { toolHelp as H } from '@/help/client';
 
 export type Tool = { id: string; vendor: string; product: string; plan: string | null; account_type: string; sso: boolean | null; training_on_inputs: string; retention_terms: string | null; approval_status: string; source: string; declared_count: number | null };
 export type UseCaseRow = { id: string; name: string; department_id: string; department: string | null; status: string; tools: string[]; tool_ids: string[]; proposed_tier: number | null; final_tier: number | null; final_tier_rationale: string | null; aedt_determination: string | null; returned_comment: string | null };
@@ -93,13 +94,13 @@ function AddTool({ clientId, onClose }: { clientId: string; onClose: () => void 
       <form className="stack" onSubmit={save} noValidate>
         {err && <Alert tone="danger">{err}</Alert>}
         <div className="grid-2">
-          <TextField label="Vendor" value={f.vendor} onChange={(e) => setF({ ...f, vendor: e.target.value })} error={fe.vendor} placeholder="Workday" />
-          <TextField label="Product" value={f.product} onChange={(e) => setF({ ...f, product: e.target.value })} error={fe.product} placeholder="Recruiting AI" />
+          <TextField label="Vendor" help={H.vendor} value={f.vendor} onChange={(e) => setF({ ...f, vendor: e.target.value })} error={fe.vendor} placeholder="Workday" />
+          <TextField label="Product" help={H.product} value={f.product} onChange={(e) => setF({ ...f, product: e.target.value })} error={fe.product} placeholder="Recruiting AI" />
         </div>
-        <SelectField label="Account type" value={f.account_type} onChange={(e) => setF({ ...f, account_type: e.target.value })} options={Object.entries(ACCOUNT_LABELS).map(([value, label]) => ({ value, label }))} />
-        <SelectField label="Does the vendor train its models on what you enter?" value={f.training_on_inputs} onChange={(e) => setF({ ...f, training_on_inputs: e.target.value })} options={[{ value: 'no', label: 'No' }, { value: 'yes', label: 'Yes' }, { value: 'unknown', label: 'Not known' }]} />
-        <TextField label="Plan" value={f.plan} onChange={(e) => setF({ ...f, plan: e.target.value })} />
-        <TextArea label="Data retention terms" value={f.retention_terms} onChange={(e) => setF({ ...f, retention_terms: e.target.value })} />
+        <SelectField label="Account type" help={H.accountType} value={f.account_type} onChange={(e) => setF({ ...f, account_type: e.target.value })} options={Object.entries(ACCOUNT_LABELS).map(([value, label]) => ({ value, label }))} />
+        <SelectField label="Does the vendor train its models on what you enter?" help={H.training} value={f.training_on_inputs} onChange={(e) => setF({ ...f, training_on_inputs: e.target.value })} options={[{ value: 'no', label: 'No' }, { value: 'yes', label: 'Yes' }, { value: 'unknown', label: 'Not known' }]} />
+        <TextField label="Plan" help={H.plan} value={f.plan} onChange={(e) => setF({ ...f, plan: e.target.value })} />
+        <TextArea label="Data retention terms" help={H.retention} value={f.retention_terms} onChange={(e) => setF({ ...f, retention_terms: e.target.value })} />
         <div className="row"><Button type="submit" variant="primary">Add tool</Button><Button onClick={onClose}>Cancel</Button></div>
       </form>
     </Dialog>

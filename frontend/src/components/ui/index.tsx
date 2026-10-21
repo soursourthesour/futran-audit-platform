@@ -1,5 +1,8 @@
 import { forwardRef, useId, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
 import { Link } from 'react-router-dom';
+import { FieldHelp } from './FieldHelp';
+
+export { FieldGroup, FieldHelp, WithHelp } from './FieldHelp';
 
 type BtnVariant = 'primary' | 'default' | 'danger' | 'ghost';
 export function Button({ variant = 'default', size, block, className = '', ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: BtnVariant; size?: 'sm'; block?: boolean }) {
@@ -12,57 +15,70 @@ export function ButtonLink({ to, variant = 'default', size, children }: { to: st
   return <Link className={cls} to={to}>{children}</Link>;
 }
 
-type FieldProps = { label: ReactNode; help?: ReactNode; error?: string; id?: string };
+/* Field help: `help` puts a circled "i" after the label with the text in a popover. `hint` stays visible under the
+   field; keep it for short text the user must see without asking (password rules, for example). */
+type FieldProps = { label: ReactNode; help?: ReactNode; hint?: ReactNode; error?: string; id?: string };
 
-export const TextField = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement> & FieldProps>(function TextField({ label, help, error, id, ...rest }, ref) {
+function FieldLabel({ htmlFor, label, help }: { htmlFor: string; label: ReactNode; help?: ReactNode }) {
+  if (!help) return <label htmlFor={htmlFor}>{label}</label>;
+  return <div className="field-label"><label htmlFor={htmlFor}>{label}</label><FieldHelp label={label}>{help}</FieldHelp></div>;
+}
+
+function describedBy(fid: string, error?: string, hint?: ReactNode) {
+  return error ? `${fid}-err` : hint ? `${fid}-hint` : undefined;
+}
+
+export const TextField = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement> & FieldProps>(function TextField({ label, help, hint, error, id, ...rest }, ref) {
   const auto = useId();
   const fid = id ?? auto;
   return (
     <div className="field">
-      <label htmlFor={fid}>{label}</label>
-      <input ref={ref} id={fid} className="input" aria-invalid={error ? true : undefined} aria-describedby={error ? `${fid}-err` : help ? `${fid}-help` : undefined} {...rest} />
-      {help && !error && <div className="help" id={`${fid}-help`}>{help}</div>}
+      <FieldLabel htmlFor={fid} label={label} help={help} />
+      <input ref={ref} id={fid} className="input" aria-invalid={error ? true : undefined} aria-describedby={describedBy(fid, error, hint)} {...rest} />
+      {hint && !error && <div className="help" id={`${fid}-hint`}>{hint}</div>}
       {error && <div className="error" id={`${fid}-err`}>{error}</div>}
     </div>
   );
 });
 
-export const TextArea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement> & FieldProps>(function TextArea({ label, help, error, id, ...rest }, ref) {
+export const TextArea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement> & FieldProps>(function TextArea({ label, help, hint, error, id, ...rest }, ref) {
   const auto = useId();
   const fid = id ?? auto;
   return (
     <div className="field">
-      <label htmlFor={fid}>{label}</label>
-      <textarea ref={ref} id={fid} className="textarea" aria-invalid={error ? true : undefined} {...rest} />
-      {help && !error && <div className="help">{help}</div>}
-      {error && <div className="error">{error}</div>}
+      <FieldLabel htmlFor={fid} label={label} help={help} />
+      <textarea ref={ref} id={fid} className="textarea" aria-invalid={error ? true : undefined} aria-describedby={describedBy(fid, error, hint)} {...rest} />
+      {hint && !error && <div className="help" id={`${fid}-hint`}>{hint}</div>}
+      {error && <div className="error" id={`${fid}-err`}>{error}</div>}
     </div>
   );
 });
 
-export const SelectField = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSelectElement> & FieldProps & { options: { value: string; label: string }[]; placeholder?: string }>(function SelectField({ label, help, error, id, options, placeholder, ...rest }, ref) {
+export const SelectField = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSelectElement> & FieldProps & { options: { value: string; label: string }[]; placeholder?: string }>(function SelectField({ label, help, hint, error, id, options, placeholder, ...rest }, ref) {
   const auto = useId();
   const fid = id ?? auto;
   return (
     <div className="field">
-      <label htmlFor={fid}>{label}</label>
-      <select ref={ref} id={fid} className="select" aria-invalid={error ? true : undefined} {...rest}>
+      <FieldLabel htmlFor={fid} label={label} help={help} />
+      <select ref={ref} id={fid} className="select" aria-invalid={error ? true : undefined} aria-describedby={describedBy(fid, error, hint)} {...rest}>
         {placeholder !== undefined && <option value="">{placeholder}</option>}
         {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
-      {help && !error && <div className="help">{help}</div>}
-      {error && <div className="error">{error}</div>}
+      {hint && !error && <div className="help" id={`${fid}-hint`}>{hint}</div>}
+      {error && <div className="error" id={`${fid}-err`}>{error}</div>}
     </div>
   );
 });
 
-export const Checkbox = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement> & { label: ReactNode }>(function Checkbox({ label, ...rest }, ref) {
-  return (
+export const Checkbox = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement> & { label: ReactNode; help?: ReactNode }>(function Checkbox({ label, help, ...rest }, ref) {
+  const box = (
     <label className="check">
       <input ref={ref} type="checkbox" {...rest} />
       <span>{label}</span>
     </label>
   );
+  if (!help) return box;
+  return <div className="check-row">{box}<FieldHelp label={label}>{help}</FieldHelp></div>;
 });
 
 export function Card({ title, actions, children, className = '' }: { title?: ReactNode; actions?: ReactNode; children: ReactNode; className?: string }) {

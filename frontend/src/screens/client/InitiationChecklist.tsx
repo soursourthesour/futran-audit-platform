@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError, errorMessage } from '@/api/client';
 import { useMe } from '@/api/auth';
-import { Alert, Badge, Button, Card, Dialog, EmptyState, Loading, PageHeader, Progress, fileUrl, fmtDate } from '@/components/ui';
+import { Alert, Badge, Button, Card, Dialog, EmptyState, Loading, PageHeader, Progress, WithHelp, fileUrl, fmtDate } from '@/components/ui';
+import { checklistHelp } from '@/help/client';
 import { SignPanel } from '@/components/SignPanel';
 import { DocPreview } from '@/components/DocPreview';
 
@@ -50,7 +51,7 @@ export function InitiationChecklist() {
               <li key={it.key}>
                 <span className={`num ${it.done ? 'done' : ''}`} aria-hidden="true">{it.done ? '✓' : i + 1}</span>
                 <div className="body">
-                  <h3>{it.title}</h3>
+                  <h3><WithHelp help={checklistHelp[it.key]}>{it.title}</WithHelp></h3>
                   <div className="small muted">{it.description}</div>
                   {it.document && (
                     <div className="row small" style={{ gap: 12, marginTop: 4 }}>

@@ -3,7 +3,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
 import { useMe } from '@/api/auth';
 import { useParams } from 'react-router-dom';
-import { Alert, Badge, Button, Card, Checkbox, Dialog, EmptyState, Loading, PageHeader, SelectField, TextField } from '@/components/ui';
+import { Alert, Badge, Button, Card, Checkbox, Dialog, EmptyState, FieldHelp, Loading, PageHeader, SelectField, TextField, WithHelp } from '@/components/ui';
+import { peopleHelp as H } from '@/help/client';
 
 type Role = { id: string; role: string; role_label: string; department: string | null; sign_off_role: boolean };
 type Person = { id: string; name: string; email: string; job_title: string | null; status: string; invite_status: string; roles: Role[] };
@@ -103,7 +104,7 @@ export function UsersDepartments() {
       )}
       <div className="split" style={{ marginTop: 16 }}>
         <div className="side stack">
-          <Card title="Departments" actions={p.can_manage ? <Button size="sm" onClick={() => deptFile.current?.click()}>Upload CSV</Button> : undefined}>
+          <Card title={<h2><WithHelp help={H.departments}>Departments</WithHelp></h2>} actions={p.can_manage ? <Button size="sm" onClick={() => deptFile.current?.click()}>Upload CSV</Button> : undefined}>
             <div className="stack">
               {p.departments.length === 0 ? <EmptyState>No departments yet. Download the template (pre-filled from the scope), or add them here.</EmptyState> : (
                 <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
@@ -120,13 +121,13 @@ export function UsersDepartments() {
               )}
               {p.can_manage && (
                 <>
-                  <form className="row" onSubmit={addDept}><input className="input" style={{ flex: 1 }} aria-label="New department" placeholder="Department name" value={newDept} onChange={(e) => setNewDept(e.target.value)} /><Button type="submit" size="sm">Add</Button></form>
+                  <form className="row" onSubmit={addDept}><input className="input" style={{ flex: 1 }} aria-label="New department" placeholder="Department name" value={newDept} onChange={(e) => setNewDept(e.target.value)} /><FieldHelp label="New department">{H.newDepartment}</FieldHelp><Button type="submit" size="sm">Add</Button></form>
                   <Button onClick={confirm} disabled={!p.departments.length}>Confirm the department list</Button>
                 </>
               )}
             </div>
           </Card>
-          <Card title="Sign-off roles">
+          <Card title={<h2><WithHelp help={H.signOffRoles}>Sign-off roles</WithHelp></h2>}>
             <div className="stack small">
               {(['caico', 'exec_sponsor', 'dpo'] as const).map((r) => {
                 const h = p.role_holders[r];
@@ -135,7 +136,7 @@ export function UsersDepartments() {
                   <div key={r}>
                     <strong>{label}</strong>
                     <div>{h.user ? h.user.name : h.not_appointed ? 'Not appointed: the Chief AI Compliance Officer covers this role' : 'Not named yet'}</div>
-                    {r !== 'caico' && !h.user && p.can_manage && <Checkbox label="Not appointed" checked={h.not_appointed} onChange={(e) => notAppointed(r, e.target.checked)} />}
+                    {r !== 'caico' && !h.user && p.can_manage && <Checkbox label="Not appointed" help={H.notAppointed} checked={h.not_appointed} onChange={(e) => notAppointed(r, e.target.checked)} />}
                   </div>
                 );
               })}
@@ -144,7 +145,7 @@ export function UsersDepartments() {
           </Card>
         </div>
         <div className="main">
-          <Card title={`Users · ${p.users.length}`}>
+          <Card title={<h2><WithHelp help={H.users} label="Users">Users · {p.users.length}</WithHelp></h2>}>
             <div className="table-wrap">
               <table className="table">
                 <thead><tr><th>Name</th><th>Role</th><th>Department</th><th>Invitation</th></tr></thead>
@@ -193,13 +194,13 @@ function AddUser({ cid, departments, onClose, onDone }: { cid: string; departmen
       <form className="stack" onSubmit={save} noValidate>
         {err && <Alert tone="danger">{err}</Alert>}
         <div className="grid-2">
-          <TextField label="First name" value={f.first_name} onChange={(e) => setF({ ...f, first_name: e.target.value })} error={fe.first_name} />
-          <TextField label="Last name" value={f.last_name} onChange={(e) => setF({ ...f, last_name: e.target.value })} error={fe.last_name} />
+          <TextField label="First name" help={H.firstName} value={f.first_name} onChange={(e) => setF({ ...f, first_name: e.target.value })} error={fe.first_name} />
+          <TextField label="Last name" help={H.lastName} value={f.last_name} onChange={(e) => setF({ ...f, last_name: e.target.value })} error={fe.last_name} />
         </div>
-        <TextField label="Work email" type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} error={fe.email} />
-        <TextField label="Job title" value={f.job_title} onChange={(e) => setF({ ...f, job_title: e.target.value })} />
-        <SelectField label="Role" value={f.role} onChange={(e) => setF({ ...f, role: e.target.value })} options={ROLES} />
-        {needsDept && <SelectField label="Department" value={f.department} onChange={(e) => setF({ ...f, department: e.target.value })} options={departments.map((d) => ({ value: d.name, label: d.name }))} error={fe.department} />}
+        <TextField label="Work email" help={H.email} type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} error={fe.email} />
+        <TextField label="Job title" help={H.jobTitle} value={f.job_title} onChange={(e) => setF({ ...f, job_title: e.target.value })} />
+        <SelectField label="Role" help={H.role} value={f.role} onChange={(e) => setF({ ...f, role: e.target.value })} options={ROLES} />
+        {needsDept && <SelectField label="Department" help={H.department} value={f.department} onChange={(e) => setF({ ...f, department: e.target.value })} options={departments.map((d) => ({ value: d.name, label: d.name }))} error={fe.department} />}
         <div className="row"><Button type="submit" variant="primary">Add and send invitation</Button><Button onClick={onClose}>Cancel</Button></div>
       </form>
     </Dialog>

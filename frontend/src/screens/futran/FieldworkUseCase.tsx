@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
 import { Alert, Badge, Button, Card, Dialog, Loading, PageHeader, SelectField, TextArea, TextField, fileUrl, fmtDate } from '@/components/ui';
+import { evidenceRequestHelp, findingHelp, tierHelp } from '@/help/fieldwork';
 
 export type FindingRow = {
   id: string; ref: string; title: string; severity: string; status: string; description: string | null; recommended_remediation: string | null; control_refs: string[];
@@ -104,10 +105,10 @@ function FinalTier({ useCaseId, u, onDone }: { useCaseId: string; u: View['use_c
       <div className="stack">
         {err && <Alert tone="danger">{err}</Alert>}
         <div className="grid-2">
-          <SelectField label="Tier set by auditor" value={tier} placeholder="Choose" onChange={(e) => setTier(e.target.value)} options={[{ value: '3', label: 'Tier 3 · High-risk' }, { value: '2', label: 'Tier 2 · Elevated' }, { value: '1', label: 'Tier 1 · Baseline' }]} error={fe.tier} />
-          <SelectField label="LL144 AEDT determination" value={aedt} placeholder="Not assessed" onChange={(e) => setAedt(e.target.value)} options={[{ value: 'in_scope', label: 'AEDT: in scope' }, { value: 'out_of_scope', label: 'Not an AEDT' }, { value: 'undetermined', label: 'Undetermined' }]} error={fe.aedt_determination} />
+          <SelectField label="Tier set by auditor" help={tierHelp.tier} value={tier} placeholder="Choose" onChange={(e) => setTier(e.target.value)} options={[{ value: '3', label: 'Tier 3 · High-risk' }, { value: '2', label: 'Tier 2 · Elevated' }, { value: '1', label: 'Tier 1 · Baseline' }]} error={fe.tier} />
+          <SelectField label="LL144 AEDT determination" help={tierHelp.aedt} value={aedt} placeholder="Not assessed" onChange={(e) => setAedt(e.target.value)} options={[{ value: 'in_scope', label: 'AEDT: in scope' }, { value: 'out_of_scope', label: 'Not an AEDT' }, { value: 'undetermined', label: 'Undetermined' }]} error={fe.aedt_determination} />
         </div>
-        <TextArea label="Rationale" value={rationale} onChange={(e) => setRationale(e.target.value)} error={fe.rationale} />
+        <TextArea label="Rationale" help={tierHelp.rationale} value={rationale} onChange={(e) => setRationale(e.target.value)} error={fe.rationale} />
         <div><Button onClick={save}>Save final tier</Button></div>
       </div>
     </Card>
@@ -126,8 +127,8 @@ function RequestEvidence({ useCaseId, onClose, onDone }: { useCaseId: string; on
     <Dialog title="Request evidence" onClose={onClose}>
       <div className="stack">
         {err && <Alert tone="danger">{err}</Alert>}
-        <TextArea label="What you need" value={description} onChange={(e) => setDescription(e.target.value)} error={fe.description} />
-        <TextField label="Due date" type="date" value={due} onChange={(e) => setDue(e.target.value)} error={fe.due_date} />
+        <TextArea label="What you need" help={evidenceRequestHelp.description} value={description} onChange={(e) => setDescription(e.target.value)} error={fe.description} />
+        <TextField label="Due date" help={evidenceRequestHelp.dueDate} type="date" value={due} onChange={(e) => setDue(e.target.value)} error={fe.due_date} />
         <p className="small muted" style={{ margin: 0 }}>Sent to the use case's Department Lead (or the Chief AI Compliance Officer), with a reminder 3 days before it is due.</p>
         <div className="row"><Button variant="primary" onClick={save}>Send request</Button><Button onClick={onClose}>Cancel</Button></div>
       </div>
@@ -164,15 +165,15 @@ export function FindingForm({ clientId, controls, initial, prefill, onDone, exis
       <div className="stack">
         {err && <Alert tone="danger">{err}</Alert>}
         {existing?.review_comment && <Alert tone="warn">Returned: {existing.review_comment}</Alert>}
-        <TextField label="Title" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} error={fe.title} />
+        <TextField label="Title" help={findingHelp.title} value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} error={fe.title} />
         <div className="grid-2">
-          <SelectField label="Severity" value={f.severity} onChange={(e) => setF({ ...f, severity: e.target.value })} options={SEVERITIES} error={fe.severity} />
-          <SelectField label="Control reference" value={f.control} placeholder="None" onChange={(e) => setF({ ...f, control: e.target.value })} options={[...new Set([...(f.control ? [f.control] : []), ...controls])].map((c) => ({ value: c, label: c }))} />
+          <SelectField label="Severity" help={findingHelp.severity} value={f.severity} onChange={(e) => setF({ ...f, severity: e.target.value })} options={SEVERITIES} error={fe.severity} />
+          <SelectField label="Control reference" help={findingHelp.control} value={f.control} placeholder="None" onChange={(e) => setF({ ...f, control: e.target.value })} options={[...new Set([...(f.control ? [f.control] : []), ...controls])].map((c) => ({ value: c, label: c }))} />
         </div>
-        <TextArea label="Description (condition, criteria, cause, effect)" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} />
+        <TextArea label="Description (condition, criteria, cause, effect)" help={findingHelp.description} value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} />
         {others.length > 0 && <p className="small" style={{ margin: 0 }}>Also linked: {others.join(' · ')} <Button size="sm" variant="ghost" onClick={() => setOthers([])}>Remove these</Button></p>}
-        <TextArea label="Recommended action" value={f.recommended_remediation} onChange={(e) => setF({ ...f, recommended_remediation: e.target.value })} />
-        <TextField label="Proposed owner" help="The role or person at the client who should fix this, for example Head of HR." value={f.proposed_owner} onChange={(e) => setF({ ...f, proposed_owner: e.target.value })} />
+        <TextArea label="Recommended action" help={findingHelp.recommendation} value={f.recommended_remediation} onChange={(e) => setF({ ...f, recommended_remediation: e.target.value })} />
+        <TextField label="Proposed owner" help={findingHelp.owner} value={f.proposed_owner} onChange={(e) => setF({ ...f, proposed_owner: e.target.value })} />
         <div className="row" style={{ gap: 8 }}><Button variant="primary" onClick={() => save(true)}>Submit to Chief Auditor</Button><Button onClick={() => save(false)}>Save draft</Button></div>
       </div>
     </Card>

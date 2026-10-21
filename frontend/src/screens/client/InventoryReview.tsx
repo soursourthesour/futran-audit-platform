@@ -4,6 +4,7 @@ import { api, errorMessage } from '@/api/client';
 import { useMe } from '@/api/auth';
 import { Alert, Badge, Button, Card, Loading, PageHeader, TextArea, fmtDateTime } from '@/components/ui';
 import { SignPanel, type SignOffView } from '@/components/SignPanel';
+import { signHelp } from '@/help/client';
 import { STATUS_LABELS, tierBadge, useInventory } from '@/screens/client/Inventory';
 
 type Block = { sign_off: (SignOffView & { version: number }) | null; unmet: string[]; can_submit: boolean; can_correct: boolean };
@@ -51,7 +52,7 @@ export function InventoryReview() {
       {b.can_submit && <div><Button variant="primary" onClick={() => submit(number, scope)}>{submitLabel}</Button></div>}
       {b.can_correct && b.sign_off && (correcting === b.sign_off.id ? (
         <div className="stack-sm">
-          <TextArea label="Why it needs to change" value={reason} onChange={(e) => setReason(e.target.value)} />
+          <TextArea label="Why it needs to change" help={signHelp.correction} value={reason} onChange={(e) => setReason(e.target.value)} />
           <div className="row" style={{ gap: 8 }}><Button onClick={() => correct(b.sign_off!.id)}>Open a new version</Button><Button variant="ghost" onClick={() => setCorrecting(null)}>Cancel</Button></div>
         </div>
       ) : <div><Button variant="ghost" size="sm" onClick={() => setCorrecting(b.sign_off!.id)}>Correct with a reason</Button></div>)}

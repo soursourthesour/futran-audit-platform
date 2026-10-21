@@ -2,7 +2,8 @@ import { useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
-import { Alert, Badge, Button, Card, Checkbox, Dialog, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField, fmtDate } from '@/components/ui';
+import { Alert, Badge, Button, Card, Checkbox, Dialog, EmptyState, FieldGroup, Loading, PageHeader, SelectField, TextArea, TextField, fmtDate } from '@/components/ui';
+import { systemHelp as S, vendorHelp as V } from '@/help/fieldwork';
 
 type Person = { id: string; name: string } | null;
 export type SystemRow = {
@@ -110,12 +111,11 @@ export function SystemsRegister() {
 function UseCasePicker({ d, value, onChange }: { d: Register; value: string[]; onChange: (v: string[]) => void }) {
   if (!d.use_case_options.length) return <p className="small muted" style={{ margin: 0 }}>No Tier 2 or Tier 3 use cases in the inventory yet.</p>;
   return (
-    <fieldset>
-      <legend>Use cases this system covers</legend>
+    <FieldGroup legend="Use cases this system covers" help={S.useCases}>
       <div className="stack-sm">{d.use_case_options.map((u) => (
         <Checkbox key={u.id} label={<>{u.name} <span className="muted small">Tier {u.tier}</span></>} checked={value.includes(u.id)} onChange={(e) => onChange(e.target.checked ? [...value, u.id] : value.filter((x) => x !== u.id))} />
       ))}</div>
-    </fieldset>
+    </FieldGroup>
   );
 }
 
@@ -139,12 +139,12 @@ function AddSystem({ clientId, d, preselected, onClose, onDone }: { clientId: st
         {err && <Alert tone="danger">{err}</Alert>}
         <UseCasePicker d={d} value={f.use_case_ids} onChange={(v) => setF({ ...f, use_case_ids: v })} />
         {fe.use_case_ids && <div className="small" style={{ color: "var(--danger)" }}>{fe.use_case_ids}</div>}
-        <TextField label="System name" help="Leave blank to use the first use case's name." value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} error={fe.name} />
+        <TextField label="System name" help={S.name} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} error={fe.name} />
         <div className="grid-2">
-          <SelectField label="Built by" value={f.built_by} placeholder="Choose" onChange={(e) => setF({ ...f, built_by: e.target.value })} options={BUILT_BY} error={fe.built_by} />
-          <SelectField label="Vendor" value={f.vendor_id} placeholder="None" onChange={(e) => setF({ ...f, vendor_id: e.target.value })} options={d.vendors.map((v) => ({ value: v.id, label: v.legal_name }))} error={fe.vendor_id} />
+          <SelectField label="Built by" help={S.builtBy} value={f.built_by} placeholder="Choose" onChange={(e) => setF({ ...f, built_by: e.target.value })} options={BUILT_BY} error={fe.built_by} />
+          <SelectField label="Vendor" help={S.vendor} value={f.vendor_id} placeholder="None" onChange={(e) => setF({ ...f, vendor_id: e.target.value })} options={d.vendors.map((v) => ({ value: v.id, label: v.legal_name }))} error={fe.vendor_id} />
         </div>
-        <TextArea label="Reason for adding it" value={f.reason} onChange={(e) => setF({ ...f, reason: e.target.value })} error={fe.reason} />
+        <TextArea label="Reason for adding it" help={S.reason} value={f.reason} onChange={(e) => setF({ ...f, reason: e.target.value })} error={fe.reason} />
         <div className="row"><Button type="submit" variant="primary">Send for approval</Button><Button onClick={onClose}>Cancel</Button></div>
       </form>
     </Dialog>
@@ -174,21 +174,21 @@ function EditSystem({ clientId, d, s, onClose }: { clientId: string; d: Register
       <form className="stack" onSubmit={save} noValidate>
         {err && <Alert tone="danger">{err}</Alert>}
         <div className="grid-2">
-          <TextField label="System name" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} error={fe.name} />
-          <TextField label="Version" value={f.version} onChange={(e) => setF({ ...f, version: e.target.value })} error={fe.version} />
-          <SelectField label="Built by" value={f.built_by} placeholder="Not set" onChange={(e) => setF({ ...f, built_by: e.target.value })} options={BUILT_BY} error={fe.built_by} />
-          <SelectField label="Vendor" value={f.vendor_id} placeholder="None" onChange={(e) => setF({ ...f, vendor_id: e.target.value })} options={d.vendors.map((v) => ({ value: v.id, label: v.legal_name }))} error={fe.vendor_id} />
-          <SelectField label="Department" value={f.department_id} placeholder="Not set" onChange={(e) => setF({ ...f, department_id: e.target.value })} options={d.departments.map((x) => ({ value: x.id, label: x.name }))} error={fe.department_id} />
-          <SelectField label="Assessment depth" value={f.assessment_depth} onChange={(e) => setF({ ...f, assessment_depth: e.target.value as 'full' | 'light' })} options={[{ value: 'full', label: 'Full (§3–9)' }, { value: 'light', label: 'Light (§3, §5, §7.2, §9)' }]} />
-          <SelectField label="Business owner" value={f.owner_user_id} placeholder="Not set" onChange={(e) => setF({ ...f, owner_user_id: e.target.value })} options={people} error={fe.owner_user_id} />
-          <SelectField label="Technical owner" value={f.technical_owner_user_id} placeholder="Not set" onChange={(e) => setF({ ...f, technical_owner_user_id: e.target.value })} options={people} error={fe.technical_owner_user_id} />
+          <TextField label="System name" help={S.name} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} error={fe.name} />
+          <TextField label="Version" help={S.version} value={f.version} onChange={(e) => setF({ ...f, version: e.target.value })} error={fe.version} />
+          <SelectField label="Built by" help={S.builtBy} value={f.built_by} placeholder="Not set" onChange={(e) => setF({ ...f, built_by: e.target.value })} options={BUILT_BY} error={fe.built_by} />
+          <SelectField label="Vendor" help={S.vendor} value={f.vendor_id} placeholder="None" onChange={(e) => setF({ ...f, vendor_id: e.target.value })} options={d.vendors.map((v) => ({ value: v.id, label: v.legal_name }))} error={fe.vendor_id} />
+          <SelectField label="Department" help={S.department} value={f.department_id} placeholder="Not set" onChange={(e) => setF({ ...f, department_id: e.target.value })} options={d.departments.map((x) => ({ value: x.id, label: x.name }))} error={fe.department_id} />
+          <SelectField label="Assessment depth" help={S.depth} value={f.assessment_depth} onChange={(e) => setF({ ...f, assessment_depth: e.target.value as 'full' | 'light' })} options={[{ value: 'full', label: 'Full (§3–9)' }, { value: 'light', label: 'Light (§3, §5, §7.2, §9)' }]} />
+          <SelectField label="Business owner" help={S.owner} value={f.owner_user_id} placeholder="Not set" onChange={(e) => setF({ ...f, owner_user_id: e.target.value })} options={people} error={fe.owner_user_id} />
+          <SelectField label="Technical owner" help={S.technicalOwner} value={f.technical_owner_user_id} placeholder="Not set" onChange={(e) => setF({ ...f, technical_owner_user_id: e.target.value })} options={people} error={fe.technical_owner_user_id} />
         </div>
         <UseCasePicker d={d} value={f.use_case_ids} onChange={(v) => setF({ ...f, use_case_ids: v })} />
         {fe.use_case_ids && <div className="small" style={{ color: "var(--danger)" }}>{fe.use_case_ids}</div>}
         {d.tool_options.length > 0 && (
-          <fieldset><legend>Tools</legend><div className="stack-sm">{d.tool_options.map((t) => (
+          <FieldGroup legend="Tools" help={S.tools}><div className="stack-sm">{d.tool_options.map((t) => (
             <Checkbox key={t.id} label={t.label} checked={f.tool_ids.includes(t.id)} onChange={(e) => setF({ ...f, tool_ids: e.target.checked ? [...f.tool_ids, t.id] : f.tool_ids.filter((x) => x !== t.id) })} />
-          ))}</div></fieldset>
+          ))}</div></FieldGroup>
         )}
         <div className="row"><Button type="submit" variant="primary">Save</Button><Button onClick={onClose}>Cancel</Button></div>
       </form>
@@ -222,7 +222,7 @@ function PendingRequests({ clientId, d, onDone }: { clientId: string; d: Registe
               <div className="small">{r.reason}</div>
               {d.can_approve_additions ? (
                 <div className="row" style={{ gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                  <div style={{ flex: 1, minWidth: 220 }}><TextField label="Comment (needed to decline)" value={comment[r.id] ?? ''} onChange={(e) => setComment({ ...comment, [r.id]: e.target.value })} /></div>
+                  <div style={{ flex: 1, minWidth: 220 }}><TextField label="Comment (needed to decline)" help={S.declineComment} value={comment[r.id] ?? ''} onChange={(e) => setComment({ ...comment, [r.id]: e.target.value })} /></div>
                   <Button variant="primary" onClick={() => decide(r.id, true)}>Approve</Button><Button onClick={() => decide(r.id, false)}>Decline</Button>
                 </div>
               ) : <div className="small muted">Waiting for the Engagement Manager.</div>}
@@ -255,13 +255,13 @@ function VendorDialog({ clientId, v, onClose }: { clientId: string; v: VendorRow
     <Dialog title={v ? v.legal_name : 'Add a vendor'} onClose={onClose}>
       <form className="stack" onSubmit={save} noValidate>
         {err && <Alert tone="danger">{err}</Alert>}
-        <TextField label="Legal name" value={f.legal_name} onChange={(e) => setF({ ...f, legal_name: e.target.value })} error={fe.legal_name} />
-        <TextField label="AI capability supplied" value={f.capability} onChange={(e) => setF({ ...f, capability: e.target.value })} error={fe.capability} />
+        <TextField label="Legal name" help={V.legalName} value={f.legal_name} onChange={(e) => setF({ ...f, legal_name: e.target.value })} error={fe.legal_name} />
+        <TextField label="AI capability supplied" help={V.capability} value={f.capability} onChange={(e) => setF({ ...f, capability: e.target.value })} error={fe.capability} />
         <div className="grid-2">
-          <SelectField label="Processes personal data" value={f.personal_data_processed} placeholder="Not known" onChange={(e) => setF({ ...f, personal_data_processed: e.target.value })} options={yn} />
-          <SelectField label="BAA or DPA signed" value={f.baa_dpa_signed} placeholder="Not known" onChange={(e) => setF({ ...f, baa_dpa_signed: e.target.value })} options={yn} />
-          <TextField label="Last risk review" type="date" value={f.last_risk_review} onChange={(e) => setF({ ...f, last_risk_review: e.target.value })} error={fe.last_risk_review} />
-          <SelectField label="Risk level" value={f.risk_level} placeholder="Not assessed" onChange={(e) => setF({ ...f, risk_level: e.target.value })} options={[{ value: 'H', label: 'High' }, { value: 'M', label: 'Medium' }, { value: 'L', label: 'Low' }]} error={fe.risk_level} />
+          <SelectField label="Processes personal data" help={V.personalData} value={f.personal_data_processed} placeholder="Not known" onChange={(e) => setF({ ...f, personal_data_processed: e.target.value })} options={yn} />
+          <SelectField label="BAA or DPA signed" help={V.agreement} value={f.baa_dpa_signed} placeholder="Not known" onChange={(e) => setF({ ...f, baa_dpa_signed: e.target.value })} options={yn} />
+          <TextField label="Last risk review" help={V.lastReview} type="date" value={f.last_risk_review} onChange={(e) => setF({ ...f, last_risk_review: e.target.value })} error={fe.last_risk_review} />
+          <SelectField label="Risk level" help={V.riskLevel} value={f.risk_level} placeholder="Not assessed" onChange={(e) => setF({ ...f, risk_level: e.target.value })} options={[{ value: 'H', label: 'High' }, { value: 'M', label: 'Medium' }, { value: 'L', label: 'Low' }]} error={fe.risk_level} />
         </div>
         <div className="row"><Button type="submit" variant="primary">Save</Button><Button onClick={onClose}>Cancel</Button></div>
       </form>

@@ -5,6 +5,8 @@ import { api, errorMessage } from '@/api/client';
 import { useMe } from '@/api/auth';
 import { Alert, Badge, Button, Card, EmptyState, Loading, PageHeader, TextArea, fmtDate, fmtDateTime } from '@/components/ui';
 import { SEV_TONE } from '@/screens/futran/FieldworkUseCase';
+import { remediationHelp } from '@/help/client';
+import { remediationReviewHelp } from '@/help/fieldwork';
 
 type Item = {
   id: string; source: 'finding' | 'commitment'; action: string; status: string; status_label: string; finding_ref: string | null; finding_title: string | null; severity: string | null;
@@ -73,7 +75,7 @@ export function Remediation() {
               </dl>
               {it.can_act && ['open', 'in_progress', 'reopened'].includes(it.status) && (
                 <div className="stack-sm">
-                  <TextArea label="What was done" help="Upload supporting files under Documents and mention them here." value={note} onChange={(e) => setNote(e.target.value)} />
+                  <TextArea label="What was done" help={remediationHelp.done} value={note} onChange={(e) => setNote(e.target.value)} />
                   <div className="row" style={{ gap: 8 }}>
                     <Button variant="primary" onClick={() => run(() => api.post(`/remediation/${it.id}/done`, { note }), 'Marked done. Futran has been told.')}>Mark done</Button>
                     {it.status !== 'in_progress' && <Button onClick={() => run(() => api.post(`/remediation/${it.id}/start`), 'Marked in progress.')}>Mark in progress</Button>}
@@ -82,7 +84,7 @@ export function Remediation() {
               )}
               {(it.can_verify || it.can_reopen) && (
                 <div className="stack-sm">
-                  <TextArea label={it.can_verify ? 'Verification note' : 'Reason to reopen'} value={note} onChange={(e) => setNote(e.target.value)} />
+                  <TextArea label={it.can_verify ? 'Verification note' : 'Reason to reopen'} help={it.can_verify ? remediationReviewHelp.verify : remediationReviewHelp.reopen} value={note} onChange={(e) => setNote(e.target.value)} />
                   <div className="row" style={{ gap: 8 }}>
                     {it.can_verify && <Button variant="primary" onClick={() => run(() => api.post(`/remediation/${it.id}/verify`, { note }), 'Verified and sent to the Chief Auditor.')}>Verify, send to Chief Auditor</Button>}
                     {it.can_reopen && <Button onClick={() => run(() => api.post(`/remediation/${it.id}/reopen`, { note }), 'Reopened. The owner can mark it done again.')}>Reopen</Button>}

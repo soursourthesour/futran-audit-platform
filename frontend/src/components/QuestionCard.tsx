@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { errorMessage, fieldErrors } from '@/api/client';
-import { Alert, Badge, Button, Checkbox, SelectField, TextArea, TextField, fileUrl } from '@/components/ui';
+import { Alert, Badge, Button, Checkbox, FieldHelp, SelectField, TextArea, TextField, WithHelp, fileUrl } from '@/components/ui';
+import { questionHelp as H, questionTypeHelp } from '@/help/questionnaire';
 
 export type Option = { value: string; label: string };
 export type FileRef = { id: string; filename: string };
@@ -111,31 +112,33 @@ export function QuestionCard({ q, futran, locked, evidenceFiles, drafts, onSave,
           {futran && answered && fr?.answered_side === 'client' && !fr.verified && <Badge tone="navy">Client pre-filled</Badge>}
         </div>
       </div>
-      <h3 style={{ margin: '4px 0 2px', fontSize: 17 }}>{q.label}</h3>
-      {q.help_text && <p className="small muted" style={{ margin: '0 0 8px' }}>{q.help_text}</p>}
+      <h3 style={{ margin: '4px 0 8px', fontSize: 17 }}><WithHelp help={q.help_text || questionTypeHelp[q.type]}>{q.label}</WithHelp></h3>
       {err && <Alert tone="danger">{err}</Alert>}
       <div className="stack-sm">
+        <div className="row" style={{ gap: 6, flexWrap: 'nowrap', alignItems: 'center' }}>
         <div className="row" role="radiogroup" aria-label="Answer status" style={{ gap: 6, flexWrap: 'wrap' }}>
           {[['answered', 'Answered'], ['not_yet_in_place', 'Planned → not yet in place'], ['na', 'Not applicable']].map(([k, label]) => (
             <label key={k} className="radio-pill"><input type="radio" name={`${q.id}-status`} checked={status === k} onChange={() => setStatus(k)} disabled={locked} />{label}</label>
           ))}
         </div>
+        <FieldHelp label="answer status">{H.status}</FieldHelp>
+        </div>
         {status === 'na' ? (
-          <TextField label="Why it does not apply" value={naReason} onChange={(e) => setNaReason(e.target.value)} error={fe.na_reason} disabled={locked} />
+          <TextField label="Why it does not apply" help={H.naReason} value={naReason} onChange={(e) => setNaReason(e.target.value)} error={fe.na_reason} disabled={locked} />
         ) : (
           <>
             {status === 'answered' && <ValueInput q={q} value={value} onChange={setValue} error={fe.value} disabled={locked} />}
-            <TextArea label={status === 'not_yet_in_place' ? 'What is planned, and by when' : (q.detail_label ?? 'Answer detail (optional)')} value={detail} onChange={(e) => setDetail(e.target.value)} disabled={locked} />
+            <TextArea label={status === 'not_yet_in_place' ? 'What is planned, and by when' : (q.detail_label ?? 'Answer detail (optional)')} help={status === 'not_yet_in_place' ? H.planned : q.detail_label ? H.detailNamed : H.detail} value={detail} onChange={(e) => setDetail(e.target.value)} disabled={locked} />
           </>
         )}
         {futran && (
           <div className="grid-2">
-            <TextField label="Source person" value={src.name} onChange={(e) => setSrc({ ...src, name: e.target.value })} error={fe.source_person_name} disabled={locked} help="Who gave this answer in interview." />
-            <TextField label="Source title" value={src.title} onChange={(e) => setSrc({ ...src, title: e.target.value })} error={fe.source_person_title} disabled={locked} />
+            <TextField label="Source person" value={src.name} onChange={(e) => setSrc({ ...src, name: e.target.value })} error={fe.source_person_name} disabled={locked} help={H.sourcePerson} />
+            <TextField label="Source title" value={src.title} onChange={(e) => setSrc({ ...src, title: e.target.value })} error={fe.source_person_title} disabled={locked} help={H.sourceTitle} />
           </div>
         )}
         <div className="small">
-          <strong>Evidence</strong>{' '}
+          <WithHelp help={H.evidence}><strong>Evidence</strong></WithHelp>{' '}
           {evidence.length === 0 ? <span className="muted">None linked</span> : evidence.map((id) => {
             const f = evidenceFiles.find((x) => x.id === id) ?? r?.evidence.find((x) => x.id === id);
             return <span key={id} className="chip">{f ? <a href={fileUrl(id)}>{f.filename}</a> : 'file'}{!locked && <button type="button" className="linklike" aria-label="Remove" onClick={() => setEvidence(evidence.filter((x) => x !== id))}> ×</button>}</span>;
@@ -152,7 +155,7 @@ export function QuestionCard({ q, futran, locked, evidenceFiles, drafts, onSave,
         {!locked && (
           <div className="row" style={{ gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <Button size="sm" variant="primary" onClick={save} disabled={busy}>Save</Button>
-            {futran && <Checkbox label="Verified" checked={verified} onChange={(e) => setVerified(e.target.checked)} />}
+            {futran && <Checkbox label="Verified" help={H.verified} checked={verified} onChange={(e) => setVerified(e.target.checked)} />}
             {futran && fr && answered && !fr.verified && onVerify && fr.answered_side === 'client' && <Button size="sm" variant="ghost" onClick={() => onVerify(fr.id).catch((e) => setErr(errorMessage(e)))}>Verify client answer</Button>}
             {saved && <span className="small muted" role="status">Saved</span>}
           </div>

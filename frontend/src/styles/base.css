@@ -69,7 +69,7 @@ p { margin: 0; }
 .radio-pill { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border: 1px solid var(--input-line); border-radius: var(--radius-sm); background: #fff; cursor: pointer; font-size: 14px; }
 .radio-pill:has(input:checked) { border-color: var(--navy); background: #eef3fb; font-weight: 600; }
 .radio-pill input { accent-color: var(--navy); }
-fieldset { border: none; padding: 0; margin: 0; }
+fieldset { border: none; padding: 0; margin: 0; min-width: 0; }
 legend { font-size: 14px; font-weight: 600; margin-bottom: 6px; padding: 0; }
 
 /* Alerts and badges */
@@ -221,3 +221,24 @@ table.table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .table tbody tr.selected td { background: #f3f7fd; }
 .table tbody tr.selected td:first-child { box-shadow: inset 3px 0 0 var(--navy); }
 .selected-panel { border: 2px solid var(--navy); padding: 18px; }
+
+/* Field help: a circled "i" after a label, with the help in a popover */
+/* The icon flows after the last word of the label, so it stays beside the text when a label wraps. */
+.field-label { display: block; }
+.field-label > label { display: inline; }
+.label-row { display: inline; }
+.field-help { display: inline-flex; flex: none; vertical-align: middle; margin-left: 2px; }
+.field-help-btn { display: inline-grid; place-items: center; width: 24px; height: 24px; margin: -4px 0; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--muted); cursor: pointer; font: inherit; }
+.field-help-btn:hover, .field-help-btn[aria-expanded='true'] { color: var(--navy); }
+.field-help-btn:disabled { display: none; }
+.check-row { display: flex; align-items: flex-start; gap: 2px; }
+.check-row > .field-help { margin-top: 9px; }
+.check-row .field-help-btn { margin: 0; }
+.field-help-pop { position: fixed; z-index: 70; padding: 10px 12px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: var(--radius-sm); box-shadow: 0 10px 28px rgba(16, 24, 40, 0.16); font-size: 13.5px; font-weight: 400; line-height: 1.5; text-align: left; text-transform: none; letter-spacing: normal; white-space: normal; overflow-wrap: anywhere; }
+.field-help-pop::before { content: ''; position: absolute; left: calc(var(--arrow-x, 24px) - 5px); top: -6px; width: 10px; height: 10px; background: var(--surface); border-left: 1px solid var(--line); border-top: 1px solid var(--line); transform: rotate(45deg); }
+.field-help-pop.above::before { top: auto; bottom: -6px; transform: rotate(225deg); }
+@media (max-width: 600px), (pointer: coarse) {
+  .field-help-btn { width: 44px; height: 44px; margin: -10px -10px -10px -8px; }
+  .check-row .field-help-btn { margin: -10px -10px -10px -8px; }
+  .check-row > .field-help { margin-top: 9px; }
+}

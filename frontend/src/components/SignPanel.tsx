@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
-import { Alert, Badge, Button, Loading, TextField, fileUrl, fmtDateTime } from '@/components/ui';
+import { Alert, Badge, Button, Checkbox, Loading, TextField, fileUrl, fmtDateTime } from '@/components/ui';
+import { signHelp as H } from '@/help/client';
 
 export type SignOffView = {
   id: string; number: number; title: string; status: string; approved_at: string | null;
@@ -74,8 +75,8 @@ export function SignPanel({ signOffId, onSigned, agreeText, hideTitle }: { signO
       {so.can_sign && (
         <form className="stack" onSubmit={submit} noValidate>
           {err && <Alert tone="danger">{err}</Alert>}
-          <TextField label="Type your full name to sign" value={name} onChange={(e) => setName(e.target.value)} placeholder={so.my_name} error={fe.typed_name} autoComplete="name" />
-          <label className="check"><input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} /><span>{agreeText ?? 'I have read the document and agree to it.'} Typing my name and selecting Sign is my signature.</span></label>
+          <TextField label="Type your full name to sign" help={H.typedName} value={name} onChange={(e) => setName(e.target.value)} placeholder={so.my_name} error={fe.typed_name} autoComplete="name" />
+          <Checkbox label={`${agreeText ?? 'I have read the document and agree to it.'} Typing my name and selecting Sign is my signature.`} help={H.agree} checked={agree} onChange={(e) => setAgree(e.target.checked)} />
           <div className="row" style={{ gap: 8 }}>
             <Button type="submit" variant="primary" disabled={!agree || !name.trim() || busy}>Sign</Button>
             {so.can_return && !returning && <Button onClick={() => setReturning(true)}>Return with a comment</Button>}
@@ -84,7 +85,7 @@ export function SignPanel({ signOffId, onSigned, agreeText, hideTitle }: { signO
       )}
       {returning && (
         <div className="stack-sm">
-          <TextField label="What needs to change" value={comment} onChange={(e) => setComment(e.target.value)} error={fe.comment} />
+          <TextField label="What needs to change" help={H.returnComment} value={comment} onChange={(e) => setComment(e.target.value)} error={fe.comment} />
           <div className="row" style={{ gap: 8 }}><Button onClick={sendBack}>Return to preparer</Button><Button variant="ghost" onClick={() => setReturning(false)}>Cancel</Button></div>
         </div>
       )}

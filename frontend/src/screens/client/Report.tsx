@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
-import { Alert, Badge, Button, Card, EmptyState, Loading, PageHeader, TextField, fmtDateTime } from '@/components/ui';
+import { Alert, Badge, Button, Card, EmptyState, FieldGroup, Loading, PageHeader, TextField, fmtDateTime } from '@/components/ui';
+import { reportHelp as H, signHelp } from '@/help/client';
 import { SignPanel, type SignOffView } from '@/components/SignPanel';
 import { useMe } from '@/api/auth';
 import { ReportTable, type ReportRow } from '@/screens/futran/FinalReport';
@@ -54,19 +55,17 @@ export function ClientReport() {
               ) : (
                 <>
                   {err && <Alert tone="danger">{err}</Alert>}
-                  <fieldset className="stack-sm">
-                    <legend>Remediation commitment</legend>
+                  <FieldGroup className="stack-sm" legend="Remediation commitment" help={H.commitment}>
                     <label className="check"><input type="radio" name="commitment" checked={commitment === 'plan'} onChange={() => setCommitment('plan')} /><span>{ack.commitments.plan}</span></label>
                     <label className="check"><input type="radio" name="commitment" checked={commitment === 'disputes'} onChange={() => setCommitment('disputes')} /><span>We dispute one or more findings.</span></label>
-                  </fieldset>
+                  </FieldGroup>
                   {commitment === 'disputes' && (
-                    <fieldset className="stack-sm small">
-                      <legend>Findings you dispute</legend>
+                    <FieldGroup className="stack-sm small" legend="Findings you dispute" help={H.disputed}>
                       {d.findings.map((f) => <label key={f.ref} className="check"><input type="checkbox" checked={disputed.includes(f.ref)} onChange={() => setDisputed(disputed.includes(f.ref) ? disputed.filter((x) => x !== f.ref) : [...disputed, f.ref])} /><span>{f.ref} {f.title}</span></label>)}
                       {fe.disputed_refs && <span className="error">{fe.disputed_refs}</span>}
-                    </fieldset>
+                    </FieldGroup>
                   )}
-                  <TextField label="Type your full name to sign" placeholder={ack.my_name} value={name} onChange={(e) => setName(e.target.value)} error={fe.typed_name} />
+                  <TextField label="Type your full name to sign" help={signHelp.typedName} placeholder={ack.my_name} value={name} onChange={(e) => setName(e.target.value)} error={fe.typed_name} />
                   <div><Button variant="primary" disabled={!name.trim()} onClick={sign}>Sign acknowledgement</Button></div>
                 </>
               )}

@@ -3,7 +3,9 @@ import { useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
 import { useMe } from '@/api/auth';
-import { Alert, Badge, Button, Card, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField, fileUrl, fmtDate } from '@/components/ui';
+import { Alert, Badge, Button, Card, EmptyState, FieldGroup, Loading, PageHeader, SelectField, TextArea, TextField, fileUrl, fmtDate } from '@/components/ui';
+import { responseHelp as H } from '@/help/client';
+import { adequacyHelp } from '@/help/fieldwork';
 import { SignPanel, type SignOffView } from '@/components/SignPanel';
 import { SEV_TONE } from '@/screens/futran/FieldworkUseCase';
 
@@ -90,14 +92,14 @@ function ResponseCard({ n, r, people, futran, run }: { n: number; r: Row; people
         {r.adequacy_note && <Alert tone={r.status === 'inadequate' ? 'warn' : 'info'}>Futran: {r.adequacy_note}</Alert>}
         {r.can_respond ? (
           <>
-            <fieldset className="stack-sm"><legend>Management response *</legend>
+            <FieldGroup className="stack-sm" legend="Management response *" help={H.response}>
               <div className="row" style={{ gap: 16, flexWrap: 'wrap' }}>{RESPONSES.map((o) => <label key={o.value} className="check"><input type="radio" name={`resp-${f.id}`} checked={v.response === o.value} onChange={() => setV({ ...v, response: o.value })} /><span>{o.label}</span></label>)}</div>
               {fe.response && <span className="error">{fe.response}</span>}
-            </fieldset>
-            <TextArea label={v.response === 'disagree' ? 'Why you disagree *' : 'Planned action *'} value={v.planned_action} error={fe.planned_action} onChange={(e) => setV({ ...v, planned_action: e.target.value })} />
+            </FieldGroup>
+            <TextArea label={v.response === 'disagree' ? 'Why you disagree *' : 'Planned action *'} help={H.plannedAction} value={v.planned_action} error={fe.planned_action} onChange={(e) => setV({ ...v, planned_action: e.target.value })} />
             <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-              <SelectField label="Owner *" value={v.owner_user_id} error={fe.owner_user_id} onChange={(e) => setV({ ...v, owner_user_id: e.target.value })} options={[{ value: '', label: 'Choose a person' }, ...people.map((p) => ({ value: p.id, label: p.name }))]} />
-              <TextField label="Due date *" type="date" value={v.due_date} error={fe.due_date} onChange={(e) => setV({ ...v, due_date: e.target.value })} />
+              <SelectField label="Owner *" help={H.owner} value={v.owner_user_id} error={fe.owner_user_id} onChange={(e) => setV({ ...v, owner_user_id: e.target.value })} options={[{ value: '', label: 'Choose a person' }, ...people.map((p) => ({ value: p.id, label: p.name }))]} />
+              <TextField label="Due date *" help={H.dueDate} type="date" value={v.due_date} error={fe.due_date} onChange={(e) => setV({ ...v, due_date: e.target.value })} />
             </div>
             <div><Button variant="primary" onClick={save}>Save response</Button></div>
           </>
@@ -111,7 +113,7 @@ function ResponseCard({ n, r, people, futran, run }: { n: number; r: Row; people
         ) : <p className="small muted" style={{ margin: 0 }}>No response yet.</p>}
         {futran && r.can_review && (
           <div className="stack-sm">
-            <TextField label="Adequacy note" placeholder="Required if the response needs changes" value={note} onChange={(e) => setNote(e.target.value)} />
+            <TextField label="Adequacy note" help={adequacyHelp.note} placeholder="Required if the response needs changes" value={note} onChange={(e) => setNote(e.target.value)} />
             <div className="row" style={{ gap: 8 }}>
               <Button variant="primary" onClick={() => run(() => api.post(`/responses/${r.id}/adequacy`, { adequate: true, note }), `Response to ${f.ref} accepted.`)}>Adequate</Button>
               <Button onClick={() => run(() => api.post(`/responses/${r.id}/adequacy`, { adequate: false, note }), `Response to ${f.ref} sent back to the client.`)}>Ask for changes</Button>

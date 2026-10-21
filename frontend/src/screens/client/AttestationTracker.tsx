@@ -3,7 +3,8 @@ import { useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError, errorMessage } from '@/api/client';
 import { useMe } from '@/api/auth';
-import { Alert, Badge, Button, Card, Checkbox, EmptyState, Loading, PageHeader, TextField, fmtDate, fmtDateTime } from '@/components/ui';
+import { Alert, Badge, Button, Card, Checkbox, EmptyState, FieldGroup, Loading, PageHeader, TextField, fmtDate, fmtDateTime } from '@/components/ui';
+import { attestationLaunchHelp as H } from '@/help/client';
 
 type Tracker = {
   campaign: { id: string; status: string; policy_version: string; launched_at: string; closes_at: string; closed_at: string | null; link: string | null };
@@ -113,12 +114,12 @@ function Launch({ clientId, onDone }: { clientId: string; onDone: () => void }) 
       <div className="stack">
         {err && <Alert tone="danger">{err}</Alert>}
         <p className="small muted" style={{ margin: 0 }}>You get one link to send to all staff in the departments below. Nobody needs an account. Acknowledge the employee data notice on the Getting started page first.</p>
-        <fieldset><legend>Departments</legend>
+        <FieldGroup legend="Departments" help={H.departments}>
           <div className="grid-2">{inScope.map((d) => <Checkbox key={d.id} label={d.name} checked={ids.includes(d.id)} onChange={(e) => setChosen(e.target.checked ? [...ids, d.id] : ids.filter((x) => x !== d.id))} />)}</div>
-        </fieldset>
+        </FieldGroup>
         <div className="grid-2">
-          <TextField type="date" label="Closes on" value={closes} onChange={(e) => setCloses(e.target.value)} />
-          <TextField label="AI use policy version" value={version} onChange={(e) => setVersion(e.target.value)} />
+          <TextField type="date" label="Closes on" help={H.closesOn} value={closes} onChange={(e) => setCloses(e.target.value)} />
+          <TextField label="AI use policy version" help={H.policyVersion} value={version} onChange={(e) => setVersion(e.target.value)} />
         </div>
         <div><Button variant="primary" onClick={go} disabled={!ids.length}>Launch and get the staff link</Button></div>
       </div>

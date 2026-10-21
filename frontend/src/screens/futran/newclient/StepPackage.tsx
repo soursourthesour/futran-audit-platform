@@ -5,6 +5,7 @@ import { api, errorMessage, fieldErrors } from '@/api/client';
 import { hasRole, useMe } from '@/api/auth';
 import { Alert, Badge, Button, Card, Checkbox, Dialog, Loading, TextArea, fileUrl } from '@/components/ui';
 import { DocPreview } from '@/components/DocPreview';
+import { packageHelp as H } from '@/help/onboarding';
 import { useWizardCtx } from './Wizard';
 
 type Doc = { id: string; item: number; title: string; requires_action: string; action_label: string; format: string; docx_file_id: string | null; pdf_file_id: string | null; csv_file_id: string | null; editable: boolean; edited: boolean; template_version: number };
@@ -89,7 +90,7 @@ export function StepPackage() {
           </div>
         </Card>
         <Card title="Message to the client">
-          <TextArea label="Appears in the invitation email above the link" value={message} onChange={(e) => setMessage(e.target.value)} help="Invitation links expire after 7 days." disabled={!isChief} />
+          <TextArea label="Appears in the invitation email above the link" value={message} onChange={(e) => setMessage(e.target.value)} help={H.clientMessage} disabled={!isChief} />
         </Card>
       </div>
       <div className="side stack">
@@ -107,10 +108,10 @@ export function StepPackage() {
           <Card title="Your approval">
             <div className="stack">
               {err && <Alert tone="danger">{err}</Alert>}
-              <Checkbox label="Scope, laws and departments are appropriate for this client" checked={checks.scope_ok} onChange={(e) => setChecks({ ...checks, scope_ok: e.target.checked })} />
+              <Checkbox label="Scope, laws and departments are appropriate for this client" help={H.scopeOk} checked={checks.scope_ok} onChange={(e) => setChecks({ ...checks, scope_ok: e.target.checked })} />
               {fe['checklist.scope_ok'] && <p className="small" style={{ color: 'var(--danger)', margin: 0 }}>{fe['checklist.scope_ok']}</p>}
-              <Checkbox label="The team has no conflict of interest" checked={checks.no_conflict} onChange={(e) => setChecks({ ...checks, no_conflict: e.target.checked })} />
-              <Checkbox label="I have previewed the engagement letter" checked={checks.letter_previewed} onChange={(e) => setChecks({ ...checks, letter_previewed: e.target.checked })} />
+              <Checkbox label="The team has no conflict of interest" help={H.noConflict} checked={checks.no_conflict} onChange={(e) => setChecks({ ...checks, no_conflict: e.target.checked })} />
+              <Checkbox label="I have previewed the engagement letter" help={H.letterPreviewed} checked={checks.letter_previewed} onChange={(e) => setChecks({ ...checks, letter_previewed: e.target.checked })} />
               <Button variant="primary" onClick={approve} disabled={busy}>Approve and send</Button>
               <Button onClick={() => setReturning('')}>Return to author with comments</Button>
               <p className="small muted" style={{ margin: 0 }}>Sending creates the client accounts, emails the invitations and records the approval in the audit log.</p>
@@ -123,7 +124,7 @@ export function StepPackage() {
         <Dialog title={`Edit: ${editing.doc.title}`} onClose={() => setEditing(null)} wide>
           <div className="stack">
             <p className="small muted">This changes the document for this client only. To change it for every client, edit the template under Templates.</p>
-            <TextArea label="Document text (Markdown)" value={editing.body} onChange={(e) => setEditing({ ...editing, body: e.target.value })} rows={18} style={{ fontFamily: 'ui-monospace, monospace', fontSize: 13 }} />
+            <TextArea label="Document text (Markdown)" help={H.documentText} value={editing.body} onChange={(e) => setEditing({ ...editing, body: e.target.value })} rows={18} style={{ fontFamily: 'ui-monospace, monospace', fontSize: 13 }} />
             <div className="row"><Button variant="primary" onClick={saveEdit}>Save document</Button><Button onClick={() => setEditing(null)}>Cancel</Button></div>
           </div>
         </Dialog>
@@ -131,7 +132,7 @@ export function StepPackage() {
       {returning !== null && (
         <Dialog title="Return to the author" onClose={() => setReturning(null)}>
           <div className="stack">
-            <TextArea label="What needs to change" value={returning} onChange={(e) => setReturning(e.target.value)} />
+            <TextArea label="What needs to change" help={H.returnComment} value={returning} onChange={(e) => setReturning(e.target.value)} />
             <div className="row"><Button variant="primary" onClick={sendBack} disabled={!returning.trim()}>Return with comments</Button><Button onClick={() => setReturning(null)}>Cancel</Button></div>
           </div>
         </Dialog>

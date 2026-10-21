@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
-import { Alert, Badge, Button, Card, Dialog, EmptyState, Loading, PageHeader, SelectField, TextField, fileUrl, fmtDate } from '@/components/ui';
+import { Alert, Badge, Button, Card, Dialog, EmptyState, FieldHelp, Loading, PageHeader, SelectField, TextField, fileUrl, fmtDate } from '@/components/ui';
+import { documentHelp } from '@/help/client';
 
 export type DocRequest = {
   id: string; code: string; title: string; description: string | null; category: number; category_title: string; system_id: string | null; system: string | null; system_ref: string | null;
@@ -140,6 +141,7 @@ export function DocumentUploadsList({ rows, onDone }: { rows: DocRequest[]; onDo
                   <div className="row" style={{ gap: 8, alignItems: 'center' }}>
                     <Badge tone={STATUS[r.status].tone}>{STATUS[r.status].label}</Badge>
                     <label className="btn btn-sm">Upload<input type="file" hidden onChange={(e) => e.target.files?.[0] && uploadFile(r, e.target.files[0])} /></label>
+                    <FieldHelp label={`uploading ${r.title}`}>{documentHelp.upload}</FieldHelp>
                     {r.status === 'pending' && <Button size="sm" variant="ghost" onClick={() => setNa(r)}>We don't have this</Button>}
                   </div>
                 </div>
@@ -152,7 +154,7 @@ export function DocumentUploadsList({ rows, onDone }: { rows: DocRequest[]; onDo
         <Dialog title={`We don't have: ${na.title}`} onClose={() => setNa(null)}>
           <div className="stack">
             <p className="small" style={{ margin: 0 }}>The auditor will record this as a finding. If you are preparing the document, say when it will be ready.</p>
-            <TextField label="Note for the auditor" value={note} onChange={(e) => setNote(e.target.value)} />
+            <TextField label="Note for the auditor" help={documentHelp.notAvailableNote} value={note} onChange={(e) => setNote(e.target.value)} />
             <div className="row"><Button variant="primary" onClick={markNa}>Confirm</Button><Button onClick={() => setNa(null)}>Cancel</Button></div>
           </div>
         </Dialog>

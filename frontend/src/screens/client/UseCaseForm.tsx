@@ -3,7 +3,9 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors, type FieldError } from '@/api/client';
 import { hasRole, useMe } from '@/api/auth';
-import { Alert, Badge, Button, Card, Checkbox, Loading, PageHeader, SelectField, TextArea, TextField } from '@/components/ui';
+import { Alert, Badge, Button, Card, Checkbox, FieldGroup, Loading, PageHeader, SelectField, TextArea, TextField, WithHelp } from '@/components/ui';
+import { useCaseHelp as H } from '@/help/client';
+import { tierHelp as T } from '@/help/fieldwork';
 import { ACCOUNT_LABELS, STATUS_LABELS, tierBadge, useInventory } from './Inventory';
 
 type Named = { id?: string; person_name: string; email: string; role_name?: string | null; oversight_role: string; has_account?: boolean; training_complete?: boolean | null; policy_acknowledged?: boolean | null; oversight_role_confirmed?: boolean | null; link_sent?: boolean };
@@ -78,42 +80,42 @@ function Form({ clientId, uc, isFutran, canReview, canTier }: { clientId: string
         <fieldset disabled={!editable} className="main stack">
           <Card title="What it is">
             <div className="stack">
-              <TextField label="Use case name *" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} error={fe.name} placeholder="Résumé screening for NYC roles" />
-              <SelectField label="Department *" value={f.department_id} onChange={(e) => setF({ ...f, department_id: e.target.value })} options={inv.departments.map((d) => ({ value: d.id, label: d.name }))} error={fe.department_id} />
-              <fieldset><legend>AI tools used *</legend>
+              <TextField label="Use case name *" help={H.name} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} error={fe.name} placeholder="Résumé screening for NYC roles" />
+              <SelectField label="Department *" help={H.department} value={f.department_id} onChange={(e) => setF({ ...f, department_id: e.target.value })} options={inv.departments.map((d) => ({ value: d.id, label: d.name }))} error={fe.department_id} />
+              <FieldGroup legend="AI tools used *" help={H.tools}>
                 {inv.tools.length === 0 ? <p className="small muted">No tools yet. Add the tool from the inventory page first.</p> : <div className="grid-2">{inv.tools.map((t) => <Checkbox key={t.id} label={`${t.vendor} ${t.product} (${ACCOUNT_LABELS[t.account_type].toLowerCase()})`} checked={f.tool_ids.includes(t.id)} onChange={() => toggle('tool_ids', t.id)} />)}</div>}
                 {fe.tool_ids && <p className="small" style={{ color: 'var(--danger)', margin: '4px 0 0' }}>{fe.tool_ids}</p>}
-              </fieldset>
-              <TextArea label="Purpose *" value={f.purpose} onChange={(e) => setF({ ...f, purpose: e.target.value })} placeholder="The ATS ranks applicants and recruiters review the top 20 before scheduling interviews." />
+              </FieldGroup>
+              <TextArea label="Purpose *" help={H.purpose} value={f.purpose} onChange={(e) => setF({ ...f, purpose: e.target.value })} placeholder="The ATS ranks applicants and recruiters review the top 20 before scheduling interviews." />
             </div>
           </Card>
           <Card title="Data and decisions">
             <div className="stack">
-              <fieldset><legend>Data entered into the tool *</legend><div className="grid-2">{DATA.map((x) => <Checkbox key={x.value} label={x.label} checked={f.data_categories.includes(x.value)} onChange={() => toggle('data_categories', x.value)} />)}</div></fieldset>
-              <fieldset><legend>How does the output affect people? *</legend>
+              <FieldGroup legend="Data entered into the tool *" help={H.data}><div className="grid-2">{DATA.map((x) => <Checkbox key={x.value} label={x.label} checked={f.data_categories.includes(x.value)} onChange={() => toggle('data_categories', x.value)} />)}</div></FieldGroup>
+              <FieldGroup legend="How does the output affect people? *" help={H.impact}>
                 <div className="stack-sm">{IMPACT.map((x) => <label key={x.value} className="radio-pill" style={{ justifyContent: 'flex-start' }}><input type="radio" name="impact" checked={f.decision_impact === x.value} onChange={() => setF({ ...f, decision_impact: x.value })} />{x.label}</label>)}</div>
                 {fe.decision_impact && <p className="small" style={{ color: 'var(--danger)', margin: '4px 0 0' }}>{fe.decision_impact}</p>}
-              </fieldset>
+              </FieldGroup>
             </div>
           </Card>
           <Card title="Who uses it">
             <div className="stack">
               {usage.map((u, i) => (
                 <div key={i} className="grid-2" style={{ gridTemplateColumns: '2fr 1fr 1fr' }}>
-                  <TextField label="Role" value={u.role_name} onChange={(e) => setUsage(usage.map((x, j) => (j === i ? { ...x, role_name: e.target.value } : x)))} />
-                  <TextField label="Headcount" inputMode="numeric" value={u.headcount} onChange={(e) => setUsage(usage.map((x, j) => (j === i ? { ...x, headcount: e.target.value } : x)))} />
-                  <SelectField label="How often" value={u.frequency} onChange={(e) => setUsage(usage.map((x, j) => (j === i ? { ...x, frequency: e.target.value } : x)))} placeholder="Choose…" options={['daily', 'weekly', 'monthly', 'occasionally'].map((v) => ({ value: v, label: v[0].toUpperCase() + v.slice(1) }))} />
+                  <TextField label="Role" help={H.role} value={u.role_name} onChange={(e) => setUsage(usage.map((x, j) => (j === i ? { ...x, role_name: e.target.value } : x)))} />
+                  <TextField label="Headcount" help={H.headcount} inputMode="numeric" value={u.headcount} onChange={(e) => setUsage(usage.map((x, j) => (j === i ? { ...x, headcount: e.target.value } : x)))} />
+                  <SelectField label="How often" help={H.frequency} value={u.frequency} onChange={(e) => setUsage(usage.map((x, j) => (j === i ? { ...x, frequency: e.target.value } : x)))} placeholder="Choose…" options={['daily', 'weekly', 'monthly', 'occasionally'].map((v) => ({ value: v, label: v[0].toUpperCase() + v.slice(1) }))} />
                 </div>
               ))}
               {editable && <div><Button size="sm" variant="ghost" onClick={() => setUsage([...usage, { role_name: '', headcount: '', frequency: '' }])}>Add another role</Button></div>}
-              <h3 style={{ fontSize: 15, margin: '8px 0 0' }}>Named users {needNamed ? <span className="small muted">· required for Tier {tier}</span> : <span className="small muted">· needed only for Tier 2 and 3</span>}</h3>
+              <h3 style={{ fontSize: 15, margin: '8px 0 0' }}><WithHelp help={H.namedUsers}>Named users</WithHelp> {needNamed ? <span className="small muted">· required for Tier {tier}</span> : <span className="small muted">· needed only for Tier 2 and 3</span>}</h3>
               {fe.named_users && <p className="small" style={{ color: 'var(--danger)', margin: 0 }}>{fe.named_users}</p>}
               {named.map((n, i) => (
                 <div key={i} className="card" style={{ padding: 12 }}>
                   <div className="grid-2">
-                    <TextField label="Name" value={n.person_name} onChange={(e) => setNamed(named.map((x, j) => (j === i ? { ...x, person_name: e.target.value } : x)))} />
-                    <TextField label="Work email" type="email" value={n.email ?? ''} onChange={(e) => setNamed(named.map((x, j) => (j === i ? { ...x, email: e.target.value } : x)))} />
-                    <TextField label={tier === 3 ? 'Human oversight role *' : 'Human oversight role'} value={n.oversight_role ?? ''} onChange={(e) => setNamed(named.map((x, j) => (j === i ? { ...x, oversight_role: e.target.value } : x)))} placeholder="Reviews the ranked list" />
+                    <TextField label="Name" help={H.personName} value={n.person_name} onChange={(e) => setNamed(named.map((x, j) => (j === i ? { ...x, person_name: e.target.value } : x)))} />
+                    <TextField label="Work email" help={H.personEmail} type="email" value={n.email ?? ''} onChange={(e) => setNamed(named.map((x, j) => (j === i ? { ...x, email: e.target.value } : x)))} />
+                    <TextField label={tier === 3 ? 'Human oversight role *' : 'Human oversight role'} help={H.oversightRole} value={n.oversight_role ?? ''} onChange={(e) => setNamed(named.map((x, j) => (j === i ? { ...x, oversight_role: e.target.value } : x)))} placeholder="Reviews the ranked list" />
                   </div>
                   {uc && n.id && (
                     <p className="small muted" style={{ margin: '6px 0 0' }}>
@@ -160,7 +162,7 @@ function ReviewCard({ id, onDone }: { id: string; onDone: () => void }) {
       <div className="stack">
         {err && <Alert tone="danger">{err}</Alert>}
         <Button variant="primary" onClick={() => go(true)}>Approve</Button>
-        <TextArea label="Or return with a comment" value={comment} onChange={(e) => setComment(e.target.value)} />
+        <TextArea label="Or return with a comment" help={H.returnComment} value={comment} onChange={(e) => setComment(e.target.value)} />
         <Button onClick={() => go(false)} disabled={!comment.trim()}>Return</Button>
       </div>
     </Card>
@@ -181,9 +183,9 @@ function FinalTierCard({ uc, onDone }: { uc: Detail; onDone: () => void }) {
     <Card title="Set the final tier">
       <div className="stack">
         {err && <Alert tone="danger">{err}</Alert>}
-        <SelectField label="Final tier" value={tier} onChange={(e) => setTier(e.target.value)} options={[1, 2, 3].map((t) => ({ value: String(t), label: `Tier ${t}` }))} />
-        <TextArea label="Rationale" value={rationale} onChange={(e) => setRationale(e.target.value)} error={fe.rationale} />
-        <SelectField label="AEDT determination (NYC employment use)" value={aedt} onChange={(e) => setAedt(e.target.value)} placeholder="Not applicable" options={AEDT} />
+        <SelectField label="Final tier" help={T.tier} value={tier} onChange={(e) => setTier(e.target.value)} options={[1, 2, 3].map((t) => ({ value: String(t), label: `Tier ${t}` }))} />
+        <TextArea label="Rationale" help={T.rationale} value={rationale} onChange={(e) => setRationale(e.target.value)} error={fe.rationale} />
+        <SelectField label="AEDT determination (NYC employment use)" help={T.aedt} value={aedt} onChange={(e) => setAedt(e.target.value)} placeholder="Not applicable" options={AEDT} />
         <Button variant="primary" onClick={save}>Save final tier</Button>
         <p className="small muted" style={{ margin: 0 }}>Raising the tier re-sends confirmation links to the named users.</p>
       </div>

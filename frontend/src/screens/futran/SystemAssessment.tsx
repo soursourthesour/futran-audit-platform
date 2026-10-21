@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
 import { Alert, Badge, Button, ButtonLink, Card, Loading, PageHeader, TextField, fileUrl } from '@/components/ui';
+import { scoringHelp } from '@/help/fieldwork';
 import { QuestionCard, type DraftFinding, type FileRef, type QuestionView, type SaveBody } from '@/components/QuestionCard';
 
 export type Section = { code: string; title: string; answered: number; applicable: number; note?: string | null };
@@ -147,7 +148,7 @@ function Drafts({ rows, onDone }: { rows: DraftFinding[]; onDone: () => void }) 
           <li key={d.id} style={{ padding: '10px 0', borderTop: '1px solid var(--line-soft)' }} className="stack-sm">
             <div><strong>{d.ref}</strong> · {d.title} <Badge tone={d.severity === 'high' || d.severity === 'critical' ? 'danger' : 'warn'}>{d.severity}</Badge> <span className="small muted">from {d.question_code}{d.not_yet_in_place ? ' (not yet in place)' : ''}</span>{d.confirmed && <> <Badge tone="success">Kept</Badge></>}</div>
             <div className="row" style={{ gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-              <div style={{ flex: 1, minWidth: 220 }}><TextField label="Reason to dismiss" value={reason[d.id] ?? ''} onChange={(e) => setReason({ ...reason, [d.id]: e.target.value })} /></div>
+              <div style={{ flex: 1, minWidth: 220 }}><TextField label="Reason to dismiss" help={scoringHelp.dismissDraft} value={reason[d.id] ?? ''} onChange={(e) => setReason({ ...reason, [d.id]: e.target.value })} /></div>
               {!d.confirmed && <Button variant="primary" onClick={() => act(d, false)}>Keep</Button>}
               <Button onClick={() => act(d, true)}>Dismiss</Button>
             </div>

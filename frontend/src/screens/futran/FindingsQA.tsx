@@ -5,6 +5,7 @@ import { api, errorMessage } from '@/api/client';
 import { Alert, Badge, Button, ButtonLink, Card, EmptyState, Loading, PageHeader, TextArea, TextField } from '@/components/ui';
 import { SignPanel, type SignOffView } from '@/components/SignPanel';
 import { FindingForm, SEV_TONE, type FindingRow } from '@/screens/futran/FieldworkUseCase';
+import { findingHelp } from '@/help/fieldwork';
 
 type Data = { findings: (FindingRow & { review_role?: string | null; origin?: string })[]; stage: number; audit_ref: string; client: string; control_options: string[]; sign_off_5: SignOffView | null; approved: number; total: number; can_approve_as: string[]; me: string };
 
@@ -78,7 +79,7 @@ export function FindingsQA() {
               {f.review_comment && <p className="small" style={{ marginBottom: 0 }}>Review comment: {f.review_comment}</p>}
               {canReview(f) && (
                 <div className="stack-sm" style={{ marginTop: 12 }}>
-                  <TextArea label="Review comment" placeholder="Required if returning to the author" value={comment} onChange={(e) => setComment(e.target.value)} />
+                  <TextArea label="Review comment" help={findingHelp.reviewComment} placeholder="Required if returning to the author" value={comment} onChange={(e) => setComment(e.target.value)} />
                   <div className="row" style={{ gap: 8 }}>
                     <Button variant="primary" onClick={() => run(() => api.post(`/findings/${f.id}/approve`, { comment }), `${f.ref} approved.`)}>Approve</Button>
                     <Button onClick={() => run(() => api.post(`/findings/${f.id}/return`, { comment }), `${f.ref} returned to its author.`)}>Return to author</Button>
@@ -88,7 +89,7 @@ export function FindingsQA() {
               {(f.status === 'draft' || f.status === 'returned') && (
                 <div className="stack-sm" style={{ marginTop: 12 }}>
                   <div className="row" style={{ gap: 8 }}><Button variant="primary" onClick={() => run(() => api.post(`/findings/${f.id}/submit`), `${f.ref} submitted for approval.`)}>Submit for approval</Button></div>
-                  <TextField label="Reason to dismiss" value={reason} onChange={(e) => setReason(e.target.value)} />
+                  <TextField label="Reason to dismiss" help={findingHelp.dismissReason} value={reason} onChange={(e) => setReason(e.target.value)} />
                   <div><Button variant="ghost" size="sm" onClick={() => run(() => api.post(`/findings/${f.id}/dismiss`, { reason }), `${f.ref} dismissed.`)}>Dismiss finding</Button></div>
                 </div>
               )}

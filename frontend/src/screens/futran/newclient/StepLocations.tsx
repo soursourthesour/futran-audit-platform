@@ -4,7 +4,8 @@ import { api } from '@/api/client';
 import { useCountries, useSubdivisions, useSuggestions, type Location, type Requirement, type Suggestion } from '@/api/clients';
 import type { Law } from '@/api/laws';
 import { LawPicker } from '@/components/LawPicker';
-import { Badge, Button, Card, EmptyState, Loading } from '@/components/ui';
+import { Badge, Button, Card, EmptyState, FieldHelp, Loading } from '@/components/ui';
+import { locationHelp as H } from '@/help/onboarding';
 import { useStepForm, useWizardCtx } from './Wizard';
 
 const keyOf = (x: { regulation_id: string | null; label: string }) => x.regulation_id ?? `text:${x.label}`;
@@ -73,7 +74,7 @@ export function StepLocations() {
           {locs.locations.length === 0 ? <EmptyState>No sites yet. Add the headquarters first.</EmptyState> : (
             <div className="table-wrap">
               <table className="table">
-                <thead><tr><th>Site</th><th>Country</th><th>State or region</th><th>City</th><th>Laws from</th><th>In scope</th><th /></tr></thead>
+                <thead><tr><th><Th label="Site" help={H.site} /></th><th><Th label="Country" help={H.country} /></th><th><Th label="State or region" help={H.region} /></th><th><Th label="City" help={H.city} /></th><th>Laws from</th><th><Th label="In scope" help={H.inScope} /></th><th /></tr></thead>
                 <tbody>
                   {locs.locations.map((l, i) => (
                     <LocationRow key={l.id ?? `new-${i}`} loc={l} index={i} error={errors[`locations.locations.${i}.country_code`]} onChange={(p) => update(i, p)} onRemove={() => setLocs({ locations: locs.locations.filter((_, j) => j !== i) })} />
@@ -96,7 +97,7 @@ export function StepLocations() {
           {sugg.isLoading ? <Loading /> : rows.length === 0 ? <EmptyState>Add a site to see the laws that apply.</EmptyState> : (
             <div className="table-wrap">
               <table className="table">
-                <thead><tr><th>Include</th><th>Law</th><th>Geography · feature</th><th>Why suggested</th></tr></thead>
+                <thead><tr><th><Th label="Include" help={H.include} /></th><th>Law</th><th>Geography · feature</th><th>Why suggested</th></tr></thead>
                 <tbody>
                   {rows.map(([k, { s, r }]) => (
                     <tr key={k}>
@@ -114,6 +115,11 @@ export function StepLocations() {
       </Card>
     </fieldset>
   );
+}
+
+/** A table column heading with a help icon. */
+function Th({ label, help }: { label: string; help: string }) {
+  return <span className="label-row">{label}<FieldHelp label={label}>{help}</FieldHelp></span>;
 }
 
 function fromSuggestion(s: Suggestion): Requirement {

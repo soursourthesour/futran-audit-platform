@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api, ApiError, errorMessage, fieldErrors } from '@/api/client';
-import { Alert, Button, Checkbox, Loading, Progress, SelectField, TextField } from '@/components/ui';
+import { Alert, Button, Checkbox, FieldGroup, Loading, Progress, SelectField, TextField, WithHelp } from '@/components/ui';
+import { phoneAttestationHelp as H } from '@/help/client';
 import { PhoneShell } from '@/shells/Shells';
 
 type Opt = { value: string; label: string };
@@ -59,46 +60,46 @@ export function PhoneAttestation() {
             <h1 style={{ fontSize: 22, margin: 0 }}>About you</h1>
             <p className="small">This is not a test and nothing here is used to judge you. It helps {info.client_name} set safe rules for AI. <button type="button" className="link-btn small" onClick={() => setWhy(!why)}>How your answers are used</button></p>
             {why && <Alert tone="info">Your individual answers are seen only by the Chief AI Compliance Officer, the Data Protection Officer and the Futran auditors. Managers see department totals only, and only where at least three people have answered.</Alert>}
-            <TextField label="Your name" value={who.respondent_name} onChange={(e) => setWho({ ...who, respondent_name: e.target.value })} autoComplete="name" error={fe.respondent_name} />
-            <TextField label="Work email (optional)" type="email" value={who.respondent_email} onChange={(e) => setWho({ ...who, respondent_email: e.target.value })} help="Lets you update your answers later." autoComplete="email" error={fe.respondent_email} />
-            <SelectField label="Department" value={who.department_id} onChange={(e) => setWho({ ...who, department_id: e.target.value })} placeholder="Choose…" options={info.departments.map((d) => ({ value: d.id, label: d.name }))} error={fe.department_id} />
+            <TextField label="Your name" help={H.name} value={who.respondent_name} onChange={(e) => setWho({ ...who, respondent_name: e.target.value })} autoComplete="name" error={fe.respondent_name} />
+            <TextField label="Work email (optional)" type="email" value={who.respondent_email} onChange={(e) => setWho({ ...who, respondent_email: e.target.value })} help={H.email} autoComplete="email" error={fe.respondent_email} />
+            <SelectField label="Department" help={H.department} value={who.department_id} onChange={(e) => setWho({ ...who, department_id: e.target.value })} placeholder="Choose…" options={info.departments.map((d) => ({ value: d.id, label: d.name }))} error={fe.department_id} />
           </>
         )}
         {step === 2 && (
           <>
-            <h1 style={{ fontSize: 22, margin: 0 }}>Which AI tools do you use for work?</h1>
+            <h1 style={{ fontSize: 22, margin: 0 }}><WithHelp help={H.tools} label="AI tools you use">Which AI tools do you use for work?</WithHelp></h1>
             {info.tools.map((t) => (
               <div key={t.value} className="card" style={{ padding: 12 }}>
                 <Checkbox label={t.label} checked={hasTool(t.value)} disabled={none} onChange={(e) => setTools(e.target.checked ? [...tools, { tool: t.value, account_type: '' }] : tools.filter((x) => x.tool !== t.value))} />
                 {hasTool(t.value) && (
                   <div className="stack-sm" style={{ marginTop: 8 }}>
-                    {(t.value === 'in_app' || t.value === 'other') && <TextField label="Name of the tool or app" value={tools.find((x) => x.tool === t.value)?.name ?? ''} onChange={(e) => setTool(t.value, { name: e.target.value })} />}
-                    <fieldset><legend className="small">Which account?</legend>
+                    {(t.value === 'in_app' || t.value === 'other') && <TextField label="Name of the tool or app" help={H.toolName} value={tools.find((x) => x.tool === t.value)?.name ?? ''} onChange={(e) => setTool(t.value, { name: e.target.value })} />}
+                    <FieldGroup legend="Which account?" legendClassName="small" help={H.account}>
                       <div className="row" style={{ gap: 6 }}>{info.account_types.map((a) => <label key={a.value} className="radio-pill"><input type="radio" name={`acct-${t.value}`} checked={tools.find((x) => x.tool === t.value)?.account_type === a.value} onChange={() => setTool(t.value, { account_type: a.value })} />{a.label}</label>)}</div>
-                    </fieldset>
+                    </FieldGroup>
                   </div>
                 )}
               </div>
             ))}
-            <Checkbox label="I don't use AI for work" checked={none} onChange={(e) => { setNone(e.target.checked); if (e.target.checked) setTools([]); }} />
+            <Checkbox label="I don't use AI for work" help={H.none} checked={none} onChange={(e) => { setNone(e.target.checked); if (e.target.checked) setTools([]); }} />
           </>
         )}
         {step === 3 && (
           <>
             <h1 style={{ fontSize: 22, margin: 0 }}>What do you use it for?</h1>
-            <fieldset><legend className="small">Tick all that apply</legend>
+            <FieldGroup legend="Tick all that apply" legendClassName="small" help={H.purposes}>
               <div className="stack-sm">{info.purposes.map((p) => <Checkbox key={p.value} label={p.label} checked={purposes.includes(p.value)} onChange={() => toggle(purposes, p.value, setPurposes)} />)}</div>
-            </fieldset>
-            <fieldset><legend className="small">What information goes into it?</legend>
+            </FieldGroup>
+            <FieldGroup legend="What information goes into it?" legendClassName="small" help={H.data}>
               <div className="stack-sm">{info.data_categories.map((p) => <Checkbox key={p.value} label={p.label} checked={data.includes(p.value)} onChange={() => toggle(data, p.value, setData)} />)}</div>
-            </fieldset>
+            </FieldGroup>
           </>
         )}
         {step === 4 && (
           <>
             <h1 style={{ fontSize: 22, margin: 0 }}>AI use policy</h1>
             <div className="card" style={{ padding: 12 }}><p className="small" style={{ margin: 0 }}>{info.policy_text}</p><p className="small muted" style={{ margin: '8px 0 0' }}>Policy version {info.policy_version}</p></div>
-            <Checkbox label="I have read the AI use policy" checked={ack} onChange={(e) => setAck(e.target.checked)} />
+            <Checkbox label="I have read the AI use policy" help={H.policy} checked={ack} onChange={(e) => setAck(e.target.checked)} />
           </>
         )}
         <div className="row" style={{ justifyContent: 'space-between' }}>
