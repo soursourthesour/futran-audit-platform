@@ -3,6 +3,8 @@ import { Link, NavLink, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { hasRole, primaryRole, useMe, useSignOut, type Me } from '@/api/auth';
 import { Loading } from '@/components/ui';
 import { NotificationBell } from '@/components/NotificationBell';
+import logo from '@/assets/futran-logo.svg';
+import logoWhite from '@/assets/futran-logo-white.svg';
 
 export function TestModeBar({ me }: { me?: Pick<Me, 'test_mode' | 'mfa_required' | 'email_mode'> | null }) {
   if (!me?.test_mode) return null;
@@ -51,7 +53,7 @@ export function FutranShell() {
     <>
       <TestModeBar me={me} />
       <header className="shell-header">
-        <Link to="/audits" className="brand"><span className="brand-mark" aria-hidden="true" /><span className="brand-name">Futran Audit</span></Link>
+        <Link to="/audits" className="brand"><img className="brand-logo" src={logoWhite} alt="Futran Solutions" /><span className="brand-name">Audit Platform</span></Link>
         <nav className="shell-nav" aria-label="Main">
           {nav.filter((n) => n.show).map((n) => <NavLink key={n.to} to={n.to}>{n.label}</NavLink>)}
         </nav>
@@ -85,7 +87,7 @@ export function ClientShell() {
     <>
       <TestModeBar me={me} />
       <header className="shell-header client-header">
-        <Link to="/start" className="brand"><span className="brand-mark" aria-hidden="true" /><span className="brand-name">Futran Audit</span><span className="muted small">· {me.organization.name}</span></Link>
+        <Link to="/start" className="brand"><img className="brand-logo" src={logo} alt="Futran Solutions" /><span className="brand-name">Audit Platform</span><span className="muted small">· {me.organization.name}</span></Link>
         <nav className="shell-nav" aria-label="Main">
           {nav.map((n) => <NavLink key={n.to} to={n.to}>{n.label}</NavLink>)}
         </nav>
