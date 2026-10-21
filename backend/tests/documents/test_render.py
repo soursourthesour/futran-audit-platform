@@ -48,9 +48,9 @@ def test_docx_has_heading_table_and_footer_ref():
     assert t.cell(0, 0).text == "System" and t.cell(1, 1).text == "3"
     assert 'w:type="page"' in doc.element.xml
     sec = doc.sections[0]
-    assert "Futran Solutions · Confidential" in sec.header.paragraphs[0].text
+    assert "Confidential" in sec.header.paragraphs[0].text and "<pic:pic" in sec.header._element.xml  # the Futran Solutions logo
     footer_xml = sec.footer._element.xml
-    assert "FSL-AI-AUD-2026-001" in footer_xml and "PAGE" in footer_xml
+    assert "FSL-AI-AUD-2026-001" in footer_xml and "PAGE" in footer_xml and "NUMPAGES" in footer_xml
 
 
 def test_pdf_starts_with_pdf_and_has_pages():
