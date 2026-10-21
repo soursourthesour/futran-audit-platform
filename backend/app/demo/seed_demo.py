@@ -38,7 +38,34 @@ SYSTEM_ANSWERS = {
     "SYS-003": {"3.3.02": "human_assisted", "3.3.05s": "2", "3.3.07": "no", "5.1.02": "no", "5.1.03": "yes", "5.1.04": "no", "3.3.06": "no", "3.3.04": 600, "3.2.01": ["genai_llm"],
                 "3.1.10": "internal_and_external"},
     "SYS-004": {"3.3.02": "fully_automated", "3.3.05s": "2", "3.3.07": "no", "5.1.02": "no", "5.1.03": "yes", "5.1.04": "no", "3.3.06": "no", "3.3.04": 9000, "3.2.01": ["genai_llm", "nlp"],
-                "3.1.10": "internal_and_external"},
+                "3.1.10": "internal_and_external", "8.2.02": "Containment rate and hand-off volume from the Zendesk dashboard. Conversation content is not sampled or reviewed."},
+}
+SYSTEM_ANSWERS["SYS-002"] = {**SYSTEM_ANSWERS["SYS-002"], "6.3.06": "Quarterly back-test against confirmed fraud cases by the Finance analytics team, who did not build the model. No open validation findings."}
+# Findings as the auditors wrote them, with real citations (checked against the official texts):
+#   NYC Admin. Code §§ 20-870 to 20-874 and 6 RCNY §§ 5-300 to 5-304 (Local Law 144), NIST AI RMF 1.0 subcategories,
+#   ISO/IEC 42001:2023 clause 5.2 and Annex A controls.
+AUTO_FINDINGS = {
+    "No bias testing on an AI system that affects people": {
+        "description": "ABC Corp uses ScreenRank ATS to rank applicants for New York roles before a recruiter reviews them. The most recent bias audit the vendor "
+                       "could provide is dated March 2024, more than a year before the audit period, and ABC Corp has not commissioned its own audit or published "
+                       "a summary of results on its careers site.\n\n"
+                       "Risk: Local Law 144 does not allow an automated employment decision tool to be used on New York City candidates unless it has had a bias "
+                       "audit in the year before use and the summary is published. Each day of use without one is a separate violation. Without impact ratios, "
+                       "ABC Corp also cannot show that the ranking does not disadvantage applicants by sex or race/ethnicity.",
+        "recommended_remediation": "Suspend the use of ScreenRank rankings for New York roles until an independent auditor has completed a bias audit on ABC Corp's "
+                                   "historical data. Publish the summary of results and the tool's distribution date on the careers site, and repeat the audit every year.",
+        "control_refs": ["NYC_LL144 Admin. Code § 20-871(a)(1)", "NYC_LL144 Admin. Code § 20-871(a)(2)", "NYC_LL144 6 RCNY § 5-303", "NIST_AI_RMF MEASURE 2.11", "ISO_42001 A.5.4"],
+    },
+    "Bias audit at high risk of null compliance: most of the candidate pool is excluded": {
+        "description": "More than half of the applicants for New York roles in the audit period have no recorded sex or race/ethnicity. The fields are optional on "
+                       "the application form and are not passed to ScreenRank, so a bias audit run on this data would leave most of the candidate pool out of the "
+                       "impact ratio calculations.\n\n"
+                       "Risk: An audit that excludes most applicants can meet the letter of Local Law 144 while saying little about how the tool treats each group. "
+                       "The rules require the audit to state how many individuals fall in an unknown category, so the gap would also be visible in the published summary.",
+        "recommended_remediation": "Collect voluntary self-identification data at application and link it to ScreenRank outcomes. If historical data is still "
+                                   "insufficient, have the independent auditor use test data and explain why, as the rules allow.",
+        "control_refs": ["NYC_LL144 6 RCNY § 5-301", "NYC_LL144 6 RCNY § 5-302", "NIST_AI_RMF MEASURE 2.11", "ISO_42001 A.7.4"],
+    },
 }
 SYSTEM_DOMAINS = {
     "SYS-001": ATS_DOMAINS,
@@ -82,6 +109,13 @@ class Demo:
 
     def get(self, path):
         return self.call("GET", path)
+
+    def upload(self, path: str, filename: str, data: bytes, ok=(200,)):
+        r = self.c.post(f"/api/v1{path}", files={"file": (filename, data, "application/pdf")})
+        if r.status_code not in ok:
+            raise DemoError(f"POST {path} → {r.status_code}: {r.text[:800]}")
+        self.db.expire_all()
+        return r.json()
 
     def post(self, path, body=None, ok=(200,)):
         return self.call("POST", path, body if body is not None else {}, ok)
@@ -409,31 +443,54 @@ def _abc_fieldwork(m: Demo, cid: str, depts: dict) -> None:
     for ref in plan:
         s = m.db.get(type(systems[ref]), systems[ref].id)
         _answer_all(m, e, s, SYSTEM_ANSWERS[ref])
+    _abc_evidence(m, cid, ucs)
+    m.as_(aud)
     # auto-drafted findings: confirm the ones that stand
     for link in m.db.scalars(select(DraftFindingLink).join(Finding, Finding.id == DraftFindingLink.finding_id).where(Finding.engagement_id == e.id, DraftFindingLink.dismissed_at.is_(None))):
         f = m.db.get(Finding, link.finding_id)
         if f.status == "draft" and f.deleted_at is None and f.confirmed_at is None:
             m.post(f"/draft-findings/{link.id}/confirm", ok=(200, 409))
+    sys_ids = {ref: systems[ref].id for ref in plan}
     manual = [
         {"title": "Recruiters use personal ChatGPT accounts with applicant data", "severity": "medium", "template_section": "4.3", "proposed_owner": "Head of HR",
-         "description": "Two of five HR staff who attested use a personal, free ChatGPT account and paste candidate details into it. The company has no contract with OpenAI covering this data.",
-         "recommended_remediation": "Move recruiters to the company Copilot licence and block personal AI accounts on company devices."},
+         "use_case_ids": [ucs["Drafting job adverts with ChatGPT"].id],
+         "description": "Both HR staff who completed the AI use attestation use a personal, free ChatGPT account for work and enter candidate details when "
+                        "drafting adverts and outreach messages. ABC Corp has no agreement with OpenAI covering this data and cannot see or delete what was entered.\n\n"
+                        "Risk: Applicant personal data leaves the company's control. Depending on the account settings it may be used to train the provider's "
+                        "models, and ABC Corp could not answer an applicant's request about their data in full.",
+         "recommended_remediation": "Move recruiters to the company Copilot licence, block personal AI accounts on company devices and state the rule in the AI "
+                                    "acceptable use policy.",
+         "control_refs": ["NIST_AI_RMF GOVERN 6.1", "NIST_AI_RMF MAP 4.1", "ISO_42001 A.9.2", "ISO_42001 A.10.3"]},
         {"title": "No written AI acceptable use policy", "severity": "medium", "template_section": "4.1", "proposed_owner": "Chief AI Compliance Officer",
-         "description": "ABC Corp has an AI governance committee but no approved policy telling staff which AI tools they may use and with what data.",
-         "recommended_remediation": "Approve and publish an AI acceptable use policy, then ask every employee to acknowledge it."},
+         "description": "ABC Corp has an AI governance committee but no approved policy telling staff which AI tools they may use and with what data. The client "
+                        "reported the policy as planned, and it could not be provided when requested.\n\n"
+                        "Risk: Without a written policy, staff decide for themselves which tools and data are acceptable, as the use of personal ChatGPT accounts "
+                        "in HR shows, and the company has no standard to train or enforce against.",
+         "recommended_remediation": "Approve and publish an AI acceptable use policy that names the approved tools and the data each may be used with, then ask "
+                                    "every employee to acknowledge it.",
+         "control_refs": ["ISO_42001 5.2", "ISO_42001 A.2.2", "NIST_AI_RMF GOVERN 1.2"]},
         {"title": "Chatbot conversations are not reviewed for quality or bias", "severity": "low", "template_section": "8.2", "proposed_owner": "VP Sales and Marketing",
-         "description": "Nobody samples the support chatbot's answers. Errors or unfair treatment of customers would go unnoticed.",
-         "recommended_remediation": "Review a monthly sample of chatbot conversations and record the outcome."},
+         "ai_system_id": sys_ids["SYS-004"], "use_case_ids": [ucs["Customer support chatbot"].id], "source_question_ids": ["8.2.02"],
+         "description": "Nobody samples the support chatbot's answers. The Zendesk dashboard tracks containment and hand-off rates only, so wrong or unfair "
+                        "answers to customers would go unnoticed.\n\n"
+                        "Risk: The consequence of a single error is low because agents take over complex requests, but repeated wrong answers would harm "
+                        "customer trust and could misstate ABC Corp's terms.",
+         "recommended_remediation": "Review a monthly sample of chatbot conversations for accuracy and fair treatment, record the outcome and correct the bot's "
+                                    "content where needed.",
+         "control_refs": ["NIST_AI_RMF MEASURE 2.4", "NIST_AI_RMF MANAGE 4.1", "ISO_42001 A.6.2.6"]},
         {"title": "Invoice model has a documented validation process", "severity": "observation", "template_section": "6.3", "proposed_owner": "Finance Director",
-         "description": "The in-house invoice model is validated each quarter against confirmed fraud cases. This is good practice worth extending to other systems.",
-         "recommended_remediation": "Use the Finance validation approach as the template for other in-house models."},
+         "ai_system_id": sys_ids["SYS-002"], "use_case_ids": [ucs["Invoice anomaly detection"].id], "source_question_ids": ["6.3.02", "6.3.06"],
+         "description": "Finance validates the in-house invoice anomaly model every quarter by back-testing it against confirmed fraud cases. The analysts who "
+                        "run the test did not build the model, and the results are recorded. This is good practice worth extending to other systems.",
+         "recommended_remediation": "Use the Finance validation approach as the template for other in-house models.",
+         "control_refs": ["NIST_AI_RMF MEASURE 2.5", "NIST_AI_RMF MEASURE 1.3", "ISO_42001 A.6.2.4"]},
     ]
     for body in manual:
         m.post(f"/clients/{cid}/findings", body)
     rows = m.get(f"/clients/{cid}/findings")["findings"]
     for f in rows:
         if f["status"] in ("draft", "returned"):
-            m.patch(f"/findings/{f['id']}", {"proposed_owner": f.get("proposed_owner") or "Head of HR"})
+            m.patch(f"/findings/{f['id']}", {"proposed_owner": f.get("proposed_owner") or "Head of HR", **AUTO_FINDINGS.get(f["title"], {})})
             m.post(f"/findings/{f['id']}/submit")
     chief = m.user("chief@futran.demo")
     m.as_(chief)
@@ -453,6 +510,76 @@ def _abc_fieldwork(m: Demo, cid: str, depts: dict) -> None:
     m.expect_stage(cid, 6)
 
 
+PLANNED_ACTIONS = {  # the client's management responses
+    "No bias testing on an AI system that affects people": "ScreenRank rankings are switched off for New York roles. HR will commission an independent bias audit on our "
+                                                           "historical data and publish the summary before switching them back on.",
+    "Bias audit at high risk of null compliance: most of the candidate pool is excluded": "HR will add voluntary self-identification questions to the "
+                                                                                          "application form for New York roles and pass the answers to ScreenRank.",
+    "Recruiters use personal ChatGPT accounts with applicant data": "IT will block personal AI accounts on company devices, and recruiters will move to the company Copilot licence.",
+    "No written AI acceptable use policy": "The AI governance committee will approve the policy at its next meeting, and HR will collect acknowledgements from all staff.",
+    "Chatbot conversations are not reviewed for quality or bias": "Sales Operations will review a sample of chatbot conversations each month and log the outcome.",
+    "Invoice model has a documented validation process": "Finance will share its validation procedure with the owners of the other AI systems.",
+}
+NOT_PROVIDED = {("DR-101", None), ("DR-206", "SYS-001")}  # the AI use policy, and ScreenRank's bias test report
+EVIDENCE_REQUESTS = [  # use case, request, the client's answer (or a file)
+    ("Résumé screening for NYC roles", "Most recent bias audit of ScreenRank, or the vendor's impact ratio analysis, for New York roles.",
+     "The vendor's last independent bias audit is dated March 2024. ABC Corp has not commissioned an audit since and has not published a summary.", None),
+    ("Résumé screening for NYC roles", "Share of applicants for New York roles in the audit period with no recorded sex or race/ethnicity.",
+     "More than half. Both fields are optional on the application form and are not passed to ScreenRank.", None),
+    ("Drafting job adverts with ChatGPT", "Which ChatGPT accounts recruiters use for work, and what candidate information they enter.",
+     "Two recruiters use personal free accounts and have pasted extracts from candidates' CVs. There is no company ChatGPT agreement.", None),
+    ("Customer support chatbot", "Any review of chatbot conversations for accuracy or fair treatment in the last three months.",
+     "The Zendesk dashboard tracks containment and hand-off rates. Conversation content is not sampled or reviewed.", None),
+    ("Invoice anomaly detection", "The latest quarterly validation pack for the invoice anomaly model.", None, "Invoice anomaly model validation Q2.pdf"),
+]
+
+
+def _demo_pdf(title: str) -> bytes:
+    """A one-page PDF standing in for a client document."""
+    from io import BytesIO
+
+    from reportlab.lib.pagesizes import letter
+    from reportlab.pdfgen import canvas
+
+    buf = BytesIO()
+    c = canvas.Canvas(buf, pagesize=letter)
+    c.setFont("Helvetica-Bold", 14)
+    c.drawString(72, 720, "ABC Corp")
+    c.setFont("Helvetica", 11)
+    c.drawString(72, 700, title[:90])
+    c.drawString(72, 680, "Demonstration document for the Futran Audit Platform.")
+    c.showPage()
+    c.save()
+    return buf.getvalue()
+
+
+def _abc_evidence(m: Demo, cid: str, ucs: dict) -> None:
+    """The standard document request register, answered by the client except two documents that do not exist yet, and
+    targeted evidence requests raised during fieldwork."""
+    import re
+
+    from app.docrequests.models import EvidenceRequest
+
+    aud, maria = m.user("auditor1@futran.demo"), m.user(f"maria.lopez@{ABC}")
+    m.as_(aud).post(f"/clients/{cid}/document-requests/issue")
+    reqs = m.get(f"/clients/{cid}/document-requests")["requests"]
+    m.as_(maria)
+    for r in reqs:
+        if (r["code"], r["system_ref"]) in NOT_PROVIDED:
+            continue
+        words = re.sub(r"[^A-Za-z0-9 ]", " ", r["title"]).split()[:6]
+        name = f"{r['code']} {' '.join(words)}{' ' + r['system_ref'] if r['system_ref'] else ''}.pdf"
+        m.upload(f"/document-requests/{r['id']}/files", name, _demo_pdf(r["title"]))
+    for uc_name, text, answer, filename in EVIDENCE_REQUESTS:
+        er = m.as_(aud).post(f"/use-cases/{ucs[uc_name].id}/evidence-requests", {"description": text, "due_date": m.d(7)})
+        owner_id = m.db.get(EvidenceRequest, er["id"]).owner_user_id
+        m.as_(m.db.get(type(maria), owner_id) if owner_id else maria)
+        if filename:
+            m.upload(f"/evidence-requests/{er['id']}/files", filename, _demo_pdf(text))
+        else:
+            m.post(f"/evidence-requests/{er['id']}/answer", {"answer": answer})
+
+
 def _abc_report_and_close(m: Demo, cid: str) -> None:
     from app.reports.models import Report
 
@@ -467,12 +594,16 @@ def _abc_report_and_close(m: Demo, cid: str) -> None:
         "strengths": "An AI governance committee chaired by the Chief AI Compliance Officer meets monthly, and Finance validates its in-house invoice model every quarter.",
         "immediate_actions": "Commission an independent bias audit of the résumé screening tool and publish its summary before further use on New York roles.",
         "narrative": "Governance is defined but not yet measured. The main exposure is in hiring, where one high-risk tool lacks a bias audit."})
-    for body in (
-        {"action": "Commission an independent bias audit of the résumé screening tool and publish the summary", "owner": "Head of HR", "priority": "high", "target_date": m.d(30), "how_futran_can_help": "Futran runs LL144 bias audits and drafts the public summary."},
-        {"action": "Approve and roll out an AI acceptable use policy", "owner": "Chief AI Compliance Officer", "priority": "medium", "target_date": m.d(60), "how_futran_can_help": "Policy template and staff briefing."},
-        {"action": "Start monthly quality and bias reviews of chatbot conversations", "owner": "VP Sales and Marketing", "priority": "low", "target_date": m.d(120), "how_futran_can_help": "Review checklist and sampling method."},
+    by_title = {f["title"]: f["id"] for f in findings}
+    for body, titles in (
+        ({"action": "Commission an independent bias audit of the résumé screening tool and publish the summary", "owner": "Head of HR", "priority": "high", "target_date": m.d(30), "how_futran_can_help": "Futran runs LL144 bias audits and drafts the public summary."},
+         ["No bias testing on an AI system that affects people", "Bias audit at high risk of null compliance: most of the candidate pool is excluded"]),
+        ({"action": "Approve and roll out an AI acceptable use policy", "owner": "Chief AI Compliance Officer", "priority": "medium", "target_date": m.d(60), "how_futran_can_help": "Policy template and staff briefing."},
+         ["No written AI acceptable use policy", "Recruiters use personal ChatGPT accounts with applicant data"]),
+        ({"action": "Start monthly quality and bias reviews of chatbot conversations", "owner": "VP Sales and Marketing", "priority": "low", "target_date": m.d(120), "how_futran_can_help": "Review checklist and sampling method."},
+         ["Chatbot conversations are not reviewed for quality or bias"]),
     ):
-        m.post(f"/clients/{cid}/report/roadmap", body | {"finding_ids": []})
+        m.post(f"/clients/{cid}/report/roadmap", body | {"finding_ids": [by_title[t] for t in titles if t in by_title]})
     m.post(f"/clients/{cid}/report/generate", {"version": "v0.1"})
     rid = m.post(f"/clients/{cid}/report/generate", {"version": "v0.2"})["id"]
     for user, kind in ((chief, "lead_auditor"), (em, "engagement_manager"), (qa, "quality_reviewer")):
@@ -485,7 +616,9 @@ def _abc_report_and_close(m: Demo, cid: str) -> None:
     for r in m.get(f"/clients/{cid}/responses")["responses"]:
         f = r["finding"]
         owner = owners.get(next((x["proposed_owner"] for x in findings if x["id"] == f["id"]), ""), priya)
-        m.put(f"/findings/{f['id']}/response", {"response": "agree", "planned_action": f"{f['recommended_remediation'] or 'Agreed action.'}", "owner_user_id": owner.id, "due_date": m.d(45)})
+        title = next((x["title"] for x in findings if x["id"] == f["id"]), "")
+        action = PLANNED_ACTIONS.get(title) or f["recommended_remediation"] or "Agreed action."
+        m.put(f"/findings/{f['id']}/response", {"response": "agree", "planned_action": action, "owner_user_id": owner.id, "due_date": m.d(45)})
     m.as_(aud)
     for r in m.get(f"/clients/{cid}/responses")["responses"]:
         m.post(f"/responses/{r['id']}/adequacy", {"adequate": True, "note": "The action addresses the cause."})

@@ -52,3 +52,23 @@ def test_demo_refused_outside_test_mode(db, settings):
     live = settings.model_copy(update={"mfa_required": True, "email_mode": "smtp"})
     with pytest.raises(PermissionError):
         run(db, live)
+
+
+def test_demo_abc_report_shows_scoring_and_references(db, demo):
+    """Every ABC Corp finding carries real citations, and the final report explains the scoring and lists references."""
+    from app.findings.models import Finding
+    from app.reports.models import Report
+
+    abc = db.scalar(select(Engagement).where(Engagement.client_id == demo["abc"]))
+    findings = list(db.scalars(select(Finding).where(Finding.engagement_id == abc.id, Finding.deleted_at.is_(None), Finding.status == "approved")))
+    assert len(findings) == 6
+    for f in findings:
+        assert f.control_refs, f.ref
+        assert f.description and not f.description.startswith("Raised automatically"), f.ref
+    bias = next(f for f in findings if f.title.startswith("No bias testing"))
+    assert "NYC_LL144 Admin. Code § 20-871(a)(1)" in bias.control_refs and bias.use_case_ids
+    md = db.scalar(select(Report.body_md).where(Report.engagement_id == abc.id, Report.version == "v1.1"))
+    assert "## 2. How this report rates risk and maturity" in md
+    assert "NYC Local Law 144, Admin. Code § 20-871(a)(1)" in md and "6.2.01" in md and "Bias testing performed" in md
+    assert "High (4)" in md and "76.0 × (1 − 0.75 × (2.25 − 1) ÷ 4) = 58.2" in md
+    assert "ER-001" in md
