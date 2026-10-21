@@ -127,3 +127,19 @@ def test_signoff5_requires_all_approved_and_locks_scores(client, db, inv, qa, pe
     assert current(db, db.get(Engagement, e.id), 5).status == "approved"
     login_as(client, db, people["aud"])
     assert client.post(f"/api/v1/clients/{cid}/findings", json={"title": "Late", "severity": "low"}).status_code == 409
+
+
+def test_finding_links_questionnaire_questions(client, db, inv, qa, people):
+    """An auditor can record which questionnaire questions a manual finding rests on; unknown codes are refused."""
+    from app.questionnaire.seed import load_question_bank
+
+    load_question_bank(db)
+    db.commit()
+    cid, e, *_ = inv
+    login_as(client, db, people["aud"])
+    body = {"title": "Chatbot answers are not reviewed", "severity": "low", "source_question_ids": ["8.2.02", "8.2.01"]}
+    f = client.post(f"/api/v1/clients/{cid}/findings", json=body)
+    assert f.status_code == 200, f.text
+    assert f.json()["source_question_ids"] == ["8.2.02", "8.2.01"]
+    bad = client.patch(f"/api/v1/findings/{f.json()['id']}", json={"source_question_ids": ["99.9.99"]})
+    assert bad.status_code == 422 and bad.json()["errors"][0]["field"] == "source_question_ids"

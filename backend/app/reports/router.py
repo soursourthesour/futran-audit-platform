@@ -16,6 +16,7 @@ from app.reports import public_summary as ps
 from app.reports import register  # noqa: F401  sign-offs 7 and 8
 from app.reports import service as svc
 from app.reports.models import FUTRAN_DECLARATIONS, Report, RoadmapItem
+from app.scoring import scale
 from app.tenancy.models import Organization
 from app.tenancy.people import current_engagement
 
@@ -105,6 +106,7 @@ def _futran_view(db: Session, actor: Actor, e: Engagement) -> dict:
                       "strengths": n.strengths if n else None, "immediate_actions": n.immediate_actions if n else None, "narrative": n.narrative if n else None},
         "roadmap": [svc.roadmap_out(db, r) for r in svc.roadmap(db, e)],
         "findings": [{"id": f.id, "ref": f.ref, "title": f.title, "severity": f.severity, "status": f.status} for f in findings_for(db, e)],
+        "risk_levels": scale.public_scale(),
         "can_edit": can_edit, "can_generate": can_edit and e.stage >= 5,
         "lead_review": {"report_id": v02.id if v02 else None, "declarations": declarations, "lead_auditor_text": svc.declaration_text(db, e, "lead_auditor")[0], "no_qa": "quality_reviewer" not in svc.required_declarations(db, e)},
         "release": {"released": released, "unmet": release_unmet, "can_release": not release_unmet and _can(db, actor, Action.ADVANCE_STAGE, e)},

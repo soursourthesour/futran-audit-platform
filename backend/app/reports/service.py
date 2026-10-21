@@ -16,15 +16,17 @@ from app.core.errors import Conflict, Forbidden, Invalid
 from app.engagements.models import ClientRequirement, Engagement
 from app.findings.models import Finding
 from app.reports.models import CLIENT_DECLARATIONS, FUTRAN_DECLARATIONS, PRIORITIES, VERSIONS, Declaration, Report, ReportNarrative, RoadmapItem
+from app.scoring import scale
 from app.tenancy.models import Department, Organization, User
 from app.core.ratelimit import client_ip_or_none as _ip
 
 VERSION_LABEL = {v: f"{label} {v}" for v, label in VERSIONS.items()}
 STATUS_TEXT = {"v0.1": "Draft for internal review", "v0.2": "Lead review", "v1.0": "Draft issued to the client", "v1.1": "Final"}
-SEVERITY_LABEL = {"critical": "Critical", "high": "High", "medium": "Medium", "low": "Low", "observation": "Observation"}
-GROUP_LABEL = {"critical": "Critical findings", "high": "High findings", "medium": "Medium findings", "low": "Low findings", "observation": "Observations"}
-DUE_TEXT = {"critical": "30 days", "high": "60–90 days", "medium": "6 months", "low": "Next annual cycle", "observation": "12-month roadmap"}
-RATING_LABEL = {"critical": "Critical", "high": "High", "medium": "Medium", "low": "Low"}
+# Ratings and severities print with their level on the one scale (app/scoring/scale.py): "High (4)".
+SEVERITY_LABEL = {r.key: scale.labelled(r.key) for r in scale.RISK_LEVELS}
+GROUP_LABEL = {r.key: (f"{r.label} findings ({r.level})" if r.key != "observation" else f"Observations ({r.level})") for r in scale.RISK_LEVELS}
+DUE_TEXT = {r.key: r.response_text for r in scale.RISK_LEVELS}
+RATING_LABEL = {k: scale.labelled(k) for k in scale.RATING_KEYS}
 BUILT_BY = {"in_house": "In house", "vendor": "Vendor", "open_source_customized": "Open source, customized", "hybrid": "Hybrid"}
 ACK_NOTICE = "Signing confirms you have received and read this report. It does not mean you agree with every finding."
 COMMITMENT_TEXT = {"plan": "The client has reviewed the findings and agrees to develop a remediation plan within 30 days.",
@@ -80,14 +82,16 @@ def render(db: Session, key: str, context: dict) -> tuple[str, str]:
 
 
 def _names(db: Session, e: Engagement) -> dict:
+    from app.engagements.wizard import FRAMEWORKS, INDUSTRIES
     from app.initiation.context import TYPE_LABELS, fmt
-    from app.engagements.wizard import FRAMEWORKS
+    from app.reports.context import join_and
 
     org = db.get(Organization, e.client_id)
-    period = " to ".join(x for x in (fmt(e.period_start), fmt(e.period_end)) if x)
-    return {"client": {"name": org.name, "industry": org.industry},
+    period = " to ".join(x for x in (fmt(e.period_start), fmt(e.period_end)) if x) or "Not recorded"
+    return {"client": {"name": org.name, "industry": INDUSTRIES.get(org.industry or "", org.industry or "Not recorded")},
             "engagement": {"audit_ref": e.audit_ref, "type_label": TYPE_LABELS.get(e.type, e.type), "period": period, "methodology_version": e.methodology_version,
-                           "frameworks": ", ".join(FRAMEWORKS.get(f, f) for f in e.frameworks or [])}}
+                           "frameworks": ", ".join(FRAMEWORKS.get(f, f) for f in e.frameworks or []) or "Not selected",
+                           "frameworks_text": join_and([FRAMEWORKS.get(f, f) for f in e.frameworks or []])}}
 
 
 def declaration_text(db: Session, e: Engagement, kind: str) -> tuple[str, str]:
@@ -210,34 +214,56 @@ def _content_data(db: Session, e: Engagement) -> dict:
     """Everything the report states, with no version label and no signatures. Its hash tells whether a signed version
     still matches what would be generated now."""
     from app.findings.service import findings_for
+    from app.initiation.context import fmt
     from app.inventory.models import UseCase
     from app.laws.models import Regulation
-    from app.reference.frameworks import control_label
+    from app.reference.frameworks import control_citation, control_label
     from app.reference.models import Jurisdiction
+    from app.reports import context as rc
     from app.scoring.service import engagement_rollup, latest as latest_score, methodology
     from app.systems.models import Vendor
     from app.systems.service import systems_for
 
-    m = methodology(db)
+    sys_rows = systems_for(db, e)
+    explained = rc.scoring_explained(db, e, sys_rows)
+    m = methodology(db, explained["version"])
+    ko_labels = {k["code"]: k["label"] for k in m.knockout_rules}
     sys_names = {}
     systems = []
-    for s in systems_for(db, e):
+    for s in sys_rows:
         sys_names[s.id] = f"{s.reference_id} {s.name}"
         row = latest_score(db, s)
         dept = db.get(Department, s.department_id) if s.department_id else None
         vendor = db.get(Vendor, s.vendor_id) if s.vendor_id else None
         ucs = [u.name for u in (db.get(UseCase, i) for i in s.use_case_ids or []) if u is not None]
+        final = row.final_rating if row else None
         systems.append({"ref": s.reference_id, "name": s.name, "built_by": BUILT_BY.get(s.built_by or "", "Not recorded"), "vendor": vendor.legal_name if vendor else "",
-                        "department": dept.name if dept else "", "use_cases": ", ".join(ucs),
-                        "inherent": row.inherent if row else None, "maturity": row.maturity if row else None, "residual": row.residual if row else None,
-                        "rating": RATING_LABEL.get(row.final_rating or "", "Not rated") if row else "Not scored"})
+                        "department": dept.name if dept else "Not recorded", "use_cases": ", ".join(ucs) or "Not linked",
+                        "depth": "Light (Tier 2)" if s.assessment_depth == "light" else "Full",
+                        "inherent": row.inherent if row and row.inherent is not None else "Not scored",
+                        "maturity": row.maturity if row and row.maturity is not None else "Not scored",
+                        "residual": row.residual if row and row.residual is not None else "Not scored",
+                        "rating": RATING_LABEL.get(final or "", "Not rated") if row else "Not scored", "rating_key": final or "",
+                        "computed": scale.labelled(row.computed_rating) if row and row.computed_rating else "",
+                        "knockouts": [f"{ko_labels.get(k, k)}" for k in (row.knockouts_triggered if row else [])],
+                        "override": {"rating": scale.labelled(row.override_rating), "rationale": row.override_rationale or ""} if row and row.override_rating else None,
+                        "eu_class": (row.eu_classification or "") if row else "",
+                        "calc": rc.calculation(row.inherent, row.maturity, row.residual, explained["reduction"]) if row else None,
+                        "weights": next((a["weights"] for a in explained["applied"] if a["ref"] == s.reference_id), "")})
+    refs = rc.FindingReferences(db, e, sys_rows)
     findings = []
     for f in findings_for(db, e):
         if f.status != "approved":
             continue
-        findings.append({"id": f.id, "ref": f.ref, "title": f.title, "severity": f.severity, "severity_label": SEVERITY_LABEL[f.severity], "system": sys_names.get(f.ai_system_id or "", ""),
-                         "owner": f.proposed_owner or "", "due": DUE_TEXT[f.severity], "description": f.description, "remediation": f.recommended_remediation,
-                         "section": f.template_section, "controls": ", ".join(control_label(db, r) for r in f.control_refs or [])})
+        condition, risk = rc.split_description(f.description)
+        ucs = [u.name for u in (db.get(UseCase, i) for i in f.use_case_ids or []) if u is not None]
+        findings.append({"id": f.id, "ref": f.ref, "title": f.title, "severity": f.severity, "severity_label": SEVERITY_LABEL[f.severity], "level": scale.level(f.severity),
+                         "system": sys_names.get(f.ai_system_id or "", ""), "system_or_scope": sys_names.get(f.ai_system_id or "", "Organization-wide"),
+                         "owner": f.proposed_owner or "To be confirmed", "due": DUE_TEXT[f.severity], "description": f.description, "condition": condition, "risk": risk,
+                         "remediation": f.recommended_remediation, "section": refs.section(f.template_section),
+                         "controls": ", ".join(control_label(db, r) for r in f.control_refs or []),
+                         "citations": [control_citation(db, r) for r in f.control_refs or []], "questions": refs.questions_for(f), "use_cases": ucs,
+                         "evidence": refs.evidence_for(f)})
     counts = {k: sum(1 for f in findings if f["severity"] == k) for k in SEVERITY_LABEL}
     counts["total"] = len(findings)
     sc = engagement_rollup(db, e)
@@ -247,24 +273,36 @@ def _content_data(db: Session, e: Engagement) -> dict:
     for r in db.scalars(select(ClientRequirement).where(ClientRequirement.engagement_id == e.id, ClientRequirement.in_scope.is_(True), ClientRequirement.deleted_at.is_(None)).order_by(ClientRequirement.created_at)):
         reg = db.get(Regulation, r.regulation_id) if r.regulation_id else None
         j = db.get(Jurisdiction, reg.jurisdiction_id) if reg else None
-        laws.append({"name": reg.short_name if reg else (r.free_text or ""), "jurisdiction": j.name if j else "", "citation": (reg.citation if reg else "") or ""})
+        name = reg.short_name if reg else (r.free_text or "")
+        cite = (reg.citation if reg else "") or ""
+        laws.append({"name": name, "jurisdiction": j.name if j else "Not recorded", "citation": cite if cite and cite != name else "",
+                     "display": f"{name} ({cite})" if cite and cite != name and cite not in name else name})
+    sets = explained["weight_sets"]
+    weight_by_label = {w["label"]: w["weights"] for w in explained["weight_rows"]}
     data = {
         **_names(db, e),
-        "lead_auditor": ", ".join(u.name for u in team_holders(db, e, "chief_auditor")),
-        "overall_rating": RATING_LABEL.get(sc.overall_rating or "", "Not rated"),
+        "lead_auditor": ", ".join(u.name for u in team_holders(db, e, "chief_auditor")) or "Not assigned",
+        "overall_rating": RATING_LABEL.get(sc.overall_rating or "", "Not rated"), "overall_rating_key": sc.overall_rating or "",
         "overall_maturity": sc.overall_maturity if sc.overall_maturity is not None else "Not scored",
         "counts": counts,
+        "severity_rows": [{"label": SEVERITY_LABEL[r.key], "count": counts[r.key], "response": r.response_text} for r in scale.RISK_LEVELS],
         "summary": {"most_significant_ref": top["ref"] if top else None, "most_significant_title": top["title"] if top else None,
                     "most_significant_text": n.most_significant_text if n else None, "strengths": n.strengths if n else None,
                     "immediate_actions": n.immediate_actions if n else None, "critical": [{"ref": f["ref"], "title": f["title"]} for f in findings if f["severity"] == "critical"]},
+        "scope": {**rc.scope_facts(db, e, sys_rows), "laws": rc.join_and([l["name"] for l in laws])},
         "findings": findings,
         "findings_by_severity": [{"label": GROUP_LABEL[k], "items": [f for f in findings if f["severity"] == k]} for k in SEVERITY_LABEL if counts[k]],
         "systems": systems,
-        "scorecard": {"domains": [{"label": label, "score": sc.domain_scores.get(key, "Not scored")} for key, label in m.domains.items()], "narrative": n.narrative if n else None},
-        "roadmap": [{"ref": r.ref, "action": r.action, "owner": r.owner or "", "priority": SEVERITY_LABEL[r.priority], "target_date": r.target_date.isoformat() if r.target_date else "",
-                     "how_futran_can_help": r.how_futran_can_help or ""} for r in roadmap(db, e)],
+        "scorecard": {"domains": [{"label": label, "score": sc.domain_scores.get(key, "Not scored"), "weights": weight_by_label.get(label, [])} for key, label in m.domains.items()],
+                      "weight_sets": sets, "narrative": n.narrative if n else None},
+        "roadmap": [{"ref": r.ref, "action": r.action, "owner": r.owner or "To be confirmed", "priority": SEVERITY_LABEL[r.priority], "priority_key": r.priority,
+                     "target_date": fmt(r.target_date) or "To be agreed", "how_futran_can_help": r.how_futran_can_help or "",
+                     "findings": ", ".join(sorted(x.ref for x in (db.get(Finding, i) for i in r.finding_ids or []) if x is not None))} for r in roadmap(db, e)],
         "laws": laws,
+        "scoring": explained,
     }
+    data["roadmap_groups"] = [{"label": f"{scale.label(k)} priority ({scale.level(k)})", "items": [r for r in data["roadmap"] if r["priority_key"] == k]}
+                              for k in scale.RATING_KEYS if any(r["priority_key"] == k for r in data["roadmap"])]
     for hook in CONTEXT_HOOKS:
         hook(db, e, data)
     return data
@@ -329,7 +367,7 @@ def _store(db: Session, settings, actor: User, e: Engagement, content: ReportCon
     title = f"AI governance audit report {content.version}"
     base = f"{e.audit_ref} {title}".replace("/", "-")
     common = {"organization_id": e.client_id, "engagement_id": e.id, "linked_type": "report", "linked_id": r.id}
-    meta = {"audit_ref": e.audit_ref}
+    meta = {"audit_ref": e.audit_ref, "cover": True}  # cover page, contents and rating colours
     r.docx_file_id = upload(db, settings, actor, data=to_docx(content.markdown, title, meta), filename=f"{base}.docx", content_type=None, **common).id
     r.pdf_file_id = upload(db, settings, actor, data=to_pdf(content.markdown, title, meta), filename=f"{base}.pdf", content_type=None, **common).id
     db.flush()

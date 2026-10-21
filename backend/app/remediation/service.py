@@ -183,12 +183,14 @@ def plan_statement(db: Session, e: Engagement) -> str:
 
 def management_responses_context(db: Session, e: Engagement, ctx: dict) -> None:
     """Adds the agreed responses to the final report (v1.1)."""
+    from app.initiation.context import fmt
+
     rows = []
     for f in approved_findings(db, e):
         r = response_for(db, f)
         if r is not None:
             owner = db.get(User, r.owner_user_id).name if r.owner_user_id else ""
-            rows.append({"ref": f.ref, "response": f"{RESPONSES[r.response]}. {r.planned_action or ''}".strip(), "owner": owner, "target_date": r.due_date.isoformat() if r.due_date else ""})
+            rows.append({"ref": f.ref, "response": f"{RESPONSES[r.response]}. {r.planned_action or ''}".strip(), "owner": owner, "target_date": fmt(r.due_date) or ""})
     if rows:
         ctx["management_responses"] = rows
 

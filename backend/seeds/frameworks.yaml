@@ -36,6 +36,17 @@ frameworks:
       - {code: "MANAGE 2", title: "Strategies to maximize benefits and minimize negative impacts are planned"}
       - {code: "MANAGE 3", title: "Risks and benefits from third-party entities are managed"}
       - {code: "MANAGE 4", title: "Risk treatments, including response and recovery, are documented and monitored"}
+      - {code: "GOVERN 1.1", title: "Legal and regulatory requirements involving AI are understood, managed and documented"}
+      - {code: "GOVERN 1.2", title: "The characteristics of trustworthy AI are integrated into organizational policies, processes and procedures"}
+      - {code: "GOVERN 2.1", title: "Roles, responsibilities and lines of communication for mapping, measuring and managing AI risks are documented and clear"}
+      - {code: "GOVERN 6.1", title: "Policies and procedures address AI risks associated with third-party entities"}
+      - {code: "MAP 1.1", title: "Intended purposes, context-specific laws, norms and expectations, and settings for deployment are understood and documented"}
+      - {code: "MAP 4.1", title: "Approaches for mapping AI technology and legal risks of its components, including third-party data or software, are in place and documented"}
+      - {code: "MEASURE 1.3", title: "Internal experts who did not build the system, or independent assessors, are involved in regular assessments"}
+      - {code: "MEASURE 2.4", title: "The functionality and behavior of the AI system and its components are monitored when in production"}
+      - {code: "MEASURE 2.5", title: "The AI system to be deployed is demonstrated to be valid and reliable"}
+      - {code: "MANAGE 3.1", title: "AI risks and benefits from third-party resources are regularly monitored, and risk controls are applied and documented"}
+      - {code: "MANAGE 4.1", title: "Post-deployment monitoring plans are implemented, including mechanisms for capturing and evaluating input from users"}
   - code: EU_AI_ACT
     name: EU Artificial Intelligence Act (Regulation (EU) 2024/1689)
     controls:
@@ -60,3 +71,77 @@ frameworks:
       - {code: "8", title: "Operation"}
       - {code: "9", title: "Performance evaluation"}
       - {code: "10", title: "Improvement"}
+      - {code: "5.2", title: "AI policy"}
+      - {code: "A.2.2", title: "AI policy"}
+      - {code: "A.2.3", title: "Alignment with other organizational policies"}
+      - {code: "A.2.4", title: "Review of the AI policy"}
+      - {code: "A.3.2", title: "AI roles and responsibilities"}
+      - {code: "A.3.3", title: "Reporting of concerns"}
+      - {code: "A.4.2", title: "Resource documentation"}
+      - {code: "A.4.3", title: "Data resources"}
+      - {code: "A.4.4", title: "Tooling resources"}
+      - {code: "A.4.5", title: "System and computing resources"}
+      - {code: "A.4.6", title: "Human resources"}
+      - {code: "A.5.2", title: "AI system impact assessment process"}
+      - {code: "A.5.3", title: "Documentation of AI system impact assessments"}
+      - {code: "A.5.4", title: "Assessing AI system impact on individuals or groups of individuals"}
+      - {code: "A.5.5", title: "Assessing societal impacts of AI systems"}
+      - {code: "A.6.1.2", title: "Objectives for responsible development of AI system"}
+      - {code: "A.6.1.3", title: "Processes for responsible AI system design and development"}
+      - {code: "A.6.2.2", title: "AI system requirements and specification"}
+      - {code: "A.6.2.3", title: "Documentation of AI system design and development"}
+      - {code: "A.6.2.4", title: "AI system verification and validation"}
+      - {code: "A.6.2.5", title: "AI system deployment"}
+      - {code: "A.6.2.6", title: "AI system operation and monitoring"}
+      - {code: "A.6.2.7", title: "AI system technical documentation"}
+      - {code: "A.6.2.8", title: "AI system recording of event logs"}
+      - {code: "A.7.2", title: "Data for development and enhancement of AI system"}
+      - {code: "A.7.3", title: "Acquisition of data"}
+      - {code: "A.7.4", title: "Quality of data for AI systems"}
+      - {code: "A.7.5", title: "Data provenance"}
+      - {code: "A.7.6", title: "Data preparation"}
+      - {code: "A.8.2", title: "System documentation and information for users"}
+      - {code: "A.8.3", title: "External reporting"}
+      - {code: "A.8.4", title: "Communication of incidents"}
+      - {code: "A.8.5", title: "Information for interested parties"}
+      - {code: "A.9.2", title: "Processes for responsible use of AI systems"}
+      - {code: "A.9.3", title: "Objectives for responsible use of AI system"}
+      - {code: "A.9.4", title: "Intended use of the AI system"}
+      - {code: "A.10.2", title: "Allocating responsibilities"}
+      - {code: "A.10.3", title: "Suppliers"}
+      - {code: "A.10.4", title: "Customers"}
+  - code: GDPR
+    name: General Data Protection Regulation (EU) 2016/679
+    controls:
+      - {code: "Art. 5", title: "Principles relating to processing of personal data"}
+      - {code: "Art. 6", title: "Lawfulness of processing"}
+      - {code: "Art. 9", title: "Processing of special categories of personal data"}
+      - {code: "Art. 13", title: "Information to be provided where personal data are collected from the data subject"}
+      - {code: "Art. 22", title: "Automated individual decision-making, including profiling"}
+      - {code: "Art. 25", title: "Data protection by design and by default"}
+      - {code: "Art. 28", title: "Processor"}
+      - {code: "Art. 32", title: "Security of processing"}
+      - {code: "Art. 35", title: "Data protection impact assessment"}
+  - code: NYC_LL144
+    name: NYC Local Law 144 of 2021 (automated employment decision tools)
+    controls:
+      - {code: "Admin. Code § 20-870", title: "Definitions, including automated employment decision tool and bias audit"}
+      - {code: "Admin. Code § 20-871(a)(1)", title: "Bias audit conducted no more than one year before the tool is used"}
+      - {code: "Admin. Code § 20-871(a)(2)", title: "Summary of the most recent bias audit published on the website before use"}
+      - {code: "Admin. Code § 20-871(b)", title: "Notice to candidates and employees who reside in the city, at least 10 business days before use"}
+      - {code: "6 RCNY § 5-301", title: "Bias audit calculations, including the number of individuals in an unknown category"}
+      - {code: "6 RCNY § 5-302", title: "Data requirements: historical data, or test data where historical data is insufficient"}
+      - {code: "6 RCNY § 5-303", title: "Published results of the bias audit"}
+      - {code: "6 RCNY § 5-304", title: "Notice to candidates and employees"}
+  - code: IL_AIVIA
+    name: Illinois Artificial Intelligence Video Interview Act (820 ILCS 42)
+    controls:
+      - {code: "820 ILCS 42/5", title: "Notice, explanation and consent before AI analysis of video interviews"}
+      - {code: "820 ILCS 42/10", title: "Limits on sharing applicant videos"}
+      - {code: "820 ILCS 42/15", title: "Destruction of applicant videos"}
+      - {code: "820 ILCS 42/20", title: "Reporting of demographic data where AI analysis alone decides who gets an in-person interview"}
+  - code: IL_HRA
+    name: Illinois Human Rights Act, as amended by Public Act 103-0804 (HB 3773)
+    controls:
+      - {code: "775 ILCS 5/2-102(L)(1)", title: "Employer use of AI that has the effect of discrimination, including zip codes as a proxy"}
+      - {code: "775 ILCS 5/2-102(L)(2)", title: "Notice to employees and applicants when AI is used for employment decisions"}

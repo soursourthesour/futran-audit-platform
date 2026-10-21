@@ -1,6 +1,6 @@
 # AI governance audit report
 
-**{{ client.name }}** · {{ engagement.audit_ref }} · {{ report.version_label }}
+### {{ client.name }}
 
 | Item | Detail |
 |---|---|
@@ -8,28 +8,44 @@
 | Industry | {{ client.industry | md_cell }} |
 | Audit reference | {{ engagement.audit_ref | md_cell }} |
 | Engagement | {{ engagement.type_label | md_cell }} |
-| Lead auditor | {{ lead_auditor | md_cell }} |
 | Audit period | {{ engagement.period | md_cell }} |
 | Frameworks | {{ engagement.frameworks | md_cell }} |
-| Methodology | {{ engagement.methodology_version | md_cell }} |
-| Report version | {{ report.version_label | md_cell }} |
-| Report status | {{ report.status_text | md_cell }} |
+| Lead auditor | {{ lead_auditor | md_cell }} |
+| Report version | {{ report.version_label | md_cell }}{% if report.status_text not in report.version_label %} ({{ report.status_text | md_cell }}){% endif %} |
 | Overall risk rating | {{ overall_rating | md_cell }} |
 | Date | {{ report.date | md_cell }} |
+
+Prepared by Futran Solutions for {{ client.name }}. Confidential: for the named client's management and its auditors and regulators. Do not distribute further without the written consent of Futran Solutions.
+
+<!-- pagebreak -->
+
+<!-- toc -->
 
 <!-- pagebreak -->
 
 ## 1. Executive summary
 
-### Total findings
+### Scope and approach
 
-| Critical | High | Medium | Low | Observations | Total |
-|---|---|---|---|---|---|
-| {{ counts.critical }} | {{ counts.high }} | {{ counts.medium }} | {{ counts.low }} | {{ counts.observation }} | {{ counts.total }} |
+Futran Solutions assessed {{ scope.systems }} AI system{{ "s" if scope.systems != 1 else "" }} and {{ scope.use_cases }} approved AI use case{{ "s" if scope.use_cases != 1 else "" }}{% if scope.departments %} in {{ scope.departments }}{% endif %} at {{ client.name }} for the audit period {{ engagement.period }}.{% if laws %} Section 7 lists the {{ laws | length }} law{{ "s" if laws | length != 1 else "" }} and standard{{ "s" if laws | length != 1 else "" }} in scope.{% endif %} The assessment followed {% if engagement.frameworks_text %}the {{ engagement.frameworks_text }} framework{{ "s" if " and " in engagement.frameworks_text else "" }} and {% endif %}Futran's risk methodology version {{ scoring.version }}.
 
-**Overall risk rating:** {{ overall_rating }}
+Evidence came from {{ scope.answers }} recorded questionnaire answers{% if scope.documents_requested %}, {{ scope.documents_received }} of {{ scope.documents_requested }} requested documents{% endif %}{% if scope.evidence_requests %}, {{ scope.evidence_requests }} targeted evidence request{{ "s" if scope.evidence_requests != 1 else "" }}{% endif %}{% if scope.attestations %} and {{ scope.attestations }} staff AI use attestation{{ "s" if scope.attestations != 1 else "" }}{% endif %}. The Lead Auditor set each control maturity score from that evidence and approved every finding in this report.
 
-**Overall maturity:** {{ overall_maturity }}
+### Results at a glance
+
+| Overall risk rating | Overall maturity (1–5) | Findings |
+|---|---|---|
+| {{ overall_rating | md_cell }} | {{ overall_maturity | md_cell }} | {{ counts.total }} |
+
+The overall risk rating is the highest final rating of any AI system in scope. Overall maturity is a weighted score: each system's eight domain scores are weighted by how the system was built, and systems are weighted by their inherent risk. Section 2 sets out the weights.
+
+### Findings by severity
+
+| Severity | Findings | Response time |
+|---|---|---|
+{% for r in severity_rows %}
+| {{ r.label }} | {{ r.count }} | {{ r.response | md_cell }} |
+{% endfor %}
 
 ### Most significant finding
 
@@ -49,7 +65,7 @@
 - {{ f.ref }} {{ f.title }}
 {% endfor %}
 
-{{ summary.immediate_actions or ("None beyond the Critical findings listed above." if summary.critical else "No immediate actions are required.") }}
+{{ summary.immediate_actions or ("No further actions beyond the Critical findings listed above." if summary.critical else "No immediate actions are required.") }}
 
 {% if scorecard.narrative %}
 ### Overall assessment
@@ -59,12 +75,115 @@
 
 <!-- pagebreak -->
 
-## 2. Findings
+## 2. How this report rates risk and maturity
+
+Every AI system in scope is scored with Futran's risk methodology version {{ scoring.version }}{% if scoring.effective_date %}, effective {{ scoring.effective_date }}{% endif %}. The score moves in three steps: how risky the system is by nature (inherent risk), how well its controls work (control maturity), and what risk remains after those controls (residual risk). The residual risk score sets the rating. The full scoring tables are in Appendix A.
+
+### Risk levels
+
+One scale is used for system ratings and finding severities throughout this report. The number in brackets is the level.
+
+| Level | What it means | Residual risk score | Response time |
+|---|---|---|---|
+{% for l in scoring.levels %}
+| {{ l.labelled }} | {{ l.definition | md_cell }} | {{ l.residual_range }} | {{ l.response | md_cell }} |
+{% endfor %}
+
+Systems are rated Critical to Low from their residual risk score. Observation is used for findings only. A finding's severity uses the same levels, and its response time sets the default due date for the remediation.
+
+### Inherent risk (0–100)
+
+Inherent risk measures the risk of the system before any controls are considered. It is built from eight factors, each scored 1 to 5 from the questionnaire answers, where 1 is the lowest risk and 5 the highest. Each factor score is converted to points (weight × score ÷ 5 × 100) and the points are added.
+
+| Factor | Weight | 1 (lowest risk) | In between | 5 (highest risk) |
+|---|---|---|---|---|
+{% for f in scoring.factors %}
+| {{ f.label }} | {{ f.weight }} | {{ f.lowest | md_cell }} | {{ f.between | md_cell }} | {{ f.highest | md_cell }} |
+{% endfor %}
+
+### Consequence
+
+The consequence factor is the auditor's rating of how severe the harm would be if the system got a decision wrong (question 3.3.05s).
+
+| Rating | Meaning |
+|---|---|
+{% for c in scoring.consequence_levels %}
+| {{ c.level }} {{ c.name }} | {{ c.description | md_cell }} |
+{% endfor %}
+
+### Control maturity (1–5)
+
+The Lead Auditor scores eight control domains for each system from 1 to 5, based on the share of checklist controls confirmed with evidence and the open findings in each domain.
+
+| Level | What the auditor sees |
+|---|---|
+{% for l in scoring.maturity_levels %}
+| {{ l.level }} {{ l.name }} | {{ l.description | md_cell }} |
+{% endfor %}
+
+A system's maturity score is the weighted average of its eight domain scores. The weights depend on how the system was built{% if scoring.weight_sets | length > 1 %}, and both weight sets below were used in this engagement{% endif %}. Open-source and hybrid systems use the in-house weights.
+
+| Domain | {% for w in scoring.weight_sets %}{{ w }} | {% endfor %}
+
+|---|{% for w in scoring.weight_sets %}---|{% endfor %}
+
+{% for r in scoring.weight_rows %}
+| {{ r.label }} | {% for w in r.weights %}{{ w }} | {% endfor %}
+
+{% endfor %}
+
+{% if scoring.light_rows %}
+Tier 2 systems receive a light assessment covering four domains. Their weights are rescaled so that the four domains add up to 100%.
+
+| Domain | {% for w in scoring.light_sets %}{{ w }}, light assessment | {% endfor %}
+
+|---|{% for w in scoring.light_sets %}---|{% endfor %}
+
+{% for r in scoring.light_rows %}
+| {{ r.label }} | {% for w in r.weights %}{{ w }} | {% endfor %}
+
+{% endfor %}
+{% endif %}
+
+{% if scoring.applied %}
+Weights applied to each system in this engagement:
+
+| System | Built by | Assessment | Weights applied |
+|---|---|---|---|
+{% for a in scoring.applied %}
+| {{ a.ref }} {{ a.name | md_cell }} | {{ a.built_by }} | {{ a.depth }} | {{ a.weights }} |
+{% endfor %}
+{% endif %}
+
+The overall maturity for the engagement is the average of the system maturity scores, weighted by each system's inherent risk, so higher-risk systems count for more. The domain scores in the scorecard (section 5) are weighted the same way.
+
+### Residual risk (0–100)
+
+**{{ scoring.formula }}**
+
+Better controls reduce inherent risk by up to {{ scoring.reduction_pct }}. A maturity of 1 leaves the inherent risk unchanged; a maturity of 5 reduces it by the full {{ scoring.reduction_pct }}. {% for s in systems if s.calc %}{% if loop.first %}For example, {{ s.ref }}: {{ s.calc }}.{% endif %}{% endfor %}
+
+
+### Knock-out rules and the EU AI Act
+
+A knock-out rule sets a minimum rating whatever the residual score, because the condition is serious on its own.
+
+| Knock-out rule | Minimum rating |
+|---|---|
+{% for k in scoring.knockouts %}
+| {{ k.label | md_cell }} | {{ k.force }} |
+{% endfor %}
+
+A system the EU AI Act classifies as high risk has an inherent risk of at least {{ scoring.eu_floor }}, whatever its factor scores. A prohibited practice under the EU AI Act is always rated {{ scoring.eu_prohibited }}. The Lead Auditor may override a computed rating only with a written rationale, which the system profile in section 4 shows.
+
+<!-- pagebreak -->
+
+## 3. Findings
 
 | Ref | Finding | Severity | System | Owner | Due |
 |---|---|---|---|---|---|
 {% for f in findings %}
-| {{ f.ref | md_cell }} | {{ f.title | md_cell }} | {{ f.severity_label | md_cell }} | {{ f.system | md_cell }} | {{ f.owner | md_cell }} | {{ f.due | md_cell }} |
+| {{ f.ref | md_cell }} | {{ f.title | md_cell }} | {{ f.severity_label }} | {{ f.system_or_scope | md_cell }} | {{ f.owner | md_cell }} | {{ f.due | md_cell }} |
 {% endfor %}
 
 {% if not findings %}
@@ -75,93 +194,171 @@ No findings were raised.
 ### {{ group.label }}
 
 {% for f in group["items"] %}
+{% set mr = (management_responses or []) | selectattr("ref", "equalto", f.ref) | first %}
 #### {{ f.ref }} {{ f.title }}
 
-{% if f.system %}**System:** {{ f.system }}
-{% endif %}
-{% if f.section %}**Template section:** {{ f.section }}
-{% endif %}
-{% if f.controls %}**Regulatory or standard reference:** {{ f.controls }}
-{% endif %}
-**Owner:** {{ f.owner or "To be confirmed" }} · **Remediation due:** {{ f.due }}
+| Severity | System or scope | Owner | Remediation due |
+|---|---|---|---|
+| {{ f.severity_label }} | {{ f.system_or_scope | md_cell }} | {{ (mr.owner if mr and mr.owner else f.owner) | md_cell }} | {{ (mr.target_date if mr and mr.target_date else f.due) | md_cell }} |
 
-{{ f.description or "" }}
+**What we found**
 
-**Recommended remediation:** {{ f.remediation or "To be agreed with the owner." }}
+{{ f.condition or "Not recorded." }}
+
+{% if f.risk %}
+**Risk and impact**
+
+{{ f.risk }}
+
+{% endif %}
+**Recommendation**
+
+{{ f.remediation or "To be agreed with the owner." }}
+
+{% if mr %}
+**Management response**
+
+{{ mr.response }}
+
+{% endif %}
+**References**
+
+| Template section | AI system | Use cases |
+|---|---|---|
+| {{ (f.section or "Not recorded") | md_cell }} | {{ (f.system or "Organization-wide") | md_cell }} | {{ (f.use_cases or "Not linked") | md_cell }} |
+
+*Regulatory and standard references*
+
+{% for c in f.citations %}
+- {{ c | md_cell }}
+{% else %}
+Not recorded.
+{% endfor %}
+
+*Questionnaire questions*
+
+{% for q in f.questions %}
+- {{ q.code }} {{ q.label | md_cell }}{% if q.answer %}. Answer: {{ q.answer | md_cell }}{% endif %}
+
+{% else %}
+Raised from fieldwork evidence, not from a single questionnaire answer.
+{% endfor %}
+
+{% if f.evidence %}
+*Evidence reviewed or requested*
+
+{% for ev in f.evidence %}
+- {% if ev.ref %}{{ ev.ref }} {% endif %}{{ ev.text | md_cell }} ({{ ev.status | md_cell }}){% if ev.answer %}. Client's answer: {{ ev.answer | md_cell }}{% endif %}
+
+{% endfor %}
+{% endif %}
 
 {% endfor %}
 {% endfor %}
 
 <!-- pagebreak -->
 
-## 3. AI systems in scope
+## 4. AI systems in scope
+
+{% if systems %}
+| System | Built by | Inherent risk (0–100) | Maturity (1–5) | Residual risk (0–100) | Rating |
+|---|---|---|---|---|---|
+{% for s in systems %}
+| {{ s.ref }} {{ s.name | md_cell }} | {{ s.built_by }} | {{ s.inherent }} | {{ s.maturity }} | {{ s.residual }} | {{ s.rating }} |
+{% endfor %}
 
 {% for s in systems %}
 ### {{ s.ref }} {{ s.name }}
 
 | Item | Detail |
 |---|---|
-| Built by | {{ s.built_by | md_cell }} |
-| Vendor | {{ s.vendor | md_cell }} |
 | Department | {{ s.department | md_cell }} |
+| Built by | {{ s.built_by | md_cell }} |
+{% if s.vendor %}
+| Vendor | {{ s.vendor | md_cell }} |
+{% endif %}
 | Use cases | {{ s.use_cases | md_cell }} |
-| Inherent risk (0–100) | {{ s.inherent | md_cell }} |
-| Control maturity (1–5) | {{ s.maturity | md_cell }} |
-| Residual risk (0–100) | {{ s.residual | md_cell }} |
-| Rating | {{ s.rating | md_cell }} |
+| Assessment | {{ s.depth }}, {{ s.weights | lower }} |
+| Inherent risk (0–100) | {{ s.inherent }} |
+| Control maturity (1–5) | {{ s.maturity }} |
+| Residual risk (0–100) | {{ s.residual }} |
+{% if s.calc %}
+| Calculation | {{ s.calc }} |
+{% endif %}
+{% if s.computed %}
+| Rating from residual risk | {{ s.computed }} |
+{% endif %}
+{% if s.knockouts %}
+| Knock-out rules triggered | {{ s.knockouts | join("; ") | md_cell }} |
+{% endif %}
+{% if s.override %}
+| Lead Auditor override | {{ s.override.rating }}: {{ s.override.rationale | md_cell }} |
+{% endif %}
+| Final rating | {{ s.rating }} |
 
 {% endfor %}
-{% if not systems %}
+{% else %}
 No AI systems were assessed.
 {% endif %}
 
-## 4. Maturity scorecard
+## 5. Maturity scorecard
 
-Scale: 1 None · 2 Initial or ad hoc · 3 Defined and documented · 4 Managed and measured · 5 Optimized.
+Each domain score is the average of the system scores for that domain, weighted by each system's inherent risk. The weight columns show how much each domain counts toward a single system's maturity score.
 
-| Domain | Maturity (1–5) |
-|---|---|
+| Domain | Maturity (1–5) | {% for w in scorecard.weight_sets %}{{ w }} | {% endfor %}
+
+|---|---|{% for w in scorecard.weight_sets %}---|{% endfor %}
+
 {% for d in scorecard.domains %}
-| {{ d.label | md_cell }} | {{ d.score | md_cell }} |
+| {{ d.label | md_cell }} | {{ d.score | md_cell }} | {% for w in d.weights %}{{ w }} | {% endfor %}
+
 {% endfor %}
-| **Overall maturity** | {{ overall_maturity | md_cell }} |
-| **Overall risk rating** | {{ overall_rating | md_cell }} |
+
+**Overall maturity:** {{ overall_maturity }}{% if overall_maturity is number %} of 5{% endif %}. **Overall risk rating:** {{ overall_rating }}.
 
 <!-- pagebreak -->
 
-## 5. Remediation roadmap
+## 6. Remediation roadmap
 
-| Ref | Recommended action | Responsible owner | Priority | Target date | How Futran can help |
+{% for g in roadmap_groups %}
+### {{ g.label }}
+
+| Ref | Recommended action | Responsible owner | Target date | Findings | How Futran can help |
 |---|---|---|---|---|---|
-{% for r in roadmap %}
-| {{ r.ref | md_cell }} | {{ r.action | md_cell }} | {{ r.owner | md_cell }} | {{ r.priority | md_cell }} | {{ r.target_date | md_cell }} | {{ r.how_futran_can_help | md_cell }} |
+{% for r in g["items"] %}
+| {{ r.ref | md_cell }} | {{ r.action | md_cell }} | {{ r.owner | md_cell }} | {{ r.target_date | md_cell }} | {{ (r.findings or "Not linked") | md_cell }} | {{ (r.how_futran_can_help or "Not specified") | md_cell }} |
 {% endfor %}
 
+{% endfor %}
 {% if not roadmap %}
 No roadmap items have been recorded.
 {% endif %}
 
-## 6. Laws and frameworks in scope
+## 7. Laws and frameworks in scope
 
-| Law or framework | Jurisdiction | Citation |
-|---|---|---|
+| Law or framework | Jurisdiction |
+|---|---|
 {% for l in laws %}
-| {{ l.name | md_cell }} | {{ l.jurisdiction | md_cell }} | {{ l.citation | md_cell }} |
+| {{ l.display | md_cell }} | {{ l.jurisdiction | md_cell }} |
 {% endfor %}
 
+{% if not laws %}
+No laws were recorded as in scope.
+{% endif %}
+
 {% if management_responses %}
-## 7. Management responses
+## 8. Management responses
 
 | Finding | Response | Owner | Target date |
 |---|---|---|---|
 {% for m in management_responses %}
-| {{ m.ref | md_cell }} | {{ m.response | md_cell }} | {{ m.owner | md_cell }} | {{ m.target_date | md_cell }} |
+| {{ m.ref | md_cell }} | {{ m.response | md_cell }} | {{ (m.owner or "Not assigned") | md_cell }} | {{ (m.target_date or "Not set") | md_cell }} |
 {% endfor %}
 
 {% endif %}
 <!-- pagebreak -->
 
-## Sign-off and declarations
+## {{ "9" if management_responses else "8" }}. Sign-off and declarations
 
 ### Futran Solutions declarations
 
@@ -170,14 +367,14 @@ No roadmap items have been recorded.
 | Role | Name | Signed |
 |---|---|---|
 {% for d in declarations.futran %}
-| {{ d.label | md_cell }} | {{ d.name | md_cell }} | {{ d.signed_at | md_cell }} |
+| {{ d.label | md_cell }} | {{ (d.name or "Not signed") | md_cell }} | {{ d.signed_at | md_cell }} |
 {% endfor %}
 
 {% if declarations.no_qa %}
 No QA Reviewer assigned to this engagement.
 {% endif %}
 
-**Audit report version:** {{ report.version_label }} (Draft v0.1, Lead review v0.2, Client v1.0, Final v1.1)
+Report version {{ report.version_label }}. The versions are Draft v0.1, Lead review v0.2, Client v1.0 and Final v1.1.
 
 ### Client acknowledgement
 
@@ -188,7 +385,7 @@ Signing confirms receipt and reading of this report. It does not mean agreement 
 {% if declarations.client %}
 | Role | Name | Title | Signed |
 |---|---|---|---|
-| Client authorized representative | {{ declarations.client.name | md_cell }} | {{ declarations.client.title | md_cell }} | {{ declarations.client.signed_at | md_cell }} |
+| Client authorized representative | {{ declarations.client.name | md_cell }} | {{ (declarations.client.title or "Not recorded") | md_cell }} | {{ declarations.client.signed_at | md_cell }} |
 
 **Remediation commitment:** {{ declarations.client.commitment }}
 {% else %}
@@ -196,6 +393,30 @@ Awaiting the client's acknowledgement of the final report.
 {% endif %}
 
 <!-- pagebreak -->
+
+## Appendix A. Methodology
+
+### Factor scores in full
+
+Each inherent risk factor and the answer that produces each score. Question numbers refer to the Futran AI System Audit questionnaire.
+
+| Factor and question | Weight | Score | Meaning |
+|---|---|---|---|
+{% for f in scoring.factors %}
+{% for a in f["all"] %}
+| {% if loop.first %}{{ f.label }} ({{ f.question | md_cell }}){% endif %} | {% if loop.first %}{{ f.weight }}{% endif %} | {{ a.score }} | {{ a.meaning | md_cell }} |
+{% endfor %}
+{% endfor %}
+
+### Proposed domain scores
+
+The platform proposes each domain score from the share of applicable checklist controls the auditor confirmed with evidence, then lowers it by 1 for each open High or Critical finding in that domain (minimum 1). The Lead Auditor sets the final score and records a rationale when it differs from the proposal by more than 1.
+
+| Controls confirmed with evidence | Proposed score |
+|---|---|
+{% for b in scoring.proposed_bands %}
+| {{ b.min }}% or more | {{ b.score }} |
+{% endfor %}
 
 ## Appendix B. Regulatory quick reference
 

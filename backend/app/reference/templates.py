@@ -47,7 +47,10 @@ MD_SPECIAL = str.maketrans({c: "\\" + c for c in "[]*_`<>"})
 
 
 def md_inline(value):
-    """Escape Markdown that would turn client-supplied text into links, emphasis or code."""
+    """Escape Markdown that would turn client-supplied text into links, emphasis or code. A missing value prints as
+    nothing, never as "None"."""
+    if value is None:
+        return ""
     return value.translate(MD_SPECIAL) if isinstance(value, str) else value
 
 
@@ -68,9 +71,16 @@ _strict.filters["md_cell"] = md_cell
 
 def load_templates(db: Session) -> str:
     index = yaml.safe_load((TEMPLATE_DIR / "index.yaml").read_text())["templates"]
-    n = 0
+    n = refreshed = 0
     for t in index:
-        if db.scalar(select(DocumentTemplate.id).where(DocumentTemplate.key == t["key"]).limit(1)):
+        rows = list(db.scalars(select(DocumentTemplate).where(DocumentTemplate.key == t["key"])))
+        if rows:
+            # a template nobody has edited follows the shipped file; an admin's edit is a new version and is kept
+            if len(rows) == 1 and rows[0].created_by is None and rows[0].active:
+                shipped = (TEMPLATE_DIR / f"{t['key']}.md.j2").read_text()
+                if rows[0].body != shipped:
+                    rows[0].body = shipped
+                    refreshed += 1
             continue
         db.add(DocumentTemplate(
             key=t["key"], name=t["name"], type=t["type"], version=1, body=(TEMPLATE_DIR / f"{t['key']}.md.j2").read_text(),
@@ -78,7 +88,7 @@ def load_templates(db: Session) -> str:
         ))
         n += 1
     db.flush()
-    return f"{n} templates added"
+    return f"{n} templates added" + (f", {refreshed} updated to the shipped version" if refreshed else "")
 
 
 def active_template(db: Session, key: str) -> DocumentTemplate:

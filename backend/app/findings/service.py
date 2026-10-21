@@ -8,15 +8,23 @@ from app.core.errors import Conflict, Forbidden, Invalid
 from app.engagements.models import Engagement
 from app.findings.models import SEVERITIES, Finding
 from app.inventory.models import UseCase
+from app.scoring.scale import RESPONSE_DAYS as DEFAULT_DUE_DAYS  # response time by severity: one scale for the platform
 from app.systems.models import AISystem
 from app.tenancy.models import User
 
-DEFAULT_DUE_DAYS = {"critical": 30, "high": 90, "medium": 182, "low": 365, "observation": 365}
 EDITABLE = ("draft", "returned")
 
 
 def findings_for(db: Session, e: Engagement) -> list[Finding]:
     return list(db.scalars(select(Finding).where(Finding.engagement_id == e.id, Finding.deleted_at.is_(None)).order_by(Finding.ref)))
+
+
+def _question_codes(db: Session) -> set[str]:
+    from app.questionnaire.models import Question
+    from app.questionnaire.seed import active_template_version
+
+    tv = active_template_version(db)
+    return set(db.scalars(select(Question.code).where(Question.template_version_id == tv.id))) if tv else set()
 
 
 def _clean(db: Session, e: Engagement, data: dict, partial: bool) -> dict:
@@ -61,6 +69,13 @@ def _clean(db: Session, e: Engagement, data: dict, partial: bool) -> dict:
             errs.append({"field": "ai_system_id", "message": "Choose a system from this engagement."})
         else:
             out["ai_system_id"] = s.id if s else None
+    if "source_question_ids" in data:
+        codes = data.get("source_question_ids")
+        known = _question_codes(db)
+        if not isinstance(codes, list) or not all(isinstance(c, str) and c.strip() in known for c in codes):
+            errs.append({"field": "source_question_ids", "message": "Choose questions from the audit questionnaire."})
+        else:
+            out["source_question_ids"] = list(dict.fromkeys(c.strip() for c in codes))[:20]
     if "null_compliance_flag" in data:
         out["null_compliance_flag"] = data.get("null_compliance_flag") is True
     if errs:
@@ -83,7 +98,7 @@ def create_finding(db: Session, actor: User, e: Engagement, data: dict) -> Findi
     assert_open(db, e)
     v = _clean(db, e, data, partial=False)
     f = Finding(organization_id=e.client_id, engagement_id=e.id, ref=next_finding_ref(db, e), author_id=actor.id, status="draft", origin="manual",
-                source_question_ids=[], control_refs=v.pop("control_refs", []), use_case_ids=v.pop("use_case_ids", []), created_by=actor.id, **v)
+                source_question_ids=v.pop("source_question_ids", []), control_refs=v.pop("control_refs", []), use_case_ids=v.pop("use_case_ids", []), created_by=actor.id, **v)
     db.add(f)
     db.flush()
     audit.record(db, actor_id=actor.id, action="finding.create", obj=f, after={"ref": f.ref, "severity": f.severity, "title": f.title}, summary=f"Drafted finding {f.ref}: {f.title[:120]}")

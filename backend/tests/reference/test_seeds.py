@@ -25,11 +25,24 @@ def seeded(db):
 
 def test_frameworks_and_controls(seeded):
     codes = set(seeded.scalars(select(Framework.code)))
-    assert codes == {"OECD", "NIST_AI_RMF", "EU_AI_ACT", "ISO_42001"}
+    assert codes == {"OECD", "NIST_AI_RMF", "EU_AI_ACT", "ISO_42001", "GDPR", "NYC_LL144", "IL_AIVIA", "IL_HRA"}
     oecd = {c.code for c in seeded.scalars(select(FrameworkControl).join(Framework).where(Framework.code == "OECD"))}
     assert oecd == {"1.1", "1.2", "1.3", "1.4", "1.5"}
     nist = {c.code for c in seeded.scalars(select(FrameworkControl).join(Framework).where(Framework.code == "NIST_AI_RMF"))}
-    assert {"GOVERN 2", "GOVERN 6", "MEASURE 2.9", "MEASURE 2.11", "MANAGE 4"} <= nist
+    assert {"GOVERN 2", "GOVERN 6", "MEASURE 2.9", "MEASURE 2.11", "MANAGE 4", "GOVERN 1.1", "MAP 1.1", "MANAGE 4.1"} <= nist
+    iso = {c.code for c in seeded.scalars(select(FrameworkControl).join(Framework).where(Framework.code == "ISO_42001"))}
+    assert {"A.2.2", "A.5.2", "A.6.2.6", "A.10.3"} <= iso and len([c for c in iso if c.startswith("A.")]) == 38
+
+
+def test_control_citations_are_readable(seeded):
+    from app.reference.frameworks import control_citation, control_label
+
+    assert control_label(seeded, "NIST_AI_RMF MEASURE 2.11") == "NIST AI RMF MEASURE 2.11"
+    assert control_citation(seeded, "NIST_AI_RMF MEASURE 2.11") == "NIST AI RMF 1.0, MEASURE 2.11: Fairness and bias are evaluated and results documented"
+    assert control_citation(seeded, "NYC_LL144 6 RCNY § 5-301").startswith("NYC Local Law 144, 6 RCNY § 5-301: Bias audit calculations")
+    assert control_citation(seeded, "ISO_42001 A.6.2.6") == "ISO/IEC 42001:2023, Annex A control A.6.2.6: AI system operation and monitoring"
+    assert control_citation(seeded, "GDPR Art. 22") == "GDPR Art. 22: Automated individual decision-making, including profiling"
+    assert control_citation(seeded, "EU_AI_ACT Art. 99") == "EU AI Act Art. 99"  # not in the catalog: the reference as written
 
 
 def test_governance_roles_8_with_controls(seeded):
@@ -87,6 +100,22 @@ def test_template_version_bump_on_edit(seeded):
     old = seeded.scalar(select(DocumentTemplate).where(DocumentTemplate.key == "management_representation", DocumentTemplate.version == 1))
     assert old.active is False
     assert render_template(seeded, "management_representation", {"client": {"name": "X"}}) == "Revised text for X."
+
+
+def test_unedited_seeded_templates_follow_the_shipped_file(seeded):
+    """Seed loading refreshes a template nobody has edited; an admin's edited version is never overwritten."""
+    from app.reference.templates import TEMPLATE_DIR
+
+    t = seeded.scalar(select(DocumentTemplate).where(DocumentTemplate.key == "report", DocumentTemplate.active.is_(True)))
+    t.body = "An older shipped report template."
+    seeded.flush()
+    load_templates(seeded)
+    assert t.body == (TEMPLATE_DIR / "report.md.j2").read_text() and t.version == 1
+    f = make_org(seeded, type="futran")
+    admin = make_user(seeded, f, roles=["admin"], name="Ada Admin", email="admin@f.test")
+    edit_template(seeded, admin, "roles_note", "Our own roles note.")
+    load_templates(seeded)
+    assert render_template(seeded, "roles_note", {}) == "Our own roles note."
 
 
 def test_template_edit_rejects_broken_jinja(seeded):
