@@ -17,6 +17,7 @@ type Data = {
   narrative: { most_significant_finding_id: string | null; most_significant_text: string | null; strengths: string | null; immediate_actions: string | null; narrative: string | null };
   roadmap: Roadmap[];
   findings: { id: string; ref: string; title: string; severity: string; status: string }[];
+  risk_levels: { key: string; level: number; label: string }[];
   can_edit: boolean; can_generate: boolean;
   lead_review: { report_id: string | null; no_qa: boolean; lead_auditor_text: string; declarations: { kind: string; label: string; holders: string[]; signed_by: string | null; signed_at: string | null; can_sign: boolean }[] };
   release: { released: boolean; unmet: string[]; can_release: boolean };
@@ -27,6 +28,11 @@ type Data = {
 const PRIORITY = [{ value: 'critical', label: 'Critical' }, { value: 'high', label: 'High' }, { value: 'medium', label: 'Medium' }, { value: 'low', label: 'Low' }];
 const REPORT_STATUS: Record<string, { label: string; tone: 'muted' | 'navy' | 'success' }> = { draft: { label: 'Futran only', tone: 'muted' }, released: { label: 'With the client', tone: 'navy' }, final: { label: 'Final', tone: 'success' } };
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
+/** "High (4)": the level from the platform's one risk scale, as the report prints it. */
+const levelLabel = (levels: Data['risk_levels'], key: string) => {
+  const l = levels.find((x) => x.key === key);
+  return l ? `${l.label} (${l.level})` : cap(key);
+};
 
 /** Screen 18: the report workspace — executive summary, roadmap, versions, declarations, sign-offs 7 and 8. */
 export function FinalReport() {
@@ -124,7 +130,7 @@ function SummaryCard({ clientId, d, approved, onSaved }: { clientId: string; d: 
   return (
     <Card title="Executive summary">
       <div className="stack">
-        <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>{counts.map(([s, n]) => <Badge key={s} tone={SEV_TONE[s]}>{cap(s === 'observation' ? 'observations' : s)}: {n}</Badge>)}</div>
+        <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>{counts.map(([s, n]) => <Badge key={s} tone={SEV_TONE[s]}>{levelLabel(d.risk_levels, s)}: {n}</Badge>)}</div>
         {err && <Alert tone="danger">{err}</Alert>}
         <SelectField label="Most significant finding" value={v.most_significant_finding_id ?? ''} disabled={!d.can_edit} onChange={set('most_significant_finding_id')}
           options={[{ value: '', label: 'Choose a finding' }, ...approved.map((f) => ({ value: f.id, label: `${f.ref} ${f.title}` }))]} />
@@ -154,7 +160,7 @@ function RoadmapCard({ clientId, d, approved, run }: { clientId: string; d: Data
             <tbody>{d.roadmap.map((r) => (
               <tr key={r.id}>
                 <td style={{ whiteSpace: 'nowrap' }}>{r.ref}</td><td>{r.action}{r.finding_refs.length > 0 && <div className="small muted">{r.finding_refs.join(', ')}</div>}</td><td>{r.owner ?? '—'}</td>
-                <td><Badge tone={SEV_TONE[r.priority]}>{cap(r.priority)}</Badge></td><td>{fmtDate(r.target_date)}</td><td>{r.how_futran_can_help ?? '—'}</td>
+                <td><Badge tone={SEV_TONE[r.priority]}>{levelLabel(d.risk_levels, r.priority)}</Badge></td><td>{fmtDate(r.target_date)}</td><td>{r.how_futran_can_help ?? '—'}</td>
                 {d.can_edit && <td><Button size="sm" variant="ghost" onClick={() => run(() => api.delete(`/roadmap-items/${r.id}`), `${r.ref} removed.`)}>Remove</Button></td>}
               </tr>
             ))}</tbody>
