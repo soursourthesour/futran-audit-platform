@@ -23,10 +23,10 @@ async function checkLayout(page: Page, where: string) {
 
 test('attestation on a phone', async ({ page }) => {
   await page.goto(late().attest_link);
-  await expect(page.getByLabel('Your name')).toBeVisible();
+  await expect(page.getByLabel('Your name', { exact: true })).toBeVisible();
   await checkLayout(page, 'attestation start');
-  await page.getByLabel('Your name').fill('Mira Iyer');
-  await page.getByLabel('Department').selectOption({ label: 'Engineering' });
+  await page.getByLabel('Your name', { exact: true }).fill('Mira Iyer');
+  await page.getByLabel('Department', { exact: true }).selectOption({ label: 'Engineering' });
   await page.getByRole('button', { name: 'Next' }).click();
   await page.getByLabel('ChatGPT').check();
   await page.getByLabel('Personal, free').check();
@@ -37,7 +37,7 @@ test('attestation on a phone', async ({ page }) => {
   await page.getByLabel('Client or customer data').check();
   await checkLayout(page, 'attestation purposes');
   await page.getByRole('button', { name: 'Next', exact: true }).click();
-  await page.getByLabel('I have read the AI use policy').check();
+  await page.getByLabel('I have read the AI use policy', { exact: true }).check();
   await checkLayout(page, 'attestation policy');
   await page.getByRole('button', { name: 'Submit' }).click();
   await expect(page.getByRole('heading', { name: 'Thank you' })).toBeVisible();

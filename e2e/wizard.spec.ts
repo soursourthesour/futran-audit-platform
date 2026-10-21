@@ -2,7 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 
 async function signIn(page: Page, email: string) {
   await page.goto('/staff/login');
-  await page.getByLabel('Work email').fill(email);
+  await page.getByLabel('Work email', { exact: true }).fill(email);
   await page.getByLabel('Password').fill('Demo-Password-2026');
   await page.getByRole('button', { name: 'Sign in' }).click();
   await expect(page).toHaveURL(/\/audits$/);
@@ -21,7 +21,7 @@ test('auditor sets up a client, the Chief Auditor approves and the client signs 
 
   // Step 1
   await page.getByLabel('Legal name *').fill('ABC Corp Inc.');
-  await page.getByLabel('Trading name').fill('ABC Corp');
+  await page.getByLabel('Trading name', { exact: true }).fill('ABC Corp');
   await page.getByLabel('Industry *').selectOption('staffing');
   await page.getByLabel('250–999').check();
   await page.getByLabel('Number of AI systems in scope *').fill('2');
@@ -31,7 +31,7 @@ test('auditor sets up a client, the Chief Auditor approves and the client signs 
   await page.getByLabel('Postal code *').fill('10001');
   await page.getByLabel('Country *').selectOption('US');
   await page.getByLabel('Primary countries of operation *').selectOption('US');
-  await page.getByLabel('Why the client is engaging Futran').fill('ABC uses AI to screen and rank job applicants in New York and Chicago.');
+  await page.getByLabel('Why the client is engaging Futran', { exact: true }).fill('ABC uses AI to screen and rank job applicants in New York and Chicago.');
   await expect(page.getByRole('status')).toContainText('Saved');
   await page.getByRole('button', { name: 'Next: locations and laws' }).click();
 
@@ -72,7 +72,7 @@ test('auditor sets up a client, the Chief Auditor approves and the client signs 
   await page.getByLabel('Full name *').first().fill('Maria Lopez');
   await page.getByLabel('Job title *').fill('Chief AI Compliance Officer');
   await page.getByLabel('Work email *').first().fill('maria.lopez@abccorp.example');
-  await page.getByLabel(/Not appointed: Maria Lopez covers these duties/).check();
+  await page.getByLabel(/^Not appointed: Maria Lopez covers these duties/).check();
   await page.getByRole('button', { name: 'Next: review and submit' }).click();
 
   await page.getByRole('button', { name: 'Submit for approval' }).click();
@@ -90,9 +90,9 @@ test('auditor sets up a client, the Chief Auditor approves and the client signs 
   await page.getByRole('button', { name: 'Preview' }).first().click();
   await expect(page.getByRole('dialog').getByRole('heading', { name: /Engagement letter/ }).first()).toBeVisible();
   await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click();
-  await page.getByLabel('Scope, laws and departments are appropriate for this client').check();
-  await page.getByLabel('The team has no conflict of interest').check();
-  await expect(page.getByLabel('I have previewed the engagement letter')).toBeChecked();
+  await page.getByLabel('Scope, laws and departments are appropriate for this client', { exact: true }).check();
+  await page.getByLabel('The team has no conflict of interest', { exact: true }).check();
+  await expect(page.getByLabel('I have previewed the engagement letter', { exact: true })).toBeChecked();
   await page.screenshot({ path: 'screenshots/p3-package-review.png', fullPage: true });
   await page.getByRole('button', { name: 'Approve and send' }).click();
   await expect(page.getByText('Approved and sent.')).toBeVisible();
@@ -111,12 +111,12 @@ test('auditor sets up a client, the Chief Auditor approves and the client signs 
   await expect(page.getByText('Chief AI Compliance Officer').first()).toBeVisible();
   await page.screenshot({ path: 'screenshots/v03-accept-invitation.png' });
   await page.getByRole('button', { name: 'These are my details' }).click();
-  await page.getByLabel('New password').fill('Password12345');
-  await page.getByLabel('Confirm password').fill('Password12345');
+  await page.getByLabel('New password', { exact: true }).fill('Password12345');
+  await page.getByLabel('Confirm password', { exact: true }).fill('Password12345');
   await page.getByRole('button', { name: 'Set password and continue' }).click();
   await expect(page.getByText(/too common or appears in breached-password lists/)).toBeVisible();
-  await page.getByLabel('New password').fill('Client-Password-2026');
-  await page.getByLabel('Confirm password').fill('Client-Password-2026');
+  await page.getByLabel('New password', { exact: true }).fill('Client-Password-2026');
+  await page.getByLabel('Confirm password', { exact: true }).fill('Client-Password-2026');
   await page.getByRole('button', { name: 'Set password and continue' }).click();
   await expect(page.getByRole('heading', { name: 'Before you start' })).toBeVisible({ timeout: 15_000 });
   await page.getByLabel(/I accept the terms of use/).check();
@@ -126,15 +126,15 @@ test('auditor sets up a client, the Chief Auditor approves and the client signs 
   await expect(page.getByText('1 of 7 complete')).toBeVisible();
   await page.screenshot({ path: 'screenshots/p3-client-checklist.png', fullPage: true });
   await page.getByRole('button', { name: 'Review and sign' }).click();
-  await page.getByLabel('Type your full name to sign').fill('Maria Lopez');
-  await page.getByLabel(/I have read the document and agree/).check();
+  await page.getByLabel('Type your full name to sign', { exact: true }).fill('Maria Lopez');
+  await page.getByLabel(/^I have read the document and agree/).check();
   await page.getByRole('button', { name: 'Sign', exact: true }).click();
   await expect(page.getByText('2 of 7 complete')).toBeVisible();
 
   // Client sets up departments and users (Phase 4)
   await page.getByRole('link', { name: 'People' }).click();
   for (const d of ['HR and recruiting', 'Engineering and IT']) {
-    await page.getByLabel('New department').fill(d);
+    await page.getByLabel('New department', { exact: true }).fill(d);
     await page.getByRole('button', { name: 'Add', exact: true }).click();
     await expect(page.getByText(d, { exact: true })).toBeVisible();
   }
@@ -145,7 +145,7 @@ test('auditor sets up a client, the Chief Auditor approves and the client signs 
   await expect(page.getByText("Row 4: Department 'Legal' is not in the department list.")).toBeVisible();
   await page.getByRole('button', { name: 'Import 2 ready rows' }).click();
   await expect(page.getByText('Imported 2 users.')).toBeVisible();
-  await page.getByLabel('Not appointed').first().click();
+  await page.getByLabel('Not appointed', { exact: true }).first().click();
   await expect(page.getByText('Not appointed: the Chief AI Compliance Officer covers this role').first()).toBeVisible();
   await page.screenshot({ path: 'screenshots/p4-people.png', fullPage: true });
 
@@ -154,8 +154,8 @@ test('auditor sets up a client, the Chief Auditor approves and the client signs 
   await expect(page.getByRole('heading', { name: 'AI governance structure' })).toBeVisible();
   const committee = page.getByRole('group', { name: 'Answer for AI governance committee' });
   await committee.getByRole('button', { name: 'In place' }).click();
-  await page.getByLabel('Chair').fill('Maria Lopez');
-  await page.getByLabel('Member 1').fill('Raj Iyer');
+  await page.getByLabel('Chair', { exact: true }).fill('Maria Lopez');
+  await page.getByLabel('Member 1', { exact: true }).fill('Raj Iyer');
   await page.getByRole('button', { name: 'Save answer' }).click();
   await expect(page.getByText('In place · chair Maria Lopez, Raj Iyer')).toBeVisible();
   const bias = page.getByRole('group', { name: 'Answer for Bias and fairness review committee' });
@@ -178,8 +178,8 @@ test('auditor sets up a client, the Chief Auditor approves and the client signs 
   const p2 = await phone.newPage();
   for (const [i, name] of ['Sam Lee', 'Ana Diaz', 'Tom Reyes'].entries()) {
     await p2.goto(tracker.campaign.link);
-    await p2.getByLabel('Your name').fill(name);
-    await p2.getByLabel('Department').selectOption({ label: 'HR and recruiting' });
+    await p2.getByLabel('Your name', { exact: true }).fill(name);
+    await p2.getByLabel('Department', { exact: true }).selectOption({ label: 'HR and recruiting' });
     await p2.getByRole('button', { name: 'Next' }).click();
     await p2.getByLabel('ChatGPT').check();
     await p2.getByLabel('Personal, free').check();
@@ -188,7 +188,7 @@ test('auditor sets up a client, the Chief Auditor approves and the client signs 
     await p2.getByLabel('Writing and editing').check();
     await p2.getByLabel('Client or customer data').check();
     await p2.getByRole('button', { name: 'Next', exact: true }).click();
-    await p2.getByLabel('I have read the AI use policy').check();
+    await p2.getByLabel('I have read the AI use policy', { exact: true }).check();
     await p2.getByRole('button', { name: 'Submit' }).click();
     await expect(p2.getByRole('heading', { name: 'Thank you' })).toBeVisible();
   }
@@ -207,11 +207,11 @@ test('auditor sets up a client, the Chief Auditor approves and the client signs 
   await page.getByLabel('Personal information (PII)').check();
   await page.getByLabel(/Substantially assists or makes decisions/).check();
   await expect(page.getByText('Tier 3 · High-risk')).toBeVisible();
-  await page.getByLabel('Role').first().fill('Recruiter');
-  await page.getByLabel('Headcount').fill('4');
+  await page.getByLabel('Role', { exact: true }).first().fill('Recruiter');
+  await page.getByLabel('Headcount', { exact: true }).fill('4');
   await page.getByRole('button', { name: 'Add named user' }).click();
   await page.getByLabel('Name', { exact: true }).fill('Lee Park');
-  await page.getByLabel('Work email').fill('lee.park@abccorp.example');
+  await page.getByLabel('Work email', { exact: true }).fill('lee.park@abccorp.example');
   await page.getByLabel('Human oversight role *').fill('Reviews the ranked list before interviews');
   await page.screenshot({ path: 'screenshots/p4-use-case.png', fullPage: true });
   await page.getByRole('button', { name: 'Submit to Department Lead' }).click();
@@ -222,8 +222,8 @@ test('auditor sets up a client, the Chief Auditor approves and the client signs 
   await page.getByRole('table').getByRole('link', { name: 'ABC Corp' }).click();
   await page.getByRole('link', { name: 'AI inventory and tiers' }).click();
   await page.getByRole('link', { name: 'Résumé screening for NYC roles' }).click();
-  await page.getByLabel('Rationale').fill('Ranks applicants for NYC roles; likely an AEDT under Local Law 144.');
-  await page.getByLabel('AEDT determination (NYC employment use)').selectOption('in_scope');
+  await page.getByLabel('Rationale', { exact: true }).fill('Ranks applicants for NYC roles; likely an AEDT under Local Law 144.');
+  await page.getByLabel('AEDT determination (NYC employment use)', { exact: true }).selectOption('in_scope');
   await page.getByRole('button', { name: 'Save final tier' }).click();
   await expect(page.getByText('Final tier (Futran)')).toBeVisible();
 
@@ -232,7 +232,7 @@ test('auditor sets up a client, the Chief Auditor approves and the client signs 
   await page.goto(`/clients/${clientId}/systems`);
   await expect(page.getByText('1 Tier 3 use case is not mapped to a system')).toBeVisible();
   await page.getByRole('button', { name: 'Map use case' }).click();
-  await page.getByLabel('Built by').selectOption({ label: 'Vendor' });
+  await page.getByLabel('Built by', { exact: true }).selectOption({ label: 'Vendor' });
   await page.getByRole('button', { name: 'Send for approval' }).click();
   await expect(page.getByText('Sent to the Engagement Manager for approval.')).toBeVisible();
   await signOut(page);
@@ -252,9 +252,9 @@ test('auditor sets up a client, the Chief Auditor approves and the client signs 
   await expect(card('3.1.01').getByText('Saved')).toBeVisible();
   await page.getByRole('navigation', { name: 'Sections' }).getByRole('button', { name: /§3.3 / }).click();
   await card('3.3.02').getByLabel(/Human-assisted/).check();
-  await card('3.3.02').getByLabel('Source person').fill('Priya Shah');
-  await card('3.3.02').getByLabel('Source title').fill('Head of HR');
-  await card('3.3.02').getByLabel('Verified').check();
+  await card('3.3.02').getByLabel('Source person', { exact: true }).fill('Priya Shah');
+  await card('3.3.02').getByLabel('Source title', { exact: true }).fill('Head of HR');
+  await card('3.3.02').getByLabel('Verified', { exact: true }).check();
   await card('3.3.02').getByRole('button', { name: 'Save' }).click();
   await expect(card('3.3.02').getByText('Verified', { exact: true }).first()).toBeVisible();
   await page.getByRole('navigation', { name: 'Sections' }).getByRole('button', { name: /§6.2 / }).click();

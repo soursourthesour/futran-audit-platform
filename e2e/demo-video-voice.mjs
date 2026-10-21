@@ -289,9 +289,9 @@ await step('approve northwind', async () => {
   await go(`/clients/${northwind}/setup/submit`);
   await cap('The initiation package: engagement letter, roles note, user and department templates, data notice, getting-started guide and governance request, all generated from the wizard.', 5500);
   await scroll(600);
-  await page.getByLabel('Scope, laws and departments are appropriate for this client').check(); await page.waitForTimeout(400);
-  await page.getByLabel('The team has no conflict of interest').check(); await page.waitForTimeout(400);
-  await page.getByLabel('I have previewed the engagement letter').check(); await page.waitForTimeout(400);
+  await page.getByLabel('Scope, laws and departments are appropriate for this client', { exact: true }).check(); await page.waitForTimeout(400);
+  await page.getByLabel('The team has no conflict of interest', { exact: true }).check(); await page.waitForTimeout(400);
+  await page.getByLabel('I have previewed the engagement letter', { exact: true }).check(); await page.waitForTimeout(400);
   await cap('The Chief Auditor confirms the checklist and approves. The client is invited by email.', 3000);
   await page.getByRole('button', { name: 'Approve and send' }).click();
   await page.waitForLoadState('networkidle'); await page.waitForTimeout(1500);
@@ -318,8 +318,8 @@ await step('meridian notice and campaign', async () => {
 await step('attestation form', async () => {
   await page.goto(base + attestLink); await page.waitForLoadState('networkidle');
   await cap('An employee opens the link, usually on a phone. No account and four short steps; the page is built for a phone screen.', 3600);
-  await type(page.getByLabel('Your name'), 'Mira Iyer');
-  await page.getByLabel('Department').selectOption({ label: 'Engineering' });
+  await type(page.getByLabel('Your name', { exact: true }), 'Mira Iyer');
+  await page.getByLabel('Department', { exact: true }).selectOption({ label: 'Engineering' });
   await page.getByRole('button', { name: 'Next' }).click(); await page.waitForTimeout(700);
   await page.getByLabel('ChatGPT').check(); await page.getByLabel('Personal, free').check();
   await cap('Which AI tools, and on what kind of account.', 2600);
@@ -327,7 +327,7 @@ await step('attestation form', async () => {
   await page.getByLabel('Writing and editing').check(); await page.getByLabel('Client or customer data').check();
   await cap('What they use it for, and what data goes in.', 2600);
   await page.getByRole('button', { name: 'Next', exact: true }).click(); await page.waitForTimeout(700);
-  await page.getByLabel('I have read the AI use policy').check();
+  await page.getByLabel('I have read the AI use policy', { exact: true }).check();
   await page.getByRole('button', { name: 'Submit' }).click(); await page.waitForTimeout(1200);
   await cap('Submitted. The answer is recorded against the department straight away.', 3000);
 });

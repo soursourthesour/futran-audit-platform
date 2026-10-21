@@ -10,7 +10,7 @@ const shot = (page: Page, name: string) => page.screenshot({ path: `screenshots/
 async function staff(page: Page, email: string) {
   await page.context().clearCookies();
   await page.goto('/staff/login');
-  await page.getByLabel('Work email').fill(email);
+  await page.getByLabel('Work email', { exact: true }).fill(email);
   await page.getByLabel('Password').fill(PW);
   await page.getByRole('button', { name: 'Sign in' }).click();
   await expect(page).toHaveURL(/\/audits$/);
@@ -19,7 +19,7 @@ async function staff(page: Page, email: string) {
 async function clientUser(page: Page, email: string) {
   await page.context().clearCookies();
   await page.goto('/login');
-  await page.getByLabel('Work email').fill(email);
+  await page.getByLabel('Work email', { exact: true }).fill(email);
   await page.getByLabel('Password').fill(PW);
   await page.getByRole('button', { name: 'Sign in' }).click();
   await expect(page).not.toHaveURL(/\/login/);
@@ -35,7 +35,7 @@ async function api(page: Page, method: 'GET' | 'POST' | 'PUT', path: string, dat
 
 async function sign(page: Page, name: string, card: string) {
   const panel = page.locator('.card').filter({ hasText: card });
-  await panel.getByLabel('Type your full name to sign').fill(name);
+  await panel.getByLabel('Type your full name to sign', { exact: true }).fill(name);
   await panel.getByRole('checkbox').check();
   await panel.getByRole('button', { name: 'Sign', exact: true }).click();
 }
@@ -61,12 +61,12 @@ test('review to close: sign-off 5, report and declarations, responses, final rep
   await page.goto(`/clients/${abc}/report`);
   await page.getByLabel('Most significant finding').selectOption({ index: 1 });
   await page.getByLabel('Its potential impact').fill('The résumé screening tool ranks New York applicants without a current bias audit.');
-  await page.getByLabel('Greatest strengths observed').fill('A monthly AI governance committee chaired by the CAICO, and quarterly validation of the invoice model.');
-  await page.getByLabel('Immediate actions required (within 30 days)').fill('Commission an independent bias audit before further use on New York roles.');
+  await page.getByLabel('Greatest strengths observed', { exact: true }).fill('A monthly AI governance committee chaired by the CAICO, and quarterly validation of the invoice model.');
+  await page.getByLabel('Immediate actions required (within 30 days)', { exact: true }).fill('Commission an independent bias audit before further use on New York roles.');
   await page.getByRole('button', { name: 'Save executive summary' }).click();
   await expect(page.getByText('Executive summary saved.')).toBeVisible();
   await page.getByRole('button', { name: 'Add item' }).click();
-  await page.getByLabel('Recommended action').fill('Commission an independent bias audit and publish the summary');
+  await page.getByLabel('Recommended action', { exact: true }).fill('Commission an independent bias audit and publish the summary');
   await page.getByLabel('Responsible owner').fill('Head of HR');
   await page.getByLabel('How Futran can help').fill('Futran runs LL144 bias audits.');
   await page.getByRole('button', { name: 'Add to roadmap' }).click();
@@ -79,7 +79,7 @@ test('review to close: sign-off 5, report and declarations, responses, final rep
   for (const [email, name, label] of [['chief@futran.demo', 'Dana Whitfield', 'Lead Auditor'], ['em@futran.demo', 'Elena Brooks', 'Engagement Manager'], ['qa@futran.demo', 'Quinn Taylor', 'Quality Reviewer']]) {
     await staff(page, email);
     await page.goto(`/clients/${abc}/report`);
-    await page.getByLabel('Type your full name to sign').fill(name);
+    await page.getByLabel('Type your full name to sign', { exact: true }).fill(name);
     await page.getByRole('button', { name: 'Sign', exact: true }).click();
     await expect(page.getByText(`${label} declaration signed.`)).toBeVisible();
   }
@@ -151,7 +151,7 @@ test('review to close: sign-off 5, report and declarations, responses, final rep
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Report' }).click();
   await expect(page.getByText('Signing confirms you have received and read this report. It does not mean you agree with every finding.')).toBeVisible();
   await sign(page, 'Maria Lopez', 'Public summary');
-  await page.locator('.card').filter({ hasText: 'Acknowledge the final report' }).getByLabel('Type your full name to sign').fill('Maria Lopez');
+  await page.locator('.card').filter({ hasText: 'Acknowledge the final report' }).getByLabel('Type your full name to sign', { exact: true }).fill('Maria Lopez');
   await page.getByRole('button', { name: 'Sign acknowledgement' }).click();
   await expect(page.getByText('Acknowledged', { exact: true })).toBeVisible();
   await shot(page, 'p6-client-report');
@@ -159,7 +159,7 @@ test('review to close: sign-off 5, report and declarations, responses, final rep
   // Stage 9: owners mark items done, the auditor verifies, the Chief Auditor closes
   await clientUser(page, `priya.shah@${ABC}`);
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Remediation' }).click();
-  await page.getByLabel('What was done').fill('Bias audit commissioned; summary published on the careers page.');
+  await page.getByLabel('What was done', { exact: true }).fill('Bias audit commissioned; summary published on the careers page.');
   await page.getByRole('button', { name: 'Mark done' }).click();
   await expect(page.getByText('Marked done. Futran has been told.')).toBeVisible();
   for (const it of (await api(page, 'GET', `/clients/${abc}/remediation`)).items.filter((x: { can_act: boolean; status: string }) => x.can_act && x.status !== 'awaiting_verification')) {
@@ -171,7 +171,7 @@ test('review to close: sign-off 5, report and declarations, responses, final rep
   }
   await staff(page, 'auditor1@futran.demo');
   await page.goto(`/clients/${abc}/remediation`);
-  await page.getByLabel('Verification note').fill('Evidence reviewed and accepted.');
+  await page.getByLabel('Verification note', { exact: true }).fill('Evidence reviewed and accepted.');
   await page.getByRole('button', { name: 'Verify, send to Chief Auditor' }).click();
   await expect(page.getByText('Verified and sent to the Chief Auditor.')).toBeVisible();
   for (const it of (await api(page, 'GET', `/clients/${abc}/remediation`)).items.filter((x: { can_verify: boolean }) => x.can_verify)) {
