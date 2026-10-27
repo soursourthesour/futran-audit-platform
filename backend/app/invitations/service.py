@@ -102,6 +102,9 @@ def accept_invitation(db: Session, settings: Settings, raw: str, password: str) 
     inv.accepted_at = utcnow()
     audit.record(db, actor_id=user.id, action="invitation.accepted", obj=inv, summary=f"{user.email} accepted the invitation")
     db.flush()
+    from app.attestation.service import on_user_activated
+
+    on_user_activated(db, settings, user)  # an attestation already sent reaches them too
     return user
 
 

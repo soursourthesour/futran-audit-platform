@@ -91,7 +91,7 @@ def test_aggregate_viewers_see_no_small_counts_or_free_text(client, db, inv):
     t = client.get(f"/api/v1/clients/{cid}/attestation").json()
     assert {d["name"]: d["responses"] for d in t["departments"]} == {"Finance": "fewer than 3", "HR": 3}
     assert t["totals"]["responses"] == "hidden" and t["totals"]["personal_accounts"] == "fewer than 3"
-    assert {"label": "Claude · personal, free", "count": "fewer than 3"} in t["tools"]
+    assert {"label": "Claude · personal, free", "count": "fewer than 3", "kind": "tool"} in t["tools"]
     tools = client.get(f"/api/v1/clients/{cid}/inventory").json()["tools"]
     assert all(x["declared_count"] is None for x in tools)
     assert not any("Bob" in x["product"] for x in tools)

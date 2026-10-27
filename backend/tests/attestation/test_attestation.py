@@ -112,7 +112,7 @@ def test_dept_counts_under_3_masked(client, db, people, ready):
     rows = {d["name"]: d["responses"] for d in t["departments"]}
     assert rows == {"HR": 3, "Finance": "fewer than 3"}
     assert t["totals"]["responses"] == 4 and t["totals"]["personal_accounts"] == 4
-    assert {"label": "ChatGPT · personal, free", "count": 4} in t["tools"]
+    assert {"label": "ChatGPT · personal, free", "count": 4, "kind": "tool"} in t["tools"]
     assert len(t["individuals"]) == 4  # the CAICO sees individual answers
     assert db.scalar(select(AuditLog).where(AuditLog.action == "attestation.view_individual")) is not None
 

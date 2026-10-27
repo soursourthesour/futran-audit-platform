@@ -23,7 +23,6 @@ IMPACTS = ("none", "informs", "consequential")
 AEDT = ("in_scope", "out_of_scope", "undetermined")
 LINK_DAYS = 14
 TIER_NAMES = {1: "Tier 1 · Baseline", 2: "Tier 2 · Elevated", 3: "Tier 3 · High-risk"}
-ATTESTATION_TOOLS = {"chatgpt": ("OpenAI", "ChatGPT"), "copilot": ("Microsoft", "Copilot"), "claude": ("Anthropic", "Claude"), "gemini": ("Google", "Gemini")}
 ATTESTATION_ACCOUNTS = {"company": "enterprise", "personal_free": "personal_free", "personal_paid": "personal_paid", "unknown": "unknown"}
 
 
@@ -107,6 +106,8 @@ def save_tool(db: Session, actor: User, org: Organization, data: dict, tool: AIT
         db.add(tool)
     tool.vendor, tool.product, tool.account_type = vendor, product, acct
     tool.plan = str(data.get("plan") or "").strip()[:80] or None
+    if data.get("kind") in ("tool", "agent"):
+        tool.kind = data["kind"]
     tool.training_on_inputs = data.get("training_on_inputs", tool.training_on_inputs or "unknown")
     if "sso" in data:
         tool.sso = None if data["sso"] is None else bool(data["sso"])
@@ -120,23 +121,28 @@ def save_tool(db: Session, actor: User, org: Organization, data: dict, tool: AIT
 
 
 def sync_tools_from_attestations(db: Session, org_id: str) -> None:
-    """Every tool employees declare becomes an inventory tool (matched case-insensitively); declared counts are
-    recomputed from current answers, so replaced answers and repeated entries never inflate them."""
+    """Every tool and agent employees declare becomes an inventory row (matched case-insensitively); declared counts are
+    recomputed from current answers, so replaced or removed answers and repeated entries never inflate them."""
     from app.attestation.models import Attestation
+    from app.attestation.service import inventory_identity
 
     counts: dict[tuple[str, str, str], int] = {}
+    kinds: dict[tuple[str, str, str], str] = {}
     for a in db.scalars(select(Attestation).where(Attestation.organization_id == org_id, Attestation.superseded_by_id.is_(None), Attestation.deleted_at.is_(None))):
         for t in {(t["tool"], t["account_type"], (t.get("name") or "")) for t in a.tools_declared or []}:
-            vendor, product = ATTESTATION_TOOLS.get(t[0], ("Other", t[2] or "Unnamed AI tool"))
+            vendor, product, kind = inventory_identity(t[0], t[2] or None)
             key = (vendor, product, ATTESTATION_ACCOUNTS.get(t[1], "unknown"))
             counts[key] = counts.get(key, 0) + 1
+            kinds[key] = kind
     for tool in tools_for(db, org_id):
         tool.declared_count = 0
     for (vendor, product, acct), n in counts.items():
         tool = _find_tool(db, org_id, vendor, product, acct)
         if tool is None:
-            tool = AITool(organization_id=org_id, vendor=vendor, product=product, account_type=acct, source="attestation")
+            tool = AITool(organization_id=org_id, vendor=vendor, product=product, account_type=acct, source="attestation", kind=kinds[(vendor, product, acct)])
             db.add(tool)
+        elif tool.source == "attestation":
+            tool.kind = kinds[(vendor, product, acct)]
         tool.declared_count = n
     db.flush()
 

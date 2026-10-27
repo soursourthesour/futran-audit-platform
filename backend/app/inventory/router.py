@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.attestation.service import TYPED_VENDORS
 from app.auth.deps import Actor, current_actor
 from app.core.db import get_db
 from app.core.errors import Forbidden, NotFound
@@ -56,7 +57,7 @@ def _may(db: Session, actor: Actor, action: Action, engagement_id: str) -> bool:
 
 
 def tool_out(t: AITool, counts: bool = True) -> dict:
-    return {"id": t.id, "vendor": t.vendor, "product": t.product, "plan": t.plan, "account_type": t.account_type, "sso": t.sso, "training_on_inputs": t.training_on_inputs, "retention_terms": t.retention_terms, "approval_status": t.approval_status, "source": t.source, "declared_count": t.declared_count if counts else None}
+    return {"id": t.id, "vendor": t.vendor, "product": t.product, "plan": t.plan, "account_type": t.account_type, "sso": t.sso, "training_on_inputs": t.training_on_inputs, "retention_terms": t.retention_terms, "approval_status": t.approval_status, "source": t.source, "kind": t.kind or "tool", "declared_count": t.declared_count if counts else None}
 
 
 def use_case_out(db: Session, uc: UseCase, detail: bool = False) -> dict:
@@ -91,7 +92,7 @@ def get_inventory(client_id: str, actor: Actor = Depends(current_actor), db: Ses
     depts = db.scalars(select(Department).where(Department.organization_id == org.id, Department.deleted_at.is_(None), Department.in_scope.is_(True)).order_by(Department.name))
     # Declared counts and employee-typed tool names come from individual attestations: aggregate viewers don't see them.
     individual = _may(db, actor, Action.VIEW_INDIVIDUAL_ATTESTATIONS, e.id)
-    tools = [t for t in inv.tools_for(db, org.id) if individual or not (t.source == "attestation" and t.vendor == "Other" and t.approval_status == "unreviewed")]
+    tools = [t for t in inv.tools_for(db, org.id) if individual or not (t.source == "attestation" and t.vendor in TYPED_VENDORS and t.approval_status == "unreviewed")]
     return {
         "tools": [tool_out(t, counts=individual) for t in tools],
         "use_cases": [use_case_out(db, u) for u in ucs],

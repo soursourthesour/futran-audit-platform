@@ -22,6 +22,7 @@ class AITool(TimestampedTenantMixin, Base):
     approval_status: Mapped[str] = mapped_column(String(16), default="unreviewed")  # unreviewed | approved | not_approved
     source: Mapped[str] = mapped_column(String(12), default="manual")  # manual | attestation
     declared_count: Mapped[int] = mapped_column(Integer, default=0)
+    kind: Mapped[str] = mapped_column(String(8), default="tool", server_default="tool")  # tool | agent (acts for the user, not only answers)
 
 
 class UseCase(TimestampedTenantMixin, Base):

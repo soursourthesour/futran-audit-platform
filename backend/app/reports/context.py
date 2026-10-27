@@ -170,7 +170,7 @@ def scope_facts(db: Session, e: Engagement, systems: list) -> dict:
         "answers": count(select(func.count(Response.id)).where(Response.engagement_id == e.id, Response.deleted_at.is_(None), Response.status.in_(["answered", "not_yet_in_place"]))),
         "documents_requested": len(docs), "documents_received": sum(1 for d in docs if d.status == "received"),
         "evidence_requests": count(select(func.count(EvidenceRequest.id)).where(EvidenceRequest.engagement_id == e.id, EvidenceRequest.deleted_at.is_(None))),
-        "attestations": count(select(func.count(Attestation.id)).where(Attestation.engagement_id == e.id, Attestation.deleted_at.is_(None))),
+        "attestations": count(select(func.count(Attestation.id)).where(Attestation.engagement_id == e.id, Attestation.deleted_at.is_(None), Attestation.superseded_by_id.is_(None))),  # one per person: replaced and removed answers do not count
     }
 
 

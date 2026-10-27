@@ -53,3 +53,7 @@ class Action(StrEnum):
     MANAGE_SYSTEMS = "manage_systems"
     SIGN_CLIENT_SIGNOFF = "sign_client_signoff"
     ADVANCE_STAGE = "advance_stage"
+    # attestation changes, 27 October
+    SEND_ATTESTATION = "send_attestation"  # give every client user with a login an attestation line item
+    COMPLETE_OWN_ATTESTATION = "complete_own_attestation"  # see and answer one's own line item
+    MANAGE_ATTESTATION_ANSWERS = "manage_attestation_answers"  # mark reviewed, correct, remove individual answers

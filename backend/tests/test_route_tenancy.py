@@ -17,7 +17,7 @@ SKIP_PARAMS = {"token", "preview_id", "run_id", "law_id", "notification_id"}  # 
 
 def _ids(db, abc_org_id: str) -> dict:
     """Factories: (path prefix, parameter) → an ABC object id."""
-    from app.attestation.models import AttestationCampaign  # noqa: F401
+    from app.attestation.models import Attestation, AttestationCampaign  # noqa: F401
     from app.docrequests.models import DocumentRequest, EvidenceRequest
     from app.engagements.models import Engagement
     from app.files.models import FileObject
@@ -44,6 +44,7 @@ def _ids(db, abc_org_id: str) -> dict:
         "named_user_id": one(NamedUser, org(NamedUser)), "report_id": one(Report, org(Report)), "so_id": one(SignOff, org(SignOff)),
         "system_id": one(AISystem, org(AISystem)), "tool_id": one(AITool, org(AITool)), "uc_id": one(UseCase, org(UseCase)), "vendor_id": one(Vendor, org(Vendor)),
         "request_id": one(SystemAdditionRequest, org(SystemAdditionRequest)),
+        "answer_id": one(Attestation, org(Attestation)),
         ("/governance/items", "item_id"): one(GovernanceItem, org(GovernanceItem)),
         ("/remediation", "item_id"): one(RemediationItem, org(RemediationItem)),
         ("/roadmap-items", "item_id"): one(RoadmapItem, org(RoadmapItem)),
