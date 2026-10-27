@@ -118,21 +118,59 @@ def ensure_package(db: Session, settings: Settings, actor: User, e: Engagement) 
     return pkg
 
 
-def edit_document(db: Session, settings: Settings, actor: User, doc: PackageDocument, body_md: str) -> PackageDocument:
+def document_signed(db: Session, doc: PackageDocument) -> bool:
+    """True once anyone has signed a sign-off over this document (the engagement letter at sign-off 1)."""
+    from app.signoffs.models import Signature, SignOff
+
+    return db.scalar(select(Signature.id).join(SignOff, SignOff.id == Signature.sign_off_id).where(SignOff.document_version_id == doc.id, SignOff.deleted_at.is_(None)).limit(1)) is not None
+
+
+def edit_block(db: Session, doc: PackageDocument) -> str | None:
+    """Why this document cannot be edited now, or None. Editable: items in EDITABLE_ITEMS of the current package, while the
+    Chief Auditor reviews the package or, once it is sent, while the engagement is live and nobody has signed the document."""
     pkg = db.get(InitiationPackage, doc.package_id)
-    if pkg.status != "draft":
-        raise Conflict("This package has been sent or replaced. Documents can no longer be changed.")
-    if db.get(Engagement, doc.engagement_id).status != "pending_approval":
-        raise Conflict("Documents can be edited only while the engagement is awaiting your approval.")
-    if doc.item not in EDITABLE_ITEMS:
-        raise Conflict("This document is generated from the engagement details. Change those instead.")
+    e = db.get(Engagement, doc.engagement_id)
+    if doc.item not in EDITABLE_ITEMS or doc.format != "md":
+        return "This document is generated from the engagement details. Change those instead."
+    if pkg.status == "draft":
+        if e.status != "pending_approval":
+            return "Documents can be edited only while the engagement is awaiting your approval."
+        return None
+    if pkg.status != "sent":
+        return "This package has been replaced. Documents can no longer be changed."
+    if e.status not in ("initiated", "in_progress"):
+        return "This engagement is closed. Its documents can no longer be changed."
+    if document_signed(db, doc):
+        return "This document has been signed, so it can't be edited. A change needs a sign-off correction."
+    return None
+
+
+def edit_document(db: Session, settings: Settings, actor: User, doc: PackageDocument, body_md: str) -> PackageDocument:
+    block = edit_block(db, doc)
+    if block:
+        raise Conflict(block)
     if not body_md.strip():
         raise Invalid(errors=[{"field": "body_md", "message": "The document cannot be empty."}])
+    pkg = db.get(InitiationPackage, doc.package_id)
+    e = db.get(Engagement, doc.engagement_id)
     before = doc.body_md
     doc.body_md, doc.edited, doc.updated_by = body_md, True, actor.id
-    _write_files(db, settings, actor, db.get(Engagement, doc.engagement_id), doc)
-    audit.record(db, actor_id=actor.id, action="package.edit_document", obj=doc, before={"body_md": before[:2000]}, after={"body_md": body_md[:2000]}, summary=f"Edited {doc.title}")
+    _write_files(db, settings, actor, e, doc)
+    audit.record(db, actor_id=actor.id, action="package.edit_document", obj=doc, before={"body_md": before[:2000]}, after={"body_md": body_md[:2000]},
+                 summary=f"Edited {doc.title}" + (" after it was sent to the client" if pkg.status == "sent" else ""))
+    if pkg.status == "sent" and before != body_md:
+        _tell_client_document_changed(db, settings, e, doc)
     return doc
+
+
+def _tell_client_document_changed(db: Session, settings: Settings, e: Engagement, doc: PackageDocument) -> None:
+    """The client contacts who received the package see an in-app notice that the document changed."""
+    from app.notifications.service import notify
+
+    ids = [c.user_id for c in db.scalars(select(ClientContact).where(ClientContact.engagement_id == e.id, ClientContact.deleted_at.is_(None), ClientContact.user_id.is_not(None)))]
+    users = list(db.scalars(select(User).where(User.id.in_(ids), User.deleted_at.is_(None)))) if ids else []
+    notify(db, users, "document_changed", f"{doc.title} has been updated",
+           f"Futran updated this document in your initiation package for {e.audit_ref}. The current version is on your getting started page.", "/start", engagement=e, settings=settings)
 
 
 def _client_user(db: Session, org: Organization, contact: ClientContact, role: str, actor: User) -> tuple[User, bool]:

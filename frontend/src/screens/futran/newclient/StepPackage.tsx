@@ -5,6 +5,7 @@ import { api, errorMessage, fieldErrors } from '@/api/client';
 import { hasRole, useMe } from '@/api/auth';
 import { Alert, Badge, Button, Card, Checkbox, Dialog, Loading, TextArea, fileUrl } from '@/components/ui';
 import { DocPreview } from '@/components/DocPreview';
+import { DocEditDialog } from '@/components/DocEditDialog';
 import { packageHelp as H } from '@/help/onboarding';
 import { useWizardCtx } from './Wizard';
 
@@ -23,7 +24,7 @@ export function StepPackage() {
   const [message, setMessage] = useState(DEFAULT_MESSAGE(client));
   const [checks, setChecks] = useState({ scope_ok: false, no_conflict: false, letter_previewed: false });
   const [preview, setPreview] = useState<Doc | null>(null);
-  const [editing, setEditing] = useState<{ doc: Doc; body: string } | null>(null);
+  const [editing, setEditing] = useState<Doc | null>(null);
   const [returning, setReturning] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [fe, setFe] = useState<Record<string, string>>({});
@@ -34,19 +35,6 @@ export function StepPackage() {
   if (pkg.isError || !pkg.data) return <Alert tone="danger">{errorMessage(pkg.error)}</Alert>;
   const p = pkg.data;
 
-  async function openEdit(doc: Doc) {
-    const r = await api.get<{ body_md: string }>(`/packages/documents/${doc.id}/preview`);
-    setEditing({ doc, body: r.body_md });
-  }
-  async function saveEdit() {
-    if (!editing) return;
-    try {
-      await api.put(`/packages/documents/${editing.doc.id}`, { body_md: editing.body });
-      await qc.invalidateQueries({ queryKey: ['package', clientId] });
-      await qc.invalidateQueries({ queryKey: ['doc-preview', editing.doc.id] });
-      setEditing(null);
-    } catch (ex) { setErr(errorMessage(ex)); }
-  }
   async function approve() {
     setErr(null); setFe({}); setBusy(true);
     try {
@@ -78,7 +66,7 @@ export function StepPackage() {
                     <div className="small muted">{d.action_label}</div>
                     <div className="row small" style={{ gap: 12, marginTop: 4 }}>
                       <button type="button" className="link-btn" onClick={() => { setPreview(d); if (d.item === 1) setChecks((c) => ({ ...c, letter_previewed: true })); }}>Preview</button>
-                      {d.editable && isChief && <button type="button" className="link-btn" onClick={() => openEdit(d)}>Edit</button>}
+                      {d.editable && isChief && <button type="button" className="link-btn" onClick={() => setEditing(d)}>Edit</button>}
                       {d.pdf_file_id && <a href={fileUrl(d.pdf_file_id)}>PDF</a>}
                       {d.docx_file_id && <a href={fileUrl(d.docx_file_id)}>Word</a>}
                       {d.csv_file_id && <a href={fileUrl(d.csv_file_id)}>CSV</a>}
@@ -120,15 +108,7 @@ export function StepPackage() {
         ) : <Alert tone="info">Waiting for the Chief Auditor to approve and send this package.</Alert>}
       </div>
       {preview && <DocPreview docId={preview.id} title={preview.title} onClose={() => setPreview(null)} />}
-      {editing && (
-        <Dialog title={`Edit: ${editing.doc.title}`} onClose={() => setEditing(null)} wide>
-          <div className="stack">
-            <p className="small muted">This changes the document for this client only. To change it for every client, edit the template under Templates.</p>
-            <TextArea label="Document text (Markdown)" help={H.documentText} value={editing.body} onChange={(e) => setEditing({ ...editing, body: e.target.value })} rows={18} style={{ fontFamily: 'ui-monospace, monospace', fontSize: 13 }} />
-            <div className="row"><Button variant="primary" onClick={saveEdit}>Save document</Button><Button onClick={() => setEditing(null)}>Cancel</Button></div>
-          </div>
-        </Dialog>
-      )}
+      {editing && <DocEditDialog docId={editing.id} title={editing.title} onClose={() => setEditing(null)} onSaved={() => { void qc.invalidateQueries({ queryKey: ['package', clientId] }); }} />}
       {returning !== null && (
         <Dialog title="Return to the author" onClose={() => setReturning(null)}>
           <div className="stack">

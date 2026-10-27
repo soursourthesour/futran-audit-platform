@@ -2,20 +2,29 @@ import { Fragment, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
-import { Alert, Badge, Button, Card, EmptyState, Loading, PageHeader, fileUrl, fmtDateTime } from '@/components/ui';
+import { Alert, Badge, Button, Card, EmptyState, Loading, PageHeader, fileUrl, fmtDate, fmtDateTime } from '@/components/ui';
 import { StageTracker } from '@/components/StageTracker';
 import { SignPanel } from '@/components/SignPanel';
 import { DocPreview } from '@/components/DocPreview';
+import { DocEditDialog } from '@/components/DocEditDialog';
+import { StageDetail } from '@/components/StageDetail';
+import { formatPhone } from '@/lib/phone';
+import '@/styles/staff-forms.css';
+
+type PackageDoc = {
+  id: string; item: number; title: string; pdf_file_id: string | null; docx_file_id: string | null; csv_file_id: string | null; completed_at: string | null;
+  edited: boolean; updated_at: string | null; editable: boolean; signed: boolean; can_edit: boolean; edit_note: string | null;
+};
 
 type Page = {
   client: { id: string; name: string; legal_name: string | null; client_ref: string; industry: string | null; employee_band: string | null; hq: string; status: string };
   engagement: { id: string; audit_ref: string; name: string; type_label: string; status: string; status_label: string; stage: number; stage_label: string; returned_comment: string | null };
   gate: { ready: boolean; unmet: string[] };
   sites: { site_name: string; city: string | null; jurisdictions: string[] }[];
-  laws: { label: string; jurisdiction: string | null; type: string | null }[];
-  contacts: { role: string; role_label: string; name: string | null; email: string | null; not_appointed: boolean; invite_status: string | null }[];
+  laws: { label: string; jurisdiction: string | null; type: string | null; citation: string | null; effective_date: string | null }[];
+  contacts: { role: string; role_label: string; name: string | null; email: string | null; phone: string | null; not_appointed: boolean; invite_status: string | null }[];
   team: { name: string; role_label: string }[];
-  package: { id: string; status: string; documents: { id: string; item: number; title: string; pdf_file_id: string | null; docx_file_id: string | null; csv_file_id: string | null; completed_at: string | null }[] } | null;
+  package: { id: string; status: string; sent_at: string | null; documents: PackageDoc[] } | null;
   sign_off_1: { id: string; status: string } | null;
   activity: { at: string; actor: string | null; summary: string | null }[];
 };
@@ -26,6 +35,8 @@ export function ClientPage() {
   const flash = (useLocation().state as { flash?: string } | null)?.flash;
   const q = useQuery({ queryKey: ['client-page', clientId], queryFn: () => api.get<Page>(`/clients/${clientId}`) });
   const [preview, setPreview] = useState<{ id: string; title: string } | null>(null);
+  const [editing, setEditing] = useState<PackageDoc | null>(null);
+  const [stageOpen, setStageOpen] = useState<number | null>(null);
   const [msg, setMsg] = useState<{ tone: 'success' | 'danger'; text: string } | null>(null);
   const [tab, setTab] = useState<string>('overview');
   if (q.isLoading) return <div className="page"><Loading /></div>;
@@ -62,7 +73,7 @@ export function ClientPage() {
       {p.contacts.map((c) => (
         <li key={c.role} style={{ padding: '8px 0' }}>
           <strong>{c.role_label}</strong>
-          <div>{c.not_appointed ? 'Not appointed' : c.name}{c.email && !c.not_appointed ? <span className="muted"> · {c.email}</span> : null}{c.invite_status ? <span className="muted"> · {c.invite_status}</span> : null}</div>
+          <div>{c.not_appointed ? 'Not appointed' : c.name}{c.email && !c.not_appointed ? <span className="muted"> · {c.email}</span> : null}{c.phone && !c.not_appointed ? <span className="muted"> · {formatPhone(c.phone)}</span> : null}{c.invite_status ? <span className="muted"> · {c.invite_status}</span> : null}</div>
           {c.invite_status && c.invite_status !== 'Active' && c.invite_status !== 'Not invited yet' && <Button size="sm" variant="ghost" onClick={() => resend(c.role)}>Resend invitation</Button>}
         </li>
       ))}
@@ -88,7 +99,8 @@ export function ClientPage() {
         <div className="stack">
           <Card title="Engagement progress" actions={<Badge tone="navy">{e.status_label}</Badge>}>
             <div className="stack">
-              <StageTracker stage={e.stage} status={e.status} />
+              <StageTracker stage={e.stage} status={e.status} onOpen={setStageOpen} />
+              <p className="small muted stage-hint">Select a stage to see its sign-offs, who signed and when, key events and what is still open.</p>
               {live && (
                 p.gate.ready ? (
                   <div className="row" style={{ gap: 12, alignItems: 'center' }}>
@@ -104,16 +116,23 @@ export function ClientPage() {
           {p.sign_off_1 && p.sign_off_1.status !== 'approved' && (
             <Card title="Sign-off 1: engagement letter and scope"><SignPanel signOffId={p.sign_off_1.id} /></Card>
           )}
-          <div className="grid-3">
-            <Card title="Client details">
-              <dl className="kv-stacked">
-                <dt>Industry</dt><dd>{p.client.industry ?? '—'}</dd>
-                <dt>Employees</dt><dd>{p.client.employee_band ?? '—'}</dd>
-                <dt>Headquarters</dt><dd>{p.client.hq || '—'}</dd>
-                <dt>Laws in scope</dt><dd>{p.laws.map((l) => l.label + (l.type === 'voluntary' ? ' (framework)' : '')).join(' · ') || '—'}</dd>
-                {p.contacts.filter((c) => c.role === 'caico' || c.role === 'client_admin').map((c) => <Fragment key={c.role}><dt>{c.role_label}</dt><dd>{c.not_appointed ? 'Not appointed' : c.name}{c.invite_status ? ` · ${c.invite_status.toLowerCase()}` : ''}</dd></Fragment>)}
-              </dl>
+          {p.package && (
+            <Card title="Documents at this stage">
+              <PackageDocs pkg={p.package} onView={setPreview} onEdit={setEditing} />
             </Card>
+          )}
+          <Card title="Client details">
+            <div className="stack">
+              <dl className="kv-stacked client-facts">
+                <div><dt>Industry</dt><dd>{p.client.industry ?? '—'}</dd></div>
+                <div><dt>Employees</dt><dd>{p.client.employee_band ?? '—'}</dd></div>
+                <div><dt>Headquarters</dt><dd>{p.client.hq || '—'}</dd></div>
+                {p.contacts.filter((c) => c.role === 'caico' || c.role === 'client_admin').map((c) => <div key={c.role}><dt>{c.role_label}</dt><dd>{c.not_appointed ? 'Not appointed' : c.name}{c.invite_status ? ` · ${c.invite_status.toLowerCase()}` : ''}</dd></div>)}
+              </dl>
+              <LawsTable laws={p.laws} />
+            </div>
+          </Card>
+          <div className="grid-3">
             <Card title="Futran team">
               <ul className="small" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                 {p.team.map((m, i) => <li key={i} className="row" style={{ justifyContent: 'space-between', padding: '6px 0' }}><span>{m.name}</span><span className="muted">{m.role_label}</span></li>)}
@@ -146,8 +165,7 @@ export function ClientPage() {
           </Card>
           <Card title="Laws and frameworks in scope">
             {p.laws.length === 0 ? <EmptyState>None yet.</EmptyState> : (
-              <div className="table-wrap"><table className="table"><thead><tr><th>Law or framework</th><th>Geography</th><th>Type</th></tr></thead>
-                <tbody>{p.laws.map((l, i) => <tr key={i}><td>{l.label}</td><td>{l.jurisdiction ?? '—'}</td><td>{l.type === 'voluntary' ? 'Framework' : l.type ?? '—'}</td></tr>)}</tbody></table></div>
+              <LawsTable laws={p.laws} withType />
             )}
           </Card>
         </div>
@@ -160,32 +178,74 @@ export function ClientPage() {
       )}
       {tab === 'documents' && (
         <Card title="Initiation package">
-          {!p.package ? <EmptyState>Generated when the draft is submitted for approval.</EmptyState> : (
-            <div className="table-wrap">
-              <table className="table">
-                <thead><tr><th>Document</th><th>Files</th><th>Client</th></tr></thead>
-                <tbody>
-                  {p.package.documents.map((d) => (
-                    <tr key={d.id}>
-                      <td>{d.item} · {d.title}</td>
-                      <td className="small">
-                        <button type="button" className="link-btn" onClick={() => setPreview({ id: d.id, title: d.title })}>Preview</button>
-                        {d.pdf_file_id && <> · <a href={fileUrl(d.pdf_file_id)}>PDF</a></>}
-                        {d.docx_file_id && <> · <a href={fileUrl(d.docx_file_id)}>Word</a></>}
-                        {d.csv_file_id && <> · <a href={fileUrl(d.csv_file_id)}>CSV</a></>}
-                      </td>
-                      <td>{d.completed_at ? <Badge tone="success">Done</Badge> : <span className="small muted">Open</span>}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          {!p.package ? <EmptyState>Generated when the draft is submitted for approval.</EmptyState> : <PackageDocs pkg={p.package} onView={setPreview} onEdit={setEditing} />}
           {live && <p className="small" style={{ marginBottom: 0 }}><Link to={`/clients/${clientId}/documents`}>Document request register</Link></p>}
         </Card>
       )}
       {tab === 'activity' && <Card title="Activity">{activity()}<p className="small" style={{ marginBottom: 0 }}><Link to={`/admin/audit-log?org=${clientId}`}>View full audit log</Link></p></Card>}
       {preview && <DocPreview docId={preview.id} title={preview.title} onClose={() => setPreview(null)} />}
+      {editing && <DocEditDialog docId={editing.id} title={editing.title} sent={p.package?.status === 'sent'} onClose={() => setEditing(null)} onSaved={() => { void qc.invalidateQueries({ queryKey: ['client-page', clientId] }); }} />}
+      {stageOpen !== null && <StageDetail clientId={clientId} number={stageOpen} onClose={() => setStageOpen(null)} />}
+    </div>
+  );
+}
+
+/** Laws and frameworks in scope, with where they apply, their citation and, when the law matrix has it, the effective date. */
+function LawsTable({ laws, withType }: { laws: Page['laws']; withType?: boolean }) {
+  if (laws.length === 0) return <EmptyState>No laws or frameworks in scope yet.</EmptyState>;
+  return (
+    <div className="table-wrap">
+      <table className="table laws-table">
+        <caption className="sr-only">Laws and frameworks in scope</caption>
+        <thead><tr><th>Law or framework</th><th>Jurisdiction</th><th>Citation</th><th>Effective date</th>{withType && <th>Type</th>}</tr></thead>
+        <tbody>
+          {laws.map((l, i) => (
+            <tr key={i}>
+              <td>{l.label}{!withType && l.type === 'voluntary' && <span className="cell-sub">Framework</span>}</td>
+              <td>{l.jurisdiction ?? '—'}</td>
+              <td>{l.citation && l.citation !== l.label ? l.citation : '—'}</td>
+              <td>{l.effective_date ?? '—'}</td>
+              {withType && <td>{l.type === 'voluntary' ? 'Framework' : l.type ? l.type.charAt(0).toUpperCase() + l.type.slice(1) : '—'}</td>}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/** The initiation package documents: view each one, and edit it where the Chief Auditor still can. */
+function PackageDocs({ pkg, onView, onEdit }: { pkg: NonNullable<Page['package']>; onView: (d: { id: string; title: string }) => void; onEdit: (d: PackageDoc) => void }) {
+  const status = (d: PackageDoc) => {
+    if (d.signed) return <Badge tone="success">Signed</Badge>;
+    if (d.completed_at) return <Badge tone="success">Done by the client</Badge>;
+    if (pkg.status === 'sent') return <span className="small muted">Sent{pkg.sent_at ? ` ${fmtDate(pkg.sent_at)}` : ''}</span>;
+    return <span className="small muted">Awaiting approval</span>;
+  };
+  return (
+    <div className="table-wrap">
+      <table className="table">
+        <thead><tr><th>Document</th><th>Status</th><th>Files</th><th>Actions</th></tr></thead>
+        <tbody>
+          {pkg.documents.map((d) => (
+            <tr key={d.id}>
+              <td className="wrap">{d.item} · {d.title}{d.edited && <span className="cell-sub">Edited for this client{d.updated_at ? ` · ${fmtDateTime(d.updated_at)}` : ''}</span>}</td>
+              <td>{status(d)}</td>
+              <td className="small">
+                {[d.pdf_file_id && <a key="pdf" href={fileUrl(d.pdf_file_id)}>PDF</a>, d.docx_file_id && <a key="docx" href={fileUrl(d.docx_file_id)}>Word</a>, d.csv_file_id && <a key="csv" href={fileUrl(d.csv_file_id)}>CSV</a>]
+                  .filter(Boolean).map((el, i) => <Fragment key={i}>{i > 0 && ' · '}{el}</Fragment>)}
+              </td>
+              <td className="wrap">
+                <div className="row" style={{ gap: 8 }}>
+                  <Button size="sm" onClick={() => onView({ id: d.id, title: d.title })} aria-label={`View ${d.title}`}>View</Button>
+                  {d.can_edit && <Button size="sm" onClick={() => onEdit(d)} aria-label={`Edit ${d.title}`}>Edit</Button>}
+                </div>
+                {!d.can_edit && d.signed && <span className="cell-sub">Signed. Changes need a sign-off correction.</span>}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

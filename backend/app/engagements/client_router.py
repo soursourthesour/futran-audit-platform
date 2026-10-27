@@ -18,7 +18,6 @@ from app.initiation.models import PackageDocument
 from app.initiation.notice import counts as notice_counts
 from app.initiation.service import current_package, documents, resend_invitation
 from app.invitations.models import Invitation
-from app.laws.models import Regulation
 from app.policy.actions import Action
 from app.policy.authorize import assigned_engagement_ids, authorize, sees_all_engagements
 from app.policy.roles import ROLE_LABELS
@@ -162,16 +161,19 @@ def client_page(client_id: str, actor: Actor = Depends(current_actor), db: Sessi
         raise NotFound()
     gate = gate_status(db, e)
     jnames = dict(db.execute(select(Jurisdiction.id, Jurisdiction.name)).all())
+    from app.laws.publish import current_version_of
+
     laws = []
     for r in db.scalars(select(ClientRequirement).where(ClientRequirement.engagement_id == e.id, ClientRequirement.deleted_at.is_(None), ClientRequirement.in_scope.is_(True)).order_by(ClientRequirement.created_at)):
-        reg = db.get(Regulation, r.regulation_id) if r.regulation_id else None
-        laws.append({"label": reg.short_name if reg else r.free_text, "jurisdiction": jnames.get(reg.jurisdiction_id) if reg else None, "type": reg.type if reg else None})
+        reg = current_version_of(db, r.regulation_id) if r.regulation_id else None  # the current text of the law
+        laws.append({"label": reg.short_name if reg else r.free_text, "jurisdiction": jnames.get(reg.jurisdiction_id) if reg else None, "type": reg.type if reg else None,
+                     "citation": reg.citation if reg else None, "effective_date": reg.effective_date_text if reg else None})
     contacts = []
     for c in db.scalars(select(ClientContact).where(ClientContact.engagement_id == e.id, ClientContact.deleted_at.is_(None))):
         if not c.name and not c.not_appointed:
             continue
         user = db.get(User, c.user_id) if c.user_id else None
-        contacts.append({"role": c.contact_role, "role_label": ROLE_LABELS.get(c.contact_role, c.contact_role.replace("_", " ").capitalize()), "name": c.name, "email": c.email, "not_appointed": c.not_appointed, "invite_status": invite_status(db, user) if c.contact_role in ("caico", "client_admin") else None})
+        contacts.append({"role": c.contact_role, "role_label": ROLE_LABELS.get(c.contact_role, c.contact_role.replace("_", " ").capitalize()), "name": c.name, "email": c.email, "phone": c.phone, "not_appointed": c.not_appointed, "invite_status": invite_status(db, user) if c.contact_role in ("caico", "client_admin") else None})
     from app.engagements.team import team_by_person
 
     team = [{"name": p["name"], "role_label": p["role_label"]} for p in team_by_person(db, e)]  # one line per person
@@ -186,10 +188,33 @@ def client_page(client_id: str, actor: Actor = Depends(current_actor), db: Sessi
         "laws": laws,
         "contacts": contacts,
         "team": team,
-        "package": {"id": pkg.id, "status": pkg.status, "documents": [{"id": d.id, "item": d.item, "title": d.title, "pdf_file_id": d.pdf_file_id, "docx_file_id": d.docx_file_id, "csv_file_id": d.csv_file_id, "completed_at": d.completed_at.isoformat() if d.completed_at else None} for d in documents(db, pkg)]} if pkg else None,
+        "package": package_documents_out(db, actor, e, pkg) if pkg else None,
         "sign_off_1": {"id": so1.id, "status": so1.status} if so1 else None,
         "activity": _activity(db, [org.id], 20),
     }
+
+
+def package_documents_out(db: Session, actor: Actor, e: Engagement, pkg) -> dict:
+    """The initiation package documents with what this user may do with each: view always; edit for the Chief Auditor
+    while the document is editable (see initiation.service.edit_block)."""
+    from app.core.errors import Forbidden
+    from app.initiation.service import EDITABLE_ITEMS, document_signed, edit_block
+
+    try:
+        authorize(db, actor, Action.APPROVE_ENGAGEMENT, engagement_id=e.id)
+        may_edit = True
+    except (Forbidden, NotFound):
+        may_edit = False
+    out = []
+    for d in documents(db, pkg):
+        block = edit_block(db, d)
+        out.append({
+            "id": d.id, "item": d.item, "title": d.title, "pdf_file_id": d.pdf_file_id, "docx_file_id": d.docx_file_id, "csv_file_id": d.csv_file_id,
+            "completed_at": d.completed_at.isoformat() if d.completed_at else None, "edited": d.edited, "updated_at": d.updated_at.isoformat() if d.updated_at else None,
+            "editable": d.item in EDITABLE_ITEMS and d.format == "md", "signed": document_signed(db, d), "can_edit": may_edit and block is None,
+            "edit_note": block if d.item in EDITABLE_ITEMS and d.format == "md" else None,
+        })
+    return {"id": pkg.id, "status": pkg.status, "sent_at": pkg.sent_at.isoformat() if pkg.sent_at else None, "documents": out}
 
 
 @router.post("/clients/{client_id}/contacts/{role}/resend")
