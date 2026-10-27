@@ -201,11 +201,11 @@ function LawsTable({ laws, withType }: { laws: Page['laws']; withType?: boolean 
         <tbody>
           {laws.map((l, i) => (
             <tr key={i}>
-              <td>{l.label}{!withType && l.type === 'voluntary' && <span className="cell-sub">Framework</span>}</td>
-              <td>{l.jurisdiction ?? '—'}</td>
-              <td>{l.citation && l.citation !== l.label ? l.citation : '—'}</td>
-              <td>{l.effective_date ?? '—'}</td>
-              {withType && <td>{l.type === 'voluntary' ? 'Framework' : l.type ? l.type.charAt(0).toUpperCase() + l.type.slice(1) : '—'}</td>}
+              <td className="law-name">{l.label}{!withType && l.type === 'voluntary' && <span className="cell-sub">Framework</span>}</td>
+              <td data-label="Jurisdiction">{l.jurisdiction ?? '—'}</td>
+              <td data-label="Citation">{l.citation && l.citation !== l.label ? l.citation : '—'}</td>
+              <td data-label="Effective date">{l.effective_date ?? '—'}</td>
+              {withType && <td data-label="Type">{l.type === 'voluntary' ? 'Framework' : l.type ? l.type.charAt(0).toUpperCase() + l.type.slice(1) : '—'}</td>}
             </tr>
           ))}
         </tbody>
@@ -224,17 +224,20 @@ function PackageDocs({ pkg, onView, onEdit }: { pkg: NonNullable<Page['package']
   };
   return (
     <div className="table-wrap">
-      <table className="table">
-        <thead><tr><th>Document</th><th>Status</th><th>Files</th><th>Actions</th></tr></thead>
+      <table className="table doc-table">
+        <thead><tr><th>Document</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody>
           {pkg.documents.map((d) => (
             <tr key={d.id}>
-              <td className="wrap">{d.item} · {d.title}{d.edited && <span className="cell-sub">Edited for this client{d.updated_at ? ` · ${fmtDateTime(d.updated_at)}` : ''}</span>}</td>
-              <td>{status(d)}</td>
-              <td className="small">
-                {[d.pdf_file_id && <a key="pdf" href={fileUrl(d.pdf_file_id)}>PDF</a>, d.docx_file_id && <a key="docx" href={fileUrl(d.docx_file_id)}>Word</a>, d.csv_file_id && <a key="csv" href={fileUrl(d.csv_file_id)}>CSV</a>]
-                  .filter(Boolean).map((el, i) => <Fragment key={i}>{i > 0 && ' · '}{el}</Fragment>)}
+              <td className="wrap">
+                {d.item} · {d.title}
+                <span className="cell-sub">
+                  {[d.pdf_file_id && <a key="pdf" href={fileUrl(d.pdf_file_id)} aria-label={`${d.title} as PDF`}>PDF</a>, d.docx_file_id && <a key="docx" href={fileUrl(d.docx_file_id)} aria-label={`${d.title} as Word`}>Word</a>, d.csv_file_id && <a key="csv" href={fileUrl(d.csv_file_id)} aria-label={`${d.title} as CSV`}>CSV</a>]
+                    .filter(Boolean).map((el, i) => <Fragment key={i}>{i > 0 && ' · '}{el}</Fragment>)}
+                  {d.edited && <> · Edited for this client{d.updated_at ? ` ${fmtDate(d.updated_at)}` : ''}</>}
+                </span>
               </td>
+              <td className="wrap">{status(d)}</td>
               <td className="wrap">
                 <div className="row" style={{ gap: 8 }}>
                   <Button size="sm" onClick={() => onView({ id: d.id, title: d.title })} aria-label={`View ${d.title}`}>View</Button>

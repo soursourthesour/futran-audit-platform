@@ -46,3 +46,23 @@
 .email-meta dd { margin: 0; overflow-wrap: anywhere; }
 .copy-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .copy-row code { font-size: 12.5px; overflow-wrap: anywhere; background: var(--bg); padding: 4px 8px; border-radius: var(--radius-sm); }
+
+/* Documents table: stacked rows on a phone so the actions stay in view */
+@media (max-width: 600px) {
+  .doc-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .doc-table, .doc-table tbody, .doc-table tr, .doc-table td { display: block; width: 100%; }
+  .doc-table tr { padding: 12px 0; border-top: 1px solid var(--line-soft); }
+  .doc-table tr:first-child { border-top: 0; }
+  .doc-table td { border: 0 !important; padding: 3px 0 !important; }
+}
+
+/* Laws table: one block per law on a phone, each value labelled */
+@media (max-width: 600px) {
+  .laws-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .laws-table, .laws-table tbody, .laws-table tr, .laws-table td { display: block; width: 100%; }
+  .laws-table tr { padding: 10px 0; border-top: 1px solid var(--line-soft); }
+  .laws-table tr:first-child { border-top: 0; }
+  .laws-table td { border: 0 !important; padding: 2px 0 !important; min-width: 0 !important; }
+  .laws-table td.law-name { font-weight: 600; }
+  .laws-table td[data-label]::before { content: attr(data-label) ': '; color: var(--muted); }
+}
