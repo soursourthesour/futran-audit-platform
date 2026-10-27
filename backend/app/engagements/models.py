@@ -51,6 +51,7 @@ class EngagementTeam(TimestampedTenantMixin, Base):
     user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), index=True)
     role: Mapped[str] = mapped_column(String(30))  # engagement_manager | chief_auditor | auditor | qa_reviewer | legal_reviewer
     conflict_confirmed_at: Mapped[datetime | None] = mapped_column(DateTime)
+    conflict_confirmed_roles: Mapped[list | None] = mapped_column(JSON)  # every role the person held when they confirmed
 
 
 class ClientRequirement(TimestampedTenantMixin, Base):

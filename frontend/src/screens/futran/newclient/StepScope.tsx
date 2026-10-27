@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { DATA_ENVIRONMENTS, DEPARTMENT_PRESETS, ENGAGEMENT_TYPES, FRAMEWORKS, useTeamOptions, type Scope, type TeamMember } from '@/api/clients';
+import { DATA_ENVIRONMENTS, DEPARTMENT_PRESETS, ENGAGEMENT_TYPES, FRAMEWORKS, useTeamOptions, type Scope } from '@/api/clients';
 import { Button, Card, Checkbox, FieldGroup, SelectField, TextArea, TextField } from '@/components/ui';
 import { scopeHelp as H } from '@/help/onboarding';
 import { useStepForm, useWizardCtx } from './Wizard';
@@ -10,6 +10,16 @@ const SINGLE_ROLES = [
   { role: 'qa_reviewer', label: 'QA Reviewer', help: H.qaReviewer, needs: ['qa_reviewer', 'chief_auditor'], required: false },
   { role: 'legal_reviewer', label: 'Legal / compliance reviewer', help: H.legalReviewer, needs: [], required: false },
 ];
+
+/** Role names as the conflict confirmation records them. The Chief Auditor is also the engagement's Lead Auditor. */
+export const ROLE_ORDER = ['chief_auditor', 'engagement_manager', 'auditor', 'qa_reviewer', 'legal_reviewer'];
+export const TEAM_ROLE_LABELS: Record<string, string> = {
+  chief_auditor: 'Chief Auditor (Lead Auditor)', engagement_manager: 'Engagement Manager', auditor: 'Auditor', qa_reviewer: 'QA Reviewer', legal_reviewer: 'Legal / compliance reviewer',
+};
+export function rolesLabel(roles: string[]): string {
+  const names = roles.map((r) => TEAM_ROLE_LABELS[r] ?? r);
+  return names.length <= 1 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+}
 
 export function StepScope() {
   const { data, errors, editable } = useWizardCtx();
@@ -32,7 +42,13 @@ export function StepScope() {
   };
   const auditors = team.filter((t) => t.role === 'auditor').map((t) => t.user_id);
   const toggleAuditor = (id: string) => set('team', auditors.includes(id) ? team.filter((t) => !(t.role === 'auditor' && t.user_id === id)) : [...team, { user_id: id, role: 'auditor', conflict_confirmed: false }]);
-  const confirm = (m: TeamMember, v: boolean) => set('team', team.map((t) => (t.user_id === m.user_id && t.role === m.role ? { ...t, conflict_confirmed: v } : t)));
+  // One confirmation per person, covering every role they hold on this engagement.
+  const confirmPerson = (userId: string, v: boolean) => set('team', team.map((t) => (t.user_id === userId ? { ...t, conflict_confirmed: v } : t)));
+  const teamPeople = [...new Set(team.map((t) => t.user_id))].map((id) => {
+    const rows = team.filter((t) => t.user_id === id);
+    const roles = ROLE_ORDER.filter((r) => rows.some((t) => t.role === r));
+    return { id, roles, confirmed: rows.every((t) => t.conflict_confirmed) };
+  }).sort((a, b) => ROLE_ORDER.indexOf(a.roles[0]) - ROLE_ORDER.indexOf(b.roles[0]));
   const nameOf = (id: string) => people.data?.find((p) => p.user_id === id)?.name ?? team.find((t) => t.user_id === id)?.name ?? 'Team member';
   const opts = (needs: string[]) => (people.data ?? []).filter((p) => !needs.length || p.roles.some((r) => needs.includes(r))).map((p) => ({ value: p.user_id, label: p.name }));
   const depts = [...new Set([...DEPARTMENT_PRESETS, ...f.departments])];
@@ -103,7 +119,7 @@ export function StepScope() {
             <FieldGroup legend="Conflict of interest" help={H.conflict}>
               <p className="small muted" style={{ margin: '0 0 6px' }}>Each team member confirms no conflict of interest with {client}: no recent consulting, implementation or employment relationship.</p>
               <div className="stack-sm">
-                {team.map((m) => <Checkbox key={`${m.user_id}-${m.role}`} label={`${nameOf(m.user_id)} has confirmed no conflict of interest`} checked={m.conflict_confirmed} onChange={(e) => confirm(m, e.target.checked)} />)}
+                {teamPeople.map((p) => <Checkbox key={p.id} label={`${nameOf(p.id)} has confirmed no conflict of interest as ${rolesLabel(p.roles)}`} checked={p.confirmed} onChange={(e) => confirmPerson(p.id, e.target.checked)} />)}
               </div>
             </FieldGroup>
           )}

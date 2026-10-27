@@ -6,12 +6,11 @@ from sqlalchemy.orm import Session
 
 from app.core.clock import today
 from app.core.config import Settings
-from app.engagements.models import ClientContact, ClientLocation, ClientRequirement, Engagement, EngagementTeam
-from app.engagements.wizard import TEAM_ROLES
+from app.engagements.models import ClientContact, ClientLocation, ClientRequirement, Engagement
 from app.laws.importer import FEATURE_LABELS
 from app.laws.models import Regulation
 from app.reference.models import GovernanceCatalogItem, Jurisdiction
-from app.tenancy.models import Organization, User
+from app.tenancy.models import Organization
 
 TYPE_LABELS = {"initial_assessment": "Initial AI governance assessment", "ll144_bias_audit": "LL144 bias audit", "annual_review": "Annual review"}
 GROUPS = [
@@ -62,13 +61,13 @@ def build_context(db: Session, settings: Settings, e: Engagement) -> dict:
         reg = db.get(Regulation, r.regulation_id) if r.regulation_id else None
         j = db.get(Jurisdiction, reg.jurisdiction_id) if reg else None
         laws.append({"short_name": reg.short_name if reg else r.free_text, "jurisdiction_name": j.name if j else "", "feature_label": FEATURE_LABELS.get(reg.feature, "") if reg else "Futran addition"})
+    from app.engagements.team import team_by_person
+
     team, chief = [], {}
-    for t, u in db.execute(select(EngagementTeam, User).join(User, User.id == EngagementTeam.user_id).where(EngagementTeam.engagement_id == e.id, EngagementTeam.deleted_at.is_(None)).order_by(EngagementTeam.created_at)):
-        team.append({"name": u.name, "role_label": TEAM_ROLES.get(t.role, t.role), "email": u.email})
-        if t.role == "chief_auditor":
-            chief = {"name": u.name, "email": u.email}
-    order = ["chief_auditor", "engagement_manager", "auditor", "qa_reviewer", "legal_reviewer"]
-    team.sort(key=lambda m: order.index(next((k for k, v in TEAM_ROLES.items() if v == m["role_label"]), "auditor")))
+    for p in team_by_person(db, e):  # one row per person, naming every role they hold
+        team.append({"name": p["name"], "role_label": p["role_label"], "email": p["email"]})
+        if "chief_auditor" in p["roles"] and not chief:
+            chief = {"name": p["name"], "email": p["email"]}
     departments = (e.wizard_state or {}).get("departments", [])
     hq = ", ".join(x for x in (org.hq_street, org.hq_city, org.hq_state, org.hq_postal_code, org.hq_country) if x)
     return {

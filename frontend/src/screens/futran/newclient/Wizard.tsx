@@ -198,7 +198,7 @@ function Review({ onSubmit }: { onSubmit: () => void }) {
           <dt>Client</dt><dd>{c.legal_name ?? '—'}{c.client_ref ? ` · ${c.client_ref}` : ''}</dd>
           <dt>Sites</dt><dd>{data.locations.locations.map((l) => l.site_name).join(', ') || '—'}</dd>
           <dt>Laws and frameworks</dt><dd>{data.locations.requirements.length}</dd>
-          <dt>Team</dt><dd>{data.scope.team.map((t) => t.name).join(', ') || '—'}</dd>
+          <dt>Team</dt><dd>{(data.scope.people ?? []).map((p) => `${p.name} (${p.role_label})`).join(', ') || [...new Set(data.scope.team.map((t) => t.name))].join(', ') || '—'}</dd>
           <dt>CAICO</dt><dd>{data.contacts.caico?.name ?? '—'}</dd>
         </dl>
         {list.length > 0 && (

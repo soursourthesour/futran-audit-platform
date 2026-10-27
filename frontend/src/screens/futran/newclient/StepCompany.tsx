@@ -1,5 +1,6 @@
 import { EMPLOYEE_BANDS, INDUSTRIES, REVENUE_BANDS, useCountries, type Company } from '@/api/clients';
 import { Badge, Button, Card, FieldGroup, SelectField, TextArea, TextField } from '@/components/ui';
+import { AddressField } from '@/components/ui/AddressField';
 import { companyHelp as H } from '@/help/onboarding';
 import { useStepForm, useWizardCtx } from './Wizard';
 
@@ -36,7 +37,8 @@ export function StepCompany() {
       </Card>
       <Card title="Headquarters address">
         <div className="grid-2">
-          <TextField label="Street *" help={H.hqStreet} value={str('hq_street')} onChange={(e) => set('hq_street', e.target.value)} error={err('hq_street')} />
+          <AddressField label="Street *" help={H.hqStreet} value={str('hq_street')} onChange={(t) => set('hq_street', t)} error={err('hq_street')} disabled={!editable}
+            onPick={(a) => setF({ ...f, hq_street: a.street ?? f.hq_street ?? null, hq_city: a.city, hq_state: a.state, hq_postal_code: a.postal_code, hq_country: a.country_code ?? f.hq_country ?? null } as Company)} />
           <TextField label="City *" help={H.hqCity} value={str('hq_city')} onChange={(e) => set('hq_city', e.target.value)} error={err('hq_city')} />
           <TextField label="State / region *" help={H.hqState} value={str('hq_state')} onChange={(e) => set('hq_state', e.target.value)} error={err('hq_state')} />
           <TextField label="Postal code *" help={H.hqPostal} value={str('hq_postal_code')} onChange={(e) => set('hq_postal_code', e.target.value)} error={err('hq_postal_code')} />

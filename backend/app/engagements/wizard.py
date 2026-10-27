@@ -133,6 +133,20 @@ def a_bool(v):
     return bool(v)
 
 
+E164 = re.compile(r"^\+[1-9]\d{6,14}$")
+
+
+def phone(v):
+    """A phone number in E.164 form (+12125550100). Spaces, dots, dashes and brackets are dropped."""
+    s = text(40)(v)
+    if not s:
+        return None
+    compact = re.sub(r"[\s().\-]", "", s)
+    if not E164.match(compact):
+        raise Bad("Enter the number with its country code, for example +1 212 555 0100.")
+    return compact
+
+
 COMPANY_FIELDS = {
     "legal_name": text(200), "trading_name": text(200), "industry": choice(INDUSTRIES), "employee_band": choice(EMPLOYEE_BANDS),
     "employee_count": an_int, "annual_revenue_band": text(40), "website": text(200), "hq_street": text(200), "hq_city": text(120),
@@ -145,7 +159,7 @@ SCOPE_FIELDS = {
     "frameworks": text_list(20, FRAMEWORKS), "business_processes": text(4000), "data_environments": text_list(3, DATA_ENVIRONMENTS),
     "geographic_scope": text(2000), "exclusions": text(4000), "systems_excluded": text(4000), "planned_systems": text_list(100),
 }
-CONTACT_FIELDS = {"name": text(120), "title": text(120), "email": email, "phone": text(40)}
+CONTACT_FIELDS = {"name": text(120), "title": text(120), "email": email, "phone": phone}
 
 
 def _read(fields: dict, payload: dict, prefix: str, errors: list) -> dict:
@@ -179,6 +193,7 @@ def save_company(db: Session, actor: User, org: Organization, e: Engagement, pay
             e.name = f"{org.name} AI governance audit"
             e.wizard_state = st | {"auto_name": True}
     org.updated_by = actor.id
+    _sync_hq_site(db, actor, org, e)
     return errors
 
 
@@ -192,6 +207,14 @@ def save_locations(db: Session, actor: User, org: Organization, e: Engagement, p
     items = payload.get("locations")
     if not isinstance(items, list):
         return [{"field": "locations.locations", "message": "Expected a list of sites."}]
+    same = _state(e).get("hq_same_as_company", False)
+    if "hq_same_as_company" in payload:
+        same = bool(payload["hq_same_as_company"])
+        e.wizard_state = _state(e) | {"hq_same_as_company": same}
+    if same:  # the first site is the headquarters, at the company address
+        items = list(items) or [{"site_name": "Headquarters", "in_scope": True}]
+        first = items[0] if isinstance(items[0], dict) else {}
+        items[0] = first | _hq_site_values(db, org) | {"site_name": first.get("site_name") or "Headquarters"}
     existing = list(db.scalars(select(ClientLocation).where(ClientLocation.organization_id == org.id, ClientLocation.deleted_at.is_(None)).order_by(ClientLocation.created_at)))
     by_id = {loc.id: loc for loc in existing}
     claimed = {item.get("id") for item in items if isinstance(item, dict) and item.get("id") in by_id}
@@ -216,7 +239,11 @@ def save_locations(db: Session, actor: User, org: Organization, e: Engagement, p
         if loc is None:
             loc = add_location(db, org, site_name=vals.get("site_name") or vals.get("city") or "Site", country_code=country, subdivision_code=vals.get("subdivision_code"), city=vals.get("city"), street=vals.get("street"), employees_at_site=vals.get("employees_at_site"), in_scope=bool(item.get("in_scope", True)), actor_id=actor.id)
             keep.add(loc.id)
+            if i == 0 and same:
+                e.wizard_state = _state(e) | {"hq_location_id": loc.id}
             continue
+        if i == 0 and same:
+            e.wizard_state = _state(e) | {"hq_location_id": loc.id}
         for k in ("site_name", "street", "city", "subdivision_code", "employees_at_site"):
             if k in vals:
                 setattr(loc, k, vals[k])
@@ -232,6 +259,30 @@ def save_locations(db: Session, actor: User, org: Organization, e: Engagement, p
         if loc.id not in keep:
             loc.deleted_at = utcnow()
     return errors
+
+
+def _hq_site_values(db: Session, org: Organization) -> dict:
+    """The company's head office address as site values: the state or region as its ISO code when it can be resolved."""
+    js = resolve_jurisdictions(db, org.hq_country or "", org.hq_state, org.hq_city) if org.hq_country else []
+    state = next((j for j in js if j.level == "state"), None)
+    return {"street": org.hq_street, "city": org.hq_city, "subdivision_code": state.code if state else None, "country_code": org.hq_country or "US"}
+
+
+def _sync_hq_site(db: Session, actor: User, org: Organization, e: Engagement) -> None:
+    """While "Same as company address" is ticked, the headquarters site follows the company address."""
+    st = _state(e)
+    if not st.get("hq_same_as_company") or not st.get("hq_location_id"):
+        return
+    loc = db.get(ClientLocation, st["hq_location_id"])
+    if loc is None or loc.deleted_at or loc.organization_id != org.id or not org.hq_country:
+        return
+    js = resolve_jurisdictions(db, org.hq_country, org.hq_state, org.hq_city)
+    if not js:
+        return
+    state = next((j for j in js if j.level == "state"), None)
+    loc.street, loc.city, loc.country_code = org.hq_street, org.hq_city, org.hq_country.upper()
+    loc.subdivision_code = state.code if state else None
+    loc.jurisdiction_ids, loc.updated_by = [j.id for j in js], actor.id
 
 
 def save_requirements(db: Session, actor: User, org: Organization, e: Engagement, payload: dict) -> list[dict]:
@@ -339,7 +390,32 @@ def _save_team(db: Session, actor: User, e: Engagement, team: Any) -> list[dict]
             continue  # the author stays on the team so they can keep working on the draft
         row.deleted_at = utcnow()
     db.flush()
+    _record_conflict_confirmations(db, actor, e)
     return errors
+
+
+def _record_conflict_confirmations(db: Session, actor: User, e: Engagement) -> None:
+    """Store, on each confirmed row, every role the person confirmed for, and log each new confirmation once."""
+    from app.audit_log import service as audit
+    from app.engagements.team import order_roles, roles_label, team_rows
+
+    by_user: dict[str, list[EngagementTeam]] = {}
+    names: dict[str, str] = {}
+    for t, u in team_rows(db, e):
+        by_user.setdefault(u.id, []).append(t)
+        names[u.id] = u.name
+    for user_id, rows in by_user.items():
+        roles = order_roles(t.role for t in rows if t.conflict_confirmed_at is not None)
+        changed = False
+        for t in rows:
+            want = roles if t.conflict_confirmed_at is not None else None
+            if t.conflict_confirmed_roles != want:
+                t.conflict_confirmed_roles, changed = want, True
+        if changed and roles:
+            audit.record(db, actor_id=actor.id, action="team.conflict_confirmed", obj=e, object_type="EngagementTeam", object_id=rows[0].id,
+                         after={"user_id": user_id, "roles": roles},
+                         summary=f"{names[user_id]} confirmed no conflict of interest as {roles_label(roles)} on {e.audit_ref}")
+    db.flush()
 
 
 def save_contacts(db: Session, actor: User, org: Organization, e: Engagement, payload: dict) -> list[dict]:
@@ -350,8 +426,10 @@ def save_contacts(db: Session, actor: User, org: Organization, e: Engagement, pa
         if role not in payload:
             continue
         data = payload[role] if isinstance(payload[role], dict) else {}
-        vals = _read(CONTACT_FIELDS, data, f"contacts.{role}", errors)
         c = current.get(role)
+        if c is not None and c.phone and data.get("phone") == c.phone:
+            data = {k: v for k, v in data.items() if k != "phone"}  # a number stored before country codes were required, unchanged
+        vals = _read(CONTACT_FIELDS, data, f"contacts.{role}", errors)
         if c is None:
             c = ClientContact(organization_id=org.id, engagement_id=e.id, contact_role=role, created_by=actor.id)
             db.add(c)
@@ -403,6 +481,12 @@ def _contacts(db: Session, e: Engagement) -> dict:
     return out
 
 
+def _people(db: Session, e: Engagement) -> list[dict]:
+    from app.engagements.team import team_by_person
+
+    return [{k: p[k] for k in ("user_id", "name", "roles", "role_label", "conflict_confirmed")} for p in team_by_person(db, e)]
+
+
 def wizard_out(db: Session, org: Organization, e: Engagement) -> dict:
     jnames = dict(db.execute(select(Jurisdiction.id, Jurisdiction.name)).all())
     locs = db.scalars(select(ClientLocation).where(ClientLocation.organization_id == org.id, ClientLocation.deleted_at.is_(None)).order_by(ClientLocation.created_at))
@@ -424,8 +508,9 @@ def wizard_out(db: Session, org: Organization, e: Engagement) -> dict:
         "locations": {
             "locations": [{"id": loc.id, "site_name": loc.site_name, "street": loc.street, "city": loc.city, "subdivision_code": loc.subdivision_code, "country_code": loc.country_code, "employees_at_site": loc.employees_at_site, "in_scope": loc.in_scope, "jurisdictions": [jnames.get(j) for j in loc.jurisdiction_ids or []]} for loc in locs],
             "requirements": reqs,
+            "hq_same_as_company": bool(_state(e).get("hq_same_as_company")),
         },
-        "scope": {k: (d(getattr(e, k)) if SCOPE_FIELDS[k] is a_date else getattr(e, k)) for k in SCOPE_FIELDS} | {"departments": _state(e).get("departments", []), "team": team},
+        "scope": {k: (d(getattr(e, k)) if SCOPE_FIELDS[k] is a_date else getattr(e, k)) for k in SCOPE_FIELDS} | {"departments": _state(e).get("departments", []), "team": team, "people": _people(db, e)},
         "contacts": _contacts(db, e),
     }
 
@@ -473,10 +558,13 @@ def _validate_team(db: Session, e: Engagement) -> list[dict]:
     errs = []
     rows = list(db.execute(select(EngagementTeam, User).join(User, User.id == EngagementTeam.user_id).where(EngagementTeam.engagement_id == e.id, EngagementTeam.deleted_at.is_(None))))
     by_role: dict[str, list[User]] = {}
+    from app.engagements.team import roles_label, team_by_person
+
+    for p in team_by_person(db, e):
+        if not p["conflict_confirmed"]:
+            errs.append({"field": "scope.team", "message": f"{p['name']} has not confirmed there is no conflict of interest as {roles_label(p['roles'])}."})
     for t, u in rows:
         by_role.setdefault(t.role, []).append(u)
-        if t.conflict_confirmed_at is None:
-            errs.append({"field": "scope.team", "message": f"{u.name} has not confirmed there is no conflict of interest."})
         needed = {"chief_auditor": {"chief_auditor"}, "qa_reviewer": {"qa_reviewer", "chief_auditor"}}.get(t.role)
         if needed and not (_futran_roles(db, u) & needed):
             errs.append({"field": "scope.team", "message": f"{u.name} is not a {TEAM_ROLES[t.role]}."})

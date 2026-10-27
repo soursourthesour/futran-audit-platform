@@ -105,7 +105,7 @@ def test_team_rules_checked_at_submit(client, db, people):
     r = client.post(f"/api/v1/clients/{cid}/submit")
     msgs = [e["message"] for e in r.json()["errors"] if e["field"].startswith("scope.team")]
     assert "Bea Auditor is not a Chief Auditor." in msgs
-    assert "Alex Auditor has not confirmed there is no conflict of interest." in msgs
+    assert "Alex Auditor has not confirmed there is no conflict of interest as Auditor." in msgs
     assert "Choose an Engagement Manager." in msgs
 
 

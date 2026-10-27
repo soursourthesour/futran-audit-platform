@@ -6,12 +6,13 @@ export type TeamMember = { user_id: string; name?: string; role: string; conflic
 export type Requirement = { id?: string; regulation_id: string | null; label: string; jurisdiction?: string | null; feature?: string | null; source: string; reason_text: string | null; in_scope?: boolean };
 export type Location = { id?: string; site_name: string; street?: string | null; city?: string | null; subdivision_code?: string | null; country_code: string; employees_at_site?: number | null; in_scope: boolean; jurisdictions?: string[] };
 export type Company = Record<string, string | number | string[] | null> & { client_ref?: string };
-export type Scope = Record<string, string | string[] | null> & { departments: string[]; team: TeamMember[] };
+export type TeamPerson = { user_id: string; name: string; roles: string[]; role_label: string; conflict_confirmed: boolean };
+export type Scope = Record<string, string | string[] | null | TeamPerson[]> & { departments: string[]; team: TeamMember[]; people?: TeamPerson[] };
 export type Wizard = {
   client_id: string;
   engagement: { id: string; audit_ref: string; name: string; status: string; stage: number; returned_comment: string | null };
   company: Company;
-  locations: { locations: Location[]; requirements: Requirement[] };
+  locations: { locations: Location[]; requirements: Requirement[]; hq_same_as_company?: boolean };
   scope: Scope;
   contacts: Record<string, Contact>;
 };

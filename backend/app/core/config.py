@@ -33,6 +33,8 @@ class Settings(BaseSettings):
     disable_scheduler: bool = False
     max_upload_mb: int = 50
     trust_proxy_headers: bool = False  # true behind Render/Azure so rate limits see the real client address
+    address_autocomplete: str = ""  # photon | google | off; blank means google when a key is set, else photon
+    google_places_api_key: str | None = None
 
     @property
     def test_mode(self) -> bool:

@@ -1,5 +1,6 @@
 import type { Contact } from '@/api/clients';
 import { Card, Checkbox, FieldGroup, TextField } from '@/components/ui';
+import { PhoneField } from '@/components/ui/PhoneField';
 import { contactHelp as H } from '@/help/onboarding';
 import { useStepForm, useWizardCtx } from './Wizard';
 
@@ -18,6 +19,9 @@ export function StepContacts() {
   const field = (role: string, k: keyof Contact, label: string, help: string, type = 'text') => (
     <TextField label={label} help={help} type={type} value={v(role, k)} onChange={(e) => set(role, { [k]: e.target.value })} error={err(role, k)} />
   );
+  const phone = (role: string, label: string, help: string) => (
+    <PhoneField label={label} help={help} value={c[role]?.phone} defaultCountry={data.company.hq_country as string | null} onChange={(v) => set(role, { phone: v })} error={err(role, 'phone')} disabled={!editable} />
+  );
   const caicoName = c.caico?.name || 'the Chief AI Compliance Officer';
 
   return (
@@ -28,7 +32,7 @@ export function StepContacts() {
           {field('caico', 'name', 'Full name *', H.caicoName)}
           {field('caico', 'title', 'Job title *', H.caicoTitle)}
           {field('caico', 'email', 'Work email *', H.caicoEmail, 'email')}
-          {field('caico', 'phone', 'Phone', H.caicoPhone, 'tel')}
+          {phone('caico', 'Phone', H.caicoPhone)}
         </div>
       </Card>
       <Card title="Client Admin">
@@ -62,7 +66,7 @@ export function StepContacts() {
         <div className="stack">
           <Checkbox label={`The client project lead is ${caicoName}`} help={H.projectLeadSame} checked={!!c.project_lead?.same_as_caico} onChange={(e) => set('project_lead', { same_as_caico: e.target.checked })} />
           {!c.project_lead?.same_as_caico && (
-            <div className="grid-2">{field('project_lead', 'name', 'Project lead name', H.projectLeadName)}{field('project_lead', 'title', 'Job title', H.projectLeadTitle)}{field('project_lead', 'email', 'Work email', H.projectLeadEmail, 'email')}{field('project_lead', 'phone', 'Phone', H.projectLeadPhone, 'tel')}</div>
+            <div className="grid-2">{field('project_lead', 'name', 'Project lead name', H.projectLeadName)}{field('project_lead', 'title', 'Job title', H.projectLeadTitle)}{field('project_lead', 'email', 'Work email', H.projectLeadEmail, 'email')}{phone('project_lead', 'Phone', H.projectLeadPhone)}</div>
           )}
           <div className="grid-2">
             {field('technical_lead', 'name', 'Technical lead name', H.technicalLeadName)}

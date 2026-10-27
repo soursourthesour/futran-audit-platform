@@ -4,7 +4,8 @@ import { api } from '@/api/client';
 import { useCountries, useSubdivisions, useSuggestions, type Location, type Requirement, type Suggestion } from '@/api/clients';
 import type { Law } from '@/api/laws';
 import { LawPicker } from '@/components/LawPicker';
-import { Badge, Button, Card, EmptyState, FieldHelp, Loading } from '@/components/ui';
+import { Badge, Button, Card, Checkbox, EmptyState, FieldHelp, Loading } from '@/components/ui';
+import { AddressField } from '@/components/ui/AddressField';
 import { locationHelp as H } from '@/help/onboarding';
 import { useStepForm, useWizardCtx } from './Wizard';
 
@@ -12,7 +13,19 @@ const keyOf = (x: { regulation_id: string | null; label: string }) => x.regulati
 
 export function StepLocations() {
   const { clientId, data, errors, editable, autosave } = useWizardCtx();
-  const [locs, setLocs] = useStepForm<{ locations: Location[] }>('locations', { locations: data.locations.locations });
+  const [locs, setLocsRaw] = useStepForm<{ locations: Location[]; hq_same_as_company: boolean }>('locations', { locations: data.locations.locations, hq_same_as_company: !!data.locations.hq_same_as_company });
+  const company = data.company;
+  const companySubs = useSubdivisions(company.hq_country as string | null);
+  const hqState = String(company.hq_state ?? '').trim();
+  const hqStateCode = (companySubs.data ?? []).find((x) => x.code === hqState.toUpperCase() || x.code === `${company.hq_country}-${hqState.toUpperCase()}` || x.name.toLowerCase() === hqState.toLowerCase())?.code ?? null;
+  const companyAddress = [company.hq_street, company.hq_city, [company.hq_state, company.hq_postal_code].filter(Boolean).join(' '), company.hq_country].filter(Boolean).join(', ');
+  const hqFromCompany = (l?: Location): Location => ({ ...(l ?? { site_name: 'Headquarters', in_scope: true }), site_name: l?.site_name || 'Headquarters', street: (company.hq_street as string) ?? null, city: (company.hq_city as string) ?? null, subdivision_code: hqStateCode, country_code: String(company.hq_country ?? 'US'), in_scope: l?.in_scope ?? true });
+  const same = locs.hq_same_as_company;
+  const setLocs = (next: { locations: Location[] }) => setLocsRaw({ hq_same_as_company: same, ...next, ...(same && next.locations.length ? { locations: [hqFromCompany(next.locations[0]), ...next.locations.slice(1)] } : {}) });
+  function toggleSame(on: boolean) {
+    const rest = locs.locations;
+    setLocsRaw({ hq_same_as_company: on, locations: on ? [hqFromCompany(rest[0]), ...rest.slice(1)] : rest });
+  }
   const [version, setVersion] = useState(0);
   const sugg = useSuggestions(clientId, version);
   const [reqs, setReqs] = useState<Requirement[]>(data.locations.requirements);
@@ -70,6 +83,10 @@ export function StepLocations() {
       <Card title="Locations" actions={<Button size="sm" onClick={() => setLocs({ locations: [...locs.locations, { site_name: '', country_code: 'US', in_scope: true }] })}>Add location</Button>}>
         <div className="stack">
           <p className="small muted">Sites where staff work or where candidates are hired. Each site pulls in the laws of its city, state, country and any regional group (for example the EU).</p>
+          <div className="hq-same">
+            <Checkbox label="Same as company address" help={H.hqSame} checked={same} disabled={!company.hq_country} onChange={(e) => toggleSame(e.target.checked)} />
+            <span className="small muted">{company.hq_country ? `Headquarters (site 1) at ${companyAddress}` : 'Add the company address on the first step to use it here.'}</span>
+          </div>
           {errors['locations.locations'] && <p className="small" style={{ color: 'var(--danger)' }}>{errors['locations.locations']}</p>}
           {locs.locations.length === 0 ? <EmptyState>No sites yet. Add the headquarters first.</EmptyState> : (
             <div className="table-wrap">
@@ -77,7 +94,7 @@ export function StepLocations() {
                 <thead><tr><th><Th label="Site" help={H.site} /></th><th><Th label="Country" help={H.country} /></th><th><Th label="State or region" help={H.region} /></th><th><Th label="City" help={H.city} /></th><th>Laws from</th><th><Th label="In scope" help={H.inScope} /></th><th /></tr></thead>
                 <tbody>
                   {locs.locations.map((l, i) => (
-                    <LocationRow key={l.id ?? `new-${i}`} loc={l} index={i} error={errors[`locations.locations.${i}.country_code`]} onChange={(p) => update(i, p)} onRemove={() => setLocs({ locations: locs.locations.filter((_, j) => j !== i) })} />
+                    <LocationRow key={l.id ?? `new-${i}`} loc={l} index={i} locked={same && i === 0} error={errors[`locations.locations.${i}.country_code`]} onChange={(p) => update(i, p)} onRemove={() => setLocs({ locations: locs.locations.filter((_, j) => j !== i) })} />
                   ))}
                 </tbody>
               </table>
@@ -126,7 +143,7 @@ function fromSuggestion(s: Suggestion): Requirement {
   return { regulation_id: s.regulation_id, label: s.label, jurisdiction: s.jurisdiction_name, feature: s.feature, source: s.source, reason_text: s.reason };
 }
 
-function LocationRow({ loc, index, error, onChange, onRemove }: { loc: Location; index: number; error?: string; onChange: (p: Partial<Location>) => void; onRemove: () => void }) {
+function LocationRow({ loc, index, locked, error, onChange, onRemove }: { loc: Location; index: number; locked?: boolean; error?: string; onChange: (p: Partial<Location>) => void; onRemove: () => void }) {
   const countries = useCountries();
   const subs = useSubdivisions(loc.country_code);
   const label = `site ${index + 1}`;
@@ -136,18 +153,22 @@ function LocationRow({ loc, index, error, onChange, onRemove }: { loc: Location;
     <tr>
       <td><input className="input" aria-label={`Name of ${label}`} value={loc.site_name} placeholder="Headquarters" onChange={(e) => onChange({ site_name: e.target.value })} /></td>
       <td>
-        <select className="input" aria-label={`Country of ${label}`} value={loc.country_code} onChange={(e) => onChange({ country_code: e.target.value, subdivision_code: null })}>
+        <select className="input" aria-label={`Country of ${label}`} value={loc.country_code} disabled={locked} onChange={(e) => onChange({ country_code: e.target.value, subdivision_code: null })}>
           {(countries.data ?? []).map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
         </select>
         {error && <div className="small" style={{ color: 'var(--danger)' }}>{error}</div>}
       </td>
       <td>
-        <select className="input" aria-label={`State or region of ${label}`} value={loc.subdivision_code ?? ''} onChange={(e) => onChange({ subdivision_code: e.target.value || null })}>
+        <select className="input" aria-label={`State or region of ${label}`} value={loc.subdivision_code ?? ''} disabled={locked} onChange={(e) => onChange({ subdivision_code: e.target.value || null })}>
           <option value="">Whole country / various</option>
           {(subs.data ?? []).filter((s) => s.level === 'state').map((s) => <option key={s.code} value={s.code}>{s.name}</option>)}
         </select>
       </td>
-      <td><input className="input" aria-label={`City of ${label}`} value={loc.city ?? ''} onChange={(e) => onChange({ city: e.target.value })} /></td>
+      <td style={{ minWidth: 200 }}>
+        <AddressField aria-label={`City of ${label}`} value={loc.city ?? ''} disabled={locked} onChange={(t) => onChange({ city: t })}
+          onPick={(a) => onChange({ city: a.city ?? loc.city ?? null, street: a.street ?? null, country_code: a.country_code ?? loc.country_code, subdivision_code: a.state_code ?? null })} />
+        {(locked || loc.street) && <span className="cell-sub">{locked ? 'Same as company address' : loc.street}</span>}
+      </td>
       <td className="small muted" style={{ whiteSpace: 'normal', maxWidth: 220 }}>{(resolved.data ?? []).map((j) => j.name).join(' · ')}</td>
       <td><input type="checkbox" style={{ width: 20, height: 20, accentColor: 'var(--navy)' }} checked={loc.in_scope} onChange={(e) => onChange({ in_scope: e.target.checked })} aria-label={`${label} in scope`} /></td>
       <td><Button size="sm" variant="ghost" onClick={onRemove} aria-label={`Remove ${label}`}>Remove</Button></td>

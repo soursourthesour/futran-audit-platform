@@ -11,7 +11,7 @@ from app.core.errors import Conflict, Invalid, NotFound
 from app.engagements.gates import STAGE_NAMES, gate_status
 from app.engagements.models import ClientContact, ClientLocation, ClientRequirement, Engagement, EngagementTeam
 from app.engagements.service import STATUS_LABELS
-from app.engagements.wizard import INDUSTRIES, TEAM_ROLES
+from app.engagements.wizard import INDUSTRIES
 from app.engagements.wizard_router import _load
 from app.initiation.context import TYPE_LABELS
 from app.initiation.models import PackageDocument
@@ -172,7 +172,9 @@ def client_page(client_id: str, actor: Actor = Depends(current_actor), db: Sessi
             continue
         user = db.get(User, c.user_id) if c.user_id else None
         contacts.append({"role": c.contact_role, "role_label": ROLE_LABELS.get(c.contact_role, c.contact_role.replace("_", " ").capitalize()), "name": c.name, "email": c.email, "not_appointed": c.not_appointed, "invite_status": invite_status(db, user) if c.contact_role in ("caico", "client_admin") else None})
-    team = [{"name": u.name, "role_label": TEAM_ROLES.get(t.role, t.role)} for t, u in db.execute(select(EngagementTeam, User).join(User, User.id == EngagementTeam.user_id).where(EngagementTeam.engagement_id == e.id, EngagementTeam.deleted_at.is_(None)).order_by(EngagementTeam.created_at))]
+    from app.engagements.team import team_by_person
+
+    team = [{"name": p["name"], "role_label": p["role_label"]} for p in team_by_person(db, e)]  # one line per person
     pkg = current_package(db, e)
     so1 = current_sign_off(db, e, 1)
     sites = [{"site_name": loc.site_name, "city": loc.city, "jurisdictions": [jnames.get(j) for j in loc.jurisdiction_ids or []]} for loc in db.scalars(select(ClientLocation).where(ClientLocation.organization_id == org.id, ClientLocation.deleted_at.is_(None), ClientLocation.in_scope.is_(True)))]

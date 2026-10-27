@@ -1,0 +1,48 @@
+/* Staff forms: suggestion lists, phone numbers, stage detail and the email reader. */
+.combo-list { position: fixed; z-index: 60; margin: 0; padding: 4px 0; list-style: none; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18); overflow-y: auto; }
+.combo-option { display: flex; flex-direction: column; gap: 1px; padding: 9px 14px; cursor: pointer; font-size: 14.5px; line-height: 1.35; color: var(--ink); }
+.combo-option[aria-selected='true'] { background: #eef3fb; color: var(--navy); }
+.combo-detail { font-size: 12.5px; color: var(--muted); }
+.combo-footer { padding: 6px 14px 4px; border-top: 1px solid var(--line-soft); font-size: 11.5px; color: var(--muted); }
+.combo-empty { padding: 9px 14px; font-size: 13.5px; color: var(--muted); }
+.field-note { font-size: 13px; color: var(--muted); }
+
+.phone-row { display: grid; grid-template-columns: minmax(150px, 210px) minmax(0, 1fr); gap: 8px; }
+@media (max-width: 480px) { .phone-row { grid-template-columns: 1fr; } }
+
+.hq-same { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cell-sub { display: block; font-size: 12.5px; color: var(--muted); margin-top: 4px; white-space: normal; }
+
+/* Stage tracker steps as buttons */
+.stage-btn { display: block; width: 100%; text-align: left; background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; border-radius: 4px; }
+.stage-btn:hover .stage-name { text-decoration: underline; }
+.stage-btn:focus-visible { outline: none; box-shadow: var(--focus); }
+.stage-hint { margin: 8px 0 0; }
+
+/* Stage detail */
+.stage-meta { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13.5px; color: var(--muted); }
+.stage-section + .stage-section { margin-top: 20px; }
+.stage-section h3 { font-size: 15px; margin: 0 0 8px; color: var(--navy); }
+.signers { list-style: none; margin: 0; padding: 0; }
+.signers li + li { margin-top: 4px; }
+.table td.wrap, .table th.wrap { white-space: normal; }
+
+/* Laws table in the client details card */
+.laws-table td { white-space: normal; vertical-align: top; }
+.laws-table td:first-child { min-width: 160px; }
+.client-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0 24px; }
+
+/* Larger dialog: about 760px, full screen on phones */
+.dialog-large { max-width: 760px; }
+@media (max-width: 600px) {
+  .dialog-backdrop.has-large { padding: 0; }
+  .dialog-large { max-width: none; min-height: 100%; border-radius: 0; }
+}
+.dialog .card-header { gap: 12px; flex-wrap: nowrap; align-items: flex-start; }
+.dialog .card-header > :last-child { flex: none; }
+.email-frame { width: 100%; min-height: 60vh; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff; }
+.email-meta { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 12px; margin: 0; font-size: 14px; }
+.email-meta dt { color: var(--muted); }
+.email-meta dd { margin: 0; overflow-wrap: anywhere; }
+.copy-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.copy-row code { font-size: 12.5px; overflow-wrap: anywhere; background: var(--bg); padding: 4px 8px; border-radius: var(--radius-sm); }
