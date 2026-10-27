@@ -1,4 +1,4 @@
-import { forwardRef, useId, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
+import { forwardRef, useEffect, useId, useRef, type ButtonHTMLAttributes, type InputHTMLAttributes, type KeyboardEvent, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
 import { Link } from 'react-router-dom';
 import { FieldHelp } from './FieldHelp';
 
@@ -152,11 +152,28 @@ export function fmtDateTime(v?: string | null): string {
   return d.toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
-/** A modal dialog. Closes on Escape and on the close button; focus moves into it when it opens. */
-export function Dialog({ title, onClose, children, wide }: { title: ReactNode; onClose: () => void; children: ReactNode; wide?: boolean }) {
+/** A modal dialog. Closes on Escape, a click on the backdrop and the close button. Focus moves into it when it opens,
+ *  stays inside while it is open and returns to where it was when it closes. `large` is about 760px wide and fills
+ *  the screen on a phone. */
+export function Dialog({ title, onClose, children, wide, large, label }: { title: ReactNode; onClose: () => void; children: ReactNode; wide?: boolean; large?: boolean; label?: string }) {
+  const box = useRef<HTMLDivElement>(null);
+  const opener = useRef<HTMLElement | null>(typeof document !== 'undefined' ? (document.activeElement as HTMLElement | null) : null); // read before autoFocus moves it
+  useEffect(() => {
+    const back = opener.current;
+    return () => { if (back && back !== document.body && document.contains(back)) back.focus(); };
+  }, []);
+  function trap(e: KeyboardEvent<HTMLDivElement>) {
+    if (e.key === 'Escape') { onClose(); return; }
+    if (e.key !== 'Tab' || !box.current) return;
+    const f = [...box.current.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), iframe, [tabindex]:not([tabindex="-1"])')].filter((el) => el.offsetParent !== null || el === document.activeElement);
+    if (!f.length) return;
+    const first = f[0], last = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
   return (
-    <div className="dialog-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }} onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}>
-      <div className={`dialog ${wide ? 'dialog-wide' : ''}`} role="dialog" aria-modal="true" aria-label={typeof title === 'string' ? title : undefined}>
+    <div className={`dialog-backdrop${large ? ' has-large' : ''}`} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }} onKeyDown={trap}>
+      <div ref={box} className={`dialog ${wide ? 'dialog-wide' : ''} ${large ? 'dialog-large' : ''}`} role="dialog" aria-modal="true" aria-label={label ?? (typeof title === 'string' ? title : undefined)}>
         <div className="card-header">
           {typeof title === 'string' ? <h2>{title}</h2> : title}
           <button type="button" className="btn btn-ghost btn-sm" onClick={onClose} autoFocus aria-label="Close">Close</button>
