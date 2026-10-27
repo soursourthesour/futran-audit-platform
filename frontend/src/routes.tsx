@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { ClientShell, FutranShell, RequireAuth } from '@/shells/Shells';
 import { Login, StaffLogin } from '@/screens/auth/Login';
 import { Terms } from '@/screens/auth/Terms';
+import { NoticeAcknowledge } from '@/screens/auth/NoticeAcknowledge';
 import { MfaSetup, MfaVerify } from '@/screens/auth/Mfa';
 import { AcceptInvite } from '@/screens/auth/AcceptInvite';
 import { Dashboard } from '@/screens/futran/Dashboard';
@@ -23,6 +24,7 @@ export const router = createBrowserRouter([
   { path: '/login', element: <Login /> },
   { path: '/staff/login', element: <StaffLogin /> },
   { path: '/welcome/terms', element: <Terms /> },
+  { path: '/welcome/notice', element: <NoticeAcknowledge /> },
   { path: '/mfa', element: <MfaVerify /> },
   { path: '/mfa/setup', element: <MfaSetup /> },
   { path: '/invite', element: <AcceptInvite /> },

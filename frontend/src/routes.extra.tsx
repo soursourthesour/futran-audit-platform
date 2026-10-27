@@ -1,4 +1,4 @@
-import type { RouteObject } from 'react-router-dom';
+import { Navigate, type RouteObject } from 'react-router-dom';
 import { UsersAdmin } from '@/screens/admin/Users';
 import { AuditLogScreen } from '@/screens/admin/AuditLog';
 import { OutboxScreen } from '@/screens/admin/Outbox';
@@ -45,7 +45,9 @@ export const futranRoutes: RouteObject[] = [
   { path: '/clients/:clientId/inventory', element: <FutranInventory /> },
   { path: '/clients/:clientId/inventory/:useCaseId', element: <UseCaseForm /> },
   { path: '/clients/:clientId/systems', element: <SystemsRegister /> },
-  { path: '/clients/:clientId/people', element: <UsersDepartments /> },
+  { path: '/clients/:clientId/people', element: <Navigate to="departments" replace /> },
+  { path: '/clients/:clientId/people/departments', element: <UsersDepartments tab="departments" /> },
+  { path: '/clients/:clientId/people/users', element: <UsersDepartments tab="users" /> },
   { path: '/clients/:clientId/assessment', element: <SystemAssessment /> },
   { path: '/systems/:systemId/assess', element: <SystemAssessment /> },
   { path: '/clients/:clientId/documents', element: <DocumentRegister /> },
@@ -56,5 +58,5 @@ export const futranRoutes: RouteObject[] = [
   { path: '/clients/:clientId/responses', element: <ManagementResponse /> },
   { path: '/clients/:clientId/remediation', element: <Remediation /> },
 ];
-export const clientRoutes: RouteObject[] = [{ path: '/users', element: <UsersDepartments /> }, { path: '/governance', element: <Governance /> }, { path: '/attestation', element: <AttestationTracker /> }, { path: '/inventory', element: <Inventory /> }, { path: '/inventory/new', element: <UseCaseForm /> }, { path: '/inventory/:useCaseId', element: <UseCaseForm /> }, { path: '/systems', element: <SystemsPrefillList /> }, { path: '/systems/:systemId', element: <SystemPrefill /> }, { path: '/documents', element: <DocumentUploads /> }, { path: '/review', element: <InventoryReview /> }, { path: '/report', element: <ClientReport /> }, { path: '/responses', element: <ManagementResponse /> }, { path: '/remediation', element: <Remediation /> }];
+export const clientRoutes: RouteObject[] = [{ path: '/people', element: <Navigate to="/people/departments" replace /> }, { path: '/people/departments', element: <UsersDepartments tab="departments" /> }, { path: '/people/users', element: <UsersDepartments tab="users" /> }, { path: '/users', element: <Navigate to="/people/users" replace /> }, { path: '/governance', element: <Governance /> }, { path: '/attestation', element: <AttestationTracker /> }, { path: '/inventory', element: <Inventory /> }, { path: '/inventory/new', element: <UseCaseForm /> }, { path: '/inventory/:useCaseId', element: <UseCaseForm /> }, { path: '/systems', element: <SystemsPrefillList /> }, { path: '/systems/:systemId', element: <SystemPrefill /> }, { path: '/documents', element: <DocumentUploads /> }, { path: '/review', element: <InventoryReview /> }, { path: '/report', element: <ClientReport /> }, { path: '/responses', element: <ManagementResponse /> }, { path: '/remediation', element: <Remediation /> }];
 export const publicRoutes: RouteObject[] = [{ path: '/attest/:token', element: <PhoneAttestation /> }, { path: '/confirm/:token', element: <NamedUserConfirm /> }];

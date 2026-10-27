@@ -11,6 +11,7 @@ export type Me = {
   email_mode: string;
   csrf_token: string;
   terms_required?: boolean;
+  notice_required?: boolean;
 };
 export type SessionState = {
   authenticated: boolean;

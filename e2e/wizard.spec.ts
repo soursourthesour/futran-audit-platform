@@ -122,10 +122,13 @@ test('auditor sets up a client, the Chief Auditor approves and the client signs 
   await page.getByLabel(/I accept the terms of use/).check();
   await page.getByRole('button', { name: 'Accept and continue' }).click();
   await expect(page.getByRole('heading', { name: 'Welcome to your AI governance assessment' })).toBeVisible({ timeout: 15_000 });
-  await page.getByRole('button', { name: 'Mark as read' }).click();
+  await page.getByRole('button', { name: 'Read and confirm' }).click();
+  await expect(page.getByRole('region', { name: 'Read the getting started guide' })).toBeVisible();
+  await page.getByRole('button', { name: 'I have read this guide' }).click();
   await expect(page.getByText('1 of 7 complete')).toBeVisible();
   await page.screenshot({ path: 'screenshots/p3-client-checklist.png', fullPage: true });
   await page.getByRole('button', { name: 'Review and sign' }).click();
+  await expect(page.getByRole('region', { name: 'Engagement letter and scope' })).toBeVisible();
   await page.getByLabel('Type your full name to sign', { exact: true }).fill('Maria Lopez');
   await page.getByLabel(/^I have read the document and agree/).check();
   await page.getByRole('button', { name: 'Sign', exact: true }).click();
@@ -140,6 +143,7 @@ test('auditor sets up a client, the Chief Auditor approves and the client signs 
   }
   await page.getByRole('button', { name: 'Confirm the department list' }).click();
   await expect(page.getByText('Department list confirmed.')).toBeVisible();
+  await page.getByRole('navigation', { name: 'People sections' }).getByRole('link', { name: /^Users/ }).click();
   const csv = 'first_name,last_name,email,job_title,department,role,location\nPriya,Shah,priya.shah@abccorp.example,Head of HR,HR and recruiting,Department Compliance Lead,New York NY\nRaj,Iyer,raj.iyer@abccorp.example,CTO,Engineering and IT,Department Compliance Lead,Chicago IL\nLee,Park,lee.park@abccorp.example,Counsel,Legal,Contributor,Chicago IL\n';
   await page.getByLabel('User list CSV').setInputFiles({ name: 'user_list.csv', mimeType: 'text/csv', buffer: Buffer.from(csv) });
   await expect(page.getByText("Row 4: Department 'Legal' is not in the department list.")).toBeVisible();
@@ -168,7 +172,10 @@ test('auditor sets up a client, the Chief Auditor approves and the client signs 
 
   // Attestation campaign (Phase 4): acknowledge the notice, launch, staff answer on a phone
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Getting started' }).click();
-  await page.getByRole('button', { name: 'Acknowledge' }).click();
+  await page.getByRole('button', { name: 'Review and send' }).click();
+  await page.getByRole('button', { name: 'Send to employees' }).click();
+  await page.getByRole('button', { name: 'Send to employees' }).click();
+  await expect(page.getByText(/Version 1 of the notice was emailed to/)).toBeVisible();
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Attestation' }).click();
   await page.getByRole('button', { name: 'Launch and get the staff link' }).click();
   await expect(page.getByRole('button', { name: 'Copy staff link' })).toBeVisible();

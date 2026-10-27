@@ -1,0 +1,26 @@
+/* Getting started, the employee data notice and People (client portal) */
+.dl-links { display: inline-flex; flex-wrap: wrap; gap: 4px 16px; }
+.dl-link { display: inline-flex; align-items: center; gap: 5px; min-height: 32px; font-weight: 600; text-decoration: none; }
+.dl-link:hover { text-decoration: underline; }
+.dl-icon { flex: none; }
+.doc-reader { overflow-y: auto; border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 16px 20px; background: #fcfdfe; }
+.doc-reader:focus-visible { box-shadow: var(--focus); }
+.reader-confirm { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding-top: 4px; }
+.checklist .actions { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex: none; }
+.checklist .meta { margin-top: 6px; }
+@media (max-width: 600px) {
+  .checklist > li { flex-wrap: wrap; }
+  .checklist .actions { width: 100%; align-items: stretch; padding-left: 48px; }
+  .checklist .actions .btn { width: 100%; }
+}
+.subnav { display: flex; gap: 4px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.subnav a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px; border-bottom: 2px solid transparent; color: var(--muted); text-decoration: none; font-size: 15px; white-space: nowrap; }
+.subnav a:hover { color: var(--navy); }
+.subnav a.active { color: var(--navy); border-bottom-color: var(--navy); font-weight: 600; }
+.people-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.inline-add { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.inline-add .input { flex: 1 1 220px; min-width: 0; }
+.roles-note summary { cursor: pointer; font-weight: 600; color: var(--navy); min-height: 44px; display: flex; align-items: center; }
+.notice-status { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; font-size: 14px; }
+.notice-editor { width: 100%; min-height: 360px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13.5px; line-height: 1.5; }
+.ack-page { max-width: 760px; margin: 0 auto; padding: 32px 16px; display: flex; flex-direction: column; gap: 16px; }

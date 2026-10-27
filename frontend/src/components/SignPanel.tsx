@@ -17,7 +17,7 @@ const STATUS: Record<string, { label: string; tone: 'success' | 'warn' | 'danger
 };
 
 /** Click-to-sign (schematic D8): open the document, type your name, sign. */
-export function SignPanel({ signOffId, onSigned, agreeText, hideTitle }: { signOffId: string; onSigned?: () => void; agreeText?: string; hideTitle?: boolean }) {
+export function SignPanel({ signOffId, onSigned, agreeText, hideTitle, hideDocument }: { signOffId: string; onSigned?: () => void; agreeText?: string; hideTitle?: boolean; hideDocument?: boolean }) {
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ['signoff', signOffId], queryFn: () => api.get<SignOffView>(`/signoffs/${signOffId}`) });
   const [name, setName] = useState('');
@@ -58,7 +58,7 @@ export function SignPanel({ signOffId, onSigned, agreeText, hideTitle }: { signO
       {so.correction_reason && <p className="small" style={{ margin: 0 }}>Reopened: {so.correction_reason}</p>}
       {so.status === 'returned' && so.comment && <Alert tone="warn">Returned: {so.comment}</Alert>}
       {so.statement && <blockquote className="statement" style={{ whiteSpace: 'pre-wrap' }}>{so.statement}</blockquote>}
-      {so.document && (
+      {so.document && !hideDocument && (
         <p className="small">
           Read the document before signing: {so.document.pdf_file_id && <a href={fileUrl(so.document.pdf_file_id)}>PDF</a>}
           {so.document.docx_file_id && <> · <a href={fileUrl(so.document.docx_file_id)}>Word</a></>}

@@ -33,6 +33,7 @@ export function RequireAuth({ children, side }: { children: ReactNode; side?: 'f
   if (!me) return <Navigate to={`${side === 'futran' ? '/staff/login' : '/login'}?next=${encodeURIComponent(loc.pathname + loc.search)}`} replace />;
   if (side && me.organization.type !== side) return <Navigate to={me.organization.type === 'futran' ? '/audits' : '/start'} replace />;
   if (me.terms_required) return <Navigate to="/welcome/terms" replace />;
+  if (me.notice_required) return <Navigate to="/welcome/notice" replace />;
   return <>{children}</>;
 }
 
@@ -65,14 +66,14 @@ export function FutranShell() {
 }
 
 /** Client screens that exist so far; later phases add theirs here. */
-const BUILT_CLIENT_ROUTES = new Set(['/start', '/users', '/governance', '/attestation', '/inventory', '/systems', '/documents', '/review', '/report', '/responses', '/remediation']);
+const BUILT_CLIENT_ROUTES = new Set(['/start', '/people', '/governance', '/attestation', '/inventory', '/systems', '/documents', '/review', '/report', '/responses', '/remediation']);
 
 export function ClientShell() {
   const { data: me } = useMe();
   if (!me) return null;
   const nav = [
     { to: '/start', label: 'Getting started' },
-    { to: '/users', label: 'People', show: hasRole(me, 'client_admin', 'caico') },
+    { to: '/people', label: 'People', show: hasRole(me, 'client_admin', 'caico') },
     { to: '/governance', label: 'Governance', show: hasRole(me, 'caico', 'dpo', 'exec_sponsor') },
     { to: '/attestation', label: 'Attestation', show: hasRole(me, 'caico', 'dpo', 'dept_compliance_lead') },
     { to: '/inventory', label: 'AI inventory' },

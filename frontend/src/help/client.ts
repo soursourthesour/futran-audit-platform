@@ -7,13 +7,19 @@ export const inviteHelp = {
 
 /** Keyed by the getting-started item key from the API. */
 export const checklistHelp: Record<string, string> = {
-  guide: 'How to sign in, set up sign-in codes, the audit timeline and who your Futran contacts are. Mark it as read once you have been through it.',
-  sign: 'Sets out the audit period and the laws, sites and departments in scope. The Chief AI Compliance Officer signs it; this is sign-off 1.',
+  guide: 'How to sign in, set up sign-in codes, the audit timeline and who your Futran contacts are. Read it through, then confirm at the end.',
+  sign: 'Sets out the audit period and the laws, sites and departments in scope. The Chief AI Compliance Officer reads it and signs; this is sign-off 1.',
   nominate: 'Name your Executive Sponsor, Data Protection Officer and a Compliance Lead for each department, or mark a role as not appointed. Done once every role is covered.',
-  departments: 'Check the department list Futran drafted from the scope. Add or exclude departments, then confirm the list.',
-  users: 'Add only people who need to sign in: role holders, Department Compliance Leads and contributors. Everyone else takes part through the attestation link.',
-  notice: 'Tells staff what the attestation collects and who sees it. Circulate it before launching the attestation; the Chief AI Compliance Officer acknowledges it here.',
+  departments: 'Check the department list Futran drafted from the scope on People > Departments. Add, correct or exclude departments, then confirm the list there.',
+  users: 'Add the people who need to sign in on People > Users: role holders, Department Compliance Leads and contributors. Everyone else takes part through the attestation link.',
+  notice: 'Tells staff what the audit collects about their use of AI and who sees it. The Chief AI Compliance Officer may edit it, then sends it to everyone on the user list. Sending it starts the audit; each person with a login acknowledges it when they next sign in.',
   governance: 'Tell Futran which AI governance bodies, policies and named owners exist today. Anything not yet in place becomes a dated commitment.',
+};
+
+export const noticeHelp = {
+  body: 'The notice staff receive, in Markdown: # for headings, - for list items, a blank line between paragraphs. Keep the sections required by the laws in scope; Futran drafted them from the engagement.',
+  send: 'Emails the notice to every person on People > Users. People with a login must read and acknowledge it at their next sign-in. If you change the notice after sending, send it again and everyone acknowledges the new version.',
+  acknowledge: 'Your acknowledgement is recorded in the audit log with the notice version and the time.',
 };
 
 export const peopleHelp = {
@@ -28,6 +34,13 @@ export const peopleHelp = {
   jobTitle: 'Shown next to their name on sign-offs and in the users list.',
   role: "Contributors record use cases. Department Compliance Leads review and approve their department's inventory. The other roles sign stages of the audit.",
   department: 'The department this person works in. Department Compliance Leads and Contributors work within one department.',
+  departmentName: 'The name your staff know the department by. It appears on the attestation form and in the report.',
+  headName: 'The person who heads the department. For reference only; it does not give them a login.',
+  headEmail: 'The department head\'s work email. For reference only; no email is sent to it.',
+  headcount: 'Approximate number of staff in the department. Used to size the attestation response rate.',
+  addRole: 'Adds a role to this person. Department Compliance Leads and Contributors need a department.',
+  changeDepartment: 'Moves the selected people, and any department roles they hold, to this department.',
+  rolesNote: 'What each role does during the audit, from the roles note in your initiation package.',
 };
 
 export const governanceHelp = {
