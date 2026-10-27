@@ -100,3 +100,78 @@ def approve(client_id: str, body: ApproveIn, request: Request, actor: Actor = De
     _, e = _load(db, actor, client_id, Action.APPROVE_ENGAGEMENT)
     pkg = approve_and_send(db, request.app.state.settings, actor.user, e, (body.client_message or "").strip() or None, body.checklist)
     return {"engagement_id": e.id, "status": e.status, "stage": e.stage, "package_id": pkg.id}
+
+
+# ---- client side: the employee AI audit and data notice (checklist item 6)
+class NoticeIn(BaseModel):
+    body_md: str
+
+
+class NoticeAckIn(BaseModel):
+    version: int
+    accepted: bool = False
+
+
+def _client_e(db: Session, actor: Actor) -> Engagement:
+    from app.engagements.client_router import _client_engagement
+
+    return _client_engagement(db, actor)
+
+
+@router.get("/me/notice")
+def get_notice(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    from app.initiation import notice
+
+    e = _client_e(db, actor)
+    doc = notice.notice_document(db, e)
+    if doc is None:
+        raise NotFound()
+    can_edit = actor.has_role("caico") and e.status not in notice.CLOSED
+    rel = notice.latest_release(db, e)
+    sender = db.get(User, rel.sent_by) if rel and rel.sent_by else None
+    return {
+        "can_edit": can_edit,
+        "document": {"id": doc.id, "title": doc.title, "html": render_markdown(doc.body_md), "body_md": doc.body_md if can_edit else None, "pdf_file_id": doc.pdf_file_id, "docx_file_id": doc.docx_file_id},
+        "sent": {"version": rel.version, "sent_at": rel.sent_at.isoformat(), "sent_by": sender.name if sender else None, "recipients": rel.recipient_count} if rel else None,
+        "unsent_changes": bool(rel and rel.body_md != doc.body_md),
+        "acknowledgements": notice.counts(db, e),
+    }
+
+
+@router.put("/me/notice")
+def put_notice(body: NoticeIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    from app.initiation import notice
+
+    e = _client_e(db, actor)
+    doc = notice.edit(db, request.app.state.settings, actor.user, actor.role_names, e, body.body_md)
+    return {"id": doc.id, "edited": doc.edited}
+
+
+@router.post("/me/notice/send")
+def send_notice(request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    from app.initiation import notice
+
+    e = _client_e(db, actor)
+    rel = notice.send(db, request.app.state.settings, actor.user, actor.role_names, e)
+    return {"version": rel.version, "recipients": rel.recipient_count, "sent_at": rel.sent_at.isoformat()}
+
+
+@router.get("/me/notice/pending")
+def pending_notice(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    from app.initiation import notice
+
+    e = _client_e(db, actor)
+    rel = notice.pending_for(db, actor.user)
+    if rel is None or rel.engagement_id != e.id:
+        raise NotFound("There is no notice waiting for you to acknowledge.")
+    sender = db.get(User, rel.sent_by) if rel.sent_by else None
+    return {"version": rel.version, "title": rel.title, "html": render_markdown(rel.body_md), "sent_at": rel.sent_at.isoformat(), "sent_by": sender.name if sender else None, "organization": actor.organization.name}
+
+
+@router.post("/me/notice/acknowledge")
+def acknowledge_notice(body: NoticeAckIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    from app.initiation import notice
+
+    _client_e(db, actor)
+    a = notice.acknowledge(db, actor.user, body.version, body.accepted)
+    return {"version": a.version, "acknowledged_at": a.acknowledged_at.isoformat()}

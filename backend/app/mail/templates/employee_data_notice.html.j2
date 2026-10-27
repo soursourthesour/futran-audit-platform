@@ -1,0 +1,7 @@
+{% extends "_layout.html.j2" %}{% block body %}
+<p>Hello {{ name }},</p>
+<p>{{ client }} is taking part in an AI governance audit carried out by Futran Solutions. {{ sender }}, {{ sender_role }}, is sending you the notice below, which explains what information the audit collects about how staff use AI and how that information is handled.{% if version > 1 %} This is version {{ version }} and replaces the notice you received earlier.{% endif %}</p>
+{% if has_login %}<p>When you next sign in to Futran Audit you will be asked to confirm that you have read and understood it.</p>
+<p style="margin:24px 0"><a href="{{ link }}" style="background:#1B3A6B;color:#ffffff;padding:12px 20px;text-decoration:none;display:inline-block">Sign in to acknowledge</a></p>{% endif %}
+<div style="border-top:1px solid #d9dee7;margin-top:16px;padding-top:16px;font-size:14px">{{ notice_html | safe }}</div>
+{% endblock %}

@@ -1,0 +1,12 @@
+Hello {{ name }},
+
+{{ client }} is taking part in an AI governance audit carried out by Futran Solutions. {{ sender }}, {{ sender_role }}, is sending you the notice below, which explains what information the audit collects about how staff use AI and how that information is handled.{% if version > 1 %} This is version {{ version }} and replaces the notice you received earlier.{% endif %}
+
+{% if has_login %}When you next sign in to Futran Audit you will be asked to confirm that you have read and understood it: {{ link }}
+
+{% endif %}
+----
+{{ notice_text }}
+----
+
+Futran Solutions, on behalf of {{ client }}

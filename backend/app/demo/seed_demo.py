@@ -148,6 +148,16 @@ class Demo:
                 u.terms_accepted_at = utcnow()
         self.db.commit()
 
+    def acknowledge_notice(self, org_id: str) -> None:
+        """Demo staff who can sign in have read the employee data notice the CAICO sent."""
+        from app.initiation.notice import pending_for
+        from app.tenancy.models import User
+
+        for u in self.db.scalars(select(User).where(User.organization_id == org_id, User.deleted_at.is_(None), User.status == "active")).all():
+            rel = pending_for(self.db, u)
+            if rel is not None:
+                self.as_(u).post("/me/notice/acknowledge", {"version": rel.version, "accepted": True})
+
     def engagement(self, cid: str):
         from app.engagements.models import Engagement
         from app.tenancy.models import Organization
@@ -313,6 +323,8 @@ def _abc_discovery(m: Demo, cid: str) -> dict:
     # attestation campaign: staff say what they use
     depts = {d.name: d.id for d in m.db.scalars(select(Department).where(Department.organization_id == cid, Department.deleted_at.is_(None)))}
     m.post("/me/initiation/items/notice/done")
+    m.acknowledge_notice(cid)
+    m.as_(maria)
     link = m.post(f"/clients/{cid}/attestation/campaigns", {"department_ids": list(depts.values()), "closes_at": m.d(10) + "T17:00:00", "policy_version": "1.0"})["link"]
     token = link.rsplit("/", 1)[1]
     staff = [("Sam Lee", "HR", "chatgpt", "personal_free", ["writing"], ["client"]), ("Ana Diaz", "HR", "chatgpt", "personal_free", ["writing"], ["client"]),
@@ -743,6 +755,8 @@ def e2e_late(db: Session, settings) -> dict:
         mid = meridian(m)
         katrin, aarav = m.user("katrin.vogel@meridian.example"), m.user("aarav.menon@meridian.example")
         m.as_(katrin).post("/me/initiation/items/notice/done")
+        m.acknowledge_notice(mid)
+        m.as_(katrin)
         from app.tenancy.models import Department
 
         depts = {d.name: d.id for d in db.scalars(select(Department).where(Department.organization_id == mid, Department.deleted_at.is_(None)))}

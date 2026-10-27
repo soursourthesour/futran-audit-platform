@@ -66,18 +66,32 @@ def get_people(client_id: str, actor: Actor = Depends(current_actor), db: Sessio
     leads: dict[str, str] = {}
     for sid, name in lead_rows:
         leads.setdefault(sid, name)
+    from app.initiation import notice
+
+    e = people.current_engagement(db, org)
+    release = notice.latest_release(db, e) if e is not None else None
+    acks = notice.acknowledgements(db, release)
+    counts: dict[str, int] = {}
     users = []
     for u in db.scalars(select(User).where(User.organization_id == org.id, User.deleted_at.is_(None)).order_by(User.name)):
         roles = [{"id": r.id, "role": r.role, "role_label": ROLE_LABELS.get(r.role, r.role), "department": names.get(r.scope_id) if r.scope_type == "department" else None, "sign_off_role": r.role in people.SIGN_OFF_KEYS} for r in roles_of(db, u.id)]
         if visible_depts is not None and not any(r.scope_type == "department" and r.scope_id in visible_depts for r in roles_of(db, u.id)):
             continue
-        users.append({"id": u.id, "name": u.name, "email": u.email, "job_title": u.job_title, "status": u.status, "invite_status": invite_status(db, u), "roles": roles})
-    e = people.current_engagement(db, org)
+        dept = people.user_department(db, u, names)
+        dept_id = next((k for k, v in names.items() if v == dept), None)
+        if dept_id:
+            counts[dept_id] = counts.get(dept_id, 0) + 1
+        users.append({"id": u.id, "name": u.name, "email": u.email, "job_title": u.job_title, "status": u.status, "invite_status": invite_status(db, u), "roles": roles,
+                      "department": dept, "signed_in": bool(u.password_hash), "notice": notice.status_for(acks, release, u) if u.status != "disabled" else {"status": "not_required", "at": None, "version": None}})
     gate = gate_status(db, e) if e is not None and e.stage == 2 else None
     return {
         "client": {"id": org.id, "name": org.name},
         "can_manage": manage,
-        "departments": [{"id": d.id, "name": d.name, "headcount": d.headcount, "head_name": d.head_name, "in_scope": d.in_scope, "lead": leads.get(d.id)} for d in depts if visible_depts is None or d.id in visible_depts],
+        "departments": [{"id": d.id, "name": d.name, "headcount": d.headcount, "head_name": d.head_name, "head_email": d.head_email, "in_scope": d.in_scope, "lead": leads.get(d.id), "people": counts.get(d.id, 0)} for d in depts if visible_depts is None or d.id in visible_depts],
+        "departments_confirmed": bool(e and e.departments_confirmed_at),
+        "scope_locked": bool(e and e.stage > 2),
+        "is_caico": actor.has_role("caico"),
+        "notice": {"version": release.version, "sent_at": release.sent_at.isoformat()} if release else None,
         "users": users,
         "role_holders": people.role_holders(db, org),
         "gate": {"stage": e.stage, "ready": gate.ready, "unmet": gate.unmet} if gate else ({"stage": e.stage, "ready": True, "unmet": []} if e else None),
@@ -90,6 +104,12 @@ def department_template(client_id: str, actor: Actor = Depends(current_actor), d
     return Response(people.department_template(db, org), media_type="text/csv; charset=utf-8", headers={"Content-Disposition": 'attachment; filename="department_list.csv"'})
 
 
+@router.get("/users/template.csv")
+def user_template(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    org = _org(db, actor, client_id, Action.MANAGE_CLIENT_USERS)
+    return Response(people.user_template(db, org), media_type="text/csv; charset=utf-8", headers={"Content-Disposition": 'attachment; filename="user_list.csv"'})
+
+
 @router.post("/departments")
 def post_department(client_id: str, body: DepartmentIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
     org = _org(db, actor, client_id, Action.MANAGE_CLIENT_USERS)
@@ -97,29 +117,32 @@ def post_department(client_id: str, body: DepartmentIn, actor: Actor = Depends(c
     return {"id": d.id, "name": d.name}
 
 
-@router.patch("/departments/{dept_id}")
-def patch_department(client_id: str, dept_id: str, body: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
-    from app.audit_log import service as audit
-
-    org = _org(db, actor, client_id, Action.MANAGE_CLIENT_USERS)
+def _dept(db: Session, org: Organization, dept_id: str) -> Department:
     d = db.get(Department, dept_id)
     if d is None or d.organization_id != org.id or d.deleted_at:
         raise NotFound()
-    before = {"in_scope": d.in_scope, "headcount": d.headcount}
-    if "in_scope" in body and not isinstance(body["in_scope"], bool):
-        raise Invalid(errors=[{"field": "in_scope", "message": "Choose in scope or out of scope."}])
-    if "headcount" in body:
-        hc = str(body["headcount"] if body["headcount"] is not None else "").strip()
-        if hc and not (hc.isascii() and hc.isdecimal() and len(hc) < 8):
-            raise Invalid(errors=[{"field": "headcount", "message": "Headcount must be a whole number."}])
-    if "in_scope" in body and body["in_scope"] != d.in_scope:
-        people.scope_changed(db, org)
-        d.in_scope = body["in_scope"]
-    if "headcount" in body:
-        d.headcount = int(hc) if hc else None
-    audit.record(db, actor_id=actor.id, action="department.edit", obj=d, before=before, after={"in_scope": d.in_scope, "headcount": d.headcount}, summary=f"Edited department {d.name}")
-    people.advance_if_ready(db, actor.user, people.current_engagement(db, org))
-    return {"id": d.id, "in_scope": d.in_scope, "headcount": d.headcount}
+    return d
+
+
+def _person(db: Session, org: Organization, user_id: str) -> User:
+    u = db.get(User, user_id)
+    if u is None or u.organization_id != org.id or u.deleted_at:
+        raise NotFound()
+    return u
+
+
+@router.patch("/departments/{dept_id}")
+def patch_department(client_id: str, dept_id: str, body: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    org = _org(db, actor, client_id, Action.MANAGE_CLIENT_USERS)
+    d = people.edit_department(db, actor.user, org, _dept(db, org, dept_id), body)
+    return {"id": d.id, "name": d.name, "in_scope": d.in_scope, "headcount": d.headcount, "head_name": d.head_name, "head_email": d.head_email}
+
+
+@router.delete("/departments/{dept_id}")
+def delete_department(client_id: str, dept_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    org = _org(db, actor, client_id, Action.MANAGE_CLIENT_USERS)
+    people.delete_department(db, actor.user, org, _dept(db, org, dept_id))
+    return {"deleted": True}
 
 
 @router.post("/departments/import/preview")
@@ -158,6 +181,38 @@ def post_user(client_id: str, body: ClientUserIn, request: Request, actor: Actor
     org = _org(db, actor, client_id, Action.MANAGE_CLIENT_USERS)
     u = people.add_user(db, request.app.state.settings, actor.user, org, body.model_dump())
     return {"id": u.id, "name": u.name, "email": u.email}
+
+
+class UserPatchIn(BaseModel):
+    name: str | None = None
+    email: str | None = None
+    job_title: str | None = None
+    department: str | None = None
+
+
+class RoleIn(BaseModel):
+    role: str = ""
+    department: str | None = None
+
+
+@router.patch("/users/{user_id}")
+def patch_user(client_id: str, user_id: str, body: UserPatchIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    org = _org(db, actor, client_id, Action.MANAGE_CLIENT_USERS)
+    u = people.edit_user(db, actor.user, org, _person(db, org, user_id), body.model_dump(exclude_unset=True))
+    return {"id": u.id, "name": u.name, "email": u.email, "job_title": u.job_title}
+
+
+@router.delete("/users/{user_id}")
+def delete_user(client_id: str, user_id: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    org = _org(db, actor, client_id, Action.MANAGE_CLIENT_USERS)
+    return {"result": people.remove_user(db, request.app.state.settings, actor.user, org, _person(db, org, user_id))}
+
+
+@router.post("/users/{user_id}/roles")
+def post_role(client_id: str, user_id: str, body: RoleIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    org = _org(db, actor, client_id, Action.MANAGE_CLIENT_USERS)
+    u = people.add_role(db, request.app.state.settings, actor.user, org, _person(db, org, user_id), body.role, body.department)
+    return {"id": u.id}
 
 
 @router.delete("/users/{user_id}/roles/{assignment_id}")

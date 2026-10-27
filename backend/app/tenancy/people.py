@@ -64,6 +64,16 @@ def department_template(db: Session, org: Organization) -> str:
     return to_csv(["department", "head_name", "head_email", "headcount"], rows)
 
 
+def user_template(db: Session, org: Organization) -> str:
+    """The user list CSV with two example rows, using this client's own department names."""
+    names = [d.name for d in departments(db, org) if d.in_scope] or ["Human Resources"]
+    return to_csv(
+        ["first_name", "last_name", "email", "job_title", "department", "role", "location"],
+        [["Priya", "Shah", "priya.shah@example.com", "Head of department", names[0], "Department Compliance Lead", ""],
+         ["Tom", "Reyes", "tom.reyes@example.com", "Analyst", names[0], "Contributor", ""]],
+    )
+
+
 def scope_changed(db: Session, org: Organization) -> None:
     """The in-scope department list is fixed once setup ends; during setup any change needs the list confirmed again."""
     e = current_engagement(db, org)
@@ -274,3 +284,206 @@ def role_holders(db: Session, org: Organization) -> dict:
         c = contacts.get(role)
         out[role] = {"user": {"id": holder.id, "name": holder.name} if holder else None, "not_appointed": bool(c and c.not_appointed and holder is None)}
     return out
+
+
+# ---- People > Departments and People > Users grids
+def _clean_name(value, field: str, label: str, limit: int) -> str:
+    name = " ".join(str(value or "").split())
+    if not name:
+        raise Invalid(errors=[{"field": field, "message": f"Enter the {label}."}])
+    if len(name) > limit:
+        raise Invalid(errors=[{"field": field, "message": f"The {label} must be {limit} characters or fewer."}])
+    return name
+
+
+def department_members(db: Session, d: Department) -> list[User]:
+    """People whose role or record places them in this department."""
+    by_role = select(RoleAssignment.user_id).where(RoleAssignment.scope_type == "department", RoleAssignment.scope_id == d.id, RoleAssignment.deleted_at.is_(None))
+    return list(db.scalars(select(User).where(User.deleted_at.is_(None), (User.id.in_(by_role)) | (User.department_id == d.id)).order_by(User.name)))
+
+
+def edit_department(db: Session, actor: User, org: Organization, d: Department, body: dict) -> Department:
+    before = {"name": d.name, "in_scope": d.in_scope, "headcount": d.headcount, "head_name": d.head_name, "head_email": d.head_email}
+    errs = []
+    if "in_scope" in body and not isinstance(body["in_scope"], bool):
+        errs.append({"field": "in_scope", "message": "Choose in scope or out of scope."})
+    hc = None
+    if "headcount" in body:
+        hc = str(body["headcount"] if body["headcount"] is not None else "").strip()
+        if hc and not (hc.isascii() and hc.isdecimal() and len(hc) < 8):
+            errs.append({"field": "headcount", "message": "Headcount must be a whole number."})
+    name = None
+    if "name" in body:
+        name = _clean_name(body["name"], "name", "department name", 120)
+        if any(x.id != d.id and x.name.casefold() == name.casefold() for x in departments(db, org)):
+            raise Conflict(f"{name} is already in the department list.", [{"field": "name", "message": f"{name} is already in the department list."}])
+    head_email = None
+    if "head_email" in body:
+        head_email = str(body["head_email"] or "").strip().lower()
+        if head_email and (not EMAIL.match(head_email) or len(head_email) > 254):
+            errs.append({"field": "head_email", "message": "Enter a valid email for the department head."})
+    if "head_name" in body and len(" ".join(str(body["head_name"] or "").split())) > 120:
+        errs.append({"field": "head_name", "message": "The head's name must be 120 characters or fewer."})
+    if errs:
+        raise Invalid(errors=errs)
+    if "in_scope" in body and body["in_scope"] != d.in_scope:
+        scope_changed(db, org)
+        d.in_scope = body["in_scope"]
+    if hc is not None:
+        d.headcount = int(hc) if hc else None
+    if name is not None:
+        d.name = name
+    if "head_name" in body:
+        d.head_name = " ".join(str(body["head_name"] or "").split()) or None
+    if head_email is not None:
+        d.head_email = head_email or None
+    d.updated_by = actor.id
+    after = {"name": d.name, "in_scope": d.in_scope, "headcount": d.headcount, "head_name": d.head_name, "head_email": d.head_email}
+    changed = {k: v for k, v in after.items() if before[k] != v}
+    if changed:
+        audit.record(db, actor_id=actor.id, action="department.edit", obj=d, before={k: before[k] for k in changed}, after=changed, summary=f"Edited department {d.name}")
+    advance_if_ready(db, actor, current_engagement(db, org))
+    return d
+
+
+def delete_department(db: Session, actor: User, org: Organization, d: Department) -> None:
+    """Departments can be deleted during setup only, and only when nothing refers to them."""
+    from app.attestation.models import Attestation
+    from app.inventory.models import UseCase
+    from app.systems.models import AISystem
+
+    e = current_engagement(db, org)
+    if e is not None and e.stage > 2:
+        raise Conflict("Departments can't be deleted after setup. Exclude the department from scope instead, or ask your Futran engagement manager.")
+    members = department_members(db, d)
+    if members:
+        names = ", ".join(u.name for u in members[:3]) + (f" and {len(members) - 3} more" if len(members) > 3 else "")
+        raise Conflict(f"{d.name} still has people in it ({names}). Move them to another department or remove them first.")
+    for model, what in ((UseCase, "AI use cases"), (AISystem, "AI systems"), (Attestation, "attestation answers")):
+        if db.scalar(select(func.count()).select_from(model).where(model.department_id == d.id, model.deleted_at.is_(None))):
+            raise Conflict(f"{d.name} has {what} recorded against it, so it can't be deleted. Exclude it from scope instead.")
+    scope_changed(db, org)
+    d.deleted_at, d.updated_by = utcnow(), actor.id
+    audit.record(db, actor_id=actor.id, action="department.delete", obj=d, before={"name": d.name, "in_scope": d.in_scope}, summary=f"Deleted department {d.name}")
+    advance_if_ready(db, actor, e)
+
+
+def user_department(db: Session, user: User, names: dict[str, str]) -> str | None:
+    """The department shown for a person: from their department role, else from their record."""
+    for r in roles_of(db, user.id):
+        if r.scope_type == "department" and r.scope_id in names:
+            return names[r.scope_id]
+    return names.get(user.department_id) if user.department_id else None
+
+
+def edit_user(db: Session, actor: User, org: Organization, user: User, data: dict) -> User:
+    """Change a person's name, job title, email (until they first sign in) or department. Roles change separately."""
+    before = {"name": user.name, "job_title": user.job_title, "email": user.email, "department_id": user.department_id}
+    errs = []
+    name = email = dept = None
+    if "name" in data:
+        try:
+            name = _clean_name(data["name"], "name", "name", 160)
+        except Invalid as exc:
+            errs.extend(exc.errors)
+    if "email" in data:
+        email = str(data["email"] or "").strip().lower()
+        if not EMAIL.match(email) or len(email) > 254:
+            errs.append({"field": "email", "message": "Enter a valid work email."})
+    if "job_title" in data and len(str(data["job_title"] or "").strip()) > 160:
+        errs.append({"field": "job_title", "message": "Job title must be 160 characters or fewer."})
+    if data.get("department"):
+        dept = next((d for d in departments(db, org) if d.name.casefold() == str(data["department"]).strip().casefold()), None)
+        if dept is None:
+            errs.append({"field": "department", "message": f"Department '{data['department']}' is not in the department list."})
+    elif "department" in data and any(r.role in DEPARTMENT_ROLES for r in roles_of(db, user.id)):
+        errs.append({"field": "department", "message": "A Department Compliance Lead or Contributor needs a department."})
+    if errs:
+        raise Invalid(errors=errs)
+    if email is not None and email != user.email:
+        if user.password_hash or user.status == "active":
+            raise Conflict(f"{user.name} has already signed in, so their email can't be changed here. Ask your Futran engagement manager.", [{"field": "email", "message": "This person has already signed in."}])
+        if db.scalar(select(User.id).where(func.lower(User.email) == email, User.id != user.id)):
+            raise Conflict("Another account already uses this email.", [{"field": "email", "message": "Another account already uses this email."}])
+        user.email = email
+        from app.invitations.service import revoke_pending_invitations
+
+        if revoke_pending_invitations(db, user.id):
+            user.status = "invited"
+    if name is not None:
+        user.name = name
+    if "job_title" in data:
+        user.job_title = str(data["job_title"] or "").strip() or None
+    moved = False
+    if "department" in data:
+        user.department_id = dept.id if dept else None
+        for r in roles_of(db, user.id):
+            if r.scope_type == "department" and dept is not None and r.scope_id != dept.id:
+                r.scope_id, r.updated_by, moved = dept.id, actor.id, True
+    user.updated_by = actor.id
+    after = {"name": user.name, "job_title": user.job_title, "email": user.email, "department_id": user.department_id}
+    changed = {k: v for k, v in after.items() if before[k] != v}
+    if changed or moved:
+        audit.record(db, actor_id=actor.id, action="user.edit", obj=user, before={k: before[k] for k in changed}, after=changed | ({"department": dept.name} if dept and moved else {}),
+                     summary=f"Edited {user.name}" + (f"; moved to {dept.name}" if dept and (moved or "department_id" in changed) else ""))
+    e = current_engagement(db, org)
+    if e is not None and {"name", "email"} & changed.keys():  # keep the engagement's contact record in step
+        for c in db.scalars(select(ClientContact).where(ClientContact.engagement_id == e.id, ClientContact.user_id == user.id, ClientContact.deleted_at.is_(None))):
+            c.name, c.email = user.name, user.email
+    advance_if_ready(db, actor, e)
+    return user
+
+
+def add_role(db: Session, settings: Settings, actor: User, org: Organization, user: User, role: str, department: str | None) -> User:
+    parts = user.name.split(" ", 1)
+    return add_user(db, settings, actor, org, {"first_name": parts[0], "last_name": parts[1] if len(parts) > 1 else parts[0], "email": user.email, "role": role, "department": department or ""})
+
+
+def has_history(db: Session, user: User) -> bool:
+    """True when the person has signed anything or done anything recorded in the audit log."""
+    from app.audit_log.models import AuditLog
+    from app.signoffs.models import Signature
+
+    if db.scalar(select(func.count()).select_from(Signature).where(Signature.user_id == user.id)):
+        return True
+    return bool(db.scalar(select(func.count()).select_from(AuditLog).where(AuditLog.actor_id == user.id)))
+
+
+def remove_user(db: Session, settings: Settings, actor: User, org: Organization, user: User) -> str:
+    """Take a person off the user list. Anyone with history is deactivated so their records keep their name;
+    someone who never signed in or did anything is soft-deleted. Returns "deactivated" or "removed"."""
+    from app.invitations.service import revoke_pending_invitations
+
+    if user.id == actor.id:
+        raise Conflict("You can't remove yourself. Ask another administrator.")
+    if user.deleted_at is not None:
+        raise NotFound()
+    roles = roles_of(db, user.id)
+    if any(r.role == "caico" for r in roles) and not [u for u in active_holders(db, org, "caico") if u.id != user.id]:
+        raise Conflict("Name another Chief AI Compliance Officer before removing this one.")
+    e = current_engagement(db, org)
+    revoke_pending_invitations(db, user.id)
+    if has_history(db, user):
+        before = user.status
+        user.status, user.updated_by = "disabled", actor.id
+        from app.auth.models import AuthSession
+
+        for s in db.scalars(select(AuthSession).where(AuthSession.user_id == user.id, AuthSession.revoked_at.is_(None))):
+            s.revoked_at = utcnow()
+        audit.record(db, actor_id=actor.id, action="user.deactivate", obj=user, before={"status": before}, after={"status": "disabled"}, summary=f"Deactivated {user.name}; their records are kept")
+        result = "deactivated"
+    else:
+        now = utcnow()
+        for r in roles:
+            r.deleted_at, r.updated_by = now, actor.id
+        user.deleted_at, user.updated_by = now, actor.id
+        audit.record(db, actor_id=actor.id, action="user.remove", obj=user, before={"email": user.email, "roles": [r.role for r in roles]}, summary=f"Removed {user.name} from the user list")
+        result = "removed"
+    for r in roles:
+        if r.role in SIGN_OFF_KEYS or r.role == "client_admin":
+            holder = next(iter(u for u in active_holders(db, org, r.role) if u.id != user.id), None)
+            _sync_contact(db, e, r.role, holder)
+        if r.role in SIGN_OFF_KEYS:
+            _notify_sign_off_role(db, settings, actor, org, e, user, r.role, assigned=False)
+    advance_if_ready(db, actor, e)
+    return result

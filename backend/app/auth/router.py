@@ -147,7 +147,7 @@ def logout(response: Response, s: AuthSession = Depends(current_session), db: Se
 
 
 @router.get("/me")
-def me(request: Request, actor: Actor = Depends(current_actor)):
+def me(request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
     settings: Settings = request.app.state.settings
     u, o = actor.user, actor.organization
     return {
@@ -159,7 +159,17 @@ def me(request: Request, actor: Actor = Depends(current_actor)):
         "email_mode": settings.email_mode,
         "csrf_token": actor.session.csrf_token if actor.session else None,
         "terms_required": terms_required(actor),
+        "notice_required": notice_required(db, actor),
     }
+
+
+def notice_required(db: Session, actor: Actor) -> bool:
+    """A client user still has to read and acknowledge the employee data notice the CAICO sent."""
+    if actor.is_futran:
+        return False
+    from app.initiation.notice import pending_for
+
+    return pending_for(db, actor.user) is not None
 
 
 def terms_required(actor: Actor) -> bool:

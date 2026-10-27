@@ -15,6 +15,7 @@ from app.engagements.wizard import INDUSTRIES, TEAM_ROLES
 from app.engagements.wizard_router import _load
 from app.initiation.context import TYPE_LABELS
 from app.initiation.models import PackageDocument
+from app.initiation.notice import counts as notice_counts
 from app.initiation.service import current_package, documents, resend_invitation
 from app.invitations.models import Invitation
 from app.laws.models import Regulation
@@ -203,9 +204,9 @@ CHECKLIST = [
     ("guide", 6, "Read the getting started guide", "Sign-in, MFA, timeline and your Futran contacts"),
     ("sign", 1, "Sign the engagement letter and scope", "Confirms the audit period, laws, sites and departments in scope · sign-off 1"),
     ("nominate", 2, "Nominate role holders", "Executive Sponsor, Data Protection Officer and Department Compliance Leads; see the roles note"),
-    ("departments", 4, "Confirm departments", "Pre-filled from the scope; correct or add, or upload the CSV"),
-    ("users", 3, "Add users who need a login", "Upload the user list CSV, or your Client Admin adds users one by one. All staff are reached later through the attestation link."),
-    ("notice", 5, "Review the employee data notice", "Circulate it to staff before the attestation campaign"),
+    ("departments", 4, "Confirm departments", "Pre-filled from the scope. Correct, add or upload them on People > Departments, then confirm the list."),
+    ("users", 3, "Add employees", "Add the people who need a login on People > Users, one by one or from a CSV. All other staff are reached later through the attestation link."),
+    ("notice", 5, "Review employee AI audit and data notice and kick off audit", "The Chief AI Compliance Officer reviews the notice and sends it to everyone on the user list. Each person with a login reads and acknowledges it."),
     ("governance", 7, "Describe your AI governance structure", "Charter, committees and named owners for bias, explainability and accountability. Not in place yet? Choose \"Will constitute\"."),
 ]
 SELF_COMPLETE = {"guide", "notice"}  # the rest complete through their own screens
@@ -245,7 +246,10 @@ def my_initiation(actor: Actor = Depends(current_actor), db: Session = Depends(g
             done = named and leads_ok
         else:
             done = bool(d and d.completed_at)
-        items.append({"key": key, "title": title, "description": desc, "done": done, "document": {"id": d.id, "pdf_file_id": d.pdf_file_id, "docx_file_id": d.docx_file_id, "csv_file_id": d.csv_file_id} if d else None, "self_complete": key in SELF_COMPLETE})
+        item = {"key": key, "title": title, "description": desc, "done": done, "document": {"id": d.id, "pdf_file_id": d.pdf_file_id, "docx_file_id": d.docx_file_id, "csv_file_id": d.csv_file_id} if d else None, "self_complete": key in SELF_COMPLETE}
+        if key == "notice":
+            item["acknowledgements"] = notice_counts(db, e)
+        items.append(item)
     return {
         "engagement": {"id": e.id, "audit_ref": e.audit_ref, "name": e.name, "stage": e.stage},
         "items": items, "done": sum(i["done"] for i in items), "total": len(items),
@@ -254,12 +258,17 @@ def my_initiation(actor: Actor = Depends(current_actor), db: Session = Depends(g
 
 
 @router.post("/me/initiation/items/{key}/done")
-def mark_done(key: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def mark_done(key: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
     e = _client_engagement(db, actor)
     if key not in SELF_COMPLETE:
         raise Invalid("This item is completed by doing it, not by ticking it off.")
     if key == "notice" and not actor.has_role("caico"):
-        raise Conflict("The Chief AI Compliance Officer acknowledges the employee data notice.")
+        raise Conflict("The Chief AI Compliance Officer reviews and sends the employee data notice.")
+    if key == "notice":  # completing item 6 means sending the notice to staff
+        from app.initiation import notice
+
+        rel = notice.send(db, request.app.state.settings, actor.user, actor.role_names, e)
+        return {"key": key, "done": True, "version": rel.version}
     n = dict((k, n) for k, n, *_ in CHECKLIST)[key]
     pkg = current_package(db, e)
     d = db.scalar(select(PackageDocument).where(PackageDocument.package_id == pkg.id, PackageDocument.item == n)) if pkg else None

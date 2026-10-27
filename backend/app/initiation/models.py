@@ -43,3 +43,34 @@ class PackageDocument(TimestampedTenantMixin, Base):
     csv_file_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("files.id"))
     completed_at: Mapped[datetime | None] = mapped_column(DateTime)
     completed_by: Mapped[str | None] = mapped_column(String(36))
+
+
+class NoticeRelease(TimestampedTenantMixin, Base):
+    """One version of the employee AI audit and data notice (package item 5) as the CAICO sent it to staff.
+
+    The text is kept as sent, so each acknowledgement points at the exact wording the person read."""
+
+    __tablename__ = "notice_releases"
+    __table_args__ = (UniqueConstraint("engagement_id", "version", name="uq_notice_release_version"),)
+
+    engagement_id: Mapped[str] = mapped_column(String(36), ForeignKey("engagements.id"), index=True)
+    document_id: Mapped[str] = mapped_column(String(36), ForeignKey("package_documents.id"))
+    version: Mapped[int] = mapped_column(Integer)
+    title: Mapped[str] = mapped_column(String(160))
+    body_md: Mapped[str] = mapped_column(Text)
+    sent_at: Mapped[datetime] = mapped_column(DateTime)
+    sent_by: Mapped[str | None] = mapped_column(String(36), ForeignKey("users.id"))
+    recipient_count: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class NoticeAcknowledgement(TimestampedTenantMixin, Base):
+    """A client user's record that they read and understood one version of the notice."""
+
+    __tablename__ = "notice_acknowledgements"
+    __table_args__ = (UniqueConstraint("release_id", "user_id", name="uq_notice_ack_user"),)
+
+    release_id: Mapped[str] = mapped_column(String(36), ForeignKey("notice_releases.id"), index=True)
+    engagement_id: Mapped[str] = mapped_column(String(36), ForeignKey("engagements.id"), index=True)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), index=True)
+    version: Mapped[int] = mapped_column(Integer)
+    acknowledged_at: Mapped[datetime] = mapped_column(DateTime)
