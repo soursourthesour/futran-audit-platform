@@ -347,7 +347,7 @@ function Launch({ clientId, onDone }: { clientId: string; onDone: () => void }) 
     <Card title="Launch the campaign">
       <div className="stack">
         {err && <Alert tone="danger">{err}</Alert>}
-        <p className="small muted" style={{ margin: 0 }}>You get one link to send to all staff in the departments below. Nobody needs an account. Once it is running you can also send it to everyone with a login, so it appears on their AI attestation page. Acknowledge the employee data notice on the Getting started page first.</p>
+        <p className="small muted" style={{ margin: 0 }}>You get one link to send to all staff in the departments below. Nobody needs an account. Once it is running you can also send it to everyone with a login, so it appears on their AI attestation page. Send the employee data notice from the Getting started page first.</p>
         <FieldGroup legend="Departments" help={H.departments}>
           <div className="grid-2">{inScope.map((d) => <Checkbox key={d.id} label={d.name} checked={ids.includes(d.id)} onChange={(e) => setChosen(e.target.checked ? [...ids, d.id] : ids.filter((x) => x !== d.id))} />)}</div>
         </FieldGroup>

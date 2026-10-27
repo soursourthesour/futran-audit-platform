@@ -3,8 +3,11 @@
 **Audit reference:** {{ engagement.audit_ref }} · **Date:** {{ today }}
 
 {{ client.legal_name or client.name }}
-{% if client.hq_address %}{{ client.hq_address }}{% endif %}
 
+{% if client.hq_address %}
+{{ client.hq_address }}
+
+{% endif %}
 Dear {{ contacts.caico.name }},
 
 This letter confirms the terms on which Futran Solutions will carry out an AI governance assessment for {{ client.name }}. Please read it, then sign it in the Futran Audit Platform by {{ engagement.letter_due or "the date agreed with your Chief Auditor" }}.

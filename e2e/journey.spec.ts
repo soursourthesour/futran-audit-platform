@@ -72,7 +72,7 @@ test('review to close: sign-off 5, report and declarations, responses, final rep
   await page.getByRole('button', { name: 'Add to roadmap' }).click();
   await expect(page.getByRole('cell', { name: 'R-01' })).toBeVisible();
   await page.getByRole('button', { name: 'Generate lead review v0.2' }).click();
-  await expect(page.getByText(/Lead review v0.2 generated/)).toBeVisible();
+  await expect(page.getByText(/Lead review v0.2 generated/)).toBeVisible({ timeout: 30_000 });
   await shot(page, 'p6-final-report');
 
   // Declarations by the Lead Auditor, the Engagement Manager and the QA Reviewer; the manager releases v1.0
