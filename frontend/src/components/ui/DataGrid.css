@@ -6,7 +6,7 @@
 .dg-filter .input, .dg-filter .select { width: 100%; font-weight: 400; }
 .dg-bulk { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px 12px; border: 1px solid #c5d4ec; background: #eef3fb; border-radius: var(--radius-sm); font-size: 14px; }
 .dg-bulk strong { margin-right: 4px; color: var(--navy); }
-.dg-scroll { overflow-x: auto; max-width: 100%; -webkit-overflow-scrolling: touch; }
+.dg-scroll { position: relative; overflow-x: auto; max-width: 100%; -webkit-overflow-scrolling: touch; } /* positioned, so screen-reader-only text inside is clipped too */
 .dg-table { min-width: 100%; }
 .dg-table td { vertical-align: middle; }
 .dg-table th.dg-check, .dg-table td.dg-check { width: 44px; padding-right: 0; }

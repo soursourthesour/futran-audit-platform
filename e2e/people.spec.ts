@@ -134,3 +134,20 @@ test('the CAICO edits and resends the data notice; another user acknowledges it 
   const aarav = page.getByRole('table', { name: 'Users' }).getByRole('row').filter({ hasText: 'Aarav Menon' });
   await expect(aarav.getByText(/^Acknowledged/)).toBeVisible();
 });
+
+test.describe('on a phone', () => {
+  test.use({ viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true });
+  test('People and Getting started do not scroll sideways; the grid scrolls inside its box', async ({ page }) => {
+    await clientUser(page, KATRIN);
+    for (const path of ['/start', '/people/departments', '/people/users']) {
+      await page.goto(path);
+      await page.waitForLoadState('networkidle');
+      const wide = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      expect(wide, `${path} scrolls sideways`).toBeLessThanOrEqual(0);
+    }
+    const btn = page.getByRole('button', { name: 'Actions for Aarav Menon' });
+    await btn.scrollIntoViewIfNeeded();
+    await btn.click();
+    await expect(page.getByRole('menu', { name: 'Actions for Aarav Menon' })).toBeVisible();
+  });
+});
