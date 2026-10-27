@@ -33,6 +33,6 @@ test('key screens have no serious or critical accessibility violations', async (
   await signIn(page, '/staff/login', 'auditor1@futran.demo');
   for (const p of ['/audits', `/clients/${abc}`, `/clients/${abc}/systems`, `/clients/${abc}/findings`, `/clients/${abc}/report`]) bad.push(...await axe(page, p));
   await signIn(page, '/login', 'maria.lopez@abccorp.example');
-  for (const p of ['/start', '/inventory', '/review']) bad.push(...await axe(page, p));
+  for (const p of ['/start', '/inventory', '/review', '/attestation', '/my-attestation']) bad.push(...await axe(page, p));
   expect(bad).toEqual([]);
 });

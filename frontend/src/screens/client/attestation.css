@@ -1,0 +1,5 @@
+/* Attestation tracker. The answers grid is wide; keep its scroll container the containing block so hidden
+   labels inside the table cannot widen the page (which also closed the row menu on open). */
+.attest-answers .dg-scroll { position: relative; }
+.attest-answers .attest-email { overflow-wrap: anywhere; display: inline-block; max-width: 180px; }
+.attest-answers .dg-table th, .attest-answers .dg-table td { padding-left: 8px; padding-right: 8px; }

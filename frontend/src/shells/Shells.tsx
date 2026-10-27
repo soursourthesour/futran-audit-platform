@@ -66,7 +66,7 @@ export function FutranShell() {
 }
 
 /** Client screens that exist so far; later phases add theirs here. */
-const BUILT_CLIENT_ROUTES = new Set(['/start', '/people', '/governance', '/attestation', '/inventory', '/systems', '/documents', '/review', '/report', '/responses', '/remediation']);
+const BUILT_CLIENT_ROUTES = new Set(['/start', '/people', '/governance', '/attestation', '/my-attestation', '/inventory', '/systems', '/documents', '/review', '/report', '/responses', '/remediation']);
 
 export function ClientShell() {
   const { data: me } = useMe();
@@ -75,7 +75,8 @@ export function ClientShell() {
     { to: '/start', label: 'Getting started' },
     { to: '/people', label: 'People', show: hasRole(me, 'client_admin', 'caico') },
     { to: '/governance', label: 'Governance', show: hasRole(me, 'caico', 'dpo', 'exec_sponsor') },
-    { to: '/attestation', label: 'Attestation', show: hasRole(me, 'caico', 'dpo', 'dept_compliance_lead') },
+    { to: '/attestation', label: 'Attestation', show: hasRole(me, 'caico', 'dpo', 'dept_compliance_lead', 'client_admin') },
+    { to: '/my-attestation', label: 'My AI attestation' },
     { to: '/inventory', label: 'AI inventory' },
     { to: '/review', label: 'Review', show: hasRole(me, 'caico', 'dpo', 'exec_sponsor', 'dept_compliance_lead', 'contributor') },
     { to: '/systems', label: 'AI systems', show: hasRole(me, 'caico', 'dept_compliance_lead', 'contributor') },
