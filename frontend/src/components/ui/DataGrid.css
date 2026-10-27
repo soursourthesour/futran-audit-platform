@@ -1,0 +1,38 @@
+/* DataGrid (components/ui/DataGrid.tsx) */
+.dg { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.dg-tools { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.dg-filter { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; color: var(--muted); min-width: 0; flex: 1 1 160px; max-width: 240px; }
+.dg-filter.dg-search { flex: 2 1 220px; max-width: 320px; }
+.dg-filter .input, .dg-filter .select { width: 100%; font-weight: 400; }
+.dg-bulk { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px 12px; border: 1px solid #c5d4ec; background: #eef3fb; border-radius: var(--radius-sm); font-size: 14px; }
+.dg-bulk strong { margin-right: 4px; color: var(--navy); }
+.dg-scroll { overflow-x: auto; max-width: 100%; -webkit-overflow-scrolling: touch; }
+.dg-table { min-width: 100%; }
+.dg-table td { vertical-align: middle; }
+.dg-table th.dg-check, .dg-table td.dg-check { width: 44px; padding-right: 0; }
+.dg-check input { width: 18px; height: 18px; margin: 0; vertical-align: middle; cursor: pointer; }
+.dg-sort { display: inline-flex; align-items: center; gap: 6px; background: none; border: 0; padding: 0; font: inherit; color: inherit; text-transform: inherit; letter-spacing: inherit; cursor: pointer; min-height: 28px; }
+.dg-sort:hover { color: var(--navy); }
+.dg-sort-ind { font-size: 10px; opacity: 0.7; }
+th[aria-sort='none'] .dg-sort-ind { opacity: 0.35; }
+.dg-menu-col { width: 52px; text-align: right; padding-left: 4px !important; padding-right: 8px !important; }
+.dg-menu-btn { display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: var(--radius-sm); border: 1px solid transparent; background: none; color: var(--ink); font-size: 20px; line-height: 1; cursor: pointer; }
+.dg-menu-btn:hover, .dg-menu-btn[aria-expanded='true'] { border-color: var(--line); background: #f8fafc; color: var(--navy); }
+.dg-editable { cursor: text; }
+.dg-editable > span:first-child { border-bottom: 1px dashed transparent; }
+.dg-editable:hover > span:first-child { border-bottom-color: var(--input-line); }
+.dg-editing { padding-top: 6px !important; padding-bottom: 6px !important; }
+.dg-editor { min-height: 36px; width: 100%; min-width: 120px; font-size: 14px; }
+.dg-editing .error { font-size: 13px; color: var(--danger); margin-top: 4px; }
+.dg-empty { text-align: center; color: var(--muted); padding: 28px 16px !important; }
+.dg-table tr.dg-muted td:not(.dg-check):not(.dg-menu-col) { color: var(--muted); }
+.dg-menu { position: fixed; z-index: 80; min-width: 200px; max-width: calc(100vw - 16px); padding: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); box-shadow: 0 12px 32px rgba(16, 24, 40, 0.18); display: flex; flex-direction: column; }
+.dg-menu [role='menuitem'] { display: block; width: 100%; text-align: left; padding: 9px 12px; min-height: 40px; border: 0; border-radius: 4px; background: none; font: inherit; font-size: 14.5px; color: var(--ink); cursor: pointer; }
+.dg-menu [role='menuitem']:hover, .dg-menu [role='menuitem']:focus { background: #eef3fb; color: var(--navy); outline: none; }
+.dg-menu [role='menuitem'].danger { color: var(--danger); }
+.dg-menu [role='menuitem'][aria-disabled='true'] { color: var(--muted); cursor: not-allowed; background: none; }
+@media (max-width: 600px) {
+  .dg-filter, .dg-filter.dg-search { max-width: none; flex-basis: 100%; }
+  .dg-menu [role='menuitem'] { min-height: 44px; }
+  .dg-menu-btn { width: 44px; height: 44px; }
+}
