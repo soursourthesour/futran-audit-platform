@@ -14,8 +14,10 @@ function inviteLinks(html: string): string[] {
 
 /** The email shown in a sandboxed frame. Links open in a new tab; scripts never run. */
 function frameDoc(html: string): string {
-  const base = '<base target="_blank"><meta name="viewport" content="width=device-width, initial-scale=1"><style>table, img { max-width: 100% !important; height: auto; } body { margin: 8px; }</style>';
-  return /<head[^>]*>/i.test(html) ? html.replace(/<head([^>]*)>/i, `<head$1>${base}`) : `${base}${html}`;
+  const base = '<base target="_blank"><meta name="viewport" content="width=device-width, initial-scale=1"><style>table[width] { width: 100% !important; max-width: 600px; } img { max-width: 100% !important; height: auto; } td { overflow-wrap: anywhere; } body { margin: 8px; }</style>';
+  if (/<head[^>]*>/i.test(html)) return html.replace(/<head([^>]*)>/i, `<head$1>${base}`);
+  if (/<html[^>]*>/i.test(html)) return html.replace(/<html([^>]*)>/i, `<html$1><head>${base}</head>`);
+  return `${base}${html}`;
 }
 
 function statusBadge(status: string) {

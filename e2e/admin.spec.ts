@@ -24,6 +24,8 @@ test('admin adds a Futran user, the invitation lands in the outbox and the audit
   await page.getByRole('button', { name: /your Futran Audit Platform account is ready/ }).first().click();
   await expect(page.frameLocator('iframe[title="Email preview"]').getByText('Accept invitation')).toBeVisible();
   await page.screenshot({ path: 'screenshots/p1-outbox.png', fullPage: true });
+  await page.keyboard.press('Escape'); // the message opens in a dialog; close it to use the navigation
+  await expect(page.getByRole('dialog')).toHaveCount(0);
 
   await page.getByRole('link', { name: 'Audit log' }).click();
   await expect(page.getByText('Added quinn@futran.demo')).toBeVisible();

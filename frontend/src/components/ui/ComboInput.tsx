@@ -114,7 +114,7 @@ export const ComboInput = forwardRef<HTMLInputElement, Props>(function ComboInpu
         {shown && options.length === 0 && emptyText && <li className="combo-empty" role="presentation">{emptyText}</li>}
         {shown && options.length > 0 && footer && <li className="combo-footer" role="presentation" onMouseDown={(e) => e.preventDefault()}>{footer}</li>}
       </ul>
-      <span className="sr-only" role="status" aria-live="polite">{status ?? ''}</span>
+      <span className="sr-only" aria-live="polite">{status ?? ''}</span>
     </>
   );
 });
