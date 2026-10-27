@@ -203,7 +203,7 @@ table.table { width: 100%; border-collapse: collapse; font-size: 14px; }
 
 /* Notification bell */
 .bell { position: relative; }
-.bell-btn { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: var(--radius-sm); border: 1px solid transparent; background: none; color: inherit; cursor: pointer; }
+.bell-btn { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: var(--radius-sm); border: 1px solid transparent; background: none; color: inherit; cursor: pointer; }
 .bell-btn:hover { border-color: currentColor; }
 .bell-count { position: absolute; top: 2px; right: 0; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: #d64545; color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; }
 .bell-panel { position: absolute; right: 0; top: 46px; width: min(380px, calc(100vw - 32px)); max-height: 70vh; overflow: auto; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 12px 32px rgba(16, 24, 40, 0.18); z-index: 50; text-align: left; }
