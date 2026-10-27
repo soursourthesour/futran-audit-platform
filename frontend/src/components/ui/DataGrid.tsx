@@ -24,7 +24,7 @@
  * - Bulk actions show when at least one row is selected. Actions with `confirm` ask first.
  * - On narrow screens the table scrolls sideways inside its own container, never the page.
  */
-import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
+import { Fragment, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Alert, Button, Dialog } from './index';
 import './DataGrid.css';
@@ -107,6 +107,7 @@ export function DataGrid<T>(props: DataGridProps<T>) {
   const [confirming, setConfirming] = useState<{ action: GridBulkAction<T>; rows: T[] } | null>(null);
   const [bulkErr, setBulkErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const uid = useId();
 
   const visible = useMemo(() => {
     let out = rows.filter((r) => filters.every((f) => !filterValues[f.key] || f.test(r, filterValues[f.key])));
@@ -166,19 +167,19 @@ export function DataGrid<T>(props: DataGridProps<T>) {
       {(filters.length > 0 || search) && (
         <div className="dg-tools" role="search" aria-label={`Filter ${label.toLowerCase()}`}>
           {search && (
-            <label className="dg-filter dg-search">
-              <span>{search.label}</span>
-              <input className="input" type="search" value={text} placeholder={search.placeholder} onChange={(e) => setText(e.target.value)} />
-            </label>
+            <div className="dg-filter dg-search">
+              <label htmlFor={`${uid}-q`}>{search.label}</label>
+              <input id={`${uid}-q`} className="input" type="search" value={text} placeholder={search.placeholder} onChange={(e) => setText(e.target.value)} />
+            </div>
           )}
           {filters.map((f) => (
-            <label key={f.key} className="dg-filter">
-              <span>{f.label}</span>
-              <select className="select" value={filterValues[f.key] ?? ''} onChange={(e) => setFilterValues((v) => ({ ...v, [f.key]: e.target.value }))}>
+            <div key={f.key} className="dg-filter">
+              <label htmlFor={`${uid}-${f.key}`}>{f.label}</label>
+              <select id={`${uid}-${f.key}`} className="select" value={filterValues[f.key] ?? ''} onChange={(e) => setFilterValues((v) => ({ ...v, [f.key]: e.target.value }))}>
                 <option value="">All</option>
                 {f.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
-            </label>
+            </div>
           ))}
           {filtered && <Button size="sm" variant="ghost" onClick={() => { setFilterValues({}); setText(''); }}>Clear filters</Button>}
         </div>
@@ -273,6 +274,13 @@ function Cell<T>({ col, row }: { col: GridColumn<T>; row: T }) {
   const [saving, setSaving] = useState(false);
   const cellRef = useRef<HTMLTableCellElement>(null);
   const done = useRef(false);
+  const refocus = useRef(false); // closed from the keyboard: put focus back on the cell (not after a click elsewhere)
+  useEffect(() => {
+    if (editing || !refocus.current) return;
+    refocus.current = false;
+    const active = document.activeElement;
+    if (!active || active === document.body || cellRef.current?.contains(active)) cellRef.current?.focus(); // unless the user has moved on
+  }, [editing]);
   const content = col.render ? col.render(row) : (col.value?.(row) ?? '—');
 
   function open() {
@@ -287,7 +295,6 @@ function Cell<T>({ col, row }: { col: GridColumn<T>; row: T }) {
     done.current = true;
     setEditing(false);
     setErr(null);
-    requestAnimationFrame(() => cellRef.current?.focus());
   }
   async function save(value = draft) {
     if (done.current || saving) return;
@@ -299,16 +306,16 @@ function Cell<T>({ col, row }: { col: GridColumn<T>; row: T }) {
       done.current = true;
       setEditing(false);
       setErr(null);
-      requestAnimationFrame(() => cellRef.current?.focus());
     } catch (e) {
+      refocus.current = false;
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
       setSaving(false);
     }
   }
   function onKey(e: ReactKeyboardEvent) {
-    if (e.key === 'Enter') { e.preventDefault(); void save(); }
-    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cancel(); }
+    if (e.key === 'Enter') { e.preventDefault(); refocus.current = true; void save(); }
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); refocus.current = true; cancel(); }
   }
 
   if (!editable) return <td className={col.className}>{content}</td>;
@@ -334,7 +341,7 @@ function Cell<T>({ col, row }: { col: GridColumn<T>; row: T }) {
   return (
     <td ref={cellRef} className={`${col.className ?? ''} dg-editable`} tabIndex={0} title="Double-click or press Enter to edit"
       onDoubleClick={open} onKeyDown={(e) => { if (e.key === 'Enter' && e.target === e.currentTarget) { e.preventDefault(); open(); } }}>
-      <span>{content}</span><span className="sr-only"> ({editLabel}: press Enter)</span>
+      <span>{content}</span><span className="sr-only"> (press Enter to edit)</span>
     </td>
   );
 }

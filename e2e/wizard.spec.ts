@@ -173,8 +173,8 @@ test('auditor sets up a client, the Chief Auditor approves and the client signs 
   // Attestation campaign (Phase 4): acknowledge the notice, launch, staff answer on a phone
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Getting started' }).click();
   await page.getByRole('button', { name: 'Review and send' }).click();
-  await page.getByRole('button', { name: 'Send to employees' }).click();
-  await page.getByRole('button', { name: 'Send to employees' }).click();
+  await page.getByRole('button', { name: 'Send to employees', exact: true }).click();
+  await page.getByRole('button', { name: 'Send to employees', exact: true }).click();
   await expect(page.getByText(/Version 1 of the notice was emailed to/)).toBeVisible();
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Attestation', exact: true }).click();
   await page.getByRole('button', { name: 'Launch and get the staff link' }).click();

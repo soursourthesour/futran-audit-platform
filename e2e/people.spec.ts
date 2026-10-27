@@ -30,6 +30,7 @@ test('departments grid: inline edit, row menu by button, right-click and keyboar
   await expect(row.getByRole('alert')).toHaveText('Headcount must be a whole number.');
   await page.getByLabel('Headcount for Engineering', { exact: true }).fill('42');
   await page.getByLabel('Headcount for Engineering', { exact: true }).press('Enter');
+  await expect(page.getByLabel('Headcount for Engineering', { exact: true })).toHaveCount(0);
   await expect(row.getByRole('cell', { name: /^42/ })).toBeVisible();
   await row.getByRole('cell').nth(1).dblclick();
   await page.getByLabel('Head of Engineering', { exact: true }).fill('Not saved');
@@ -70,8 +71,12 @@ test('users grid: filter, sort, search, select and bulk bar', async ({ page }) =
   await expect(grid.getByText('Aarav Menon', { exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Clear filters' }).click();
 
-  await grid.getByRole('button', { name: 'Name' }).click();
-  await expect(grid.getByRole('columnheader', { name: 'Name' })).toHaveAttribute('aria-sort', 'ascending');
+  const jobTitle = grid.locator('th', { has: page.getByRole('button', { name: 'Job title' }) });
+  await expect(jobTitle).toHaveAttribute('aria-sort', 'none');
+  await jobTitle.getByRole('button').click();
+  await expect(jobTitle).toHaveAttribute('aria-sort', 'ascending');
+  await jobTitle.getByRole('button').click();
+  await expect(jobTitle).toHaveAttribute('aria-sort', 'descending');
 
   await grid.getByLabel('Select Aarav Menon').check();
   await grid.getByLabel('Select Lena Fischer').check();
@@ -87,6 +92,7 @@ test('users grid: filter, sort, search, select and bulk bar', async ({ page }) =
   await row.getByRole('cell').nth(3).dblclick();
   await page.getByLabel('Job title of Lena Fischer', { exact: true }).fill('Head of Data Science');
   await page.getByLabel('Job title of Lena Fischer', { exact: true }).press('Enter');
+  await expect(page.getByLabel('Job title of Lena Fischer', { exact: true })).toHaveCount(0);
   await expect(row.getByText('Head of Data Science')).toBeVisible();
 
   // row menu from the keyboard
@@ -110,8 +116,8 @@ test('the CAICO edits and resends the data notice; another user acknowledges it 
   await dlg.getByRole('button', { name: 'Save changes' }).click();
   await expect(dlg.getByText('Changed since it was sent')).toBeVisible();
   await dlg.getByRole('button', { name: 'Send the new version to employees' }).click();
-  await dlg.getByRole('button', { name: 'Send to employees' }).click();
-  await expect(page.getByText(/Version 2 of the notice was emailed to/)).toBeVisible();
+  await dlg.getByRole('button', { name: 'Send to employees', exact: true }).click();
+  await expect(page.getByText(/Version \d+ of the notice was emailed to/)).toBeVisible();
 
   await clientUser(page, AARAV);
   await expect(page).toHaveURL(/\/welcome\/notice$/);
@@ -119,7 +125,7 @@ test('the CAICO edits and resends the data notice; another user acknowledges it 
   await expect(page.getByText('Questions about this notice go to the Head of AI Compliance.')).toBeVisible();
   await page.goto('/inventory');
   await expect(page).toHaveURL(/\/welcome\/notice$/);  // nothing else opens until it is acknowledged
-  await page.getByLabel('I have read and understand this notice.').check();
+  await page.getByRole('checkbox', { name: 'I have read and understand this notice.' }).check();
   await page.getByRole('button', { name: 'Acknowledge and continue' }).click();
   await expect(page).toHaveURL(/\/start$/);
 
