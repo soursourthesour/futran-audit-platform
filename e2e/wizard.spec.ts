@@ -176,7 +176,7 @@ test('auditor sets up a client, the Chief Auditor approves and the client signs 
   await page.getByRole('button', { name: 'Send to employees' }).click();
   await page.getByRole('button', { name: 'Send to employees' }).click();
   await expect(page.getByText(/Version 1 of the notice was emailed to/)).toBeVisible();
-  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Attestation' }).click();
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Attestation', exact: true }).click();
   await page.getByRole('button', { name: 'Launch and get the staff link' }).click();
   await expect(page.getByRole('button', { name: 'Copy staff link' })).toBeVisible();
   const me = await (await page.request.get('/api/v1/auth/me')).json();
@@ -188,7 +188,7 @@ test('auditor sets up a client, the Chief Auditor approves and the client signs 
     await p2.getByLabel('Your name', { exact: true }).fill(name);
     await p2.getByLabel('Department', { exact: true }).selectOption({ label: 'HR and recruiting' });
     await p2.getByRole('button', { name: 'Next' }).click();
-    await p2.getByLabel('ChatGPT').check();
+    await p2.getByLabel('ChatGPT', { exact: true }).check();
     await p2.getByLabel('Personal, free').check();
     if (i === 0) await p2.screenshot({ path: 'screenshots/p4-phone-attestation.png', fullPage: true });
     await p2.getByRole('button', { name: 'Next: what you use it for' }).click();

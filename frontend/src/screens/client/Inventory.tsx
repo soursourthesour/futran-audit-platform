@@ -6,7 +6,7 @@ import { useMe } from '@/api/auth';
 import { Alert, Badge, Button, ButtonLink, Card, Dialog, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField } from '@/components/ui';
 import { toolHelp as H } from '@/help/client';
 
-export type Tool = { id: string; vendor: string; product: string; plan: string | null; account_type: string; sso: boolean | null; training_on_inputs: string; retention_terms: string | null; approval_status: string; source: string; declared_count: number | null };
+export type Tool = { id: string; vendor: string; product: string; plan: string | null; account_type: string; sso: boolean | null; training_on_inputs: string; retention_terms: string | null; approval_status: string; source: string; kind?: 'tool' | 'agent'; declared_count: number | null };
 export type UseCaseRow = { id: string; name: string; department_id: string; department: string | null; status: string; tools: string[]; tool_ids: string[]; proposed_tier: number | null; final_tier: number | null; final_tier_rationale: string | null; aedt_determination: string | null; returned_comment: string | null };
 export type InventoryData = { tools: Tool[]; use_cases: UseCaseRow[]; tiers: Record<string, number>; departments: { id: string; name: string }[]; is_futran: boolean };
 
@@ -61,12 +61,12 @@ function InventoryView({ clientId }: { clientId: string }) {
           </Card>
         </div>
         <div className="side">
-          <Card title={`Tools · ${d.tools.length}`}>
+          <Card title={`Tools and agents · ${d.tools.length}`}>
             {d.tools.length === 0 ? <EmptyState>Tools appear here from the attestation answers, or add them yourself.</EmptyState> : (
               <ul className="small" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                 {d.tools.map((t) => (
                   <li key={t.id} style={{ padding: '8px 0', borderTop: '1px solid var(--line-soft)' }}>
-                    <strong>{t.vendor} {t.product}</strong>
+                    <strong>{t.vendor} {t.product}</strong>{t.kind === 'agent' && <> <Badge tone="muted">Agent</Badge></>}
                     <div className="muted">{ACCOUNT_LABELS[t.account_type]}{t.declared_count ? ` · declared by ${t.declared_count}` : ''}{t.training_on_inputs === 'unknown' ? ' · training on inputs not known' : ''}</div>
                   </li>
                 ))}

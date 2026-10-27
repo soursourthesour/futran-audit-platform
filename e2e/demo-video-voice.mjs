@@ -305,7 +305,7 @@ await step('meridian notice and campaign', async () => {
     await cap('First, she acknowledges the employee data notice from the initiation package.', 3000);
     await ack.click(); await page.waitForTimeout(1200);
   }
-  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Attestation' }).click();
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Attestation', exact: true }).click();
   await page.waitForLoadState('networkidle');
   await cap('She launches the attestation campaign and gets a link to share with staff.', 3200);
   await page.getByRole('button', { name: 'Launch and get the staff link' }).click();
@@ -321,7 +321,7 @@ await step('attestation form', async () => {
   await type(page.getByLabel('Your name', { exact: true }), 'Mira Iyer');
   await page.getByLabel('Department', { exact: true }).selectOption({ label: 'Engineering' });
   await page.getByRole('button', { name: 'Next' }).click(); await page.waitForTimeout(700);
-  await page.getByLabel('ChatGPT').check(); await page.getByLabel('Personal, free').check();
+  await page.getByLabel('ChatGPT', { exact: true }).check(); await page.getByLabel('Personal, free').check();
   await cap('Which AI tools, and on what kind of account.', 2600);
   await page.getByRole('button', { name: 'Next: what you use it for' }).click(); await page.waitForTimeout(700);
   await page.getByLabel('Writing and editing').check(); await page.getByLabel('Client or customer data').check();
