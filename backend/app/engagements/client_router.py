@@ -249,6 +249,9 @@ def _client_engagement(db: Session, actor: Actor) -> Engagement:
     return e
 
 
+from app.mail.onboarding import getting_started_items  # noqa: E402  (email onboarding, spec §26.1)
+
+
 @router.get("/me/initiation")
 def my_initiation(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
     e = _client_engagement(db, actor)
@@ -281,6 +284,7 @@ def my_initiation(actor: Actor = Depends(current_actor), db: Session = Depends(g
         "engagement": {"id": e.id, "audit_ref": e.audit_ref, "name": e.name, "stage": e.stage},
         "items": items, "done": sum(i["done"] for i in items), "total": len(items),
         "requested_by": e.letter_due.isoformat() if e.letter_due else None, "sign_off_1_id": so1.id if so1 else None, "chief_auditor": chief,
+        "extra_items": getting_started_items(db, actor),
     }
 
 

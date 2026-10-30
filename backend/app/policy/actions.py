@@ -81,3 +81,15 @@ class Action(StrEnum):
     APPROVE_CLIENT_ALERTS = "approve_client_alerts"  # approve and send waiting client alerts
     APPROVE_ADDON_ALERTS = "approve_addon_alerts"  # the Sales owner approves tracing add-on alerts
     MANAGE_ALERT_SETTINGS = "manage_alert_settings"  # M6 refresh alert settings
+    # v0.5 WS-C: email, groups and sync (§26.9, §27.1)
+    MANAGE_FUTRAN_MAILBOX = "manage_futran_mailbox"  # connect, disconnect and set up the Futran mailbox (E1)
+    MANAGE_FUTRAN_GROUPS = "manage_futran_groups"
+    VIEW_FUTRAN_GROUPS = "view_futran_groups"
+    MANAGE_CLIENT_MAILBOX = "manage_client_mailbox"  # connect the client mailbox, directory sync (E2)
+    VIEW_CLIENT_MAILBOX = "view_client_mailbox"
+    MANAGE_CLIENT_GROUPS = "manage_client_groups"  # E3; a Department Compliance Lead: own department's groups
+    VIEW_CLIENT_GROUPS = "view_client_groups"
+    SEND_TO_CLIENT_GROUPS = "send_to_client_groups"  # E4; Futran: engagement emails only
+    EDIT_MAIL_TEMPLATES = "edit_mail_templates"  # Futran Admin: Futran's templates; client: its own copies
+    VIEW_MAIL_LOG = "view_mail_log"  # E5
+    SET_USER_MAIL_SYNC = "set_user_mail_sync"  # per-user mailbox: required, optional or off

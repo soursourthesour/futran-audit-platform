@@ -181,10 +181,17 @@ def run_weekly_digest(db: Session, settings: Settings, now) -> int:
     return sent
 
 
+def run_email(db: Session, settings: Settings, now) -> int:
+    """Email (spec §26): paced sends, replies, directory sync and reminders. Also runs every minute (start_scheduler)."""
+    from app.mail.jobs import run_mail_tick
+
+    return sum(run_mail_tick(db, settings, _dt(now)).values())
+
+
 # ---- the daily run
 JOBS = {
     "invitation_warnings": run_invitation_warnings, "invitation_expiry": run_invitation_expiry, "due_soon": run_due_soon,
-    "escalations": run_escalations, "weekly_digest": run_weekly_digest,
+    "escalations": run_escalations, "weekly_digest": run_weekly_digest, "email": run_email,
 }
 
 
@@ -215,7 +222,21 @@ def start_scheduler(app) -> None:
         finally:
             db.close()
 
+    def mail_tick():
+        from app.mail.jobs import run_mail_tick
+
+        db = app.state.sessionmaker()
+        try:
+            run_mail_tick(db, settings, utcnow())
+            db.commit()
+        except Exception:  # logged; the next minute tries again
+            db.rollback()
+            log.exception("Email tick failed")
+        finally:
+            db.close()
+
     sched = BackgroundScheduler(timezone="UTC")
     sched.add_job(tick, "cron", hour=10, minute=0, id="daily", replace_existing=True)  # 06:00 New York
+    sched.add_job(mail_tick, "interval", minutes=1, id="mail", replace_existing=True, max_instances=1, coalesce=True)
     sched.start()
     app.state.scheduler = sched
