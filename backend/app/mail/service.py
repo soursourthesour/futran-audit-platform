@@ -27,6 +27,11 @@ def render(template_key: str, context: dict) -> tuple[str, str, str]:
     return subject, html, text
 
 
+def render_layout(body_html: str) -> str:
+    """Wrap already-escaped HTML paragraphs in the standard email layout (group sends)."""
+    return _env.get_template("group_message.html.j2").render(body=body_html)
+
+
 def send(
     db: Session,
     settings: Settings,
