@@ -53,6 +53,7 @@ export type TracingPage = {
   history_incidents: { id: string; occurred_on: string; summary: string }[];
   kept: { incidents: number; traces: number };
   guardrail_connected?: boolean;
+  guardrail_needs_token?: boolean; can_set_guardrail_token?: boolean;
 };
 
 export const useAddons = () => useQuery({ queryKey: ['addons'], queryFn: () => api.get<AddonsPage>('/addons/tracing') });

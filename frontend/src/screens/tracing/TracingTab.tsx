@@ -165,6 +165,16 @@ function TraceCard({ s, p, onRaise, setFlash, onChanged }: { s: RegSystem; p: Tr
       setFlash({ tone: 'danger', text: `${errorMessage(e)} ${errs}`.trim() });
     } finally { setBusy(false); if (fileRef.current) fileRef.current.value = ''; }
   }
+  const [token, setToken] = useState('');
+  async function saveToken() {
+    setBusy(true); setFlash(null);
+    try {
+      await api.put('/tracing/guardrail-token', { token });
+      setToken('');
+      await onChanged();
+      setFlash({ tone: 'success', text: 'GuardRail access token saved. You can sync from GuardRail now.' });
+    } catch (e) { setFlash({ tone: 'danger', text: errorMessage(e) }); } finally { setBusy(false); }
+  }
   async function sync() {
     setBusy(true); setFlash(null);
     try {
@@ -196,10 +206,16 @@ function TraceCard({ s, p, onRaise, setFlash, onChanged }: { s: RegSystem; p: Tr
             <TextField ref={fileRef} label="Import actions (CSV or JSON)" help={TH.importFile} type="file" accept=".csv,.json,text/csv,application/json" disabled={busy} onChange={(e) => void upload(e.target.files?.[0])} />
             <div className="row">
               <Button onClick={() => setAdding(true)}>Add an action</Button>
-              {p.system.guardrail_policy_ref && <Button disabled={busy || p.guardrail_connected === false} onClick={sync} title={p.guardrail_connected === false ? 'GuardRail is not connected for this platform' : undefined}>Sync from GuardRail</Button>}
+              {p.system.guardrail_policy_ref && <Button disabled={busy || p.guardrail_connected === false} onClick={sync} title={p.guardrail_needs_token ? 'Add your organisation\'s GuardRail access token first' : p.guardrail_connected === false ? 'GuardRail is not connected for this platform' : undefined}>Sync from GuardRail</Button>}
             </div>
           </div>
         )}
+        {p.system.guardrail_policy_ref && p.guardrail_needs_token && (p.can_set_guardrail_token ? (
+          <div className="trc-tools">
+            <TextField label="GuardRail access token" help={TH.guardrailToken} type="password" autoComplete="off" value={token} onChange={(e) => setToken(e.target.value)} />
+            <div className="row"><Button disabled={busy || token.trim().length < 8} onClick={saveToken}>Save token</Button></div>
+          </div>
+        ) : <p className="small muted">To sync from GuardRail, your Client Admin or Chief AI Compliance Officer adds your organisation's GuardRail access token here.</p>)}
         <DataGrid label="Action trace" rows={rows} rowId={(t) => t.id} rowLabel={(t) => `${t.action}, ${fmtDateTime(t.at)}`} selectable initialSort={{ key: 'at', dir: 'desc' }}
           emptyText={q.isLoading ? 'Loading…' : 'No actions in this period. Import the agent\'s logs, sync from GuardRail or add an action by hand.'}
           search={{ label: 'Search actions', text: (t) => `${t.session_id ?? ''} ${t.action} ${t.tool ?? ''} ${t.data_touched ?? ''} ${t.policy_ref ?? ''} ${t.approver ?? ''}` }}

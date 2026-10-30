@@ -2,7 +2,7 @@
 The tenant is always the signed-in user's organization; every endpoint calls `authorize` (through app.tracing.access)."""
 from fastapi import APIRouter, Depends, File, UploadFile
 from fastapi.responses import Response
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -16,7 +16,7 @@ from app.register.models import HistoryEntry, RegisterSystem
 from app.tenancy.models import User
 from app.tracing import addons, incidents as inc_svc, traces as tr_svc
 from app.tracing import deadlines as D
-from app.tracing.guardrail import adapter
+from app.tracing.guardrail import mode as guardrail_mode
 from app.tracing.access import check, client_org, load_system, may, state_for
 
 router = APIRouter(tags=["tracing"])
@@ -121,8 +121,59 @@ def get_tracing(system_id: str, actor: Actor = Depends(current_actor), db: Sessi
     out["history_incidents"] = [{"id": e.id, "occurred_on": e.occurred_on.isoformat(), "summary": e.summary} for e in db.scalars(
         select(HistoryEntry).where(HistoryEntry.register_system_id == s.id, HistoryEntry.type == "incident", HistoryEntry.deleted_at.is_(None)).order_by(HistoryEntry.occurred_on.desc()))
         if e.id not in linked]
-    out["guardrail_connected"] = adapter(settings) is not None
+    out["guardrail_connected"] = tr_svc.guardrail_feed(db, settings, s.organization_id) is not None
+    out["guardrail_needs_token"] = guardrail_mode(settings) == "live" and not out["guardrail_connected"]
+    out["can_set_guardrail_token"] = _has(db, actor, Action.REQUEST_ADDON) and not actor.is_futran
     return out
+
+
+class GuardRailTokenIn(BaseModel):
+    token: str = Field(min_length=8, max_length=2000)
+
+
+def _token_org(db: Session, actor: Actor):
+    org = client_org(actor)
+    if actor.is_futran:
+        raise Forbidden()
+    authorize(db, actor, Action.REQUEST_ADDON, org_id=org.id)  # Client Admin or CAICO, own organisation only
+    return org
+
+
+@router.put("/tracing/guardrail-token")
+def put_guardrail_token(body: GuardRailTokenIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
+    """The organisation's own GuardRail access token, stored encrypted and never shown again."""
+    from app.audit_log import service as audit
+    from app.mail.tokens import seal
+    from app.tracing.models import TracingOrgSettings
+
+    org = _token_org(db, actor)
+    token = body.token.strip()
+    if any(c.isspace() for c in token):
+        raise Invalid(errors=[{"field": "token", "message": "Paste the token exactly as GuardRail shows it, without spaces."}])
+    row = db.scalar(select(TracingOrgSettings).where(TracingOrgSettings.organization_id == org.id))
+    if row is None:
+        row = TracingOrgSettings(organization_id=org.id, created_by=actor.id)
+        db.add(row)
+    row.guardrail_token_ref, row.guardrail_token_encrypted = seal(settings, token)
+    row.guardrail_token_set_at, row.updated_by, row.deleted_at = utcnow(), actor.id, None
+    db.flush()
+    audit.record(db, actor_id=actor.id, action="tracing.guardrail_token_set", object_type="TracingOrgSettings", object_id=row.id, organization_id=org.id,
+                 summary="Set the organisation's GuardRail access token")
+    return {"guardrail_token_set": True}
+
+
+@router.delete("/tracing/guardrail-token")
+def delete_guardrail_token(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+    from app.audit_log import service as audit
+    from app.tracing.models import TracingOrgSettings
+
+    org = _token_org(db, actor)
+    row = db.scalar(select(TracingOrgSettings).where(TracingOrgSettings.organization_id == org.id))
+    if row is not None and row.guardrail_token_encrypted:
+        row.guardrail_token_encrypted, row.guardrail_token_ref, row.updated_by = None, None, actor.id
+        audit.record(db, actor_id=actor.id, action="tracing.guardrail_token_removed", object_type="TracingOrgSettings", object_id=row.id, organization_id=org.id,
+                     summary="Removed the organisation's GuardRail access token")
+    return {"guardrail_token_set": False}
 
 
 @router.get("/register/{system_id}/tracing/traces")

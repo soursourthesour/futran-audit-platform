@@ -7,7 +7,7 @@ JSON import, or the GuardRail feed); `TraceImport` records each import or feed s
 """
 from datetime import date, datetime
 
-from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.appendonly import append_only
@@ -49,6 +49,18 @@ class AddonSubscription(TimestampedTenantMixin, Base):
     cancelled_at: Mapped[datetime | None] = mapped_column(DateTime)
     cancel_reason: Mapped[str | None] = mapped_column(Text)
     opportunity_id: Mapped[str | None] = mapped_column(String(36))  # the Futran Sales opportunity the request opened
+
+
+class TracingOrgSettings(TimestampedTenantMixin, Base):
+    """The organisation's own GuardRail access token (§27.3), encrypted with the mail token key. A live GuardRail sync
+    uses only this token, so one client's sync can read only what GuardRail lets that client's token read."""
+
+    __tablename__ = "tracing_org_settings"
+    __table_args__ = (UniqueConstraint("organization_id", name="uq_tracing_org_settings_org"),)
+
+    guardrail_token_encrypted: Mapped[str | None] = mapped_column(Text)
+    guardrail_token_ref: Mapped[str | None] = mapped_column(String(40))  # which key encrypted it
+    guardrail_token_set_at: Mapped[datetime | None] = mapped_column(DateTime)
 
 
 class Incident(TimestampedTenantMixin, Base):

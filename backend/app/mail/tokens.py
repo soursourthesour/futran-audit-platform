@@ -58,6 +58,20 @@ def save_if_refreshed(settings: Settings, holder, grant: Grant) -> None:
         grant.dirty = False
 
 
+def seal(settings: Settings, secret: str) -> tuple[str, str]:
+    """Encrypt one secret string with the token key. Returns (key label, ciphertext)."""
+    ref, f = _fernet(settings)
+    return ref, f.encrypt(secret.encode()).decode()
+
+
+def unseal(settings: Settings, ciphertext: str) -> str:
+    _, f = _fernet(settings)
+    try:
+        return f.decrypt(ciphertext.encode()).decode()
+    except InvalidToken as exc:
+        raise TokenError("The stored secret cannot be read with the current encryption key. Enter it again.") from exc
+
+
 def clear(holder) -> None:
     holder.token_encrypted = None
     holder.token_ref = None

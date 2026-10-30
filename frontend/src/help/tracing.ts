@@ -24,6 +24,7 @@ export const traceHelp = {
   policy: 'The GuardRail policy or other control that decided.',
   approver: 'Who approved it, or the control\'s note.',
   agent: 'The agent\'s identity as it appears in the logs.',
+  guardrailToken: 'Your organisation\'s own GuardRail access token, from GuardRail\'s settings. It is stored encrypted and never shown again. Syncs read only the policies this token can read.',
 };
 
 export const incidentHelp = {

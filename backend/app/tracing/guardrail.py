@@ -60,13 +60,24 @@ class HttpGuardRail:
         return body.get("events", []) if isinstance(body, dict) else body
 
 
-def adapter(settings) -> GuardRailFeed | None:
-    mode = (getattr(settings, "guardrail_mode", "auto") or "auto").lower()
+def mode(settings) -> str:
+    """fake, live or off."""
+    m = (getattr(settings, "guardrail_mode", "auto") or "auto").lower()
     url = getattr(settings, "guardrail_url", None)
-    if mode == "auto":
-        mode = "live" if url else ("fake" if settings.test_mode else "off")
-    if mode == "fake":
+    if m == "auto":
+        m = "live" if url else ("fake" if settings.test_mode else "off")
+    if m == "live" and not url:
+        return "off"
+    return m if m in ("fake", "live") else "off"
+
+
+def adapter(settings, token: str | None = None) -> GuardRailFeed | None:
+    """The feed for one organisation. Live mode needs that organisation's own GuardRail token (`token`): the
+    platform-wide GUARDRAIL_TOKEN is never used for a client's sync, so a policy name typed on one client's system
+    cannot pull another client's events."""
+    m = mode(settings)
+    if m == "fake":
         return FakeGuardRail()
-    if mode == "live" and url:
-        return HttpGuardRail(url, getattr(settings, "guardrail_token", None))
+    if m == "live" and token:
+        return HttpGuardRail(settings.guardrail_url, token)
     return None

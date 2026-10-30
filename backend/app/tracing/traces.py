@@ -166,14 +166,36 @@ def import_file(db: Session, actor, s: RegisterSystem, filename: str, data: byte
     return ingest(db, actor.id, s, source, rows, filename)
 
 
+def org_guardrail_token(db: Session, settings, org_id: str) -> str | None:
+    from app.mail.tokens import TokenError, unseal
+    from app.tracing.models import TracingOrgSettings
+
+    row = db.scalar(select(TracingOrgSettings).where(TracingOrgSettings.organization_id == org_id, TracingOrgSettings.deleted_at.is_(None)))
+    if row is None or not row.guardrail_token_encrypted:
+        return None
+    try:
+        return unseal(settings, row.guardrail_token_encrypted)
+    except TokenError:
+        return None
+
+
+def guardrail_feed(db: Session, settings, org_id: str):
+    from app.tracing.guardrail import adapter, mode
+
+    return adapter(settings, org_guardrail_token(db, settings, org_id) if mode(settings) == "live" else None)
+
+
 def guardrail_sync(db: Session, settings, actor, s: RegisterSystem) -> TraceImport:
-    from app.tracing.guardrail import adapter
+    from app.tracing.guardrail import mode
 
     if not s.guardrail_policy_ref:
         raise Invalid("This system has no GuardRail policy. Add the policy name on the Details tab first.", errors=[{"field": "guardrail_policy_ref", "message": "No GuardRail policy."}])
-    feed = adapter(settings)
-    if feed is None:
+    if mode(settings) == "off":
         raise Conflict("GuardRail is not connected for this platform. Import the agent's logs as CSV or JSON instead.")
+    feed = guardrail_feed(db, settings, s.organization_id)
+    if feed is None:
+        raise Conflict("Your organisation's GuardRail access token is not set. Your Client Admin or Chief AI Compliance Officer adds it on the Tracing tab; "
+                       "until then, import the agent's logs as CSV or JSON.")
     last = db.scalar(select(func.max(ActionTrace.at)).where(ActionTrace.register_system_id == s.id, ActionTrace.source == "guardrail"))
     rows = feed.events(s.guardrail_policy_ref, f"{s.reference.lower()}-agent", last, utcnow())
     return ingest(db, actor.id, s, "guardrail", rows, f"GuardRail policy {s.guardrail_policy_ref}")

@@ -58,7 +58,7 @@ class Settings(BaseSettings):
     # in-process fake in test mode, else off), fake, live or off.
     guardrail_mode: str = "auto"
     guardrail_url: str | None = None
-    guardrail_token: str | None = None
+    guardrail_token: str | None = None  # not used for client syncs: each organisation sets its own token (TracingOrgSettings)
 
     @property
     def test_mode(self) -> bool:
