@@ -64,9 +64,11 @@ def _mark_left(db: Session, p: DirectoryPerson, now: datetime) -> None:
     p.status, p.left_at = "left", p.left_at or now
     for m in db.scalars(select(MailGroupMember).where(MailGroupMember.person_id == p.id, MailGroupMember.deleted_at.is_(None))):
         m.deleted_at = now
-    user_id = p.user_id or db.scalar(select(User.id).where(func.lower(User.email) == p.email.lower()))
+    # Only the organisation's own users: a guest from another organisation (Futran staff, say) is not the client's to change.
+    user_id = p.user_id or db.scalar(select(User.id).where(User.organization_id == p.organization_id, func.lower(User.email) == p.email.lower()))
     if user_id:
-        for uc in db.scalars(select(UserMailConnection).where(UserMailConnection.user_id == user_id, UserMailConnection.status == "connected")):
+        for uc in db.scalars(select(UserMailConnection).where(UserMailConnection.organization_id == p.organization_id, UserMailConnection.user_id == user_id,
+                                                              UserMailConnection.status == "connected")):
             uc.status = "disconnected"
             tokens.clear(uc)
 
