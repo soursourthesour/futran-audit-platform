@@ -373,6 +373,7 @@ def create_system(db: Session, actor: User, org: Organization, data: dict, *, or
     db.add(s)
     _write(db, actor, org, s, v)
     log_change(db, actor, s, "created", None, f"{s.reference} {s.name}", reason, raw=True)
+    _engine_facts_changed(db, s)
     audit.record(db, actor_id=actor.id, action="register.create", obj=s, after={"name": s.name, "reference": s.reference, "stage": s.stage, "origin": origin},
                  summary=f"Added {s.reference} {s.name} to the AI system register")
     return s
@@ -392,6 +393,8 @@ def update_system(db: Session, actor: User, s: RegisterSystem, data: dict, *, re
     changed = {k: (before[k], after[k]) for k in after if before.get(k) != after[k]}
     for k, (old, new) in changed.items():
         log_change(db, actor, s, k, old, new, reason, batch_id=batch_id)
+    if set(changed) & ENGINE_FACTS or ("stage" in changed and "retired" in changed["stage"]):
+        _engine_facts_changed(db, s)
     if s.risk_tier != tier_before:
         log_change(db, actor, s, "risk_tier", f"Tier {tier_before}" if tier_before else None, f"Tier {s.risk_tier}", "Recalculated from the system's data and decisions.", batch_id=batch_id, raw=True)
     if changed:
@@ -408,6 +411,7 @@ def retire(db: Session, actor: User, s: RegisterSystem, reason: str) -> Register
         raise Conflict("This system is already retired.")
     old = s.stage
     s.stage, s.retired_reason, s.updated_by = "retired", reason[:2000], actor.id
+    _engine_facts_changed(db, s)
     log_change(db, actor, s, "stage", old, "retired", reason)
     audit.record(db, actor_id=actor.id, action="register.retire", obj=s, before={"stage": old}, after={"stage": "retired", "reason": reason}, summary=f"Retired {s.reference} {s.name}")
     return s
@@ -523,8 +527,20 @@ def decide_law_removal(db: Session, actor: User, s: RegisterSystem, link: Regist
 
 
 def after_laws_change(db: Session, s: RegisterSystem) -> None:
-    """Required roles are computed from the laws on read, so a change takes effect at once (§24.3)."""
+    """Required roles are computed from the laws on read, so a change takes effect at once (§24.3). The client's
+    applicability is re-run when the request commits (§25.4)."""
     db.flush()
+    _engine_facts_changed(db, s)
+
+
+# fields the applicability engine reads from a register system (regmaster.engine._facts)
+ENGINE_FACTS = {"decision_impact", "type", "department_id", "name", "purpose"}
+
+
+def _engine_facts_changed(db: Session, s: RegisterSystem) -> None:
+    from app.regmaster.engine import rerun_later
+
+    rerun_later(db, s.organization_id)
 
 
 def compliance_officers(db: Session, org_id: str, exclude: str | None = None) -> list[User]:

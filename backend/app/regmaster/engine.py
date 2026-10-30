@@ -11,9 +11,10 @@ Re-run triggers: `add_geography`/`remove_geography`, `sync_from_locations` (wiza
 `rerun_for_regulation` after an approved law version. The register (WS-B) calls `run(db, org_id)` when a system's
 laws change.
 """
+import logging
 import re
 
-from sqlalchemy import select
+from sqlalchemy import event, select
 from sqlalchemy.orm import Session
 
 from app.core.clock import utcnow
@@ -23,6 +24,7 @@ from app.laws.models import Regulation
 from app.reference.models import Jurisdiction, JurisdictionMembership
 from app.regmaster.models import STAGES, ClientGeography, ClientLawApplicability, CommitteeRule, LawRoleMap, LawVersion, RoleCatalog, ScopeTest
 
+log = logging.getLogger(__name__)
 BASES = ("office", "employees", "candidates", "customers", "data")
 EMPLOYMENT = re.compile(r"hir|recruit|candidat|applicant|employ|promot|talent|interview|resume|résumé|workforce|\bhr\b|human resources", re.I)
 
@@ -98,12 +100,26 @@ def sync_from_locations(db: Session, org_id: str, actor_id: str | None) -> None:
 # ------------------------------------------------------------------ facts used to pre-fill scope answers
 
 def _facts(db: Session, org_id: str) -> dict:
+    """What the client's AI does: inventory use cases and register systems (decision impact, type, department).
+    Retired and removed register systems are not facts."""
     from app.inventory.models import UseCase
+    from app.register.models import RegisterSystem
+    from app.tenancy.models import Department
 
     ucs = list(db.scalars(select(UseCase).where(UseCase.organization_id == org_id, UseCase.deleted_at.is_(None))))
     consequential = [u for u in ucs if u.decision_impact == "consequential"]
     employment = [u for u in ucs if u.aedt_determination == "in_scope" or (u.decision_impact == "consequential" and EMPLOYMENT.search(f"{u.name} {u.purpose or ''}"))]
-    return {"use_cases": len(ucs), "consequential": consequential, "employment": employment}
+    systems = list(db.scalars(select(RegisterSystem).where(RegisterSystem.organization_id == org_id, RegisterSystem.deleted_at.is_(None), RegisterSystem.stage != "retired")
+                              .order_by(RegisterSystem.reference)))
+    for s in systems:
+        if s.decision_impact != "consequential":
+            continue
+        consequential.append(s)
+        dept = db.get(Department, s.department_id) if s.department_id else None
+        if EMPLOYMENT.search(f"{s.name} {s.purpose or ''} {dept.name if dept else ''}"):
+            employment.append(s)
+    known = len(ucs) + sum(1 for s in systems if s.decision_impact)  # a system with no decision impact recorded tells nothing yet
+    return {"use_cases": known, "consequential": consequential, "employment": employment}
 
 
 def _prefill(test: ScopeTest, geo: dict[str, Jurisdiction], facts: dict) -> tuple[str, str]:
@@ -239,6 +255,26 @@ def run(db: Session, org_id: str, actor_id: str | None = None) -> list[ClientLaw
             row.deleted_at = now
     db.flush()
     return out
+
+
+RERUN_KEY = "regmaster_rerun_orgs"
+
+
+def rerun_later(db: Session, org_id: str) -> None:
+    """Re-run the engine for this client once, when the session commits (the end of the request), however many
+    facts the request changed (§25.4: re-run when an AI system's facts or laws change)."""
+    db.info.setdefault(RERUN_KEY, set()).add(org_id)
+
+
+@event.listens_for(Session, "before_commit")
+def _rerun_before_commit(session: Session) -> None:
+    orgs = session.info.pop(RERUN_KEY, None)
+    for org_id in sorted(orgs or ()):
+        try:
+            with session.begin_nested():
+                run(session, org_id)
+        except Exception:  # the register change still saves; the next re-run (or M5) brings the result up to date
+            log.exception("Applicability re-run for organisation %s failed", org_id)
 
 
 def rerun_for_regulation(db: Session, regulation_id: str) -> list[str]:
