@@ -66,6 +66,9 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
         from app.regmaster.startup import seed_if_empty
 
         seed_if_empty(app)
+        from app.litigation.startup import court_sources_on_start  # v0.6 WS-D
+
+        court_sources_on_start(app)
     _start_scheduler(app, settings)
     return app
 

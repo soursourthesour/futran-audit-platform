@@ -178,3 +178,13 @@ def test_bulk_follow_and_bulk_briefing(client, db, lit):
     c = _add(client, {**HIRING_CASE, "talking_points_client": "List every hiring tool."})
     assert client.post("/api/v1/litigation/bulk-follow", json={"ids": [c["id"]]}).json()["changed"] == 1
     assert client.post("/api/v1/litigation/bulk-briefing", json={"ids": [c["id"]]}).json()["queued"] == 2
+
+
+def test_court_sources_are_added_on_start_up(app, db, matrix):
+    from app.litigation.startup import court_sources_on_start
+    from app.regmaster.models import Source
+
+    db.commit()
+    assert court_sources_on_start(app) == 5
+    assert db.scalar(select(Source).where(Source.domain == "curia.europa.eu")) is not None
+    assert court_sources_on_start(app) == 0  # idempotent
