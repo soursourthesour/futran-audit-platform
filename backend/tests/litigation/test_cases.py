@@ -146,3 +146,35 @@ def test_seeded_cases_are_real_and_cited(db, matrix):
         assert c.sources and all(s["url"].startswith("https://") for s in c.sources), c.name
         assert c.court and c.stage and c.match_rule, c.name
     assert seed_cases(db) == 0  # idempotent
+
+
+def test_send_briefing_queues_alerts_for_matched_clients(client, db, lit):
+    from app.clientalerts.models import AlertSend
+
+    login_as(client, db, lit["chief"])
+    c = _add(client, {**HIRING_CASE, "talking_points_client": "List every hiring tool."})
+    login_as(client, db, lit["sales"])
+    r = client.post(f"/api/v1/litigation/{c['id']}/briefing", json={"organization_ids": [lit["abc"].id]})
+    assert r.status_code == 200 and r.json()["queued"] == 1
+    s = db.scalar(select(AlertSend))
+    assert s.organization_id == lit["abc"].id and s.status == "waiting_approval"  # the Chief Auditor approves the send
+
+
+def test_create_opportunities_and_assign_to_sales(client, db, lit):
+    from app.sales.models import Opportunity
+
+    login_as(client, db, lit["chief"])
+    c = _add(client)
+    r = client.post("/api/v1/litigation/bulk-assign", json={"ids": [c["id"]], "owner_id": lit["sales"].id})
+    assert r.status_code == 200 and r.json()["created"] == 2
+    opps = db.scalars(select(Opportunity)).all()
+    assert {o.owner_id for o in opps} == {lit["sales"].id} and {o.trigger for o in opps} == {"case"}
+    login_as(client, db, lit["aud"])
+    assert client.post(f"/api/v1/litigation/{c['id']}/opportunities", json={}).status_code == 403
+
+
+def test_bulk_follow_and_bulk_briefing(client, db, lit):
+    login_as(client, db, lit["chief"])
+    c = _add(client, {**HIRING_CASE, "talking_points_client": "List every hiring tool."})
+    assert client.post("/api/v1/litigation/bulk-follow", json={"ids": [c["id"]]}).json()["changed"] == 1
+    assert client.post("/api/v1/litigation/bulk-briefing", json={"ids": [c["id"]]}).json()["queued"] == 2

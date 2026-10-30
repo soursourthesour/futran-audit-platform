@@ -228,7 +228,7 @@ class BulkFollowIn(BaseModel):
     follow: bool = True
 
 
-@router.post("/litigation/bulk/follow")
+@router.post("/litigation/bulk-follow")
 def bulk_follow(body: BulkFollowIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
     authorize(db, actor, Action.VIEW_LITIGATION)
     n = 0
@@ -266,3 +266,70 @@ def cases_for_law(law_id: str, actor: Actor = Depends(current_actor), db: Sessio
             nxt = db.get(Regulation, nxt.superseded_by_id)
     rows = [c for c in db.scalars(select(Case).where(Case.deleted_at.is_(None)).order_by(Case.name)) if ids & set(c.regulation_ids or [])]
     return [case_out(db, c) for c in rows]
+
+
+class OrgsIn(BaseModel):
+    organization_ids: list[str] | None = None
+    owner_id: str | None = None
+
+
+@router.post("/litigation/{case_id}/briefing")
+def send_briefing(case_id: str, body: OrgsIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    """Queue a case briefing for clients with similar AI. It waits for the Chief Auditor in the client alerts queue (A1)."""
+    authorize(db, actor, Action.VIEW_LITIGATION)
+    from app.clientalerts.service import queue_for_case
+
+    c = _get(db, case_id)
+    sends = queue_for_case(db, request.app.state.settings, c, org_ids=body.organization_ids, actor_id=actor.id)
+    audit.record(db, actor_id=actor.id, action="case.briefing", obj=c, request=request, organization_id=actor.organization.id, summary=f"Queued {len(sends)} client briefings for {c.name}")
+    return {"queued": len(sends)}
+
+
+def _opportunities_for(db: Session, actor: Actor, c: Case, org_ids: list[str] | None, owner_id: str | None) -> int:
+    from app.sales.service import IndependenceError, open_from_trigger
+
+    n = 0
+    for m in db.scalars(select(CaseClientMatch).where(CaseClientMatch.case_id == c.id)):
+        if org_ids is not None and m.organization_id not in org_ids:
+            continue
+        try:
+            o = open_from_trigger(db, m.organization_id, "case", f"{c.id}:v{c.version}", service=f"Briefing and review of AI like that in {c.name}"[:200], service_kind="advisory",
+                                  why_now=c.name, system_ids=list(m.ai_system_ids or []), created_by=actor.id)
+        except IndependenceError:
+            continue
+        if owner_id:
+            o.owner_id = owner_id
+        n += 1
+    return n
+
+
+@router.post("/litigation/{case_id}/opportunities")
+def create_opportunities(case_id: str, body: OrgsIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    authorize(db, actor, Action.WORK_OPPORTUNITIES)
+    from app.sales.router import _check_owner
+
+    _check_owner(db, actor, body.owner_id)
+    return {"created": _opportunities_for(db, actor, _get(db, case_id), body.organization_ids, body.owner_id)}
+
+
+class BulkIdsIn(BaseModel):
+    ids: list[str] = Field(min_length=1, max_length=200)
+    owner_id: str | None = None
+
+
+@router.post("/litigation/bulk-assign")
+def bulk_assign(body: BulkIdsIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    """Assign to Sales: an opportunity per client with similar AI, owned by the chosen person."""
+    authorize(db, actor, Action.WORK_OPPORTUNITIES)
+    from app.sales.router import _check_owner
+
+    _check_owner(db, actor, body.owner_id)
+    return {"created": sum(_opportunities_for(db, actor, _get(db, cid), None, body.owner_id) for cid in body.ids)}
+
+
+@router.post("/litigation/bulk-briefing")
+def bulk_briefing(body: BulkIdsIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    authorize(db, actor, Action.VIEW_LITIGATION)
+    from app.clientalerts.service import queue_for_case
+
+    return {"queued": sum(len(queue_for_case(db, request.app.state.settings, _get(db, cid), actor_id=actor.id)) for cid in body.ids)}
