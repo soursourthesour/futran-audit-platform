@@ -45,6 +45,7 @@ class OutgoingMessage:
     subject: str
     html: str
     text: str
+    cc: list[str] = field(default_factory=list)
 
 
 @dataclass

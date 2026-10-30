@@ -107,7 +107,7 @@ class MicrosoftGraphAdapter:
         def rcpt(addrs):
             return [{"emailAddress": {"address": a}} for a in addrs]
 
-        draft = {"subject": m.subject, "body": {"contentType": "HTML", "content": m.html}, "toRecipients": rcpt(m.to), "bccRecipients": rcpt(m.bcc)}
+        draft = {"subject": m.subject, "body": {"contentType": "HTML", "content": m.html}, "toRecipients": rcpt(m.to), "ccRecipients": rcpt(m.cc), "bccRecipients": rcpt(m.bcc)}
         if m.reply_to:
             draft["replyTo"] = rcpt([m.reply_to])
         with client(self.transport) as c:

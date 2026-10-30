@@ -47,6 +47,7 @@ class Envelope:
     text: str
     bcc: list[str] = field(default_factory=list)
     thread_ref: str | None = None
+    cc: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -96,7 +97,7 @@ def resolve_sender(db: Session, settings: Settings, org_id: str, *, prefer: str 
 
             u = db.get(User, user_id)
             return Sender(channel=uc.provider, from_name=u.name if u else uc.mailbox, from_address=uc.mailbox, reply_to=uc.mailbox, user_connection=uc)
-    if prefer in ("organization", "me") and org is not None and org.type == "client":
+    if prefer in ("organization", "me") and org is not None and org.type == "client":  # client mail: own mailbox, else Futran for the client
         conn = org_connection(db, org_id)
         if conn is not None and conn.sender_mode == "own" and _usable(settings, conn):
             return _from_connection(conn)
@@ -116,7 +117,7 @@ def record(db: Session, *, organization_id: str, env: Envelope, stored: Envelope
            mail_send_id: str | None = None, channel: str = "outbox") -> OutboxMessage:
     """The outbox row. `stored` is the copy kept readable; with real email it has one-time links redacted."""
     keep = stored or env
-    msg = OutboxMessage(organization_id=organization_id, to=list(keep.to), cc=None, bcc=list(keep.bcc) or None, subject=keep.subject[:300], body_html=keep.html,
+    msg = OutboxMessage(organization_id=organization_id, to=list(keep.to), cc=list(keep.cc) or None, bcc=list(keep.bcc) or None, subject=keep.subject[:300], body_html=keep.html,
                         body_text=keep.text, template_key=template_key[:80], related_type=type(related).__name__ if related is not None else None,
                         related_id=getattr(related, "id", None), attachments=[], created_by=actor_id, mail_send_id=mail_send_id, channel=channel)
     db.add(msg)
@@ -142,6 +143,8 @@ def _smtp(settings: Settings, sender: Sender, env: Envelope) -> Result:
     em["From"] = formataddr((sender.from_name, sender.from_address)) if sender.from_address else settings.smtp_from
     if env.to:
         em["To"] = ", ".join(env.to)
+    if env.cc:
+        em["Cc"] = ", ".join(env.cc)
     if sender.reply_to:
         em["Reply-To"] = sender.reply_to
     em["Subject"] = env.subject
@@ -153,7 +156,10 @@ def _smtp(settings: Settings, sender: Sender, env: Envelope) -> Result:
                 s.starttls()
             if settings.smtp_user:
                 s.login(settings.smtp_user, settings.smtp_password or "")
-            s.send_message(em, to_addrs=list(env.to) + list(env.bcc))
+            if env.bcc:
+                s.send_message(em, to_addrs=list(env.to) + list(env.cc) + list(env.bcc))
+            else:
+                s.send_message(em)
         return Result(ok=True)
     except Exception as exc:  # recorded, never raised
         return Result(ok=False, error=str(exc)[:500])
@@ -170,7 +176,7 @@ def _provider(db: Session, settings: Settings, sender: Sender, env: Envelope) ->
     try:
         grant = tokens.load(settings, holder)
         out = OutgoingMessage(from_address=sender.from_address, from_name=sender.from_name, reply_to=sender.reply_to, to=env.to, bcc=env.bcc,
-                              subject=env.subject, html=env.html, text=env.text)
+                              subject=env.subject, html=env.html, text=env.text, cc=env.cc)
         sent = adapter.send(grant, out)
         tokens.save_if_refreshed(settings, holder, grant)
         return Result(ok=True, provider_message_id=sent.message_id, provider_thread_id=sent.thread_id)

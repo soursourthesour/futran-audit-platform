@@ -85,6 +85,8 @@ class GoogleAdapter:
         em["From"] = formataddr((m.from_name, m.from_address))
         if m.to:
             em["To"] = ", ".join(m.to)
+        if m.cc:
+            em["Cc"] = ", ".join(m.cc)
         if m.bcc:
             em["Bcc"] = ", ".join(m.bcc)  # Gmail delivers to Bcc and removes the header
         if m.reply_to:
