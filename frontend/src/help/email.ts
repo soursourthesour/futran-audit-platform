@@ -1,6 +1,8 @@
 /** Field help for the email screens (E1–E5) and the mailbox prompt. */
 export const emailHelp = {
-  provider: 'The email system your organisation uses. The platform sends from one mailbox in it and reads back only replies to the messages it sent.',
+  saveActivity: "Keeps a copy of each email sent from the platform in the engagement's activity log, so the audit file shows what was sent, to whom and when.",
+  trackBounces: "Records delivery failures and automatic replies against the recipient, so you can see who did not receive a request before chasing them.",
+  provider: 'The email system your organization uses. The platform sends from one mailbox in it and reads back only replies to the messages it sent.',
   mailbox: 'The mailbox the emails come from, for example a shared mailbox such as ai-governance@yourcompany.com. People see this address as the sender.',
   sendAsName: 'The name shown next to the address, for example "ABC Corp AI Governance".',
   replyTo: 'Where replies go. Replies to the sending mailbox come back into the platform and are filed with the engagement.',
@@ -10,7 +12,7 @@ export const emailHelp = {
   syncPeople: 'Name, email, department, job title, manager and office location. Used to build groups and to fill in departments.',
   directoryGroups: 'Lets you base a group on a directory group, for example "All Staff". The platform copies the members and never changes your groups.',
   guests: 'Also import guest and contractor accounts. Leave this off unless contractors must answer the attestation.',
-  schedule: 'How often people and groups are refreshed. Daily is enough for most organisations.',
+  schedule: 'How often people and groups are refreshed. Daily is enough for most organizations.',
   departmentField: 'Which directory field holds the department name. It is matched to the departments on the platform by name.',
   scopeGroup: 'Only people in this directory group are imported, for example "All Staff". Choose everyone to import the whole directory.',
   leavers: 'People who leave are removed from groups at the next sync. Their past answers are kept for the audit.',
@@ -32,7 +34,7 @@ export const emailHelp = {
   excludeOnLeave: 'Leave out people the directory marks as on leave whenever this group is used.',
   usedBy: 'Where the group is used, for your own reference, for example "Attestation".',
   csv: 'One person per line: email, then name. A header row is optional.',
-  template: 'The message to send. Futran ships the defaults; your organisation can copy one and edit its copy.',
+  template: 'The message to send. Futran ships the defaults; your organization can copy one and edit its copy.',
   sender: 'Who the email comes from. Your own mailbox when connected; otherwise Futran on your behalf.',
   groups: 'Pick groups, not people. They are expanded when you press Send, so the list is always current.',
   excludeGroups: 'People in these groups do not get the email, even if another group includes them.',

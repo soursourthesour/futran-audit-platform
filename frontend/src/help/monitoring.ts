@@ -2,6 +2,8 @@
    opportunities (S1) and automatic client alerts (A1). Written for Futran staff. */
 
 export const refreshHelp = {
+  runOnSchedule: "Runs the refresh automatically at the interval below. Each run only proposes changes; nothing reaches the law library until the Chief Auditor approves it.",
+  check: "What Claude compares against the approved record in this run. Leave all ticked for a full check.",
   geographies: 'Which geographies Claude checks. Client geographies are the places your current clients operate in (from the new-client wizard and the applicability screen).',
   checks: 'What Claude looks for. Fewer checks make the run cheaper and faster.',
   sources: 'Claude searches only allowlisted sources. Law-firm alerts are secondary: a change that rests on one is always low confidence and needs a second reviewer.',
@@ -18,6 +20,8 @@ export const refreshHelp = {
 };
 
 export const staffAlertHelp = {
+  ccQa: "Copies the QA Reviewer on the alert, so a second reviewer sees proposed changes as soon as the run ends.",
+  ccAdmin: "Copies the Futran Admin, who keeps the law library's sources and settings in order.",
   recipients: 'All Chief Auditors, or only the Chief Auditor who started the run. Scheduled runs always go to all Chief Auditors.',
   copy: 'People who get a copy in the app and by email.',
   when: 'Every refresh, including runs that find nothing new; only runs with changes; or only runs with a new law, a low-confidence change or five or more affected clients.',
@@ -50,6 +54,7 @@ export const caseHelp = {
 };
 
 export const oppHelp = {
+  summary: "What was said or agreed, in a sentence or two, and the next step with a date. The note stays on the opportunity's history.",
   client: 'The client the opportunity is about.',
   service: 'What Futran would offer, in a few words.',
   kind: 'Remediation of a finding raised in a current engagement cannot be offered to that client.',

@@ -193,7 +193,7 @@ function OppDialog({ id, d, log, proposal, onClose, onChanged }: { id: string; d
           <legend>{log ? 'Log a call or email' : 'Log activity'}</legend>
           <SelectField label="What happened" help={H.activity} value={kind} onChange={(e) => setKind(e.target.value)}
             options={[{ value: 'call', label: 'Call' }, { value: 'email', label: 'Email' }, { value: 'meeting', label: 'Meeting' }, { value: 'note', label: 'Note' }, { value: 'proposal', label: 'Proposal sent' }, { value: 'outcome', label: 'Outcome' }]} />
-          <TextArea label="Summary" value={text} onChange={(e) => setText(e.target.value)} rows={2} />
+          <TextArea label="Summary" help={H.summary} value={text} onChange={(e) => setText(e.target.value)} rows={2} />
           <div><Button variant="primary" disabled={!text.trim() || (kind === 'proposal' && !o.can_send_offer)} onClick={logIt}>{kind === 'proposal' ? 'Log the proposal' : 'Log it'}</Button></div>
         </fieldset>
         <div>

@@ -285,7 +285,7 @@ function RunCard({ kind, lawId, onStarted }: { kind: 'law' | 'litigation'; lawId
         </fieldset>
         <fieldset className="stack-sm">
           <legend><WithHelp help={H.checks}>Check for</WithHelp></legend>
-          {st.check_options.map((o) => <Checkbox key={o.value} label={o.label} checked={chosen.includes(o.value)} onChange={(e) => setChecks(e.target.checked ? [...chosen, o.value] : chosen.filter((c) => c !== o.value))} />)}
+          {st.check_options.map((o) => <Checkbox key={o.value} label={o.label} help={H.check} checked={chosen.includes(o.value)} onChange={(e) => setChecks(e.target.checked ? [...chosen, o.value] : chosen.filter((c) => c !== o.value))} />)}
         </fieldset>
         <fieldset className="stack-sm">
           <legend><WithHelp help={H.sources}>Sources</WithHelp></legend>
@@ -326,7 +326,7 @@ function ScheduleDialog({ kind, st, onClose }: { kind: string; st: RunSettings; 
       <div className="stack">
         {err && <Alert tone="danger">{err}</Alert>}
         <p className="small muted" style={{ margin: 0 }}>{H.schedule}</p>
-        <Checkbox label="Run on a schedule" checked={on} onChange={(e) => setOn(e.target.checked)} />
+        <Checkbox label="Run on a schedule" help={H.runOnSchedule} checked={on} onChange={(e) => setOn(e.target.checked)} />
         <TextField label="Every (days)" help={H.everyDays} type="number" min={1} max={90} value={days} onChange={(e) => setDays(e.target.value)} />
         <SelectField label="Geographies" help={H.geographies} value={scope} onChange={(e) => setScope(e.target.value)} options={[{ value: 'all', label: 'All geographies' }, { value: 'client_geographies', label: 'Only client geographies' }]} />
         <TextField label="Cost cap per run (US dollars)" help={H.costCap} type="number" min={0.5} step={0.5} value={cap} onChange={(e) => setCap(e.target.value)} />

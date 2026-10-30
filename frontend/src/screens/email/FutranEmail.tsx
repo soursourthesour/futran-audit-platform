@@ -70,9 +70,9 @@ export function FutranEmail() {
             </div>
             <fieldset className="stack-sm" style={{ border: 0, padding: 0, margin: 0 }} disabled={!can}>
               <legend className="small" style={{ fontWeight: 600, marginBottom: 6 }}>Sync</legend>
-              <Checkbox label="Save every sent email to the engagement's activity log" checked={!!opts.save_activity} onChange={(e) => setOpts({ ...opts, save_activity: e.target.checked })} />
+              <Checkbox label="Save every sent email to the engagement's activity log" help={H.saveActivity} checked={!!opts.save_activity} onChange={(e) => setOpts({ ...opts, save_activity: e.target.checked })} />
               <Checkbox label="Bring replies back into the engagement, matched by the reference in the subject (for example [FAP-1042])" help={H.options} checked={!!opts.sync_replies} onChange={(e) => setOpts({ ...opts, sync_replies: e.target.checked })} />
-              <Checkbox label="Track bounces and out-of-office replies" checked={!!opts.track_bounces} onChange={(e) => setOpts({ ...opts, track_bounces: e.target.checked })} />
+              <Checkbox label="Track bounces and out-of-office replies" help={H.trackBounces} checked={!!opts.track_bounces} onChange={(e) => setOpts({ ...opts, track_bounces: e.target.checked })} />
               <Checkbox label="Read Futran staff calendars to suggest meeting times (after the first release)" checked={false} disabled onChange={() => undefined} />
             </fieldset>
             <div className="mail-note">

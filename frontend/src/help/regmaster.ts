@@ -22,6 +22,8 @@ export const bulkHelp = {
 };
 
 export const lawHelp = {
+  sourceName: "The name of the page as its publisher titles it, for example “NYC Admin. Code § 20-870” or “DCWP final rule”.",
+  sourceKind: "Official: the legislature, regulator or official journal. Secondary: a law firm alert or commentary, useful for context but never the basis of a requirement.",
   draftRef: 'Paste the bill number or the official legislature or regulator link. Claude reads the official text and fills the form; nothing is saved until you send it for approval.',
   region: 'The group the law is listed under in the library.',
   geography: 'The jurisdiction code, for example US-CO, US-NYC, EU or IN.',
@@ -34,7 +36,7 @@ export const lawHelp = {
   status: 'Enacted but not yet in force, in force, phased, delayed, guidance or repealed.',
   signed: 'The date the law was signed or adopted.',
   effective: 'The date the law takes effect.',
-  compliance: 'The date organisations must comply. Drives the "effective in the next 90 days" count.',
+  compliance: 'The date organizations must comply. Drives the "effective in the next 90 days" count.',
   enforcer: 'Who enforces the law, for example the State Attorney General.',
   pra: 'Whether individuals can sue under the law.',
   penalty: 'Amount and basis, for example per violation or per day.',
@@ -48,6 +50,7 @@ export const lawHelp = {
 };
 
 export const requirementHelp = {
+  suggestField: "The part of the law record your suggestion is about. The Chief Auditor sees it next to the current text and your source.",
   text: 'The duty in plain words, as an auditor would test it.',
   appliesTo: 'Who carries this duty under the law.',
   neededBy: 'The stage by which the client must meet it.',
@@ -74,6 +77,9 @@ export const roleHelp = {
 };
 
 export const applicabilityHelp = {
+  geoSearch: "Type at least two letters of a country, state or city. The list below shows the geographies in the law library that match.",
+  scopeMode: "From the scope questions: the platform decides from the client's answers to the law's scope tests. Set by hand: you record the decision yourself, with a reason, for example on counsel's advice.",
+  inScope: "Your decision on whether this law applies to the client. It overrides the scope questions and is recorded in the audit log with your reason.",
   geography: 'A country, state or city where the client operates or has people, customers or data.',
   basis: 'Why the geography counts: an office, employees, candidates, customers or personal data.',
   answer: 'Your answer replaces the pre-filled one. Clear it to go back to the pre-filled answer.',

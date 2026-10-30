@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
-import { Alert, Badge, Button, Card, Dialog, EmptyState, Loading, PageHeader, SelectField, TextArea, fmtDate, fileUrl } from '@/components/ui';
+import { Alert, Badge, Button, Card, Dialog, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField, fmtDate, fileUrl } from '@/components/ui';
 import { BASIS_OPTIONS, label, type Applicability as Data, type ClientLaw } from '@/api/regmaster';
 import { applicabilityHelp as H } from '@/help/regmaster';
 import '@/styles/regmaster.css';
@@ -122,7 +122,7 @@ function AddGeography({ clientId, onClose, onDone }: { clientId: string; onClose
   return (
     <Dialog title="Add a geography" onClose={onClose}>
       {err && <Alert tone="danger">{err}</Alert>}
-      <div className="field"><label htmlFor="geo-search">Search</label><input id="geo-search" className="input" value={text} onChange={(e) => { setText(e.target.value); setCode(''); }} placeholder="Colorado, Germany, New York City…" /></div>
+      <TextField label="Search" help={H.geoSearch} value={text} onChange={(e) => { setText(e.target.value); setCode(''); }} placeholder="Colorado, Germany, New York City…" />
       <SelectField label="Geography *" help={H.geography} value={code} onChange={(e) => setCode(e.target.value)} options={opts} placeholder={text.trim().length < 2 ? 'Type at least 2 letters' : opts.length ? 'Choose one' : 'No match'} />
       <SelectField label="Basis *" help={H.basis} value={basis} onChange={(e) => setBasis(e.target.value)} options={BASIS_OPTIONS} />
       <div className="row" style={{ justifyContent: 'flex-end', marginTop: 12 }}><Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!code} onClick={save}>Add</Button></div>
@@ -152,12 +152,12 @@ function ScopeQuestions({ clientId, law, onClose, onDone }: { clientId: string; 
   return (
     <Dialog title={`Scope: ${law.label}`} onClose={onClose}>
       {err && <Alert tone="danger">{err}</Alert>}
-      <SelectField label="How scope is decided" value={mode} onChange={(e) => setMode(e.target.value)} options={[{ value: 'auto', label: 'From the scope questions' }, { value: 'manual', label: 'Set by hand' }]} />
+      <SelectField label="How scope is decided" help={H.scopeMode} value={mode} onChange={(e) => setMode(e.target.value)} options={[{ value: 'auto', label: 'From the scope questions' }, { value: 'manual', label: 'Set by hand' }]} />
       {mode === 'auto' ? law.questions.map((q) => (
         <SelectField key={q.order} label={`${q.order}. ${q.question_text}`} help={H.answer} value={answers[String(q.order)] ?? ''} onChange={(e) => setAnswers({ ...answers, [String(q.order)]: e.target.value })}
           placeholder={`Pre-filled: ${q.answer && !q.manual ? q.answer : 'not known'}`} options={[{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }]} />
       )) : <>
-        <SelectField label="In scope?" value={inScope} onChange={(e) => setInScope(e.target.value)} placeholder="Choose" options={[{ value: 'yes', label: 'In scope' }, { value: 'no', label: 'Not in scope' }]} />
+        <SelectField label="In scope?" help={H.inScope} value={inScope} onChange={(e) => setInScope(e.target.value)} placeholder="Choose" options={[{ value: 'yes', label: 'In scope' }, { value: 'no', label: 'Not in scope' }]} />
         <TextArea label="Reason *" help={H.overrideReason} value={reason} onChange={(e) => setReason(e.target.value)} rows={2} />
       </>}
       <div className="row" style={{ justifyContent: 'flex-end', marginTop: 12 }}><Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={mode === 'manual' && (!inScope || !reason.trim())} onClick={save}>Save</Button></div>

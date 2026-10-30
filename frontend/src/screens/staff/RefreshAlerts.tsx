@@ -106,8 +106,8 @@ function SettingsCard() {
         </fieldset>
         <fieldset className="stack-sm">
           <legend><WithHelp help={H.copy}>Copy</WithHelp></legend>
-          <Checkbox label="QA Reviewer" checked={s.cc_roles.includes('qa_reviewer')} onChange={(e) => cc('qa_reviewer', e.target.checked)} />
-          <Checkbox label="Futran Admin" checked={s.cc_roles.includes('admin')} onChange={(e) => cc('admin', e.target.checked)} />
+          <Checkbox label="QA Reviewer" help={H.ccQa} checked={s.cc_roles.includes('qa_reviewer')} onChange={(e) => cc('qa_reviewer', e.target.checked)} />
+          <Checkbox label="Futran Admin" help={H.ccAdmin} checked={s.cc_roles.includes('admin')} onChange={(e) => cc('admin', e.target.checked)} />
         </fieldset>
         <SelectField label="When" help={H.when} value={s.when_rule} onChange={(e) => setS({ ...s, when_rule: e.target.value })}
           options={[{ value: 'every', label: 'Every refresh' }, { value: 'changes', label: 'Only with changes' }, { value: 'high_impact', label: 'Only high impact or low confidence' }]} />

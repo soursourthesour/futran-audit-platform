@@ -221,7 +221,7 @@ function SuggestChange({ law, onClose, onDone }: { law: Law; onClose: () => void
     <Dialog title="Suggest a change" onClose={onClose}>
       <p className="small muted">{H.suggestSource}</p>
       {err && <Alert tone="danger">{err}</Alert>}
-      <SelectField label="What changes" value={f.field_path} onChange={(e) => setF({ ...f, field_path: e.target.value })} options={SUGGEST_FIELDS} />
+      <SelectField label="What changes" help={H.suggestField} value={f.field_path} onChange={(e) => setF({ ...f, field_path: e.target.value })} options={SUGGEST_FIELDS} />
       <TextArea label="New value *" value={f.new_value} onChange={(e) => setF({ ...f, new_value: e.target.value })} error={errs.new_value} rows={2} help={f.field_path.endsWith('_on') ? 'Use YYYY-MM-DD.' : f.field_path === 'law.status' ? 'in_force, in_force_phased, enacted_not_in_force, delayed, guidance or repealed.' : 'The text as it should read.'} />
       <TextField label="Summary *" help="One line for the review queue." value={f.summary} onChange={(e) => setF({ ...f, summary: e.target.value })} />
       <TextField label="Source link *" type="url" help={H.sourceUrl} value={f.source_url} onChange={(e) => setF({ ...f, source_url: e.target.value })} error={errs.source_url} />

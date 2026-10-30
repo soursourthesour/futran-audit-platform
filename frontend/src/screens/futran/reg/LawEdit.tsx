@@ -175,9 +175,9 @@ export function LawEdit() {
           {f.sources.length === 0 && <p className="small muted">Add the legislature or regulator page first. Law firm alerts are marked secondary.</p>}
           {f.sources.map((s, i) => (
             <div className="reg-form-grid" key={i}>
-              <TextField label="Source" value={s.name} onChange={(e) => set('sources', f.sources.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))} />
+              <TextField label="Source" help={H.sourceName} value={s.name} onChange={(e) => set('sources', f.sources.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))} />
               <TextField label="Link" type="url" help={H.sourceUrl} value={s.url} onChange={(e) => set('sources', f.sources.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)))} />
-              <SelectField label="Kind" value={s.kind} onChange={(e) => set('sources', f.sources.map((x, j) => (j === i ? { ...x, kind: e.target.value } : x)))} options={[{ value: 'official', label: 'Official' }, { value: 'secondary', label: 'Secondary' }]} />
+              <SelectField label="Kind" help={H.sourceKind} value={s.kind} onChange={(e) => set('sources', f.sources.map((x, j) => (j === i ? { ...x, kind: e.target.value } : x)))} options={[{ value: 'official', label: 'Official' }, { value: 'secondary', label: 'Secondary' }]} />
             </div>
           ))}
         </Card>

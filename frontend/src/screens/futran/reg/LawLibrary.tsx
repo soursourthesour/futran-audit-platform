@@ -184,7 +184,7 @@ function BulkEdit({ laws, onClose, onDone }: { laws: LawRow[]; onClose: () => vo
         {lines.map((l, i) => (
           <div className="reg-form-grid" key={i}>
             <SelectField label="Role" help={B.roleLevel} value={l.role} onChange={(e) => { setPreview(null); setLines(lines.map((x, j) => (j === i ? { ...x, role: e.target.value } : x))); }} options={roleOpts} placeholder="Choose a role" />
-            <SelectField label="Set level" value={l.level} onChange={(e) => { setPreview(null); setLines(lines.map((x, j) => (j === i ? { ...x, level: e.target.value } : x))); }} options={[{ value: 'keep', label: 'Keep current' }, { value: 'required', label: 'Required' }, { value: 'recommended', label: 'Recommended' }, { value: 'not_required', label: 'Not required' }]} />
+            <SelectField label="Set level" help={B.roleLevel} value={l.level} onChange={(e) => { setPreview(null); setLines(lines.map((x, j) => (j === i ? { ...x, level: e.target.value } : x))); }} options={[{ value: 'keep', label: 'Keep current' }, { value: 'required', label: 'Required' }, { value: 'recommended', label: 'Recommended' }, { value: 'not_required', label: 'Not required' }]} />
             <SelectField label="Needed by" help={B.neededBy} value={l.needed_by_stage} onChange={(e) => setLines(lines.map((x, j) => (j === i ? { ...x, needed_by_stage: e.target.value } : x)))} options={STAGE_OPTIONS} placeholder="Role default" />
           </div>
         ))}
