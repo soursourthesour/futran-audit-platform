@@ -57,6 +57,15 @@ class Regulation(IdMixin, Base):
     retired_in_version_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("matrix_versions.id"))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     updated_by: Mapped[str | None] = mapped_column(String(36))
+    # regulatory master (spec §25.2): the approved LawVersion, and fields that do not change between versions
+    current_version_id: Mapped[str | None] = mapped_column(String(36), index=True)
+    binding: Mapped[bool | None] = mapped_column(Boolean)
+    topics: Mapped[list | None] = mapped_column(JSON)
+    region: Mapped[str | None] = mapped_column(String(20))  # us_federal | us_states | eu | india | uk | canada | other | framework
+    reviewer_id: Mapped[str | None] = mapped_column(String(36))
+    review_due_on: Mapped[date | None] = mapped_column(Date)
+    refresh_every_days: Mapped[int | None] = mapped_column()
+    watch: Mapped[bool | None] = mapped_column(Boolean)
 
 
 class LawImportPreview(IdMixin, Base):
