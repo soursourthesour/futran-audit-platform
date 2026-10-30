@@ -60,8 +60,32 @@ def system_out(db: Session, s: AISystem) -> dict:
         "owner": person(s.owner_user_id), "technical_owner": person(s.technical_owner_user_id),
         "use_cases": [{"id": u.id, "name": u.name, "tier": effective_tier(u)} for u in ucs], "tools": [{"id": t.id, "label": f"{t.vendor} {t.product}"} for t in tools],
         "assessment_depth": s.assessment_depth, "status": s.status, "completion_pct": s.completion_pct, "methodology_version": s.methodology_version, "source": s.source,
+        "register_system": _register_ref(db, s.register_system_id),
         **_score(db, s),
     }
+
+
+def _register_ref(db: Session, rs_id: str | None) -> dict | None:
+    from app.register.models import RegisterSystem
+
+    rs = db.get(RegisterSystem, rs_id) if rs_id else None
+    return {"id": rs.id, "reference": rs.reference, "name": rs.name} if rs else None
+
+
+def register_options(db: Session, org_id: str, e: Engagement) -> list[dict]:
+    """The client's register rows an auditor can start a system from, with the facts that will be copied."""
+    from app.register.models import RegisterSystem
+    from app.register.service import SOURCING_LABELS, STAGE_LABELS, TYPE_LABELS
+
+    linked = {s.register_system_id: s.reference_id for s in svc.systems_for(db, e) if s.register_system_id}
+    rows = db.scalars(select(RegisterSystem).where(RegisterSystem.organization_id == org_id, RegisterSystem.deleted_at.is_(None), RegisterSystem.stage != "retired").order_by(RegisterSystem.reference))
+    out = []
+    for rs in rows:
+        f = svc.register_facts(db, rs.id)
+        out.append({"id": rs.id, "reference": rs.reference, "name": rs.name, "type_label": TYPE_LABELS.get(rs.type, rs.type), "sourcing_label": SOURCING_LABELS.get(rs.sourcing, rs.sourcing),
+                    "stage_label": STAGE_LABELS.get(rs.stage, rs.stage), "risk_tier": rs.risk_tier, "built_by": f.get("built_by"), "vendor_id": f.get("vendor_id"),
+                    "department_id": f.get("department_id"), "owner_user_id": f.get("owner_user_id"), "linked_to": linked.get(rs.id)})
+    return out
 
 
 def _score(db: Session, s: AISystem) -> dict:
@@ -101,6 +125,7 @@ def get_register(client_id: str, actor: Actor = Depends(current_actor), db: Sess
         "departments": [{"id": d.id, "name": d.name} for d in depts],
         "people": [{"id": u.id, "name": u.name} for u in users],
         "pending_requests": [request_out(db, r) for r in requests],
+        "register_options": register_options(db, org.id, e),
         "can_manage": _may(db, actor, Action.MANAGE_SYSTEMS, e.id),
         "can_approve_additions": _may(db, actor, Action.APPROVE_SYSTEM_ADDITION, e.id),
     }
@@ -142,3 +167,33 @@ def patch_vendor(vendor_id: str, data: dict, actor: Actor = Depends(current_acto
         raise NotFound()
     org, e = _ctx(db, actor, v.organization_id, Action.MANAGE_SYSTEMS)
     return vendor_out(svc.save_vendor(db, actor.user, org, data, vendor=v))
+
+
+@router.get("/systems/{system_id}/register-record")
+def get_register_record(system_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    """The client's register record behind an audit system: bias tests and history, read-only for the audit team."""
+    s = svc.get_system(db, system_id)
+    if not actor.is_futran:
+        raise NotFound()
+    authorize(db, actor, Action.VIEW_REGISTER, engagement_id=s.engagement_id)
+    from app.register.history import entry_out, statement_out
+    from app.register.models import BiasTest, HistoryEntry, RegisterSystem
+    from app.register.service import STAGE_LABELS, TYPE_LABELS, bias_status
+
+    rs = db.get(RegisterSystem, s.register_system_id) if s.register_system_id else None
+    if rs is None or rs.deleted_at is not None or rs.organization_id != s.organization_id:
+        return {"system": None, "bias_tests": [], "history": [], "statement": None}
+    tests = db.scalars(select(BiasTest).where(BiasTest.register_system_id == rs.id, BiasTest.deleted_at.is_(None)).order_by(BiasTest.tested_on.desc()))
+    entries = db.scalars(select(HistoryEntry).where(HistoryEntry.register_system_id == rs.id, HistoryEntry.deleted_at.is_(None)).order_by(HistoryEntry.occurred_on.desc()))
+    from app.audit_log import service as audit
+
+    audit.record(db, actor_id=actor.id, action="register.view_by_auditor", obj=rs, engagement_id=s.engagement_id, summary=f"Viewed the register record of {rs.reference} {rs.name}")
+    return {
+        "system": {"id": rs.id, "reference": rs.reference, "name": rs.name, "type_label": TYPE_LABELS.get(rs.type, rs.type), "stage_label": STAGE_LABELS.get(rs.stage, rs.stage),
+                   "risk_tier": rs.risk_tier, "live_since": rs.live_since.isoformat() if rs.live_since else None, "bias": bias_status(db, rs), "history_answers": rs.history_answers or {}},
+        "bias_tests": [{"id": b.id, "tested_on": b.tested_on.isoformat(), "next_due": b.next_due.isoformat() if b.next_due else None, "tester_type": b.tester_type, "tester_name": b.tester_name,
+                        "method": b.method, "groups_tested": b.groups_tested, "result": b.result, "result_text": b.result_text, "unknown_share": b.unknown_share,
+                        "null_compliance": (b.unknown_share or 0) > 50} for b in tests],
+        "history": [entry_out(db, h) for h in entries],
+        "statement": statement_out(db, rs),
+    }

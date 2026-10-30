@@ -109,6 +109,15 @@ def _clean(db: Session, e: Engagement, data: dict, current: AISystem | None = No
             errs.append({"field": "tool_ids", "message": "Choose tools from the inventory."})
         else:
             out["tool_ids"] = list(dict.fromkeys(tools))
+    if "register_system_id" in data:
+        rs_id = data.get("register_system_id")
+        if rs_id:
+            from app.register.models import RegisterSystem
+
+            rs = db.get(RegisterSystem, rs_id) if isinstance(rs_id, str) else None
+            if rs is None or rs.deleted_at is not None or rs.organization_id != org_id:
+                errs.append({"field": "register_system_id", "message": "Choose a system from the client's AI system register."})
+        out["register_system_id"] = rs_id or None
     if "assessment_depth" in data:
         if data["assessment_depth"] not in DEPTHS:
             errs.append({"field": "assessment_depth", "message": "Choose full or light."})
@@ -130,7 +139,24 @@ def _apply_depth(s: AISystem, ucs: list[UseCase], requested: str | None) -> None
     s.assessment_depth = requested or needed or s.assessment_depth or "full"
 
 
+BUILT_BY_FROM_SOURCING = {"vendor": "vendor", "in_house": "in_house", "contractor": "in_house", "shadow": "vendor"}
+
+
+def register_facts(db: Session, register_system_id: str) -> dict:
+    """The facts an audit system takes from the client's register row: name, who built it, vendor, department and owner."""
+    from app.register.models import RegisterSystem
+
+    rs = db.get(RegisterSystem, register_system_id)
+    if rs is None:
+        return {}
+    return {"name": rs.name, "built_by": BUILT_BY_FROM_SOURCING.get(rs.sourcing), "vendor_id": rs.vendor_id, "department_id": rs.department_id, "owner_user_id": rs.owner_user_id,
+            "version": rs.model_version}
+
+
 def create_system(db: Session, actor: User, e: Engagement, data: dict, *, source: str = "auditor", created_by: str | None = None) -> AISystem:
+    if data.get("register_system_id") and isinstance(data["register_system_id"], str):
+        facts = register_facts(db, data["register_system_id"])
+        data = dict(data) | {k: v for k, v in facts.items() if v and not data.get(k)}
     v = _clean(db, e, data)
     ucs = v.pop("_ucs", [])
     if not v.get("name"):
@@ -236,7 +262,7 @@ def request_addition(db: Session, settings, actor: User, e: Engagement, data: di
     reason = " ".join(str(data.get("reason") or "").split())
     if not reason:
         raise Invalid(errors=[{"field": "reason", "message": "Say why the system is being added to the scope."}])
-    payload = {k: data[k] for k in ("name", "version", "built_by", "vendor_id", "department_id", "owner_user_id", "technical_owner_user_id", "tool_ids", "use_case_ids", "assessment_depth") if k in data}
+    payload = {k: data[k] for k in ("name", "version", "built_by", "vendor_id", "department_id", "owner_user_id", "technical_owner_user_id", "tool_ids", "use_case_ids", "assessment_depth", "register_system_id") if k in data}
     trial = db.begin_nested()  # validate exactly as the approval will, then throw the trial row away
     try:
         create_system(db, actor, e, payload)
@@ -245,7 +271,7 @@ def request_addition(db: Session, settings, actor: User, e: Engagement, data: di
     req = SystemAdditionRequest(organization_id=e.client_id, engagement_id=e.id, requested_by=actor.id, payload=payload, reason=reason[:2000], status="pending", created_by=actor.id)
     db.add(req)
     db.flush()
-    label = payload.get("name") or ", ".join(u.name for u in _use_cases(db, e, payload.get("use_case_ids") or []))
+    label = payload.get("name") or (register_facts(db, payload["register_system_id"]).get("name") if payload.get("register_system_id") else None) or ", ".join(u.name for u in _use_cases(db, e, payload.get("use_case_ids") or []))
     audit.record(db, actor_id=actor.id, action="system.addition_request", obj=req, after={"payload": payload, "reason": req.reason}, summary=f"Asked to add {label} to the scope of {e.audit_ref}")
     org = db.get(Organization, e.client_id)
     notify(db, [u for u in engagement_managers(db, e) if u.id != actor.id], "system_addition_requested", f"{org.name}: approve adding {label} to the scope", f"Requested by {actor.name}. Reason: {req.reason}", f"/clients/{org.id}/systems", engagement=e, settings=settings)
