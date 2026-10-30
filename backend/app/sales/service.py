@@ -99,3 +99,27 @@ def open_effective_date_opportunities(db: Session, on) -> list[Opportunity]:
             except IndependenceError:
                 continue
     return out
+
+
+def tracing_candidates(db: Session) -> dict[str, list[RegisterSystem]]:
+    """Live or about-to-go-live systems for which the tracing add-on is recommended (§27.3): Tier 3, or an agent
+    that acts (not suggest-only). Past incidents are added when the tracing module (WS-E) records them."""
+    out: dict[str, list[RegisterSystem]] = {}
+    q = select(RegisterSystem).where(RegisterSystem.deleted_at.is_(None), RegisterSystem.stage.in_(("ready_for_go_live", "live")))
+    for s in db.scalars(q.order_by(RegisterSystem.reference)):
+        if s.risk_tier == 3 or (s.type == "agent" and s.autonomy in ("acts_with_approval", "autonomous")):
+            out.setdefault(s.organization_id, []).append(s)
+    return out
+
+
+def open_recommended_addon_opportunities(db: Session) -> list[Opportunity]:
+    """Daily: one opportunity per client with systems for which tracing is recommended and not yet requested."""
+    made = []
+    for org_id, systems in tracing_candidates(db).items():
+        ref = f"tracing:{org_id}"
+        if db.scalar(select(Opportunity.id).where(Opportunity.organization_id == org_id, Opportunity.trigger.in_(("recommended_addon", "unlock_request")), Opportunity.trigger_ref == ref)):
+            continue
+        n = len(systems)
+        made.append(open_from_trigger(db, org_id, "recommended_addon", ref, service=f"Tracing module · {n} {'system' if n == 1 else 'systems'}", service_kind="addon",
+                                      why_now="Tier 3 or acting agent systems without tracing", system_ids=[s.id for s in systems], addon_status="recommended"))
+    return made

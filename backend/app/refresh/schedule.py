@@ -87,6 +87,11 @@ def client_alert_dates(db: Session, settings: Settings, now) -> int:
 
 
 def opportunity_dates(db: Session, settings: Settings, now) -> int:
-    from app.sales.service import open_effective_date_opportunities
+    from app.clientalerts.service import queue_tracing_addon
+    from app.sales.service import open_effective_date_opportunities, open_recommended_addon_opportunities
 
-    return len(open_effective_date_opportunities(db, now.date()))
+    made = open_effective_date_opportunities(db, now.date())
+    for o in open_recommended_addon_opportunities(db):
+        made.append(o)
+        queue_tracing_addon(db, settings, o.organization_id, list(o.system_ids or []), o.owner_id, o.trigger_ref)  # waits for the Sales owner; the rule is off by default
+    return len(made)

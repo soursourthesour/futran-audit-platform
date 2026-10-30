@@ -144,3 +144,17 @@ def test_effective_date_within_90_days_opens_an_opportunity_once(db, lit):
     assert [(o.organization_id, o.trigger) for o in made] == [(lit["abc"].id, "effective_date")]
     assert reg.short_name in made[0].why_now
     assert open_effective_date_opportunities(db, date(2027, 1, 1) - timedelta(days=59)) == []
+
+
+def test_recommended_tracing_addon_opens_one_opportunity_per_client(db, lit):
+    from app.sales.service import open_recommended_addon_opportunities
+
+    lit["screening"].risk_tier = 3
+    lit["chatbot"].type, lit["chatbot"].autonomy = "agent", "autonomous"
+    db.commit()
+    made = open_recommended_addon_opportunities(db)
+    assert len(made) == 1
+    o = made[0]
+    assert o.organization_id == lit["abc"].id and o.trigger == "recommended_addon" and o.addon_status == "recommended"
+    assert set(o.system_ids) == {lit["screening"].id, lit["chatbot"].id} and "2 systems" in o.service
+    assert open_recommended_addon_opportunities(db) == []  # once per client
