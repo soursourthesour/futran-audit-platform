@@ -28,3 +28,48 @@ def seed_if_empty(app) -> str | None:
         return None
     finally:
         db.close()
+
+
+def repair_replaced_links(db) -> int:
+    """Move register links, client applicability rows and sources still on a replaced law row to the live row.
+
+    Rows have been moved when a law row is replaced since the fix; this repairs data written before it. Idempotent:
+    a second call finds nothing to move. Returns the number of rows moved or merged."""
+    from app.laws.models import Regulation
+    from app.laws.publish import carry_forward, current_version_of
+    from app.regmaster.models import ClientLawApplicability, Source
+
+    dead = set(db.scalars(select(Regulation.id).where(Regulation.superseded_by_id.is_not(None))))
+    if not dead:
+        return 0
+    olds: set[str] = set(db.scalars(select(ClientLawApplicability.regulation_id).where(ClientLawApplicability.regulation_id.in_(dead))))
+    olds |= set(db.scalars(select(Source.regulation_id).where(Source.regulation_id.in_(dead))))
+    try:
+        from app.register.models import RegisterSystemLaw
+
+        olds |= set(db.scalars(select(RegisterSystemLaw.regulation_id).where(RegisterSystemLaw.regulation_id.in_(dead))))
+    except ImportError:
+        pass
+    moved = 0
+    for old_id in sorted(olds):
+        live = current_version_of(db, old_id)
+        if live is not None and live.id != old_id:
+            moved += carry_forward(db, old_id, live.id)
+    return moved
+
+
+def repair_on_start(app) -> int:
+    """Run `repair_replaced_links` once at start-up; a failure is logged and never stops the app."""
+    db = app.state.sessionmaker()
+    try:
+        n = repair_replaced_links(db)
+        db.commit()
+        if n:
+            log.info("Moved %s rows from replaced law records to the live records", n)
+        return n
+    except Exception as exc:  # an unmigrated or locked database
+        db.rollback()
+        log.warning("Links on replaced law records were not repaired on start-up: %s", exc)
+        return 0
+    finally:
+        db.close()

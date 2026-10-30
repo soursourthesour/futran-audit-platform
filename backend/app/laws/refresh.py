@@ -237,6 +237,9 @@ def accept_proposals(db: Session, actor: User, accept: list[str], reject: list[s
             db.add(new)
             db.flush()
             old.superseded_by_id = new.id
+            from app.laws.publish import carry_forward
+
+            carry_forward(db, old.id, new.id)
         elif p.change_type == "retire":
             old = db.get(Regulation, p.regulation_id)
             if old is None or old.superseded_by_id or old.retired_in_version_id:

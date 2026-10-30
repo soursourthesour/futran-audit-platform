@@ -290,12 +290,12 @@ def _propose_law(db: Session, run: RefreshRun, j: Jurisdiction, label: str, it: 
     from app.core.errors import Invalid
     from app.regmaster import changes as master
 
-    key = master._dedupe_key(reg.id if reg else None, it.field_path, new_value)
-    closed = db.scalar(select(ProposedChange).where(ProposedChange.dedupe_key == key, ProposedChange.status.not_in(OPEN)).limit(1))
+    keys = master.dedupe_keys(db, reg.id if reg else None, it.field_path, new_value)  # any row of the law
+    closed = db.scalar(select(ProposedChange).where(ProposedChange.dedupe_key.in_(keys), ProposedChange.status.not_in(OPEN)).limit(1))
     if closed is not None:
         warnings.append(f"{label}: not proposed again; the same change was already {'rejected' if closed.status == 'rejected' else 'approved'}.")
         return "skipped"
-    before = db.scalar(select(ProposedChange.id).where(ProposedChange.dedupe_key == key, ProposedChange.status.in_(OPEN)).limit(1))
+    before = db.scalar(select(ProposedChange.id).where(ProposedChange.dedupe_key.in_(keys), ProposedChange.status.in_(OPEN)).limit(1))
     try:
         pc = master.propose(db, actor_id=None, regulation_id=reg.id if reg else None, field_path=it.field_path, new_value=new_value, summary=it.summary,
                             origin="claude_refresh", change_type=it.change_type, source_url=it.source_url, source_quote=it.source_quote.strip(),

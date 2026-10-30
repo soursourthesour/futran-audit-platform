@@ -48,14 +48,17 @@ def requirements_for(db: Session, s: RegisterSystem) -> list[tuple]:
 
 
 def _status(db: Session, s: RegisterSystem, req) -> tuple[RequirementStatus | None, bool]:
-    """The status row for this requirement, else one recorded against the same code of an earlier version of the law."""
+    """The status row for this requirement, else one recorded against the same code of an earlier version of the law,
+    on any row of the law (a Reference data edit replaces the Regulation row and copies its version under the new row)."""
+    from app.laws.publish import chain_ids
     from app.regmaster.models import LawVersion, Requirement
 
     row = db.scalar(select(RequirementStatus).where(RequirementStatus.register_system_id == s.id, RequirementStatus.requirement_id == req.id, RequirementStatus.deleted_at.is_(None)))
     if row is not None:
         return row, False
     v = db.get(LawVersion, req.law_version_id)
-    older = select(Requirement.id).join(LawVersion, LawVersion.id == Requirement.law_version_id).where(LawVersion.regulation_id == v.regulation_id, Requirement.code == req.code, Requirement.id != req.id)
+    regs = chain_ids(db, v.regulation_id) or [v.regulation_id]
+    older = select(Requirement.id).join(LawVersion, LawVersion.id == Requirement.law_version_id).where(LawVersion.regulation_id.in_(regs), Requirement.code == req.code, Requirement.id != req.id)
     prev = db.scalar(select(RequirementStatus).where(RequirementStatus.register_system_id == s.id, RequirementStatus.requirement_id.in_(older), RequirementStatus.deleted_at.is_(None))
                      .order_by(RequirementStatus.checked_at.desc()).limit(1))
     return prev, prev is not None

@@ -132,6 +132,9 @@ def edit_law(db: Session, actor: User, reg_id: str, fields: dict) -> Regulation:
     db.add(new)
     db.flush()
     old.superseded_by_id = new.id
+    from app.laws.publish import carry_forward
+
+    carry_forward(db, old.id, new.id)  # register links, client applicability and sources move to the new row
     audit.record(db, actor_id=actor.id, action="law.edit", object_type="Regulation", object_id=new.id, organization_id=actor.organization_id, before={k: getattr(old, k) for k in fields}, after=fields, summary=f"Edited law {new.short_name}")
     return new
 

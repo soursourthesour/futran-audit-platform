@@ -155,11 +155,14 @@ def changes_since(db: Session, org_id: str) -> dict | None:
     sent = last_sent(db, org_id)
     if sent is None:
         return None
+    from app.laws.publish import current_version_of
+
     used = {}
     for vid in sent.law_versions_used or []:
         v = db.get(LawVersion, vid)
-        if v is not None:
-            used[v.regulation_id] = v
+        live = current_version_of(db, v.regulation_id) if v is not None else None
+        if live is not None:
+            used[live.id] = v  # the letter used an earlier row of the law: compare with the live row
     items = []
     now_pairs = engine.in_scope_versions(db, org_id)
     current = {reg.id: (reg, v) for reg, v in now_pairs}
@@ -176,8 +179,8 @@ def changes_since(db: Session, org_id: str) -> dict | None:
     pending = db.execute(select(ProposedChange, ChangeImpact).join(ChangeImpact, ChangeImpact.proposed_change_id == ProposedChange.id)
                          .where(ChangeImpact.organization_id == org_id, ProposedChange.status.in_(("pending", "held", "legal_review")))).all()
     for pc, _imp in pending:
-        reg = db.get(Regulation, pc.regulation_id) if pc.regulation_id else None
-        items.append({"regulation_id": pc.regulation_id, "text": f"{engine.law_label(reg) if reg else 'New law'}: {pc.summary} [pending approval]", "pending": True})
+        reg = current_version_of(db, pc.regulation_id) if pc.regulation_id else None
+        items.append({"regulation_id": reg.id if reg else pc.regulation_id, "text": f"{engine.law_label(reg) if reg else 'New law'}: {pc.summary} [pending approval]", "pending": True})
     return {"letter_id": sent.id, "version_no": sent.version_no, "sent_at": sent.sent_at.isoformat() if sent.sent_at else None,
             "approved_count": sum(not i["pending"] for i in items), "items": items}
 

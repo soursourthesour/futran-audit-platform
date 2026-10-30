@@ -173,8 +173,14 @@ def candidate_laws(db: Session, org_id: str) -> list[tuple[Regulation, LawVersio
         select(Regulation, LawVersion).join(LawVersion, LawVersion.id == Regulation.current_version_id)
         .where(Regulation.superseded_by_id.is_(None), Regulation.retired_in_version_id.is_(None))
     ).all()
+    from app.laws.publish import current_version_of
+
     tested = set(db.scalars(select(ScopeTest.law_version_id).distinct()))
-    confirmed = set(db.scalars(select(ClientRequirement.regulation_id).where(ClientRequirement.organization_id == org_id, ClientRequirement.deleted_at.is_(None), ClientRequirement.in_scope.is_(True), ClientRequirement.regulation_id.is_not(None))))
+    confirmed = set()
+    for rid in db.scalars(select(ClientRequirement.regulation_id).where(ClientRequirement.organization_id == org_id, ClientRequirement.deleted_at.is_(None), ClientRequirement.in_scope.is_(True), ClientRequirement.regulation_id.is_not(None))):
+        live = current_version_of(db, rid)  # set-up confirmed an earlier row of the law
+        if live is not None:
+            confirmed.add(live.id)
     for reg, v in rows:
         if v.id in tested or reg.id in confirmed:
             out[reg.id] = (reg, v)
@@ -199,7 +205,8 @@ def run(db: Session, org_id: str, actor_id: str | None = None) -> list[ClientLaw
         cur = current_version_of(db, cr.regulation_id)
         if cur is not None:
             confirmed[cur.id] = cr
-    existing = {r.regulation_id: r for r in db.scalars(select(ClientLawApplicability).where(ClientLawApplicability.organization_id == org_id, ClientLawApplicability.deleted_at.is_(None)))}
+    # every row, removed ones too: a law that comes back into view reuses its row (one row per client and law)
+    existing = {r.regulation_id: r for r in db.scalars(select(ClientLawApplicability).where(ClientLawApplicability.organization_id == org_id))}
     now = utcnow()
     seen: set[str] = set()
     out = []
@@ -209,6 +216,8 @@ def run(db: Session, org_id: str, actor_id: str | None = None) -> list[ClientLaw
         if row is None:
             row = ClientLawApplicability(organization_id=org_id, regulation_id=reg.id, created_by=actor_id)
             db.add(row)
+        elif row.deleted_at is not None:
+            row.deleted_at = None  # removed by an earlier run: the law is back in view
         row.law_version_id = v.id
         if not row.override:
             tests = list(db.scalars(select(ScopeTest).where(ScopeTest.law_version_id == v.id).order_by(ScopeTest.order)))
@@ -226,7 +235,7 @@ def run(db: Session, org_id: str, actor_id: str | None = None) -> list[ClientLaw
             row.decided_by, row.decided_at = None, now
         out.append(row)
     for reg_id, row in existing.items():
-        if reg_id not in seen and not row.override:
+        if reg_id not in seen and not row.override and row.deleted_at is None:
             row.deleted_at = now
     db.flush()
     return out
@@ -234,7 +243,9 @@ def run(db: Session, org_id: str, actor_id: str | None = None) -> list[ClientLaw
 
 def rerun_for_regulation(db: Session, regulation_id: str) -> list[str]:
     """After an approved version: re-run every client that has a view on this law or any geography."""
-    orgs = set(db.scalars(select(ClientLawApplicability.organization_id).where(ClientLawApplicability.regulation_id == regulation_id)))
+    from app.laws.publish import chain_ids
+
+    orgs = set(db.scalars(select(ClientLawApplicability.organization_id).where(ClientLawApplicability.regulation_id.in_(chain_ids(db, regulation_id) or [regulation_id]))))
     orgs |= set(db.scalars(select(ClientGeography.organization_id).where(ClientGeography.deleted_at.is_(None))))
     for o in orgs:
         run(db, o)
@@ -242,6 +253,10 @@ def rerun_for_regulation(db: Session, regulation_id: str) -> list[str]:
 
 
 def _row_for(db: Session, org_id: str, regulation_id: str) -> ClientLawApplicability:
+    from app.laws.publish import current_version_of
+
+    live = current_version_of(db, regulation_id)
+    regulation_id = live.id if live is not None else regulation_id
     row = db.scalar(select(ClientLawApplicability).where(ClientLawApplicability.organization_id == org_id, ClientLawApplicability.regulation_id == regulation_id))
     if row is None:
         reg = db.get(Regulation, regulation_id)

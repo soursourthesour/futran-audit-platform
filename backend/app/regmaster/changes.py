@@ -143,6 +143,13 @@ def _dedupe_key(regulation_id, field_path, value) -> str:
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
+def dedupe_keys(db: Session, regulation_id: str | None, field_path: str, value) -> list[str]:
+    """The same change proposed against any row of the law (a Reference data edit replaces the row)."""
+    from app.laws.publish import chain_ids
+
+    return [_dedupe_key(i, field_path, value) for i in (chain_ids(db, regulation_id) or [regulation_id])]
+
+
 def propose(
     db: Session, *, actor_id: str | None, regulation_id: str | None, field_path: str, new_value, summary: str, origin: str,
     change_type: str = "amendment", reason: str | None = None, source_url: str | None = None, source_quote: str | None = None,
@@ -154,16 +161,19 @@ def propose(
         _bad("change_type", "Unknown change type.")
     if not (summary or "").strip():
         _bad("summary", "Say what changes.")
-    reg = db.get(Regulation, regulation_id) if regulation_id else None
+    from app.laws.publish import current_version_of
+
+    reg = current_version_of(db, regulation_id) if regulation_id else None  # a stale id from an open screen lands on the live row
     if regulation_id and reg is None:
         _bad("regulation_id", "Unknown law.")
+    regulation_id = reg.id if reg is not None else None
     if reg is None and field_path != "new_law":
         _bad("regulation_id", "Choose the law this change is for.")
     if origin in ("auditor_suggestion", "claude_refresh", "claude_draft") and not ((source_url or "").strip() and (source_quote or "").strip()):
         _bad("source_url", "A suggestion needs the source link and the quoted passage it relies on.")
     _validate(db, field_path, new_value)
     key = _dedupe_key(regulation_id, field_path, new_value)
-    dup = db.scalar(select(ProposedChange).where(ProposedChange.dedupe_key == key, ProposedChange.status.in_(OPEN)))
+    dup = db.scalar(select(ProposedChange).where(ProposedChange.dedupe_key.in_(dedupe_keys(db, regulation_id, field_path, new_value)), ProposedChange.status.in_(OPEN)).limit(1))
     if dup is not None:
         return dup
     src = None
@@ -202,7 +212,10 @@ def compute_impacts(db: Session, pc: ProposedChange) -> list[ChangeImpact]:
         db.delete(old)
     if pc.regulation_id is None:
         return []
-    orgs = list(db.scalars(select(ClientLawApplicability.organization_id).where(ClientLawApplicability.regulation_id == pc.regulation_id, ClientLawApplicability.in_scope.is_(True), ClientLawApplicability.deleted_at.is_(None))))
+    from app.laws.publish import chain_ids
+
+    ids = chain_ids(db, pc.regulation_id) or [pc.regulation_id]
+    orgs = list(dict.fromkeys(db.scalars(select(ClientLawApplicability.organization_id).where(ClientLawApplicability.regulation_id.in_(ids), ClientLawApplicability.in_scope.is_(True), ClientLawApplicability.deleted_at.is_(None)))))
     head, _, key = pc.field_path.partition(".")
     roles: list[str] = []
     if head == "role_map":
@@ -215,7 +228,7 @@ def compute_impacts(db: Session, pc: ProposedChange) -> list[ChangeImpact]:
         try:
             from app.register.models import RegisterSystemLaw
 
-            systems = list(db.scalars(select(RegisterSystemLaw.register_system_id).where(RegisterSystemLaw.organization_id == org_id, RegisterSystemLaw.regulation_id == pc.regulation_id, RegisterSystemLaw.deleted_at.is_(None))))
+            systems = list(db.scalars(select(RegisterSystemLaw.register_system_id).where(RegisterSystemLaw.organization_id == org_id, RegisterSystemLaw.regulation_id.in_(ids), RegisterSystemLaw.deleted_at.is_(None))))
         except Exception:  # register not installed in this build
             systems = []
         letter = db.scalar(select(IntroLetter.id).where(IntroLetter.organization_id == org_id, IntroLetter.status == "sent", IntroLetter.deleted_at.is_(None)).limit(1))
@@ -354,11 +367,16 @@ def apply_changes(db: Session, items: list[ProposedChange], reviewer_id: str, ed
     edited = edited or {}
     now = utcnow()
     last = None
+    from app.laws.publish import current_version_of
+
     by_reg: dict[str | None, list[ProposedChange]] = {}
     for pc in items:
         if pc.status not in OPEN:
             raise Conflict(f"'{pc.summary[:80]}' has already been decided.")
-        by_reg.setdefault(pc.regulation_id, []).append(pc)
+        live = current_version_of(db, pc.regulation_id) if pc.regulation_id else None
+        if pc.regulation_id and live is None:
+            raise Conflict(f"'{pc.summary[:80]}': the law no longer exists.")
+        by_reg.setdefault(live.id if live else None, []).append(pc)  # changes to any row of a law become one version of the live row
     touched: list[str] = []
     for reg_id, group in by_reg.items():
         if reg_id is None:

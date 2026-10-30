@@ -21,14 +21,78 @@ def current_regulations(db: Session) -> list[Regulation]:
     return list(db.scalars(select(Regulation).where(Regulation.superseded_by_id.is_(None), Regulation.retired_in_version_id.is_(None))))
 
 
-def current_version_of(db: Session, reg_id: str) -> Regulation | None:
-    """Follow the superseded_by chain to the newest version of a law."""
-    reg = db.get(Regulation, reg_id)
+def current_version_of(db: Session, reg_id: str | None) -> Regulation | None:
+    """Follow the superseded_by chain to the newest version of a law. This is the one helper every module uses to
+    resolve a regulation id: a Reference data edit, a matrix re-import or an accepted law update replaces the row."""
+    reg = db.get(Regulation, reg_id) if reg_id else None
     seen: set[str] = set()
     while reg is not None and reg.superseded_by_id and reg.id not in seen:
         seen.add(reg.id)
         reg = db.get(Regulation, reg.superseded_by_id)
     return reg
+
+
+def chain_ids(db: Session, reg_id: str | None) -> list[str]:
+    """Every Regulation row of the same law, oldest first: the rows it replaced and the rows that replaced it."""
+    if not reg_id or db.get(Regulation, reg_id) is None:
+        return []
+    root, seen = reg_id, {reg_id}
+    while (prev := db.scalar(select(Regulation.id).where(Regulation.superseded_by_id == root).limit(1))) is not None and prev not in seen:
+        seen.add(prev)
+        root = prev
+    out, cur, seen = [], db.get(Regulation, root), set()
+    while cur is not None and cur.id not in seen:
+        seen.add(cur.id)
+        out.append(cur.id)
+        cur = db.get(Regulation, cur.superseded_by_id) if cur.superseded_by_id else None
+    return out
+
+
+def carry_forward(db: Session, old_id: str, new_id: str) -> int:
+    """A law's row was replaced: move register links, client applicability rows and law-specific sources to the new
+    row, so nothing keeps pointing at a dead row. A client's decision on the old row (an override or its own scope
+    answers) is kept. Returns the number of rows moved or merged."""
+    from app.regmaster.models import ClientLawApplicability, Source
+
+    moved = 0
+    try:
+        from app.register.models import RegisterSystemLaw
+    except ImportError:  # register not installed in this build
+        RegisterSystemLaw = None
+    if RegisterSystemLaw is not None:
+        for link in db.scalars(select(RegisterSystemLaw).where(RegisterSystemLaw.regulation_id == old_id)):
+            link.regulation_id = new_id
+            moved += 1
+    for src in db.scalars(select(Source).where(Source.regulation_id == old_id)):
+        src.regulation_id = new_id
+        moved += 1
+    for old in list(db.scalars(select(ClientLawApplicability).where(ClientLawApplicability.regulation_id == old_id))):
+        new = db.scalar(select(ClientLawApplicability).where(ClientLawApplicability.organization_id == old.organization_id, ClientLawApplicability.regulation_id == new_id))
+        if new is None:
+            old.regulation_id = new_id
+            moved += 1
+            continue
+        # both exist (data written before rows were moved): keep the person's decision, drop the duplicate
+        changed = False
+        if old.override and old.deleted_at is None and not new.override:
+            new.override, new.in_scope, new.reason_text = True, old.in_scope, old.reason_text
+            new.decided_by, new.decided_at, new.deleted_at = old.decided_by, old.decided_at, None
+            changed = True
+        manual = (old.scope_answers or {}).get("manual") or {}
+        if manual and not ((new.scope_answers or {}).get("manual")):
+            new.scope_answers = {**(new.scope_answers or {}), "manual": dict(manual)}
+            changed = True
+        if old.deleted_at is None:
+            from app.core.clock import utcnow
+
+            old.deleted_at = utcnow()
+            changed = True
+        if old.override:
+            old.override = False  # the decision now lives on the live row
+            changed = True
+        moved += changed
+    db.flush()
+    return moved
 
 
 def _norm(name: str) -> str:
@@ -188,6 +252,7 @@ def publish(
         db.flush()
         if prev is not None:
             prev.superseded_by_id = reg.id
+            carry_forward(db, prev.id, reg.id)
 
     if origin == "import":
         for r in plan["_retire"]:
