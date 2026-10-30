@@ -230,7 +230,7 @@ test('auditor sets up a client, the Chief Auditor approves and the client signs 
   await page.screenshot({ path: 'screenshots/p4-inventory.png', fullPage: true });
   await signOut(page);
   await signIn(page, 'auditor1@futran.demo');
-  await page.getByRole('table').getByRole('link', { name: 'ABC Corp' }).click();
+  await page.getByRole('link', { name: /^ABC Corp/ }).first().click();  // the engagement card on My work
   await page.getByRole('link', { name: 'AI inventory and tiers' }).click();
   await page.getByRole('link', { name: 'Résumé screening for NYC roles' }).click();
   await page.getByLabel('Rationale', { exact: true }).fill('Ranks applicants for NYC roles; likely an AEDT under Local Law 144.');

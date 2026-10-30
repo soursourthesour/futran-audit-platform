@@ -14,7 +14,7 @@ async function signIn(page: Page, email: string) {
 
 test('admin adds a Futran user, the invitation lands in the outbox and the audit log', async ({ page }) => {
   await signIn(page, 'admin@futran.demo');
-  await page.getByRole('link', { name: 'Users' }).click();
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Users', exact: true }).click();
   await page.getByRole('button', { name: 'Add user' }).click();
   await page.getByLabel('Full name').fill('Quinn Reviewer');
   await page.getByLabel('Work email').fill('quinn@futran.demo');
