@@ -2,13 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
-import { hasRole, useMe } from '@/api/auth';
+import { can, hasRole, useMe } from '@/api/auth';
 import { useLawJurisdictions } from '@/api/laws';
 import { fmtValue, type ChangeItem, type Queue, type Run, type RunSettings } from '@/api/monitoring';
 import { Alert, Badge, Button, Card, Checkbox, Dialog, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField, WithHelp, fmtDateTime } from '@/components/ui';
 import { DataGrid, type GridColumn, type GridRowAction } from '@/components/ui/DataGrid';
 import { refreshHelp as H } from '@/help/monitoring';
-import { RegTabs } from '@/screens/futran/reg/LawLibrary';
+import { RegTabs, canReviewLaws } from '@/screens/futran/reg/LawLibrary';
 import '@/styles/monitoring.css';
 
 type Msg = { tone: 'success' | 'danger' | 'warn'; text: string } | null;
@@ -24,13 +24,17 @@ export function conf(c: ChangeItem) {
 export function RefreshReview() {
   const { data: me } = useMe();
   const [params, setParams] = useSearchParams();
-  const kind = params.get('kind') === 'litigation' ? 'litigation' : 'law';
+  const lawsOk = canReviewLaws(me);
+  const casesOk = can(me, 'view_litigation');
+  const kind = params.get('kind') === 'litigation' || (!params.get('kind') && me && !lawsOk && casesOk) ? 'litigation' : 'law';
+  // the queue and run list need view_reg_changes (laws) or view_litigation (cases); someone with only run_law_refresh starts runs
+  const canSee = kind === 'law' ? can(me, 'view_reg_changes') : casesOk;
   const [openId, setOpenId] = useState<string | null>(params.get('change'));
   const [msg, setMsg] = useState<Msg>(null);
   const qc = useQueryClient();
-  const runs = useQuery({ queryKey: ['refresh-runs', kind], queryFn: () => api.get<Run[]>(`/admin/laws/refresh?kind=${kind}`), refetchInterval: (q) => (q.state.data?.some((r) => r.status === 'running' || r.status === 'queued') ? 4000 : false) });
+  const runs = useQuery({ queryKey: ['refresh-runs', kind], enabled: canSee, queryFn: () => api.get<Run[]>(`/admin/laws/refresh?kind=${kind}`), refetchInterval: (q) => (q.state.data?.some((r) => r.status === 'running' || r.status === 'queued') ? 4000 : false) });
   const running = !!runs.data?.some((r) => r.status === 'running' || r.status === 'queued');
-  const queue = useQuery({ queryKey: ['reg-changes', kind], queryFn: () => api.get<Queue>(`/reg/changes?kind=${kind}`), refetchInterval: running ? 4000 : false });
+  const queue = useQuery({ queryKey: ['reg-changes', kind], enabled: canSee, queryFn: () => api.get<Queue>(`/reg/changes?kind=${kind}`), refetchInterval: running ? 4000 : false });
   const [wasRunning, setWasRunning] = useState(false);
   useEffect(() => { if (wasRunning && !running) qc.invalidateQueries({ queryKey: ['reg-changes'] }); setWasRunning(running); }, [running]); // eslint-disable-line react-hooks/exhaustive-deps
   const isChief = hasRole(me ?? undefined, 'chief_auditor');
@@ -78,15 +82,25 @@ export function RefreshReview() {
       <PageHeader title={kind === 'law' ? 'Refresh laws and review changes' : 'Refresh cases and review updates'}
         subtitle="Claude only proposes. Nothing changes in the law library, the litigation tracker, client letters or AI system roles until the Chief Auditor approves it." />
       <RegTabs pending={kind === 'law' ? queue.data?.counts.open : undefined} />
-      <div className="pills" role="tablist" aria-label="What to review" style={{ margin: '12px 0' }}>
-        <button type="button" role="tab" className="pill" aria-selected={kind === 'law'} onClick={() => setParams({})}>Laws</button>
-        <button type="button" role="tab" className="pill" aria-selected={kind === 'litigation'} onClick={() => setParams({ kind: 'litigation' })}>Litigation</button>
-      </div>
+      {lawsOk && casesOk && (
+        <div className="pills" role="tablist" aria-label="What to review" style={{ margin: '12px 0' }}>
+          <button type="button" role="tab" className="pill" aria-selected={kind === 'law'} onClick={() => setParams({ kind: 'law' })}>Laws</button>
+          <button type="button" role="tab" className="pill" aria-selected={kind === 'litigation'} onClick={() => setParams({ kind: 'litigation' })}>Litigation</button>
+        </div>
+      )}
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
+      {me && !canSee && (
+        <Alert tone="info">
+          {can(me, 'suggest_reg_change')
+            ? 'Changes you suggest from a law record wait here for the Chief Auditor’s decision. The review queue itself is open to the Chief Auditor and the second reviewers they name, so you will not see it on this page.'
+            : 'The review queue is open to the Chief Auditor and the second reviewers they name.'}
+        </Alert>
+      )}
+      {(queue.isError || runs.isError) && <Alert tone="danger">{errorMessage(queue.error ?? runs.error)}</Alert>}
       <div className="split">
         <div className="main stack">
-          <Card title={`Changes waiting for review (${queue.data?.counts.open ?? 0})`}>
-            {queue.isLoading ? <Loading /> : (
+          {canSee && <Card title={`Changes waiting for review (${queue.data?.counts.open ?? 0})`}>
+            {queue.isLoading ? <Loading /> : queue.isError ? <EmptyState>The review queue could not be loaded.</EmptyState> : (
               <DataGrid label="Changes waiting for review" rows={items} rowId={(c) => c.id} rowLabel={(c) => `${c.change_label}: ${c.subject}`} columns={columns}
                 selectable={isChief}
                 bulkActions={isChief ? [
@@ -104,12 +118,12 @@ export function RefreshReview() {
                 search={{ label: 'Search changes', text: (c) => `${c.subject} ${c.summary} ${c.jurisdiction ?? ''}` }}
                 emptyText="Nothing is waiting for review." />
             )}
-          </Card>
+          </Card>}
           {open && <ChangeDetail id={open.id} isChief={isChief} isSecond={isSecond} reviewers={queue.data?.reviewers ?? []} onDone={(t) => { setMsg(t); refresh(); }} onClose={() => setParams(kind === 'litigation' ? { kind } : {})} />}
         </div>
         <div className="side stack">
           {canRun && <RunCard kind={kind} lawId={params.get('law')} onStarted={(t) => { setMsg(t); refresh(); window.setTimeout(() => { refresh(); qc.invalidateQueries({ queryKey: ['refresh-runs'] }); }, 1500); }} />}
-          <RunsCard kind={kind} />
+          {canSee && <RunsCard kind={kind} />}
         </div>
       </div>
     </div>
@@ -240,6 +254,7 @@ function RunCard({ kind, lawId, onStarted }: { kind: 'law' | 'litigation'; lawId
   const law = useQuery({ queryKey: ['law', lawId], enabled: !!lawId && kind === 'law', queryFn: () => api.get<{ jurisdiction_code: string; short_name: string }>(`/laws/${lawId}`) });
   useEffect(() => { if (law.data) { setScope('chosen'); setCodes([law.data.jurisdiction_code]); } }, [law.data]);
   const jOpts = useMemo(() => (juris.data ?? []).slice().sort((a, b) => a.name.localeCompare(b.name)), [juris.data]);
+  if (s.isError) return <Card title="Run a refresh"><Alert tone="danger">{errorMessage(s.error)}</Alert></Card>;
   if (s.isLoading || !s.data) return <Card title="Run a refresh"><Loading /></Card>;
   const st = s.data;
   const chosen = checks ?? st.checks;

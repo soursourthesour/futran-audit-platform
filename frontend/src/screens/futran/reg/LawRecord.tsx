@@ -6,7 +6,8 @@ import { Alert, Badge, Button, Card, Checkbox, Dialog, EmptyState, FieldGroup, L
 import { DataGrid } from '@/components/ui/DataGrid';
 import { AI_TYPE_OPTIONS, APPLIES_OPTIONS, STAGE_OPTIONS, appliesLabel, stageLabel, statusTone, type LawRecord as Law, type Requirement } from '@/api/regmaster';
 import { requirementHelp as H } from '@/help/regmaster';
-import { RegTabs } from './LawLibrary';
+import { RegTabs, canReviewLaws } from './LawLibrary';
+import { can, useMe } from '@/api/auth';
 import { LawCases } from '@/screens/litigation/LawCases';
 import '@/styles/regmaster.css';
 
@@ -15,6 +16,8 @@ const LEVEL_LABEL: Record<string, string> = { required: 'Required', recommended:
 export function LawRecord() {
   const { lawId = '' } = useParams();
   const loc = useLocation();
+  const { data: me } = useMe();
+  const review = canReviewLaws(me);
   const q = useQuery({ queryKey: ['reg-law', lawId], queryFn: () => api.get<Law>(`/reg/laws/${lawId}`) });
   const [editing, setEditing] = useState<Requirement | 'new' | null>(null);
   const [bulk, setBulk] = useState<Requirement[] | null>(null);
@@ -38,7 +41,7 @@ export function LawRecord() {
         actions={<>
           {d.can_edit && <Link className="btn" to={`/reg/${d.id}/edit`}>Edit record</Link>}
           {!d.can_edit && <Button onClick={() => setSuggest(true)}>Suggest a change</Button>}
-          <Link className="btn" to={`/reg/refresh?law=${d.id}`}>Refresh this law only</Link>
+          {can(me, 'run_law_refresh') && <Link className="btn" to={`/reg/refresh?law=${d.id}`}>Refresh this law only</Link>}
         </>} />
       <RegTabs />
       {flash && <Alert tone="success">{flash}</Alert>}
@@ -46,7 +49,7 @@ export function LawRecord() {
         <Alert tone="warn">
           <strong>{d.pending.length} proposed {d.pending.length === 1 ? 'change' : 'changes'} waiting for Chief Auditor approval.</strong> Not live until approved.
           <ul style={{ margin: '6px 0 0', paddingLeft: 20 }}>{d.pending.slice(0, 5).map((p) => <li key={p.id} className="small">{p.summary} <span className="muted">({p.proposed_by ?? 'Futran'}{p.origin === 'auditor_suggestion' ? ', suggestion' : ''})</span></li>)}</ul>
-          <div style={{ marginTop: 6 }}><Link to="/reg/refresh">Review changes</Link></div>
+          {review && <div style={{ marginTop: 6 }}><Link to="/reg/refresh">Review changes</Link></div>}
         </Alert>
       )}
       <div className="stack">
@@ -107,7 +110,7 @@ export function LawRecord() {
           {d.committees.map((c) => <p key={c.committee_type} className="small" style={{ marginTop: 12 }}><strong>{c.title}</strong> · {c.level === 'required' ? 'Required' : 'Recommended'}{c.basis ? ` · ${c.basis}` : ''}{c.condition ? `. ${c.condition}.` : ''}</p>)}
           <p className="reg-note">Change a role's level from <Link to="/reg/roles">Roles and committees</Link>.</p>
         </Card>
-        <section id="cases" aria-label="Related cases"><LawCases regulationId={d.id} /></section>
+        {can(me, 'view_litigation') && <section id="cases" aria-label="Related cases"><LawCases regulationId={d.id} /></section>}
         <section id="history">
           <Card title="Version history">
             <div className="table-wrap"><table className="table">

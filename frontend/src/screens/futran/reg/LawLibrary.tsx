@@ -2,20 +2,28 @@ import { useMemo, useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
+import { can, useMe, type Me } from '@/api/auth';
 import { Alert, Badge, Button, Dialog, FieldGroup, Loading, PageHeader, SelectField, TextArea, TextField, fmtDateTime } from '@/components/ui';
 import { DataGrid } from '@/components/ui/DataGrid';
 import { APPLIES_OPTIONS, STAGE_OPTIONS, STATUS_OPTIONS, appliesLabel, statusTone, type Library, type LawRow } from '@/api/regmaster';
 import { bulkHelp as B, libraryHelp as H } from '@/help/regmaster';
 import '@/styles/regmaster.css';
 
+/** True when the person can open the refresh and review page for laws (the queue or a run). */
+export function canReviewLaws(me: Me | null | undefined) {
+  return can(me, 'view_reg_changes', 'run_law_refresh');
+}
+
 export function RegTabs({ pending }: { pending?: number }) {
-  return (
-    <nav className="reg-tabs" aria-label="Regulatory master">
-      <NavLink to="/reg" end>Law library</NavLink>
-      <NavLink to="/reg/refresh">Refresh and review{pending ? ` (${pending})` : ''}</NavLink>
-      <NavLink to="/reg/roles">Roles and committees</NavLink>
-    </nav>
-  );
+  const { data: me } = useMe();
+  const library = can(me, 'view_reg_master');
+  const tabs = [
+    library && <NavLink key="lib" to="/reg" end>Law library</NavLink>,
+    canReviewLaws(me) && <NavLink key="ref" to="/reg/refresh">Refresh and review{pending ? ` (${pending})` : ''}</NavLink>,
+    library && <NavLink key="roles" to="/reg/roles">Roles and committees</NavLink>,
+  ].filter(Boolean);
+  if (tabs.length < 2) return null;  // a single tab is just the page heading again
+  return <nav className="reg-tabs" aria-label="Regulatory master">{tabs}</nav>;
 }
 
 export function LawLibrary() {
@@ -26,6 +34,8 @@ export function LawLibrary() {
   const [flash, setFlash] = useState<string | null>(null);
   const [repeal, setRepeal] = useState<LawRow | null>(null);
   const nav = useNavigate();
+  const { data: me } = useMe();
+  const review = canReviewLaws(me);
   const rows = useMemo(() => (q.data ? q.data.groups.flatMap((g) => g.laws.map((l) => ({ ...l, regionLabel: g.label }))) : []), [q.data]);
   if (q.isLoading && !q.data) return <div className="page"><Loading /></div>;
   if (!q.data) return <div className="page"><Alert tone="danger">{errorMessage(q.error)}</Alert></div>;
@@ -36,7 +46,7 @@ export function LawLibrary() {
       <PageHeader title="Law library"
         subtitle="Every geography with AI rules in force or enacted: scope, statutory requirements, the roles and committees each law requires, and penalties. Feeds client set-up, the intro letter and every AI system's required roles."
         actions={<>
-          <Link className="btn" to="/reg/refresh">Refresh laws with Claude</Link>
+          {review && <Link className="btn" to="/reg/refresh">Refresh laws with Claude</Link>}
           {d.can_edit && <Button variant="primary" onClick={() => nav('/reg/new')}>Add a law</Button>}
         </>} />
       <RegTabs pending={d.kpis.pending} />
@@ -48,7 +58,7 @@ export function LawLibrary() {
         <div className="tile"><div className="label">Geographies tracked</div><div className="value">{d.kpis.geographies}</div></div>
         <div className="tile"><div className="label">Laws and rules</div><div className="value">{d.kpis.laws}</div><div className="hint">{d.kpis.all} in the imported matrix</div></div>
         <div className="tile"><div className="label">Statutory requirements</div><div className="value">{d.kpis.requirements}</div></div>
-        <div className="tile"><div className="label">Changes waiting for review</div><div className="value">{d.kpis.pending}</div><div className="hint"><Link to="/reg/refresh">Open the review queue</Link></div></div>
+        <div className="tile"><div className="label">Changes waiting for review</div><div className="value">{d.kpis.pending}</div><div className="hint">{review ? <Link to="/reg/refresh">Open the review queue</Link> : 'The Chief Auditor decides each one'}</div></div>
         <div className="tile"><div className="label">Effective dates in next 90 days</div><div className="value">{d.kpis.upcoming}</div></div>
       </div>
       <div className="reg-filters">
