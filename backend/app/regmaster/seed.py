@@ -115,7 +115,7 @@ def _populated(db: Session, version_id: str) -> bool:
 
 
 def _apply_law(db: Session, reg: Regulation, law: dict, roles: dict[str, RoleCatalog]) -> bool:
-    for k in ("region", "binding", "topics"):
+    for k in ("label", "region", "binding", "topics"):
         if getattr(reg, k) is None and law.get(k) is not None:
             setattr(reg, k, law[k])
     v = db.get(LawVersion, reg.current_version_id)

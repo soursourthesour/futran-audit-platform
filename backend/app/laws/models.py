@@ -61,6 +61,7 @@ class Regulation(IdMixin, Base):
     current_version_id: Mapped[str | None] = mapped_column(String(36), index=True)
     binding: Mapped[bool | None] = mapped_column(Boolean)
     topics: Mapped[list | None] = mapped_column(JSON)
+    label: Mapped[str | None] = mapped_column(String(60))  # short column label in the role matrix and letters ("NYC LL144")
     region: Mapped[str | None] = mapped_column(String(20))  # us_federal | us_states | eu | india | uk | canada | other | framework
     reviewer_id: Mapped[str | None] = mapped_column(String(36))
     review_due_on: Mapped[date | None] = mapped_column(Date)
