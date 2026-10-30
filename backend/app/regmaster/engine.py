@@ -206,11 +206,13 @@ def run(db: Session, org_id: str, actor_id: str | None = None) -> list[ClientLaw
         if not row.override:
             tests = list(db.scalars(select(ScopeTest).where(ScopeTest.law_version_id == v.id).order_by(ScopeTest.order)))
             answers = {k: v_ for k, v_ in ((row.scope_answers or {}).get("manual") or {}).items()}
-            if tests:
+            if v.status == "repealed":
+                in_scope, reason, used = False, "Repealed or lapsed", {}
+            elif tests:
                 in_scope, reason, used = _decide(db, reg, v, tests, geo, facts, answers)
             else:
                 in_scope, reason, used = True, "Confirmed in client set-up", {}
-            if not in_scope and reg.id in confirmed:
+            if not in_scope and reg.id in confirmed and v.status != "repealed":
                 in_scope, reason = True, f"Confirmed in client set-up (scope questions: {reason[:1].lower()}{reason[1:]})"
             row.in_scope, row.reason_text = in_scope, reason
             row.scope_answers = {"used": used, "manual": answers}

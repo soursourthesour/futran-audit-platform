@@ -24,6 +24,7 @@ export function LawLibrary() {
   const q = useQuery({ queryKey: ['reg-laws', qs], queryFn: () => api.get<Library>(`/reg/laws?${qs}`) });
   const [bulk, setBulk] = useState<LawRow[] | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
+  const [repeal, setRepeal] = useState<LawRow | null>(null);
   const nav = useNavigate();
   const rows = useMemo(() => (q.data ? q.data.groups.flatMap((g) => g.laws.map((l) => ({ ...l, regionLabel: g.label }))) : []), [q.data]);
   if (q.isLoading && !q.data) return <div className="page"><Loading /></div>;
@@ -88,9 +89,11 @@ export function LawLibrary() {
           ...(d.can_edit ? [{ label: 'Edit details', onSelect: () => nav(`/reg/${r.id}/edit`) }, { label: 'Edit requirements and roles', onSelect: () => nav(`/reg/${r.id}#requirements`) }] : [{ label: 'Suggest a change', onSelect: () => nav(`/reg/${r.id}#suggest`) }]),
           { label: 'Refresh this law with Claude', onSelect: () => nav(`/reg/refresh?law=${r.id}`) },
           { label: 'View version history', onSelect: () => nav(`/reg/${r.id}#history`) },
+          ...(d.can_edit && r.status !== 'repealed' ? [{ label: 'Mark repealed or lapsed', danger: true, onSelect: () => setRepeal(r) }] : []),
         ]}
       />
       <p className="reg-note">Each status, date and count comes from the last approved version; confirm with counsel before relying on it. The Chief Auditor approves every change. Futran Admin edits and Auditor suggestions become proposed changes. Nothing Claude finds goes live until a person approves it.</p>
+      {repeal && <RepealDialog law={repeal} onClose={() => setRepeal(null)} onDone={(m) => { setRepeal(null); setFlash(m); q.refetch(); }} />}
       {bulk && <BulkEdit laws={bulk} onClose={() => setBulk(null)} onDone={(m) => { setBulk(null); setFlash(m); }} />}
     </div>
   );
@@ -203,6 +206,28 @@ function BulkEdit({ laws, onClose, onDone }: { laws: LawRow[]; onClose: () => vo
         <span className="small muted">{Object.keys(trackingBody).length} tracking fields · {contentCount} content changes go to the review queue</span>
         <div className="row"><Button onClick={onClose}>Cancel</Button><Button variant="primary" disabled={busy || (activeLines.length > 0 && !preview) || (!contentCount && !Object.keys(trackingBody).length)} onClick={save}>Apply and send for approval</Button></div>
       </div>
+    </Dialog>
+  );
+}
+
+function RepealDialog({ law, onClose, onDone }: { law: LawRow; onClose: () => void; onDone: (m: string) => void }) {
+  const [f, setF] = useState({ reason: '', source_url: '', source_quote: '' });
+  const [err, setErr] = useState<string | null>(null);
+  async function save() {
+    setErr(null);
+    try {
+      await api.post(`/reg/laws/${law.id}/proposals`, { changes: [{ field_path: 'repeal', new_value: { status: 'repealed' }, change_type: 'repeal' }], summary: `Mark ${law.label} repealed or lapsed`, reason: f.reason, source_url: f.source_url || null, source_quote: f.source_quote || null });
+      onDone(`${law.label}: repeal sent to the Chief Auditor for approval.`);
+    } catch (e) { setErr(errorMessage(e)); }
+  }
+  return (
+    <Dialog title={`Mark ${law.label} repealed or lapsed`} onClose={onClose}>
+      <p className="small">This is a proposed change. Clients keep the law until the Chief Auditor approves.</p>
+      {err && <Alert tone="danger">{err}</Alert>}
+      <TextArea label="Reason *" help={B.reason} value={f.reason} onChange={(e) => setF({ ...f, reason: e.target.value })} rows={2} />
+      <TextField label="Source link" type="url" help="The official page that shows the repeal or lapse." value={f.source_url} onChange={(e) => setF({ ...f, source_url: e.target.value })} />
+      <TextArea label="Quoted passage" help="The words from the source that show the law no longer applies." value={f.source_quote} onChange={(e) => setF({ ...f, source_quote: e.target.value })} rows={2} />
+      <div className="row" style={{ justifyContent: 'flex-end', marginTop: 12 }}><Button onClick={onClose}>Cancel</Button><Button variant="danger" disabled={!f.reason.trim()} onClick={save}>Send for approval</Button></div>
     </Dialog>
   );
 }

@@ -114,3 +114,12 @@ def test_new_law_proposal_creates_law_on_approval(master):
     assert pc.regulation_id is None
     v = changes.apply_changes(db, [pc], reviewer_id="chief")
     assert v.version_no == 1 and db.get(ProposedChange, pc.id).regulation_id == v.regulation_id
+
+
+def test_repeal_proposal_sets_status_on_approval(master):
+    db = master
+    reg = find_law(db, "US-NYC", "Local Law 144")
+    pc = changes.propose(db, actor_id="u1", regulation_id=reg.id, field_path="repeal", new_value={"status": "repealed"}, summary="Repealed", origin="admin_edit", change_type="repeal")
+    assert pc.old_value == "in_force"
+    v = changes.apply_changes(db, [pc], reviewer_id="chief")
+    assert v.status == "repealed"

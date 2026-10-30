@@ -149,3 +149,16 @@ def test_confirmed_law_out_by_questions_says_so(master):
     engine.run(db, org.id)
     row = _row(db, org, "US-IL", "HB 3773")
     assert row.in_scope and row.reason_text == "Confirmed in client set-up (scope questions: no Illinois operations or residents)"
+
+
+def test_repealed_law_is_out_of_scope(master):
+    from app.regmaster import changes
+
+    db = master
+    org = make_org(db)
+    _geo(db, org, "US-NYC")
+    reg = find_law(db, "US-NYC", "Local Law 144")
+    pc = changes.propose(db, actor_id="u1", regulation_id=reg.id, field_path="repeal", new_value={"status": "repealed"}, summary="Repealed", origin="admin_edit", change_type="repeal")
+    changes.apply_changes(db, [pc], reviewer_id="chief")
+    row = _row(db, org, "US-NYC", "Local Law 144")
+    assert row.in_scope is False and row.reason_text == "Repealed or lapsed"
