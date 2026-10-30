@@ -53,7 +53,7 @@ def _client_org(db: Session, actor: Actor, action: Action) -> Organization:
 
 # ---- Futran Admin console
 @router.get("/home/admin")
-def admin_home(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def admin_home(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """Platform setup at a glance: Futran users, client organizations, the law matrix and templates."""
     authorize(db, actor, Action.VIEW_ADMIN_HOME)
     from app.laws.models import MatrixVersion
@@ -88,7 +88,7 @@ def _my_engagements(db: Session, actor: Actor) -> list[Engagement]:
 
 
 @router.get("/home/my-work")
-def my_work(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def my_work(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """The engagements this person is assigned to or drafted, and what needs doing on them today."""
     authorize(db, actor, Action.VIEW_MY_WORK, list_view=True)
     from app.docrequests.models import DocumentRequest, EvidenceRequest
@@ -177,7 +177,7 @@ def pending_overrides(db: Session, engagements: list[Engagement]) -> list[tuple[
 
 
 @router.get("/home/qa")
-def qa_queue(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def qa_queue(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.VIEW_QA_QUEUE, list_view=True)
     engs = _qa_engagements(db, actor)
     orgs = {o.id: o.name for o in db.scalars(select(Organization).where(Organization.id.in_([e.client_id for e in engs])))} if engs else {}
@@ -209,7 +209,7 @@ class OverrideReviewIn(BaseModel):
 
 
 @router.post("/systems/{system_id}/score/override/review")
-def review_override(system_id: str, body: OverrideReviewIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def review_override(system_id: str, body: OverrideReviewIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """The QA Reviewer approves or returns a rating override the Chief Auditor (the engagement's Lead Auditor) made, so
     no one approves their own judgment (spec §6 rule 2). The decision is kept in the audit log; returning notifies the
     Chief Auditor, and a changed override comes back to the queue."""
@@ -243,7 +243,7 @@ def review_override(system_id: str, body: OverrideReviewIn, request: Request, ac
 
 # ---- Client Admin home
 @router.get("/home/client-admin")
-def client_admin_home(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def client_admin_home(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """Who can sign in and how: users and invitations, departments and their leads, the email connection, SSO status and
     the role-change log. No audit content."""
     org = _client_org(db, actor, Action.VIEW_CLIENT_ADMIN_HOME)
@@ -290,7 +290,7 @@ def client_admin_home(actor: Actor = Depends(current_actor), db: Session = Depen
 
 # ---- Executive Sponsor
 @router.get("/home/sponsor")
-def sponsor_home(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def sponsor_home(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """The engagement summary and the sign-offs the Executive Sponsor approves (4 and 6)."""
     org = _client_org(db, actor, Action.VIEW_SPONSOR_HOME)
     from app.remediation.service import approved_findings
@@ -329,7 +329,7 @@ def _individual_viewers() -> list[str]:
 
 
 @router.get("/home/dpo")
-def dpo_home(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def dpo_home(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """Sign-off 3 (data categories for Tier 2 and 3 use cases) and how attestation answers are protected."""
     org = _client_org(db, actor, Action.VIEW_DPO_HOME)
     from app.attestation import service as att
@@ -362,7 +362,7 @@ def dpo_home(actor: Actor = Depends(current_actor), db: Session = Depends(get_db
 
 # ---- Department Compliance Lead
 @router.get("/home/department")
-def department_home(department_id: str | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def department_home(department_id: str | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """Everything here is limited to the lead's own departments: approvals, attestation totals, findings and the register."""
     if actor.is_futran:
         raise NotFound()
@@ -420,7 +420,7 @@ def department_home(department_id: str | None = None, actor: Actor = Depends(cur
 
 # ---- Contributor
 @router.get("/home/my-tasks")
-def my_tasks(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def my_tasks(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """What the contributor needs to do: returned items, evidence and document requests, drafts; and what they submitted."""
     org = _client_org(db, actor, Action.VIEW_MY_TASKS)
     from app.docrequests.router import mine as my_documents
