@@ -12,6 +12,10 @@ export type Me = {
   csrf_token: string;
   terms_required?: boolean;
   notice_required?: boolean;
+  /** The role home to land on after sign-in (spec §13.1; precedence in backend app/policy/homes.py). */
+  home?: string;
+  /** Every action the permission matrix grants this person's roles; the navigation is built from it. */
+  actions?: string[];
 };
 export type SessionState = {
   authenticated: boolean;
@@ -41,6 +45,11 @@ const ROLE_ORDER = Object.keys(ROLE_LABELS);
 export function primaryRole(me: Me): string {
   const names = me.roles.map((r) => r.role).sort((a, b) => ROLE_ORDER.indexOf(a) - ROLE_ORDER.indexOf(b));
   return names[0] ? ROLE_LABELS[names[0]] ?? names[0] : '';
+}
+
+/** True when the person holds any of `actions` (the union over all their roles). */
+export function can(me: Me | null | undefined, ...actions: string[]): boolean {
+  return !!me && (me.actions ?? []).some((a) => actions.includes(a));
 }
 
 export function hasRole(me: Me | undefined, ...roles: string[]): boolean {

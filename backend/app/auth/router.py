@@ -146,6 +146,10 @@ def logout(response: Response, s: AuthSession = Depends(current_session), db: Se
     return {"ok": True}
 
 
+from app.policy.homes import home_for  # noqa: E402
+from app.policy.matrix import actions_for  # noqa: E402
+
+
 @router.get("/me")
 def me(request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     settings: Settings = request.app.state.settings
@@ -160,6 +164,9 @@ def me(request: Request, actor: Actor = Depends(current_actor), db: Session = De
         "csrf_token": actor.session.csrf_token if actor.session else None,
         "terms_required": terms_required(actor),
         "notice_required": notice_required(db, actor),
+        # v0.6.1 WS-F: the role home to land on, and the actions the navigation is built from
+        "home": home_for(actor.role_names, actor.is_futran),
+        "actions": actions_for(actor.role_names),
     }
 
 

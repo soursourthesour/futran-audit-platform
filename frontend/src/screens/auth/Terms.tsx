@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
 import { useMe } from '@/api/auth';
+import { homePath } from '@/nav';
 import { Alert, Button, Checkbox, Loading } from '@/components/ui';
 import { AuthLayout } from './AuthLayout';
 
@@ -17,7 +18,7 @@ export function Terms() {
   if (!me) { nav('/login', { replace: true }); return null; }
   async function accept() {
     setErr(null);
-    try { await api.post('/auth/terms', { accepted: ok }); await qc.invalidateQueries({ queryKey: ['me'] }); nav('/start', { replace: true }); } catch (e) { setErr(errorMessage(e)); }
+    try { await api.post('/auth/terms', { accepted: ok }); await qc.invalidateQueries({ queryKey: ['me'] }); nav(homePath(me!), { replace: true }); } catch (e) { setErr(errorMessage(e)); }
   }
   return (
     <AuthLayout>

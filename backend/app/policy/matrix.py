@@ -340,3 +340,34 @@ _WS_E: dict[R, dict[A, S]] = {
 }
 for _role, _grants in _WS_E.items():
     MATRIX.setdefault(_role, {}).update(_grants)
+
+
+# ---- v0.6.1 WS-F: role home screens (§13.1). Each home has its own action so one role cannot load another role's home
+# data; the navigation (frontend/src/nav.ts) shows a module when the user holds any action it lists (/auth/me "actions").
+_WS_F: dict[R, dict[A, S]] = {
+    R.ADMIN: {A.VIEW_ADMIN_HOME: S.ALL, A.VIEW_PLATFORM_SETTINGS: S.ALL},
+    R.CHIEF_AUDITOR: {A.VIEW_PLATFORM_SETTINGS: S.ALL},  # §5: V on Futran users and platform settings
+    R.AUDITOR: {A.VIEW_MY_WORK: S.ASSIGNED},
+    R.ENGAGEMENT_MANAGER: {A.VIEW_MY_WORK: S.ASSIGNED},
+    R.LEGAL_REVIEWER: {A.VIEW_MY_WORK: S.ASSIGNED},
+    R.QA_REVIEWER: {A.VIEW_QA_QUEUE: S.ASSIGNED, A.REVIEW_SCORE_OVERRIDE: S.ASSIGNED},
+    R.CAICO: {A.VIEW_INITIATION_CHECKLIST: S.ORG},
+    R.CLIENT_ADMIN: {A.VIEW_INITIATION_CHECKLIST: S.ORG, A.VIEW_CLIENT_ADMIN_HOME: S.ORG},
+    R.EXEC_SPONSOR: {A.VIEW_SPONSOR_HOME: S.ORG},
+    R.DPO: {A.VIEW_DPO_HOME: S.ORG},
+    R.DEPT_COMPLIANCE_LEAD: {A.VIEW_DEPARTMENT_HOME: S.DEPT},
+    R.CONTRIBUTOR: {A.VIEW_MY_TASKS: S.DEPT},
+}
+for _role, _grants in _WS_F.items():
+    MATRIX.setdefault(_role, {}).update(_grants)
+
+
+def actions_for(roles: set[str]) -> list[str]:
+    """Every action any of `roles` holds at some scope (the union for a person with several roles)."""
+    out: set[str] = set()
+    for r in roles:
+        try:
+            out |= {str(a) for a, s in MATRIX.get(R(r), {}).items() if s != S.NONE}
+        except ValueError:
+            continue
+    return sorted(out)

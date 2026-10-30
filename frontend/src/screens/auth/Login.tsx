@@ -3,16 +3,17 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, setCsrf } from '@/api/client';
 import type { Me } from '@/api/auth';
+import { homePath } from '@/nav';
 import { Alert, Button, TextField } from '@/components/ui';
 import { AuthLayout } from './AuthLayout';
 
 type LoginOut = { mfa_required: boolean; mfa_enrolled: boolean; csrf_token: string };
 
+/** Where a person lands after sign-in: their role home (spec §13.1), or the terms first. */
 export function homeFor(me: Me | null | undefined): string {
   if (!me) return '/login';
   if (me.terms_required) return '/welcome/terms';
-  if (me.organization.type !== 'futran') return '/start';
-  return me.roles.length > 0 && me.roles.every((r) => r.role === 'sales_team') ? '/opportunities' : '/audits';
+  return homePath(me);
 }
 
 function SignInForm({ portal }: { portal: 'staff' | 'client' }) {

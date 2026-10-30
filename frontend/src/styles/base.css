@@ -238,6 +238,7 @@ table.table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .field-help-pop::before { content: ''; position: absolute; left: calc(var(--arrow-x, 24px) - 5px); top: -6px; width: 10px; height: 10px; background: var(--surface); border-left: 1px solid var(--line); border-top: 1px solid var(--line); transform: rotate(45deg); }
 .field-help-pop.above::before { top: auto; bottom: -6px; transform: rotate(225deg); }
 @media (max-width: 600px), (pointer: coarse) {
+  .shell-nav a, .shell-user button { min-height: 44px; }  /* header links and buttons: 44 px touch targets on phones */
   .field-help-btn { width: 44px; height: 44px; margin: -10px -10px -10px -8px; }
   .check-row .field-help-btn { margin: -10px -10px -10px -8px; }
   .check-row > .field-help { margin-top: 9px; }

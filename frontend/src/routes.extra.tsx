@@ -39,6 +39,7 @@ import { LawEdit } from '@/screens/futran/reg/LawEdit';
 import { RoleCatalogue } from '@/screens/futran/reg/RoleCatalogue';
 import { Applicability } from '@/screens/futran/reg/Applicability';
 import { wsdRoutes } from '@/routes.wsd';
+import { clientHomeRoutes, futranHomeRoutes } from '@/routes.wsf';
 import { FutranEmail } from '@/screens/email/FutranEmail';
 import { ClientEmailSetup } from '@/screens/email/ClientEmailSetup';
 import { ClientGroupsForFutran, GroupsScreen } from '@/screens/email/Groups';
@@ -51,6 +52,7 @@ import { MailboxPrompt } from '@/screens/email/MailboxPrompt';
 /** Screens added by later tasks register here, so routes.tsx stays stable. */
 export const futranRoutes: RouteObject[] = [
   ...wsdRoutes,
+  ...futranHomeRoutes,
   { path: '/admin/users', element: <UsersAdmin /> },
   { path: '/staff/admin/email', element: <FutranEmail /> },
   { path: '/clients/:clientId/groups', element: <ClientGroupsForFutran /> },
@@ -86,7 +88,7 @@ export const futranRoutes: RouteObject[] = [
   { path: '/reg/:lawId/edit', element: <LawEdit /> },
   { path: '/clients/:clientId/applicability', element: <Applicability /> },
 ];
-export const clientRoutes: RouteObject[] = [{ path: '/admin/email', element: <ClientEmailSetup /> }, { path: '/admin/groups', element: <GroupsScreen /> }, { path: '/people', element: <Navigate to="/people/departments" replace /> }, { path: '/people/departments', element: <UsersDepartments tab="departments" /> }, { path: '/people/users', element: <UsersDepartments tab="users" /> }, { path: '/users', element: <Navigate to="/people/users" replace /> }, { path: '/governance', element: <Governance /> }, { path: '/attestation', element: <AttestationTracker /> }, { path: '/my-attestation', element: <MyAttestation /> }, { path: '/inventory', element: <Inventory /> }, { path: '/inventory/new', element: <UseCaseForm /> }, { path: '/inventory/:useCaseId', element: <UseCaseForm /> }, { path: '/systems', element: <SystemsPrefillList /> }, { path: '/systems/:systemId', element: <SystemPrefill /> }, { path: '/documents', element: <DocumentUploads /> }, { path: '/review', element: <InventoryReview /> }, { path: '/report', element: <ClientReport /> }, { path: '/responses', element: <ManagementResponse /> }, { path: '/remediation', element: <Remediation /> },
+export const clientRoutes: RouteObject[] = [...clientHomeRoutes, { path: '/admin/email', element: <ClientEmailSetup /> }, { path: '/admin/groups', element: <GroupsScreen /> }, { path: '/people', element: <Navigate to="/people/departments" replace /> }, { path: '/people/departments', element: <UsersDepartments tab="departments" /> }, { path: '/people/users', element: <UsersDepartments tab="users" /> }, { path: '/users', element: <Navigate to="/people/users" replace /> }, { path: '/governance', element: <Governance /> }, { path: '/attestation', element: <AttestationTracker /> }, { path: '/my-attestation', element: <MyAttestation /> }, { path: '/inventory', element: <Inventory /> }, { path: '/inventory/new', element: <UseCaseForm /> }, { path: '/inventory/:useCaseId', element: <UseCaseForm /> }, { path: '/systems', element: <SystemsPrefillList /> }, { path: '/systems/:systemId', element: <SystemPrefill /> }, { path: '/documents', element: <DocumentUploads /> }, { path: '/review', element: <InventoryReview /> }, { path: '/report', element: <ClientReport /> }, { path: '/responses', element: <ManagementResponse /> }, { path: '/remediation', element: <Remediation /> },
   // AI system register (spec §24, §27.2)
   { path: '/register', element: <RegisterGrid /> }, { path: '/register/new', element: <RegisterNew /> },
   { path: '/register/:systemId', element: <RegisterSystemPage tab="details" /> }, { path: '/register/:systemId/roles', element: <RegisterSystemPage tab="roles" /> },

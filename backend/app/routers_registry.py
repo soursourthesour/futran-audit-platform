@@ -15,3 +15,6 @@ ROUTER_MODULES += ["litigation.router", "sales.router", "staffalerts.router", "c
 
 # v0.6 WS-E: tracing add-on and unlock (R7, R8)
 ROUTER_MODULES += ["tracing.router"]
+
+# v0.6.1 WS-F: role home screens (§13.1)
+ROUTER_MODULES += ["homes.router"]

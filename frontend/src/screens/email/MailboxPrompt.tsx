@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { homePath } from '@/nav';
 import { Link, Navigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
@@ -51,7 +52,7 @@ export function MailboxPrompt() {
   if (isLoading || (me && q.isLoading)) return <Loading />;
   if (!me) return <Navigate to="/login" replace />;
   const m = q.data;
-  const home = me.organization.type === 'futran' ? '/audits' : '/start';
+  const home = homePath(me);
   const next = params.get('next') || home;
   const connected = m?.connection?.status === 'connected';
   const providers = m ? (['microsoft365', 'google'] as const).filter((p) => m.credentials[p].available) : [];

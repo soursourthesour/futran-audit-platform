@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { homePath } from '@/nav';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
@@ -23,7 +24,7 @@ export function NoticeAcknowledge() {
   const [busy, setBusy] = useState(false);
   if (isLoading) return <Loading />;
   if (!me) { nav('/login', { replace: true }); return null; }
-  if (!me.notice_required) { nav('/start', { replace: true }); return null; }
+  if (!me.notice_required) { nav(homePath(me), { replace: true }); return null; }
 
   async function acknowledge() {
     if (!q.data) return;
@@ -31,7 +32,7 @@ export function NoticeAcknowledge() {
     try {
       await api.post('/me/notice/acknowledge', { version: q.data.version, accepted: ok });
       await qc.invalidateQueries({ queryKey: ['me'] });
-      nav('/start', { replace: true });
+      nav(homePath(me!), { replace: true });
     } catch (e) {
       setErr(errorMessage(e));
       await qc.invalidateQueries({ queryKey: ['notice-pending'] });

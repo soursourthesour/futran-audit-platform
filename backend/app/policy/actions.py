@@ -112,3 +112,15 @@ class Action(StrEnum):
     VIEW_ADDONS = "view_addons"
     REQUEST_ADDON = "request_addon"  # R8: pick systems, plan, approver and trial
     APPROVE_ADDON = "approve_addon"  # the Executive Sponsor approves, declines or cancels
+    # v0.6.1 WS-F: role home screens (§13.1) and the navigation they drive
+    VIEW_ADMIN_HOME = "view_admin_home"  # Futran Admin console
+    VIEW_MY_WORK = "view_my_work"  # Auditor: assigned engagements and today's tasks
+    VIEW_QA_QUEUE = "view_qa_queue"  # QA Reviewer: Chief-Auditor-authored findings and score overrides
+    REVIEW_SCORE_OVERRIDE = "review_score_override"  # approve or return a Chief Auditor's rating override
+    VIEW_PLATFORM_SETTINGS = "view_platform_settings"  # §5 "Manage Futran users and platform settings" (V or C/E)
+    VIEW_INITIATION_CHECKLIST = "view_initiation_checklist"  # the Getting started checklist is worked by these roles
+    VIEW_CLIENT_ADMIN_HOME = "view_client_admin_home"
+    VIEW_SPONSOR_HOME = "view_sponsor_home"
+    VIEW_DPO_HOME = "view_dpo_home"
+    VIEW_DEPARTMENT_HOME = "view_department_home"
+    VIEW_MY_TASKS = "view_my_tasks"  # Contributor
