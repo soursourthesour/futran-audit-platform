@@ -2,6 +2,7 @@
 
 The required set for a system is computed from the laws on it (LawRoleMap in the regulatory master), never stored.
 """
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.audit_log import service as audit
@@ -9,6 +10,17 @@ from app.core.clock import utcnow
 from app.core.errors import Conflict, Invalid
 from app.register.models import RegisterSystem
 from app.tenancy.models import User
+
+
+CATALOGUE_MISSING = "The governance role catalogue has not loaded. Ask Futran to check the platform."
+
+
+def catalogue_missing(db: Session) -> bool:
+    """With no role catalogue every system has zero required roles, so the gate would pass on nothing (start-up seed
+    failed); go-live is refused until it loads."""
+    from app.regmaster.models import RoleCatalog
+
+    return db.scalar(select(RoleCatalog.id).limit(1)) is None
 
 
 def role_summary(db: Session, s: RegisterSystem) -> dict:
@@ -48,6 +60,8 @@ def gate_for(db: Session, s: RegisterSystem, roles: dict | None = None) -> dict:
         return {"state": "live_finding" if parts else "live_clear", "label": "Live · finding raised" if parts else "Live · clear", **blockers}
     if s.stage in ("proposed", "in_development"):
         return {"state": "not_due", "label": "Not yet due", **blockers}
+    if catalogue_missing(db):
+        return {"state": "blocked", "label": CATALOGUE_MISSING, **blockers}
     if parts:
         return {"state": "blocked", "label": "Blocked: " + " and ".join(parts), **blockers}
     if s.go_live_requested_at:
@@ -56,6 +70,8 @@ def gate_for(db: Session, s: RegisterSystem, roles: dict | None = None) -> dict:
 
 
 def _assert_clear(db: Session, s: RegisterSystem) -> None:
+    if catalogue_missing(db):
+        raise Conflict(CATALOGUE_MISSING, errors=[{"field": "gate", "message": CATALOGUE_MISSING}])
     roles = role_summary(db, s)
     reqs = requirement_blockers(db, s)
     if roles["blocking"] or reqs:

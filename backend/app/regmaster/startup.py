@@ -25,7 +25,33 @@ def seed_if_empty(app) -> str | None:
     except Exception as exc:  # an unmigrated or locked database: start anyway, seed-reference can be run later
         db.rollback()
         log.warning("Regulatory master was not seeded on start-up: %s", exc)
+        _tell_admins(app, exc)
         return None
+    finally:
+        db.close()
+
+
+SEED_PROBLEM = "The governance role catalogue and law content did not load"
+
+
+def _tell_admins(app, exc: Exception) -> None:
+    """Show a failed seed to every Futran Admin in the app (once while it stays unread). Go-live in client registers
+    is refused until the catalogue loads (register.gate.catalogue_missing)."""
+    from app.notifications.models import Notification
+    from app.notifications.service import notify
+    from app.staffalerts.service import futran_users_with
+
+    db = app.state.sessionmaker()
+    try:
+        admins = [u for u in futran_users_with(db, {"admin"})
+                  if db.scalar(select(Notification.id).where(Notification.user_id == u.id, Notification.kind == "platform_problem", Notification.title == SEED_PROBLEM,
+                                                             Notification.read_at.is_(None)).limit(1)) is None]
+        notify(db, admins, "platform_problem", SEED_PROBLEM,
+               f"The platform could not load the regulatory master on start-up ({str(exc)[:300]}). Until it loads, clients cannot take AI systems live. "
+               "Run seed-reference on the server, or restart the platform after fixing the cause.", "/reg/roles")
+        db.commit()
+    except Exception:  # the database itself is the problem: the log line above is all we can do
+        db.rollback()
     finally:
         db.close()
 

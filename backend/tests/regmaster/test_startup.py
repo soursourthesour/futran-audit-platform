@@ -26,3 +26,24 @@ def test_start_never_fails_on_an_unmigrated_database(settings):
 
     bare = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
     create_app(settings.model_copy(update={"seed_on_start": True}), engine=bare)
+
+
+def test_a_failed_seed_is_shown_to_futran_admins_once(matrix, engine, settings, monkeypatch):
+    import app.regmaster.seed as seed
+    from app.notifications.models import Notification
+    from tests.factories import make_org, make_user
+
+    db = matrix
+    futran = make_org(db, type="futran", name="Futran X")
+    admin = make_user(db, futran, roles=["admin"], name="Ann Admin", email="ann@futran.test")
+    db.commit()
+
+    def broken(_db):
+        raise RuntimeError("seed file is missing")
+
+    monkeypatch.setattr(seed, "seed_regmaster", broken)
+    for _ in range(2):
+        create_app(settings.model_copy(update={"seed_on_start": True}), engine=engine)
+    db.expire_all()
+    rows = db.query(Notification).filter_by(user_id=admin.id, kind="platform_problem").all()
+    assert len(rows) == 1 and "role catalogue" in rows[0].title and "seed file is missing" in rows[0].body
