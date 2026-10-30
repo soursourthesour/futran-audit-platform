@@ -38,7 +38,7 @@ function SystemCell({ s }: { s: RegSystem }) {
   return (
     <div>
       <Link to={`/register/${s.id}`}><strong>{s.name}</strong></Link>{!s.can_edit && <Lock />}
-      <div className="small muted">{s.company_wide ? 'Company-wide · managed by the AI Compliance Officer' : s.owner ? `Owner: ${s.owner.name}` : 'No owner yet'}</div>
+      <div className="small muted">{s.company_wide ? 'Company-wide · managed by the Chief AI Compliance Officer' : s.owner ? `Owner: ${s.owner.name}` : 'No owner yet'}</div>
     </div>
   );
 }
@@ -72,13 +72,15 @@ export function RegisterGrid() {
     setFlash(null);
     try { await fn(); await refresh(); setFlash({ tone: 'success', text: ok }); } catch (e) { setFlash({ tone: 'danger', text: errorMessage(e) }); }
   }
+  const [pulling, setPulling] = useState(false);
   async function importInventory() {
-    setFlash(null);
+    if (pulling) return;
+    setFlash(null); setPulling(true);
     try {
       const r = await api.post<{ created: number; already_in_register: number }>('/register/import-inventory');
       await refresh();
       setFlash({ tone: 'success', text: `${r.created} AI systems added from the inventory as Proposed. ${r.already_in_register} were already in the register.` });
-    } catch (e) { setFlash({ tone: 'danger', text: errorMessage(e) }); }
+    } catch (e) { setFlash({ tone: 'danger', text: errorMessage(e) }); } finally { setPulling(false); }
   }
   function exportCsv(rows?: RegSystem[]) {
     const ids = rows ? `?ids=${rows.map((r) => r.id).join(',')}` : '';
@@ -124,7 +126,7 @@ export function RegisterGrid() {
     { label: 'Edit governance roles', onSelect: () => nav(`/register/${s.id}/roles`) },
     { label: 'Record a bias test', onSelect: () => nav(`/register/${s.id}/history?add=bias_test`), disabled: !s.can_record_history },
     { label: 'Upload evidence', onSelect: () => nav(`/register/${s.id}/evidence`), disabled: !s.can_edit && !s.can_record_history },
-    { label: 'Submit for go-live approval', onSelect: () => act(() => api.post(`/register/${s.id}/go-live/submit`), `${s.name} was sent to the AI Compliance Officer for go-live approval.`), disabled: !s.can_submit_go_live || !['in_development', 'ready_for_go_live'].includes(s.stage) || !!s.go_live.requested_at },
+    { label: 'Submit for go-live approval', onSelect: () => act(() => api.post(`/register/${s.id}/go-live/submit`), `${s.name} was sent to the Chief AI Compliance Officer for go-live approval.`), disabled: !s.can_submit_go_live || !['in_development', 'ready_for_go_live'].includes(s.stage) || !!s.go_live.requested_at },
     { label: 'Duplicate', onSelect: () => act(() => api.post(`/register/${s.id}/duplicate`), `${s.name} was copied as a new proposed system.`), disabled: !s.can_edit },
     { label: 'View change history', onSelect: () => nav(`/register/${s.id}/changes`) },
     { label: 'Retire this system', danger: true, onSelect: () => setRetire(s), disabled: !s.can_edit || s.stage === 'retired' },
@@ -140,7 +142,7 @@ export function RegisterGrid() {
         subtitle={d.can.org_wide ? 'Every AI app, agent, vendor tool and AI model used across the company.' : `Every AI app, agent, vendor tool and AI model used in ${myDept ?? 'your department'}. Company-wide tools are shown read-only.`}
         actions={<>
           {d.can.edit && <Button onClick={() => setImporting(true)}>Import from CSV</Button>}
-          {d.can.import_inventory && <Button onClick={importInventory}>Import from inventory</Button>}
+          {d.can.import_inventory && <Button onClick={importInventory} disabled={pulling}>Import from inventory</Button>}
           <Button onClick={() => exportCsv()}>Export</Button>
           {d.can.edit && <Link className="btn btn-primary" to="/register/new">Add AI system</Link>}
         </>} />
@@ -186,7 +188,7 @@ export function RegisterGrid() {
           )}
           <p className="small muted" style={{ margin: 0 }}>
             Showing {d.systems.length} systems. Required roles counts only the roles the laws on each system require.
-            {!d.can.org_wide && ' You can add, edit and bulk edit your department\'s AI systems, fill their roles from the company\'s user list and submit a system for go-live approval. Company-wide roles and tools are managed by the AI Compliance Officer, who also approves go-live.'}
+            {!d.can.org_wide && ' You can add, edit and bulk edit your department\'s AI systems, fill their roles from the company\'s user list and submit a system for go-live approval. Company-wide roles and tools are managed by the Chief AI Compliance Officer, who also approves go-live.'}
           </p>
         </div>
       </section>
@@ -205,8 +207,11 @@ function Kpi({ n, label, tone }: { n: number; label: string; tone?: 'danger' | '
 export function RetireDialog({ s, onClose, onDone }: { s: RegSystem; onClose: () => void; onDone: () => void }) {
   const [reason, setReason] = useState('');
   const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   async function go() {
-    try { await api.post(`/register/${s.id}/retire`, { reason }); onDone(); } catch (e) { setErr(errorMessage(e)); }
+    if (busy) return;
+    setBusy(true); setErr(null);
+    try { await api.post(`/register/${s.id}/retire`, { reason }); onDone(); } catch (e) { setErr(errorMessage(e)); } finally { setBusy(false); }
   }
   return (
     <Dialog title={`Retire ${s.name}`} onClose={onClose}>
@@ -214,7 +219,7 @@ export function RetireDialog({ s, onClose, onDone }: { s: RegSystem; onClose: ()
         <p style={{ margin: 0 }}>A retired system stays in the register and its history is kept. It no longer counts in the summary.</p>
         {err && <Alert tone="danger">{err}</Alert>}
         <TextArea label="Reason *" help={H.reason} value={reason} onChange={(e) => setReason(e.target.value)} />
-        <div className="row"><Button variant="danger" onClick={go}>Retire this system</Button><Button onClick={onClose}>Cancel</Button></div>
+        <div className="row"><Button variant="danger" onClick={go} disabled={busy}>Retire this system</Button><Button onClick={onClose}>Cancel</Button></div>
       </div>
     </Dialog>
   );

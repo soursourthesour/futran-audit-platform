@@ -57,7 +57,7 @@ test('E1: the Futran Admin connects the Futran mailbox with the test provider', 
   await expect(page.getByRole('heading', { name: 'Futran email and groups' })).toBeVisible();
   await expect(page.getByText(/Test mode: connections use a simulated Microsoft 365/)).toBeVisible();
   await page.locator('.mail-card').filter({ hasText: 'Microsoft 365' }).getByRole('button', { name: 'Connect', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Approve access for your organisation' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Approve access for your organization' })).toBeVisible();
   await shot(page, 'test-consent');
   await page.getByRole('button', { name: 'Accept' }).click();
   await expect(page.getByText('The Futran mailbox is connected.')).toBeVisible();

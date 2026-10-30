@@ -79,7 +79,7 @@ export function WhatItIs({ f, set, fe, d, disabled, editing, n }: Props & { n?: 
           <SelectField label={f.company_wide ? 'Department' : 'Department *'} help={H.department} value={f.department_id} placeholder={f.company_wide ? 'None' : 'Choose'} onChange={(e) => set({ ...f, department_id: e.target.value })} options={depts.map((x) => ({ value: x.id, label: x.name }))} error={fe.department_id} />
           <SelectField label="Stage *" help={H.stage} value={f.stage} onChange={(e) => set({ ...f, stage: e.target.value })} options={STAGES.filter((s) => s.value !== 'live' || f.stage === 'live').filter((s) => editing || s.value !== 'retired')} error={fe.stage} disabled={f.stage === 'live' || f.stage === 'retired'} />
         </div>
-        {d.can.org_wide && <Checkbox label="Company-wide tool, managed by the AI Compliance Officer" help={H.companyWide} checked={f.company_wide} onChange={(e) => set({ ...f, company_wide: e.target.checked })} />}
+        {d.can.org_wide && <Checkbox label="Company-wide tool, managed by the Chief AI Compliance Officer" help={H.companyWide} checked={f.company_wide} onChange={(e) => set({ ...f, company_wide: e.target.checked })} />}
         <TextArea label="Purpose *" help={H.purpose} value={f.purpose} onChange={(e) => set({ ...f, purpose: e.target.value })} error={fe.purpose} />
         <div className="grid-2">
           <SelectField label="Who uses it" help={H.usersScope} value={f.users_scope} placeholder="Choose" onChange={(e) => set({ ...f, users_scope: e.target.value })} options={[{ value: 'role', label: 'Role level' }, { value: 'named', label: 'Named users' }]} hint="Named users are required for Tier 2 and 3." />

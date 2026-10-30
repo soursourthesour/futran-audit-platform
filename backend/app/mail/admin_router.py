@@ -328,7 +328,7 @@ def my_mailbox(actor: Actor = Depends(current_actor), db: Session = Depends(get_
 @router.post("/me/mailbox/connect")
 def my_mailbox_connect(body: ConnectIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     if cx.per_user_policy(db, actor.organization.id) == "off":
-        raise Conflict("Your organisation has switched off personal mailbox connections.")
+        raise Conflict("Your organization has switched off personal mailbox connections.")
     uc = cx.user_connection(db, actor.user, create=True)
     uc.mailbox = uc.mailbox or actor.user.email
     return {"url": cx.start_consent(db, settings, actor.user, uc, provider=body.provider, kind="user", next_path=body.next)}
@@ -337,7 +337,7 @@ def my_mailbox_connect(body: ConnectIn, actor: Actor = Depends(current_actor), d
 @router.post("/me/mailbox/decline")
 def my_mailbox_decline(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     if cx.per_user_policy(db, actor.organization.id) == "required":
-        raise Conflict("Your organisation asks everyone to connect their mailbox.")
+        raise Conflict("Your organization asks everyone to connect their mailbox.")
     uc = cx.user_connection(db, actor.user, create=True)
     if uc.status != "connected":
         uc.status = "declined"

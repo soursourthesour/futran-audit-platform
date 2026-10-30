@@ -56,7 +56,7 @@ export function TracingTab({ s }: { s: RegSystem }) {
   const p = q.data;
   const state = p?.state ?? s.history?.tracing.state ?? (s.history?.tracing.locked === false ? 'active' : 'locked');
   if (p && state === 'active') return <ActiveTracing s={s} p={p} />;
-  if (!p && state === 'active') return <Alert tone="info">The tracing module is active on this system. The AI Compliance Officer, the department's compliance lead and the AI Incident Response Lead use it.</Alert>;
+  if (!p && state === 'active') return <Alert tone="info">The tracing module is active on this system. The Chief AI Compliance Officer, the department's compliance lead and the AI Incident Response Lead use it.</Alert>;
   const t = p ?? { recommended: s.history?.tracing.recommended ?? false, reasons: s.history?.tracing.reasons ?? [], subscription: null, can_request: true, kept: { incidents: 0, traces: 0 } };
   return (
     <div className="stack">
@@ -81,7 +81,7 @@ export function TracingTab({ s }: { s: RegSystem }) {
           )}
           {state === 'locked' && (t.can_request
             ? <div className="row"><Button variant="primary" onClick={() => setUnlocking(true)}>Unlock for this system</Button></div>
-            : <p className="small" style={{ margin: 0 }}>Ask your AI Compliance Officer to request the module.</p>)}
+            : <p className="small" style={{ margin: 0 }}>Ask your Chief AI Compliance Officer to request the module.</p>)}
           {(t.kept.incidents > 0 || t.kept.traces > 0) && (
             <p className="small" style={{ margin: 0 }}>Kept from when the module was active: {t.kept.incidents} incident{t.kept.incidents === 1 ? '' : 's'} and {t.kept.traces} action{t.kept.traces === 1 ? '' : 's'}.{' '}
               <a href={`/api/v1/register/${s.id}/tracing/export?what=incidents`}>Export incidents</a> · <a href={`/api/v1/register/${s.id}/tracing/export?what=traces`}>Export actions</a></p>

@@ -56,7 +56,7 @@ export function RegisterHelp({ creds, who = 'futran' }: { creds: Credentials; wh
               <li>In Google Cloud, enable the Gmail API and the Admin SDK API, and configure the OAuth consent screen.</li>
               <li>Create an OAuth client of type Web application with the redirect URI <span className="mail-code">{g.redirect_uri}</span>.</li>
               <li>Add the scopes gmail.send, gmail.modify (restricted), admin.directory.user.readonly, admin.directory.group.readonly and admin.directory.group.member.readonly.</li>
-              <li>Set {g.missing.map((m, i) => <span key={m}>{i ? ' and ' : ''}<span className="mail-code">{m}</span></span>)} in the platform's .env. gmail.modify is restricted: Google must verify the app for outside organisations, unless each client's Workspace admin marks it as trusted.</li>
+              <li>Set {g.missing.map((m, i) => <span key={m}>{i ? ' and ' : ''}<span className="mail-code">{m}</span></span>)} in the platform's .env. gmail.modify is restricted: Google must verify the app for outside organizations, unless each client's Workspace admin marks it as trusted.</li>
             </ol>
           </div>
         )}

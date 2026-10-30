@@ -35,7 +35,8 @@ function SendAllDialog({ clientId, departments, onClose, onSent }: { clientId: s
     setBusy(true); setErr(null);
     try {
       const r = await api.post<{ recipients: number; status: string }>(`/clients/${clientId}/attestation/send-all`, body);
-      await qc.invalidateQueries({ queryKey: ['attestation', clientId] });
+      // the tracker and the Client Admin's send-only view both show the campaign
+      await Promise.all([qc.invalidateQueries({ queryKey: ['attestation', clientId] }), qc.invalidateQueries({ queryKey: ['attestation-send', clientId] })]);
       onSent(`Attestation sent to ${r.recipients.toLocaleString()} ${r.recipients === 1 ? 'employee' : 'employees'}, each with their own link. Reminders go only to people who have not answered.`);
     } catch (e) { setErr(errorMessage(e)); } finally { setBusy(false); }
   }

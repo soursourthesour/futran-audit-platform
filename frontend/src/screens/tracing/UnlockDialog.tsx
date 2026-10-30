@@ -45,7 +45,7 @@ export function UnlockDialog({ systemId, onClose, onSent }: { systemId?: string;
   return (
     <Dialog title="Unlock the tracing and incident module" onClose={onClose} large>
       {!d ? (q.isLoading ? <Loading /> : <Alert tone="danger">{errorMessage(q.error)}</Alert>) : !d.can_request ? (
-        <Alert tone="info">Your AI Compliance Officer or Client Admin asks for the add-on, and your Executive Sponsor approves it.</Alert>
+        <Alert tone="info">Your Chief AI Compliance Officer or Client Admin asks for the add-on, and your Executive Sponsor approves it.</Alert>
       ) : (
         <div className="stack">
           <p style={{ margin: 0 }}>Choose the AI systems to trace. Recommended ones are ticked: Tier 3 systems, agents that take actions, and systems with a past incident.</p>

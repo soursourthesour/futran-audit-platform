@@ -65,7 +65,7 @@ export function CompanyRoles() {
         </div>
       </section>
       <CommitteeCard c={cq.data} people={p.people} catalog={cat.data ?? []} onChanged={refresh} onFlash={setFlash} />
-      <p className="small muted" style={{ margin: 0 }}>The AI Compliance Officer sets and changes company-wide roles, marks a required role Not applicable with a reason, approves go-live and records the committee. The Client Admin adds people to the user list and the committee member list that feed every role list, and imports systems by CSV.</p>
+      <p className="small muted" style={{ margin: 0 }}>The Chief AI Compliance Officer sets and changes company-wide roles, marks a required role Not applicable with a reason, approves go-live and records the committee. The Client Admin adds people to the user list and the committee member list that feed every role list, and imports systems by CSV.</p>
       {editing && <RoleEditor s={null} row={{ role_id: editing.role_id, name: editing.name, description: editing.description, level: 'company', extra_checks: null, requirement: editing.applies_to > 0 ? 'required' : 'recommended', assignment: editing.assignment, inherited: false }}
         people={p.people} can={{ mark_na: p.can.mark_na }} url={`/governance/company-roles/${editing.role_id}`} onClose={() => setEditing(null)}
         onSaved={async () => { setEditing(null); await refresh(); setFlash({ tone: 'success', text: `${editing.name} saved. Every system that inherits it is updated.` }); }} />}

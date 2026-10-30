@@ -208,28 +208,34 @@ for (const [who, email] of [['QA Reviewer', 'qa@futran.demo'], ['Engagement Mana
   });
 }
 
-test('a deep link survives sign-in, the terms and the data notice; a foreign next is ignored', async ({ page }) => {
-  await page.context().clearCookies();
-  await page.goto('/inventory?tab=tools');
-  await expect(page).toHaveURL(/\/login\?next=/);
-  await page.getByLabel('Work email').fill('nina.patel@abccorp.example');
-  await page.getByLabel('Password').fill(PW);
-  await page.getByRole('button', { name: 'Sign in' }).click();
-  for (let i = 0; i < 4; i++) {
-    await page.waitForLoadState('networkidle');
-    const p = new URL(page.url()).pathname;
-    if (p.startsWith('/welcome/terms')) { await page.getByRole('checkbox', { name: /I accept the terms/ }).check(); await page.getByRole('button', { name: 'Accept and continue' }).click(); }
-    else if (p.startsWith('/welcome/notice')) { await page.getByRole('checkbox', { name: 'I have read and understand this notice.' }).check(); await page.getByRole('button', { name: 'Acknowledge and continue' }).click(); }
-    else if (p.startsWith('/welcome/mailbox')) { await page.getByRole('button', { name: 'Not now' }).click(); }
-    else break;
-    await page.waitForURL((u) => !u.pathname.startsWith(p));
+async function call(page: Page, method: 'POST' | 'PATCH', path: string, data?: unknown) {
+  const me = await (await page.request.get('/api/v1/auth/me')).json();
+  const r = await page.request.fetch(`/api/v1${path}`, { method, data, headers: { 'X-CSRF-Token': me.csrf_token } });
+  expect(r.status(), `${method} ${path}: ${await r.text()}`).toBe(200);
+}
+
+test('a deep link survives the mailbox step and the personal mailbox consent; a foreign next is ignored', async ({ page }) => {
+  await signIn(page, 'katrin.vogel@meridian.example');
+  await call(page, 'PATCH', '/mail/settings', { per_user_sync: 'required' });
+  try {
+    await signIn(page, 'lena.fischer@meridian.example');
+    await page.goto('/inventory?tab=tools');
+    await expect(page).toHaveURL(/\/welcome\/mailbox\?next=%2Finventory%3Ftab%3Dtools$/);
+    await page.getByRole('button', { name: /Connect Microsoft 365/ }).click();
+    await page.getByRole('button', { name: 'Accept' }).click();
+    await expect(page).toHaveURL(/\/welcome\/mailbox\?connected=1&next=/);
+    await page.getByRole('link', { name: 'Continue' }).click();
+    await expect(page).toHaveURL(/\/inventory\?tab=tools$/);
+    await call(page, 'POST', '/me/mailbox/disconnect');
+  } finally {
+    await signIn(page, 'katrin.vogel@meridian.example');
+    await call(page, 'PATCH', '/mail/settings', { per_user_sync: 'optional' });
   }
-  await expect(page).toHaveURL(/\/inventory\?tab=tools$/);
   // a next that leaves the site is not followed
   for (const bad of ['//evil.example/x', 'https://evil.example/x', '/\\evil.example']) {
     await page.context().clearCookies();
     await page.goto(`/login?next=${encodeURIComponent(bad)}`);
-    await page.getByLabel('Work email').fill('nina.patel@abccorp.example');
+    await page.getByLabel('Work email').fill('lena.fischer@meridian.example');
     await page.getByLabel('Password').fill(PW);
     await page.getByRole('button', { name: 'Sign in' }).click();
     await page.waitForLoadState('networkidle');
@@ -238,4 +244,125 @@ test('a deep link survives sign-in, the terms and the data notice; a foreign nex
     const notNow = page.getByRole('button', { name: 'Not now' });
     if (await notNow.count()) { await notNow.click(); await page.waitForLoadState('networkidle'); expect(page.url()).not.toContain('evil.example'); }
   }
+});
+
+/** Holds matching POSTs for a moment so a second click lands while the first is in flight; returns the count. */
+async function slowPosts(page: Page, pattern: RegExp) {
+  const seen = { n: 0 };
+  await page.route(pattern, async (route) => {
+    if (route.request().method() === 'POST') { seen.n += 1; await new Promise((r) => setTimeout(r, 800)); }
+    await route.continue();
+  });
+  return seen;
+}
+
+test('one click, one write: import from inventory, retire and create opportunities', async ({ page }) => {
+  await signIn(page, 'katrin.vogel@meridian.example');
+  await page.goto('/register');
+  const imp = await slowPosts(page, /\/api\/v1\/register\/import-inventory$/);
+  const importBtn = page.getByRole('button', { name: 'Import from inventory' });
+  if (await importBtn.count()) {
+    await importBtn.dblclick();
+    await expect(page.getByText(/added from the inventory as Proposed/)).toBeVisible();
+    expect(imp.n).toBe(1);
+  }
+  const me = await (await page.request.get('/api/v1/auth/me')).json();
+  const made = await page.request.post('/api/v1/register', { data: { name: `Retire me ${Date.now().toString(36)}`, type: 'vendor_app', sourcing: 'vendor', stage: 'proposed', purpose: 'Test row.', company_wide: true }, headers: { 'X-CSRF-Token': me.csrf_token } });
+  const row = await made.json();
+  await page.reload();
+  const ret = await slowPosts(page, /\/api\/v1\/register\/[^/]+\/retire$/);
+  await page.getByRole('button', { name: `Actions for ${row.name}` }).click();
+  await page.getByRole('menuitem', { name: 'Retire this system' }).click();
+  await page.getByRole('dialog').getByLabel('Reason *', { exact: true }).fill('No longer used.');
+  await page.getByRole('button', { name: 'Retire this system' }).dblclick();
+  await expect(page.getByRole('dialog')).toBeHidden();
+  expect(ret.n).toBe(1);
+  // litigation: assign one case to Sales
+  await signIn(page, 'chief@futran.demo', true);
+  await page.goto('/litigation');
+  const opp = await slowPosts(page, /\/api\/v1\/litigation\/(bulk-assign|[^/]+\/opportunities)$/);
+  const first = page.getByRole('button', { name: /^Actions for / }).first();
+  await first.click();
+  await page.getByRole('menuitem', { name: 'Create opportunity' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Assign to Sales' });
+  await dialog.getByLabel('Owner', { exact: true }).selectOption({ index: 1 });
+  await dialog.getByRole('button', { name: 'Create opportunities' }).dblclick();
+  await expect(dialog).toBeHidden();
+  expect(opp.n).toBe(1);
+});
+
+async function pillHeights(page: Page) {
+  return page.locator('main .pill').evaluateAll((ps) => ps.filter((p) => p.getBoundingClientRect().height > 0).map((p) => `${(p.textContent || '').trim()} ${Math.round(p.getBoundingClientRect().height)}`));
+}
+
+test('phone: pill tabs are 44 px; DPO documents and Futran users fit 375 px', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  const wide = () => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  await signIn(page, 'chief@futran.demo', true);
+  for (const path of ['/staff/alerts', '/reg/refresh']) {
+    await page.goto(path);
+    await expect(page.locator('main .pill').first()).toBeVisible();
+    for (const p of await pillHeights(page)) expect(Number(p.split(' ').pop()), `${path}: ${p}`).toBeGreaterThanOrEqual(44);
+  }
+  await signIn(page, 'qa@futran.demo', true);
+  await page.goto('/qa');
+  await page.waitForLoadState('networkidle');
+  for (const p of await pillHeights(page)) expect(Number(p.split(' ').pop()), `/qa: ${p}`).toBeGreaterThanOrEqual(44);
+  await signIn(page, 'admin@futran.demo', true);
+  await page.goto('/admin/users');
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  await page.waitForLoadState('networkidle');
+  expect(await wide(), '/admin/users scrolls sideways').toBeLessThanOrEqual(0);
+  await signIn(page, 'daniel.kim@abccorp.example');
+  await page.goto('/documents');
+  await expect(page.getByRole('heading', { level: 1, name: 'Documents' })).toBeVisible();
+  await page.waitForLoadState('networkidle');
+  expect(await wide(), '/documents scrolls sideways').toBeLessThanOrEqual(0);
+});
+
+test('register: suggested laws have their own 44 px Add buttons, and the copy names the Chief AI Compliance Officer', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await signIn(page, 'katrin.vogel@meridian.example');
+  const me = await (await page.request.get('/api/v1/auth/me')).json();
+  const made = await (await page.request.post('/api/v1/register', { data: { name: `Suggest ${Date.now().toString(36)}`, type: 'vendor_app', sourcing: 'vendor', stage: 'proposed', purpose: 'Screens applicants.', company_wide: true }, headers: { 'X-CSRF-Token': me.csrf_token } })).json();
+  await page.goto(`/register/${made.id}`);
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  await page.waitForLoadState('networkidle');
+  const adds = page.locator('.reg-chip-suggest button');
+  for (const b of await adds.evaluateAll((bs) => bs.map((x) => ({ h: x.getBoundingClientRect().height, name: x.getAttribute('aria-label') || '' })))) {
+    expect(b.h).toBeGreaterThanOrEqual(44);
+    expect(b.name).toMatch(/^Add .+/);
+  }
+  for (const path of [`/register/${made.id}`, '/register']) {
+    await page.goto(path);
+    await page.waitForLoadState('networkidle');
+    expect(await page.locator('main').innerText()).not.toMatch(/(?<!Chief )AI Compliance Officer/);
+  }
+});
+
+test('Contributor: no "Add a use case" once the inventory is locked', async ({ page }) => {
+  await signIn(page, 'tom.reyes@abccorp.example');  // ABC Corp is at stage 6: the inventory is locked
+  await page.goto('/my-tasks');
+  await expect(page.getByRole('heading', { level: 1, name: 'My tasks' })).toBeVisible();
+  await page.waitForLoadState('networkidle');
+  await expect(page.getByRole('link', { name: 'Add a use case' })).toHaveCount(0);
+});
+
+test('Sales: the case record names laws as text, without links to the regulatory master', async ({ page }) => {
+  await signIn(page, 'sales@futran.demo', true);
+  const list = await (await page.request.get('/api/v1/litigation')).json();
+  const withLaw = (list.cases ?? list.items ?? []).find((c: { regulation_ids?: string[] }) => (c.regulation_ids ?? []).length);
+  test.skip(!withLaw, 'no case linked to a law in this data');
+  await page.goto(`/litigation/${withLaw.id}`);
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  await page.waitForLoadState('networkidle');
+  await expect(page.locator('main a[href^="/reg/"]')).toHaveCount(0);
+  expect(await page.locator('main').innerText()).not.toMatch(/last checked \d{4}-\d{2}-\d{2}/);
+});
+
+test('help on a new input: the applicability geography search', async ({ page }) => {
+  await signIn(page, 'chief@futran.demo', true);
+  await page.goto(`/clients/${late().abc}/applicability`);
+  await page.getByRole('button', { name: 'Add a geography' }).click();
+  await expect(page.getByRole('dialog').getByRole('button', { name: 'About Search' })).toBeVisible();
 });

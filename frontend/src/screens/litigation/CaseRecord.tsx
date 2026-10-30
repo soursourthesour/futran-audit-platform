@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
-import { hasRole, useMe } from '@/api/auth';
-import { Alert, Badge, Button, Card, Loading, PageHeader } from '@/components/ui';
+import { can, hasRole, useMe } from '@/api/auth';
+import { Alert, Badge, Button, Card, Loading, PageHeader, fmtDate } from '@/components/ui';
 import { DataGrid, type GridColumn } from '@/components/ui/DataGrid';
 import { CaseForm } from './CaseForm';
 import { AssignDialog, TalkingPoints, stageBadge } from './Litigation';
@@ -27,7 +27,9 @@ export function CaseRecord() {
   if (!q.data) return <div className="page"><Alert tone="danger">This case was not found.</Alert></div>;
   const c = q.data;
   const refresh = () => qc.invalidateQueries({ queryKey: ['case', caseId] });
-  async function follow() { await api.post(`/litigation/${c.id}/${c.following ? 'unfollow' : 'follow'}`); await refresh(); }
+  async function follow() {
+    try { await api.post(`/litigation/${c.id}/${c.following ? 'unfollow' : 'follow'}`); await refresh(); } catch (e) { setMsg({ tone: 'danger', text: errorMessage(e) }); }
+  }
   async function briefing(orgs?: string[]) {
     try {
       const out = await api.post<{ queued: number }>(`/litigation/${c.id}/briefing`, { organization_ids: orgs ?? null });
@@ -77,16 +79,17 @@ export function CaseRecord() {
           <Card title="Sources"><ul className="tight">{c.sources.map((s, i) => <li key={i}><a href={s.url} target="_blank" rel="noreferrer noopener">{s.title}</a></li>)}</ul></Card>
           <Card title="Laws it interprets">
             {!c.regulation_ids.length ? <p className="small muted" style={{ margin: 0 }}>None linked.</p> : (
-              <ul className="tight">{(laws.data ?? []).filter(Boolean).map((l) => <li key={l!.id}><Link to={`/reg/${l!.id}`}>{l!.short_name}</Link> <span className="small muted">{l!.jurisdiction_name}</span></li>)}</ul>
+              <ul className="tight">{(laws.data ?? []).filter(Boolean).map((l) => <li key={l!.id}>{can(me, 'view_reg_master') ? <Link to={`/reg/${l!.id}`}>{l!.short_name}</Link> : <span>{l!.short_name}</span>} <span className="small muted">{l!.jurisdiction_name}</span></li>)}</ul>
             )}
           </Card>
-          <Card title="Record"><p className="small muted" style={{ margin: 0 }}>Version {c.version} · last checked {c.last_update_on ?? '—'} · {c.origin === 'claude' ? 'added from a Claude refresh' : c.origin === 'seed' ? 'starter case' : 'added by hand'}</p></Card>
+          <Card title="Record"><p className="small muted" style={{ margin: 0 }}>Version {c.version} · last checked {fmtDate(c.last_update_on)} · {c.origin === 'claude' ? 'added from a Claude refresh' : c.origin === 'seed' ? 'starter case' : 'added by hand'}</p></Card>
         </div>
       </div>
       {editing && <CaseForm initial={c} onClose={() => setEditing(false)} onSaved={() => { setEditing(false); refresh(); }} />}
       {assign && <AssignDialog onClose={() => setAssign(null)} onAssign={async (owner) => {
         const out = await api.post<{ created: number }>(`/litigation/${c.id}/opportunities`, { organization_ids: assign, owner_id: owner });
         setAssign(null);
+        await Promise.all([refresh(), qc.invalidateQueries({ queryKey: ['opportunities'] }), qc.invalidateQueries({ queryKey: ['litigation'] })]);
         setMsg({ tone: 'success', text: `${out.created} ${out.created === 1 ? 'opportunity' : 'opportunities'} created.` });
       }} />}
     </div>

@@ -301,7 +301,7 @@ def clean(db: Session, org: Organization, data: dict, current: RegisterSystem | 
     if errs:
         raise Invalid(errors=errs)
     if out.get("stage") == "live" and (current is None or current.stage != "live"):
-        raise Conflict("Live needs the AI Compliance Officer's approval. Use Submit for go-live approval.")
+        raise Conflict("Live needs the Chief AI Compliance Officer's approval. Use Submit for go-live approval.")
     return out
 
 
@@ -496,7 +496,7 @@ def remove_law(db: Session, actor: User, s: RegisterSystem, link: RegisterSystem
         after_laws_change(db, s)
     else:
         if link.status == "removal_pending":
-            raise Conflict("Removing this law is already waiting for the AI Compliance Officer.")
+            raise Conflict("Removing this law is already waiting for the Chief AI Compliance Officer.")
         link.status, link.removal_requested_by, link.removal_reason = "removal_pending", actor.id, reason
         log_change(db, actor, s, "laws", f"{name}", f"Asked to remove {name}", reason, entity="RegisterSystemLaw", entity_id=link.id, batch_id=batch_id, raw=True)
         audit.record(db, actor_id=actor.id, action="register.law_remove_request", obj=s, after={"regulation": name, "reason": reason}, summary=f"Asked to remove {name} from {s.reference} {s.name}")

@@ -36,7 +36,7 @@ export function TestConsent() {
       <Card>
         <div className="stack">
           <Alert tone="info">Test mode. This page stands in for the {i.provider_label} consent screen; no real account is used and no email leaves the platform.</Alert>
-          <h1 style={{ fontSize: 22, margin: 0 }}>{i.kind === 'admin' ? 'Approve access for your organisation' : 'Connect your mailbox'}</h1>
+          <h1 style={{ fontSize: 22, margin: 0 }}>{i.kind === 'admin' ? 'Approve access for your organization' : 'Connect your mailbox'}</h1>
           <p style={{ margin: 0 }}>The Futran Audit Platform{i.kind === 'admin' ? ` asks to act for ${i.organization}` : ' asks to send mail as you'} with these permissions:</p>
           <ul className="small" style={{ margin: 0 }}>{i.scopes.map((s) => <li key={s}><span className="mail-code">{s}</span></li>)}</ul>
           <TextField label={i.kind === 'admin' ? 'Mailbox the emails come from' : 'Your mailbox'} help={H.mailbox} type="email" value={mailbox || i.mailbox || ''} onChange={(e) => setMailbox(e.target.value)} />

@@ -21,13 +21,19 @@ export function AssignDialog({ onClose, onAssign }: { onClose: () => void; onAss
   const q = useQuery({ queryKey: ['opp-owners'], queryFn: () => api.get<{ owners: { id: string; name: string }[] }>('/opportunities') });
   const [owner, setOwner] = useState('');
   const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  async function go() {
+    if (busy) return;  // one click, one set of opportunities
+    setBusy(true); setErr(null);
+    try { await onAssign(owner); } catch (e) { setErr(errorMessage(e)); } finally { setBusy(false); }
+  }
   return (
     <Dialog title="Assign to Sales" onClose={onClose}>
       <div className="stack">
         {err && <Alert tone="danger">{err}</Alert>}
         <p className="small muted" style={{ margin: 0 }}>Creates an opportunity for each client using similar AI. For a current audit client, the Chief Auditor approves any offer first.</p>
         <SelectField label="Owner" help={H.owner} value={owner} onChange={(e) => setOwner(e.target.value)} options={(q.data?.owners ?? []).map((o) => ({ value: o.id, label: o.name }))} placeholder="Choose" />
-        <div className="row"><Button variant="primary" disabled={!owner} onClick={() => onAssign(owner).catch((e) => setErr(errorMessage(e)))}>Create opportunities</Button><Button onClick={onClose}>Cancel</Button></div>
+        <div className="row"><Button variant="primary" disabled={!owner || busy} onClick={go}>Create opportunities</Button><Button onClick={onClose}>Cancel</Button></div>
       </div>
     </Dialog>
   );

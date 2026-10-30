@@ -25,7 +25,7 @@ export function noteCell(r: Pick<RoleRow, 'status' | 'assignment' | 'inherited' 
   if (!a) return <span className="small muted">{r.due_for_gate ? 'Needed before go-live' : 'Not answered'}</span>;
   if (a.status === 'pending_committee') return <span className="small">{fmtDate(a.target_date)}</span>;
   if (a.status === 'not_applicable') return <span className="small">{a.reason}</span>;
-  if (a.status === 'no_such_person') return <span className="small reg-danger">{r.level === 'company' ? 'Ask the AI Compliance Officer to assign' : r.due_for_gate ? 'Blocks go-live; raises a finding if still empty when live' : 'Recorded as a gap'}</span>;
+  if (a.status === 'no_such_person') return <span className="small reg-danger">{r.level === 'company' ? 'Ask the Chief AI Compliance Officer to assign' : r.due_for_gate ? 'Blocks go-live; raises a finding if still empty when live' : 'Recorded as a gap'}</span>;
   return <span className="small">{a.override ? `Override: ${a.override_reason}` : a.backup_user ? `Backup: ${a.backup_user.name}` : a.notes ?? ''}</span>;
 }
 
@@ -66,7 +66,7 @@ export function RolesTab({ s, onChanged }: { s: RegSystem; onChanged: () => unkn
       </div>
       <p className="small muted" style={{ margin: 0 }}>Which roles are required, and by when, is worked out from the laws and the stage on this system.</p>
       <section className="card">
-        <div className="card-header"><h2>Company-wide roles</h2><span className="small muted">Set by the AI Compliance Officer, applied to every system</span></div>
+        <div className="card-header"><h2>Company-wide roles</h2><span className="small muted">Set by the Chief AI Compliance Officer, applied to every system</span></div>
         <div className="card-body">
           <DataGrid label="Company-wide roles" rows={company} rowId={(r) => r.role_id} rowLabel={(r) => r.name} columns={cols} emptyText="No company-wide role needs attention."
             rowActions={(r) => [{ label: p.can.company ? 'Override for this system' : 'Set under Governance roles', disabled: !p.can.company, onSelect: () => setEditing(r) }]} />
@@ -115,13 +115,13 @@ export function RoleEditor({ s, row, people, can, onClose, onSaved, url }: {
   }
   const statusText: Record<string, string> = {
     assigned: 'Pick from the company\'s users', external: 'A vendor, auditor or service provider', no_such_person: 'Recorded as a gap; blocks go-live for this role',
-    pending_committee: 'Pick the person once the committee is formed', not_applicable: naLocked ? 'Only the AI Compliance Officer can choose this for a required role' : 'Say why it does not apply',
+    pending_committee: 'Pick the person once the committee is formed', not_applicable: naLocked ? 'Only the Chief AI Compliance Officer can choose this for a required role' : 'Say why it does not apply',
   };
   return (
     <Dialog title={row.name} onClose={onClose} wide>
       <div className="stack">
         {row.description && <p className="small" style={{ margin: 0 }}>{row.description}</p>}
-        {override && <Alert tone="info">This role is set company-wide. Saving here overrides it for {s!.name} only. The AI Compliance Officer sees every override.</Alert>}
+        {override && <Alert tone="info">This role is set company-wide. Saving here overrides it for {s!.name} only. The Chief AI Compliance Officer sees every override.</Alert>}
         {err && <Alert tone="danger">{err}</Alert>}
         <FieldGroup legend="Is there such a person? *" help={H.status}>
           <div className="stack-sm">

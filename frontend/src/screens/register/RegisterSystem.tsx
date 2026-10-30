@@ -33,7 +33,7 @@ export function RegisterSystemPage({ tab }: { tab: Tab }) {
   const awaiting = s.stage === 'ready_for_go_live' && !!s.go_live.requested_at;
   async function submit() {
     setFlash(null);
-    try { await api.post(`/register/${s.id}/go-live/submit`); await refresh(); setFlash({ tone: 'success', text: 'Sent to the AI Compliance Officer for go-live approval.' }); }
+    try { await api.post(`/register/${s.id}/go-live/submit`); await refresh(); setFlash({ tone: 'success', text: 'Sent to the Chief AI Compliance Officer for go-live approval.' }); }
     catch (e) { setFlash({ tone: 'danger', text: errorMessage(e) }); }
   }
   const gaps = s.roles.no_such_person + s.roles.pending_committee + (s.stage !== 'proposed' ? s.roles.not_answered : 0);
@@ -62,7 +62,7 @@ export function RegisterSystemPage({ tab }: { tab: Tab }) {
           {awaiting && s.can_approve_go_live && <Button variant="primary" onClick={() => setDeciding(true)}>Review go-live</Button>}
         </>} />
       {flash && <Alert tone={flash.tone}>{flash.text}</Alert>}
-      {awaiting && <Alert tone="info">Submitted for go-live approval by {s.go_live.requested_by?.name ?? 'a Department Head'} on {fmtDateTime(s.go_live.requested_at)}. The AI Compliance Officer approves it.</Alert>}
+      {awaiting && <Alert tone="info">Submitted for go-live approval by {s.go_live.requested_by?.name ?? 'a Department Head'} on {fmtDateTime(s.go_live.requested_at)}. The Chief AI Compliance Officer approves it.</Alert>}
       {(s.gate.state === 'blocked' || s.gate.state === 'live_finding') && tab !== 'roles' && (
         <Alert tone="danger">
           <strong>{s.gate.state === 'blocked' ? 'Go-live blocked' : 'Live with gaps: the auditor will raise a finding'}:</strong> {[...s.gate.roles, ...s.gate.requirements].join('; ')}.
@@ -124,7 +124,7 @@ function DetailsTab({ s, d, onSaved }: { s: RegSystem; d: Register; onSaved: (m:
   const props = { f, set: setF, fe, d, disabled: ro, editing: true };
   return (
     <div className="stack">
-      {ro && <Alert tone="info">{s.company_wide ? 'Company-wide tool, managed by the AI Compliance Officer. You can read it but not change it.' : 'You can read this system but not change it.'}</Alert>}
+      {ro && <Alert tone="info">{s.company_wide ? 'Company-wide tool, managed by the Chief AI Compliance Officer. You can read it but not change it.' : 'You can read this system but not change it.'}</Alert>}
       {err && <Alert tone="danger">{err}</Alert>}
       <WhatItIs {...props} n={1} />
       <VendorModel {...props} n={2} />
@@ -172,7 +172,7 @@ function LawsCard({ s, n, f, set, fe, ro, onChanged }: { s: RegSystem; n: number
             </span>
           ))}
           {(s.suggested_laws ?? []).map((l) => (
-            <span key={l.regulation_id} className="chip reg-chip-suggest" title={l.reason ?? undefined}>Suggested: {l.short_name}{s.can_add_law && !ro && <button type="button" className="linklike small" onClick={() => add(l.regulation_id)}>Add</button>}</span>
+            <span key={l.regulation_id} className="chip reg-chip-suggest" title={l.reason ?? undefined}>Suggested: {l.short_name}{s.can_add_law && !ro && <button type="button" className="linklike small reg-chip-add" aria-label={`Add ${l.short_name}`} onClick={() => add(l.regulation_id)}>Add</button>}</span>
           ))}
         </div>
         <p className="small muted" style={{ margin: 0 }}>Suggested from the company's locations and the laws found in scope for it.</p>
@@ -183,7 +183,7 @@ function LawsCard({ s, n, f, set, fe, ro, onChanged }: { s: RegSystem; n: number
       {removing && (
         <Dialog title={`Remove ${removing.short_name}`} onClose={() => setRemoving(null)}>
           <div className="stack">
-            {!s.can_remove_law && <p style={{ margin: 0 }}>Removing a law needs the AI Compliance Officer's approval. The law stays on the system until then.</p>}
+            {!s.can_remove_law && <p style={{ margin: 0 }}>Removing a law needs the Chief AI Compliance Officer's approval. The law stays on the system until then.</p>}
             <TextArea label="Why it no longer applies *" help={H.removeLaw} value={reason} onChange={(e) => setReason(e.target.value)} />
             <div className="row"><Button variant="danger" onClick={remove}>{s.can_remove_law ? 'Remove the law' : 'Ask to remove'}</Button><Button onClick={() => setRemoving(null)}>Cancel</Button></div>
           </div>

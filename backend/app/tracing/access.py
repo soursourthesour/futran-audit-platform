@@ -67,7 +67,7 @@ def check(db: Session, actor: Actor, action: Action, s: RegisterSystem) -> None:
     org = client_org(actor)
     try:
         if s.company_wide and departments_for(actor, action) is not None:
-            raise Forbidden("Company-wide tools are handled by the AI Compliance Officer.")
+            raise Forbidden("Company-wide tools are handled by the Chief AI Compliance Officer.")
         authorize(db, actor, action, org_id=org.id, department_id=s.department_id)
     except Forbidden:
         if action in LEAD_ACTIONS and is_incident_lead(db, actor, s):

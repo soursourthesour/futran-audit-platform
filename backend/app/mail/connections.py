@@ -148,7 +148,7 @@ def complete_consent(db: Session, settings: Settings, provider: str, params: dic
     holder.tenant_id = grant.get("tenant") or holder.tenant_id
     holder.domain = (holder.mailbox_address.split("@", 1)[1] if holder.mailbox_address and "@" in holder.mailbox_address else (domains[0] if domains else None))
     holder.scopes, holder.status, holder.consent_at, holder.last_error = adapter.scopes(data["k"]), "connected", now, None
-    holder.consent_by = grant.get("mailbox") or "the organisation's IT administrator"
+    holder.consent_by = grant.get("mailbox") or "the organization's IT administrator"
     tokens.store(settings, holder, grant)
     domain_check(db, settings, holder)
     org = db.get(Organization, holder.organization_id)

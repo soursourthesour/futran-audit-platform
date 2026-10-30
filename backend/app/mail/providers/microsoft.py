@@ -60,7 +60,7 @@ class MicrosoftGraphAdapter:
                 # The tenant in the response is not trusted on its own: getting an app token for it proves consent.
                 g = Grant({"kind": "app", "tenant": tenant})
                 self._app_token(c, g)
-                org = request(c, "GET", f"{GRAPH}/organization", "Reading the organisation", headers=self._auth(g)).json().get("value", [{}])
+                org = request(c, "GET", f"{GRAPH}/organization", "Reading the organization", headers=self._auth(g)).json().get("value", [{}])
                 o = org[0] if org else {}
                 g["display_name"] = o.get("displayName")
                 g["domains"] = [d["name"] for d in o.get("verifiedDomains", []) if d.get("name")]

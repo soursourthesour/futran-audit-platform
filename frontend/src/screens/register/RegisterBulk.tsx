@@ -102,7 +102,7 @@ export function BulkEdit({ mode, rows, people, departments, onClose, onDone }: {
               </div>
               <SelectField label="Remove a law from all selected" help={H.removeLaw} value={removeLaw} onChange={(e) => setRemoveLaw(e.target.value)} placeholder="None" options={currentLaws} />
             </div>
-            <p className="small muted" style={{ margin: 0 }}>Adding a law recalculates the required roles for each system. Removing a law needs the AI Compliance Officer's approval.</p>
+            <p className="small muted" style={{ margin: 0 }}>Adding a law recalculates the required roles for each system. Removing a law needs the Chief AI Compliance Officer's approval.</p>
           </FieldGroup>
         )}
         {show('roles') && (

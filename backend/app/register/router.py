@@ -52,7 +52,7 @@ def check(db: Session, actor: Actor, action: Action, s: RegisterSystem | None = 
     org = client_org(actor)
     dept = s.department_id if s is not None else department_id
     if s is not None and s.company_wide and departments_for(actor, action) is not None:
-        raise Forbidden("Company-wide tools are managed by the AI Compliance Officer.")
+        raise Forbidden("Company-wide tools are managed by the Chief AI Compliance Officer.")
     authorize(db, actor, action, org_id=org.id, department_id=dept)
 
 
@@ -75,7 +75,7 @@ def check_edit_payload(db: Session, actor: Actor, data: dict, s: RegisterSystem 
     if "department_id" in data and data.get("department_id") and (s is None or data["department_id"] != s.department_id):
         check(db, actor, Action.EDIT_REGISTER, department_id=data["department_id"])
     if data.get("company_wide") and departments_for(actor, Action.EDIT_REGISTER) is not None:
-        raise Forbidden("Only the AI Compliance Officer or Client Admin can mark a tool company-wide.")
+        raise Forbidden("Only the Chief AI Compliance Officer or Client Admin can mark a tool company-wide.")
 
 
 def kpis(db: Session, rows: list[dict]) -> dict:

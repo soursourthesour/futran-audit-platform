@@ -267,7 +267,7 @@ function GroupEditor({ id, list, owner, clientId, onClose, onSaved, onOpen }: { 
             options={list.directory_groups.map((x) => ({ value: x.id, label: `${x.name} (${x.member_count})` }))} />
         )}
         {!isFutran && (isNew ? (
-          <SelectField label="Department" help={H.groupDepartment} value={draft.department_id} onChange={(e) => set({ department_id: e.target.value })} placeholder={leadOnly ? undefined : 'Whole organisation'}
+          <SelectField label="Department" help={H.groupDepartment} value={draft.department_id} onChange={(e) => set({ department_id: e.target.value })} placeholder={leadOnly ? undefined : 'Whole organization'}
             options={list.departments.filter((x) => !leadOnly || list.my_departments?.includes(x.id)).map((x) => ({ value: x.id, label: x.name }))} />
         ) : g?.department ? <p className="small muted" style={{ margin: 0 }}>Department group: {g.department}</p> : null)}
         <TextField label="Used by" help={H.usedBy} value={draft.used_by} onChange={(e) => set({ used_by: e.target.value })} disabled={!editable} />

@@ -18,7 +18,7 @@ async function connect(provider: string, next?: string | null) {
   goToConsent(r.url);
 }
 
-/** Inside both shells: sends people whose organisation requires it to connect their mailbox, and offers it once to
+/** Inside both shells: sends people whose organization requires it to connect their mailbox, and offers it once to
  *  everyone else (spec §27.1). */
 export function MailboxGate() {
   const loc = useLocation();
@@ -71,10 +71,10 @@ export function MailboxPrompt() {
               <p style={{ margin: 0 }}>{m?.policy === 'required' ? `${me.organization.name} asks everyone to connect their work mailbox before continuing.` : 'You can connect your work mailbox now or later.'} Emails you send from the platform then come from your own address, and replies come back into the platform.</p>
               <ul className="small" style={{ margin: 0 }}>
                 <li>Only email threads the platform started are read. The rest of your mailbox is never read.</li>
-                <li>You can disconnect at any time, and the connection ends automatically if you leave the organisation.</li>
+                <li>You can disconnect at any time, and the connection ends automatically if you leave the organization.</li>
               </ul>
               {err && <Alert tone="danger">{err}</Alert>}
-              {providers.length === 0 && <Alert tone="warn">Mailbox connection is not set up on this platform yet. Your emails come from your organisation's mailbox meanwhile.</Alert>}
+              {providers.length === 0 && <Alert tone="warn">Mailbox connection is not set up on this platform yet. Your emails come from your organization's mailbox meanwhile.</Alert>}
               <div className="row" style={{ flexWrap: 'wrap' }}>
                 {providers.map((p) => <Button key={p} variant={p === (m?.suggested_provider ?? 'microsoft365') ? 'primary' : 'default'} onClick={async () => { try { await connect(p, safeNext(params.get('next'))); } catch (e) { setErr(errorMessage(e)); } }}>Connect {PROVIDER_LABEL[p]}</Button>)}
                 {m?.policy !== 'required' && <Button variant="ghost" onClick={async () => { try { await api.post('/me/mailbox/decline'); await qc.invalidateQueries({ queryKey: ['my-mailbox'] }); window.location.assign(next); } catch (e) { setErr(errorMessage(e)); } }}>Not now</Button>}
