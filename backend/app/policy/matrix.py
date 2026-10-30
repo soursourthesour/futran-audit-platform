@@ -34,6 +34,7 @@ _FUTRAN_TEAM_VIEW = {
     A.VIEW_FINAL_REPORT: S.ASSIGNED,
     A.VIEW_FINDINGS_RESPONSES: S.ASSIGNED,
     A.VIEW_ATTESTATION_AGGREGATES: S.ASSIGNED,
+    A.VIEW_REGISTER: S.ASSIGNED,  # read-only, beside the audit system it feeds
 }
 
 MATRIX: dict[R, dict[A, S]] = {
@@ -65,6 +66,7 @@ MATRIX: dict[R, dict[A, S]] = {
         A.SIGN_DECLARATION: S.ALL,
         A.MANAGE_SYSTEMS: S.ALL,
         A.ADVANCE_STAGE: S.ALL,
+        A.VIEW_REGISTER: S.ALL,
     },
     R.ADMIN: {
         A.MANAGE_FUTRAN_USERS: S.ALL,
@@ -141,6 +143,20 @@ MATRIX: dict[R, dict[A, S]] = {
         A.UPLOAD_REQUESTED_DOCUMENT: S.ORG,
         A.SIGN_DECLARATION: S.ORG,
         A.SIGN_CLIENT_SIGNOFF: S.ORG,
+        # register (§24.7): the AI Compliance Officer
+        A.VIEW_REGISTER: S.ORG,
+        A.EDIT_REGISTER: S.ORG,
+        A.IMPORT_INVENTORY_TO_REGISTER: S.ORG,
+        A.ADD_SYSTEM_LAW: S.ORG,
+        A.REMOVE_SYSTEM_LAW: S.ORG,
+        A.FILL_SYSTEM_ROLES: S.ORG,
+        A.SET_COMPANY_ROLES: S.ORG,
+        A.MARK_REQUIRED_ROLE_NA: S.ORG,
+        A.SUBMIT_GO_LIVE: S.ORG,
+        A.APPROVE_GO_LIVE: S.ORG,
+        A.MANAGE_COMMITTEE_MEMBERS: S.ORG,
+        A.RECORD_COMMITTEE: S.ORG,
+        A.RECORD_SYSTEM_HISTORY: S.ORG,
     },
     R.CLIENT_ADMIN: {
         A.VIEW_ENGAGEMENT: S.ORG,
@@ -148,6 +164,11 @@ MATRIX: dict[R, dict[A, S]] = {
         A.VIEW_CLIENT_USERS: S.ORG,
         A.SEND_ATTESTATION: S.ORG,
         A.COMPLETE_OWN_ATTESTATION: S.ORG,
+        # register (§24.7): all systems, import, the user and committee lists; no roles, laws or go-live
+        A.VIEW_REGISTER: S.ORG,
+        A.EDIT_REGISTER: S.ORG,
+        A.IMPORT_INVENTORY_TO_REGISTER: S.ORG,
+        A.MANAGE_COMMITTEE_MEMBERS: S.ORG,
     },
     R.EXEC_SPONSOR: {
         A.VIEW_ENGAGEMENT: S.ORG,
@@ -195,6 +216,13 @@ MATRIX: dict[R, dict[A, S]] = {
         A.UPLOAD_REQUESTED_DOCUMENT: S.DEPT,
         A.SIGN_CLIENT_SIGNOFF: S.DEPT,
         A.COMPLETE_OWN_ATTESTATION: S.ORG,  # one's own line item, whatever the department
+        # register (§24.7, "Dept Head"): own department; laws add only; submits for go-live
+        A.VIEW_REGISTER: S.DEPT,
+        A.EDIT_REGISTER: S.DEPT,
+        A.ADD_SYSTEM_LAW: S.DEPT,
+        A.FILL_SYSTEM_ROLES: S.DEPT,
+        A.SUBMIT_GO_LIVE: S.DEPT,
+        A.RECORD_SYSTEM_HISTORY: S.DEPT,
     },
     R.CONTRIBUTOR: {
         A.VIEW_ENGAGEMENT: S.ORG,

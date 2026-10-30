@@ -57,3 +57,17 @@ class Action(StrEnum):
     SEND_ATTESTATION = "send_attestation"  # give every client user with a login an attestation line item
     COMPLETE_OWN_ATTESTATION = "complete_own_attestation"  # see and answer one's own line item
     MANAGE_ATTESTATION_ANSWERS = "manage_attestation_answers"  # mark reviewed, correct, remove individual answers
+    # AI system register and governance roles (spec §24.7, §27.2)
+    VIEW_REGISTER = "view_register"
+    EDIT_REGISTER = "edit_register"  # add, edit, bulk edit and CSV import within scope
+    IMPORT_INVENTORY_TO_REGISTER = "import_inventory_to_register"
+    ADD_SYSTEM_LAW = "add_system_law"
+    REMOVE_SYSTEM_LAW = "remove_system_law"  # removes directly and approves removals others ask for
+    FILL_SYSTEM_ROLES = "fill_system_roles"
+    SET_COMPANY_ROLES = "set_company_roles"
+    MARK_REQUIRED_ROLE_NA = "mark_required_role_na"
+    SUBMIT_GO_LIVE = "submit_go_live"
+    APPROVE_GO_LIVE = "approve_go_live"
+    MANAGE_COMMITTEE_MEMBERS = "manage_committee_members"
+    RECORD_COMMITTEE = "record_committee"
+    RECORD_SYSTEM_HISTORY = "record_system_history"

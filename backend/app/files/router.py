@@ -79,8 +79,15 @@ def _governance_access(db: Session, actor: Actor, f: FileObject) -> None:
     authorize(db, actor, Action.VIEW_GOVERNANCE, engagement_id=f.engagement_id)
 
 
+def _register_access(db: Session, actor: Actor, f: FileObject) -> None:
+    from app.register.router import file_access
+
+    file_access(db, actor, f)
+
+
 FILE_ACCESS = {
     "governance_document": _governance_access,
+    "register_evidence": _register_access,
     "package_document": _package_document_access,
     "evidence": _evidence_access,
 }
