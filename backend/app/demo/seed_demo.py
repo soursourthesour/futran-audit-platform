@@ -793,6 +793,10 @@ def run(db: Session, settings, client: TestClient | None = None) -> dict:
         out["northwind"] = northwind_pending(m)
         out["meridian"] = meridian(m)
         out["internal"] = internal(m)
+        from app.auth.passwords import hash_password
+        from app.demo.wsd import seed_wsd
+
+        out["litigation"] = seed_wsd(db, hash_password(DEMO_PASSWORD))  # v0.6 WS-D
     finally:
         client.cookies.clear()
         if own:

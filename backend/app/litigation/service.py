@@ -41,6 +41,11 @@ def system_matches(rule: dict, system: RegisterSystem, vendor_name: str | None) 
         if hit is None:
             return None
         why.append(f"vendor {vendor_name}")
+    impacts = set(rule.get("decision_impact") or [])
+    if impacts:
+        if system.decision_impact not in impacts:
+            return None
+        why.append("makes consequential decisions" if system.decision_impact == "consequential" else f"decision impact {system.decision_impact}")
     uses = _terms(rule.get("uses"))
     if uses:
         text = f"{system.name} {system.purpose or ''}".casefold()

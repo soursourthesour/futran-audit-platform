@@ -126,3 +126,23 @@ def test_sales_sees_matches_without_audit_detail(client, db, lit):
     abc = next(m for m in out["matches"] if m["organization_name"] == "ABC Corp")
     assert set(abc["systems"][0]) <= {"id", "name", "type", "type_label", "stage"}
     assert db.scalars(select(CaseClientMatch)).all()
+
+
+def test_decision_impact_narrows_the_match(db, lit):
+    case = Case(name="Challenge to an AI law", area="Challenges to AI laws", stage="stayed", match_rule={"decision_impact": ["consequential"]}, created_by=lit["chief"].id)
+    db.add(case)
+    db.flush()
+    ids = {sid for m in match_case(db, case) for sid in m.ai_system_ids}
+    assert ids == {lit["screening"].id}
+
+
+def test_seeded_cases_are_real_and_cited(db, matrix):
+    from app.litigation.seed import CASES, seed_cases
+
+    seed_cases(db)
+    rows = db.scalars(select(Case)).all()
+    assert len(rows) == len(CASES) >= 8
+    for c in rows:
+        assert c.sources and all(s["url"].startswith("https://") for s in c.sources), c.name
+        assert c.court and c.stage and c.match_rule, c.name
+    assert seed_cases(db) == 0  # idempotent

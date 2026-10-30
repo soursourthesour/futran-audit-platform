@@ -35,6 +35,7 @@ class MatchRuleIn(BaseModel):
     sourcing: list[str] = []
     vendors: list[str] = []
     uses: list[str] = []
+    decision_impact: list[str] = []
 
 
 class CaseIn(BaseModel):

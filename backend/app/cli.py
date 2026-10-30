@@ -140,6 +140,9 @@ def cmd_seed_e2e(args) -> int:
         u.password_hash = hash_password(DEMO_PASSWORD)
         u.status = "active"
         assign_role(db, u, role)
+    from app.demo.wsd import seed_wsd  # v0.6 WS-D: Sales Team, QA Reviewer, litigation cases, one register client
+
+    seed_wsd(db, hash_password(DEMO_PASSWORD), with_client=True)
     db.commit()
     print("e2e users ready")
     return 0

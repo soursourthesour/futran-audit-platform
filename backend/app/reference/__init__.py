@@ -66,3 +66,12 @@ LOADERS: list[tuple[str, Callable[[Session], str]]] = [
     ("Question bank", _question_bank),
     ("Regulatory master (roles, sources, cited requirements)", _regmaster),
 ]
+
+
+def _court_sources(db: Session) -> str:
+    from app.litigation.seed import seed_court_sources
+
+    return f"{seed_court_sources(db)} court sources added to the allowlist"
+
+
+LOADERS.append(("Litigation tracker court sources", _court_sources))  # v0.6 WS-D
