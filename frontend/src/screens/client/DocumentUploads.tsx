@@ -41,7 +41,7 @@ function EvidenceItem({ r, onDone }: { r: EvidenceReq; onDone: () => void }) {
         <Badge tone={done ? 'success' : r.overdue ? 'danger' : 'warn'}>{done ? (r.status === 'waived' ? 'No longer needed' : 'Sent') : `Due ${fmtDate(r.due_date)}`}</Badge>
       </div>
       {err && <Alert tone="danger">{err}</Alert>}
-      {r.files.length > 0 && <div className="small">{r.files.map((f) => <a key={f.id} href={fileUrl(f.id)} style={{ marginRight: 8 }}>{f.filename}</a>)}</div>}
+      {r.files.length > 0 && <div className="small">{r.files.map((f) => <a key={f.id} className="file-link" href={fileUrl(f.id)} style={{ marginRight: 8 }}>{f.filename}</a>)}</div>}
       {r.status !== 'waived' && (
         <>
           <TextArea label="Answer (if there is no document)" help={H.evidenceAnswer} value={text} onChange={(e) => setText(e.target.value)} />

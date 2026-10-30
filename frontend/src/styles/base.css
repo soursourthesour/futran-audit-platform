@@ -86,6 +86,16 @@ legend { font-size: 14px; font-weight: 600; margin-bottom: 6px; padding: 0; }
 
 /* Tables */
 .table-wrap { overflow-x: auto; }
+.file-link, td.break { overflow-wrap: anywhere; }  /* long file names and addresses wrap instead of widening the page */
+/* Tables that become one block per row on a phone, each value labelled (Users and others) */
+@media (max-width: 600px) {
+  .stack-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .stack-table, .stack-table tbody, .stack-table tr, .stack-table td { display: block; width: 100%; }
+  .stack-table tr { padding: 10px 0; border-top: 1px solid var(--line-soft); }
+  .stack-table tr:first-child { border-top: 0; }
+  .stack-table td { border: 0 !important; padding: 2px 0 !important; white-space: normal; }
+  .stack-table td[data-label]::before { content: attr(data-label) ': '; color: var(--muted); }
+}
 table.table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .table th { text-align: left; font-weight: 600; color: var(--muted); font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.4px; padding: 12px 16px; border-bottom: 1px solid var(--line); white-space: nowrap; }
 .table td { padding: 14px 16px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
@@ -268,6 +278,8 @@ table.table { width: 100%; border-collapse: collapse; font-size: 14px; }
 @media (max-width: 600px), (pointer: coarse) {
   .shell-nav a, .shell-user button { min-height: 44px; }  /* header links and buttons: 44 px touch targets on phones */
   .btn-sm { min-height: 44px; }  /* small buttons keep a 44 px touch target on phones */
+  .pill { min-height: 44px; }  /* segmented tabs and answer pills */
+  .reg-chip-add { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; }
   .field-help-btn { width: 44px; height: 44px; margin: -10px -10px -10px -8px; }
   .check-row .field-help-btn { margin: -10px -10px -10px -8px; }
   .check-row > .field-help { margin-top: 9px; }

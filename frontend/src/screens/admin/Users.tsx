@@ -79,16 +79,16 @@ export function UsersAdmin() {
       <section className="card">
         {q.isLoading ? <Loading /> : (
           <div className="table-wrap">
-            <table className="table">
+            <table className="table stack-table">
               <thead><tr><th>Name</th><th>Email</th><th>Roles</th><th>Status</th><th>Sign-in codes</th>{canManage && <th><span className="sr-only">Actions</span></th>}</tr></thead>
               <tbody>
                 {q.data?.map((u) => (
                   <tr key={u.id}>
                     <td><strong>{u.name}</strong>{u.job_title && <div className="small muted">{u.job_title}</div>}</td>
-                    <td>{u.email}</td>
-                    <td>{u.role_labels.join(', ')}</td>
-                    <td>{u.status === 'active' ? <Badge tone="success">Active</Badge> : u.status === 'invited' ? <Badge tone="warn">Invited</Badge> : <Badge tone="muted">Disabled</Badge>}</td>
-                    <td>{u.mfa_enabled ? 'On' : 'Not set up'}</td>
+                    <td data-label="Email" className="break">{u.email}</td>
+                    <td data-label="Roles">{u.role_labels.join(', ')}</td>
+                    <td data-label="Status">{u.status === 'active' ? <Badge tone="success">Active</Badge> : u.status === 'invited' ? <Badge tone="warn">Invited</Badge> : <Badge tone="muted">Disabled</Badge>}</td>
+                    <td data-label="Sign-in codes">{u.mfa_enabled ? 'On' : 'Not set up'}</td>
                     {canManage && (
                       <td>
                         <div className="row">

@@ -96,7 +96,7 @@ function Category({ title, rows, onChase }: { title: string; rows: DocRequest[];
       <tr><th colSpan={7} style={{ background: 'var(--bg, #f5f7fa)' }}>{title}</th></tr>
       {rows.map((r) => (
         <tr key={r.id}>
-          <td>{r.title}{r.files.length > 0 && <div className="small">{r.files.map((f) => <a key={f.id} href={fileUrl(f.id)} style={{ marginRight: 8 }}>{f.filename}</a>)}</div>}{r.not_available_note && <div className="small muted">Client: {r.not_available_note}</div>}</td>
+          <td>{r.title}{r.files.length > 0 && <div className="small">{r.files.map((f) => <a key={f.id} className="file-link" href={fileUrl(f.id)} style={{ marginRight: 8 }}>{f.filename}</a>)}</div>}{r.not_available_note && <div className="small muted">Client: {r.not_available_note}</div>}</td>
           <td>{r.system_ref ?? '—'}</td>
           <td>{r.received_at ? fmtDate(r.received_at) : '—'}</td>
           <td><Badge tone={r.escalate ? 'danger' : STATUS[r.status].tone}>{STATUS[r.status].label}{r.escalate ? ' · escalate' : ''}</Badge></td>
@@ -136,7 +136,7 @@ export function DocumentUploadsList({ rows, onDone }: { rows: DocRequest[]; onDo
                   <div style={{ flex: 1, minWidth: 240 }}>
                     <strong>{r.title}</strong>{r.system && <span className="small muted"> · {r.system}</span>}
                     {r.description && <div className="small muted">{r.description}</div>}
-                    {r.files.length > 0 && <div className="small">{r.files.map((f) => <a key={f.id} href={fileUrl(f.id)} style={{ marginRight: 8 }}>{f.filename}</a>)}</div>}
+                    {r.files.length > 0 && <div className="small">{r.files.map((f) => <a key={f.id} className="file-link" href={fileUrl(f.id)} style={{ marginRight: 8 }}>{f.filename}</a>)}</div>}
                   </div>
                   <div className="row" style={{ gap: 8, alignItems: 'center' }}>
                     <Badge tone={STATUS[r.status].tone}>{STATUS[r.status].label}</Badge>
