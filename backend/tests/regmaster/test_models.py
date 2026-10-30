@@ -182,3 +182,18 @@ def test_migration_corrects_not_yet_in_force_versions(tmp_path):
     _alembic(url, "head")  # idempotent
     c = sqlite3.connect(path)
     assert c.execute("select id, status from law_versions order by id").fetchall() == [("v1", "pending"), ("v2", "in_force"), ("v3", "in_force")]
+
+
+def test_migration_switches_off_schedules_nobody_turned_on(tmp_path):
+    path = tmp_path / "rs.db"
+    url = f"sqlite:///{path}"
+    _alembic(url, "c4e8f2b61d07")
+    c = sqlite3.connect(path)
+    row = "insert into refresh_settings (id, kind, schedule_enabled, every_days, scope_mode, jurisdiction_ids, checks, source_set, cost_cap_usd, updated_by, updated_at) values (?, ?, 1, 14, 'all', '[]', '[]', 'official', 5.0, ?, '2026-10-01')"
+    c.execute(row, ("s1", "law", None))  # made by default when the screen first opened
+    c.execute(row, ("s2", "litigation", "chief-1"))  # saved by the Chief Auditor
+    c.commit()
+    c.close()
+    _alembic(url, "head")
+    c = sqlite3.connect(path)
+    assert c.execute("select kind, schedule_enabled from refresh_settings order by kind").fetchall() == [("law", 0), ("litigation", 1)]

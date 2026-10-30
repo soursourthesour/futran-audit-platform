@@ -8,9 +8,24 @@ from app.refresh.models import RefreshRun
 from app.refresh.pipeline import get_run_setting
 
 
+def _switch_on(db):
+    for kind in ("law", "litigation"):
+        s = get_run_setting(db, kind)
+        s.schedule_enabled, s.updated_by = True, "chief"
+
+
+def test_schedule_is_off_until_the_chief_auditor_turns_it_on(db, lit, reg, settings, monkeypatch):
+    """A laptop with an API key must not start paid runs that nobody asked for."""
+    monkeypatch.setattr(schedule, "CLIENT_FACTORY", lambda s: FakeRefreshClient({}))
+    assert get_run_setting(db, "law").schedule_enabled is False and get_run_setting(db, "litigation").schedule_enabled is False
+    assert schedule.run_scheduled(db, settings, utcnow(), background=False) == 0
+    assert db.query(RefreshRun).count() == 0
+
+
 def test_schedule_runs_when_due_and_not_again_before_the_interval(db, lit, reg, settings, monkeypatch):
     calls = []
     monkeypatch.setattr(schedule, "CLIENT_FACTORY", lambda s: FakeRefreshClient({}, calls=calls))
+    _switch_on(db)
     now = utcnow()
     out = schedule.run_scheduled(db, settings, now, background=False)
     assert out == 2  # law and litigation

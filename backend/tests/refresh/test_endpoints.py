@@ -54,9 +54,9 @@ def test_litigation_runs_need_the_litigation_permission(client, db, lit, reg):
 def test_run_settings_and_schedule(client, db, lit, reg):
     login_as(client, db, lit["chief"])
     s = client.get("/api/v1/admin/laws/refresh-settings/law").json()
-    assert s["every_days"] == 14 and s["schedule_enabled"] is True and s["checks"] == ["new_laws", "amendments", "rules_guidance", "enforcement"]
-    r = client.put("/api/v1/admin/laws/refresh-settings/law", json={"every_days": 7, "cost_cap_usd": 2.5, "source_set": "with_secondary"})
-    assert r.status_code == 200 and r.json()["every_days"] == 7
+    assert s["every_days"] == 14 and s["schedule_enabled"] is False and s["checks"] == ["new_laws", "amendments", "rules_guidance", "enforcement"]  # off until turned on
+    r = client.put("/api/v1/admin/laws/refresh-settings/law", json={"schedule_enabled": True, "every_days": 7, "cost_cap_usd": 2.5, "source_set": "with_secondary"})
+    assert r.status_code == 200 and r.json()["every_days"] == 7 and r.json()["schedule_enabled"] is True
     assert client.put("/api/v1/admin/laws/refresh-settings/law", json={"every_days": 0}).status_code == 422
 
 

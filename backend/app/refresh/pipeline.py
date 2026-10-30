@@ -127,7 +127,8 @@ def jurisdictions_for(db: Session, kind: str, scope_mode: str, codes: list[str] 
 def get_run_setting(db: Session, kind: str) -> RefreshSetting:
     s = db.scalar(select(RefreshSetting).where(RefreshSetting.kind == kind))
     if s is None:
-        s = RefreshSetting(kind=kind, schedule_enabled=True, every_days=14, scope_mode="all", jurisdiction_ids=[], checks=list(CHECKS[kind]), source_set="official", cost_cap_usd=5.0)
+        # off until the Chief Auditor turns it on in M3 run settings: runs cost money
+        s = RefreshSetting(kind=kind, schedule_enabled=False, every_days=14, scope_mode="all", jurisdiction_ids=[], checks=list(CHECKS[kind]), source_set="official", cost_cap_usd=5.0)
         db.add(s)
         db.flush()
     return s

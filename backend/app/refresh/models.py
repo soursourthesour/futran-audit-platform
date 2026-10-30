@@ -51,12 +51,12 @@ class RefreshRun(IdMixin, Base):
 
 
 class RefreshSetting(IdMixin, Base):
-    """Run settings and schedule per kind (default every 14 days)."""
+    """Run settings and schedule per kind (every 14 days once the Chief Auditor turns the schedule on in M3)."""
 
     __tablename__ = "refresh_settings"
 
     kind: Mapped[str] = mapped_column(String(12), unique=True)
-    schedule_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    schedule_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     every_days: Mapped[int] = mapped_column(Integer, default=14)
     scope_mode: Mapped[str] = mapped_column(String(20), default="all")
     jurisdiction_ids: Mapped[list] = mapped_column(JSON, default=list)
