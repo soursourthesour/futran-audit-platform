@@ -159,3 +159,37 @@ export function TemplateDialog({ t, onClose, onSaved }: { t: Template; onClose: 
     </Dialog>
   );
 }
+
+/** The client's templates (E2): Futran's defaults, and the client's own copies it can edit (spec §26.6). */
+export function ClientTemplates({ canEdit }: { canEdit: boolean }) {
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ['mail-templates', 'client'], queryFn: () => api.get<Template[]>('/mail/templates') });
+  const [edit, setEdit] = useState<Template | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  async function copy(t: Template) {
+    setErr(null);
+    try { const c = await api.post<Template>(`/mail/templates/${t.key}/copy`); await qc.invalidateQueries({ queryKey: ['mail-templates'] }); setEdit({ ...c, can_edit: true }); } catch (e) { setErr(errorMessage(e)); }
+  }
+  return (
+    <Card title="Email templates">
+      <div className="stack-sm">
+        <p className="small muted" style={{ margin: 0 }}>Futran ships these templates. Make your own copy to change the wording; every change is kept as a new version and earlier emails keep the version they used.</p>
+        {err && <Alert tone="danger">{err}</Alert>}
+        {q.isLoading ? <Loading /> : (
+          <div className="table-wrap" style={{ position: 'relative' }}>
+            <table className="table">
+              <thead><tr><th>Template</th><th>Whose</th><th>Version</th><th><span className="sr-only">Actions</span></th></tr></thead>
+              <tbody>
+                {(q.data ?? []).map((t) => (
+                  <tr key={t.id}><td><strong>{t.name}</strong><div className="small muted">{t.subject}</div></td><td>{t.owner === 'client' ? 'Your copy' : 'Futran default'}</td><td>{t.version}</td>
+                    <td>{canEdit && (t.owner === 'client' ? <Button size="sm" onClick={() => setEdit(t)}>Edit</Button> : <Button size="sm" onClick={() => copy(t)}>Make our copy</Button>)}</td></tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+      {edit && <TemplateDialog t={edit} onClose={() => setEdit(null)} onSaved={async () => { setEdit(null); await qc.invalidateQueries({ queryKey: ['mail-templates'] }); }} />}
+    </Card>
+  );
+}

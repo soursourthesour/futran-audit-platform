@@ -7,7 +7,7 @@ import { type ClientMail, PROVIDER_LABEL, goToConsent } from '@/api/mail';
 import { Alert, Badge, Button, Card, Checkbox, Dialog, Loading, PageHeader, SelectField, TextField, fmtDateTime } from '@/components/ui';
 import { emailHelp as H } from '@/help/email';
 import { OptionCard, ProviderCard, RegisterHelp } from './common';
-import { UserSyncSetting } from './FutranEmail';
+import { ClientTemplates, UserSyncSetting } from './FutranEmail';
 import './email.css';
 
 const STEPS = ['Connect your email system', 'Choose the sender', 'Sync users and groups', 'Send a test'];
@@ -41,6 +41,7 @@ export function ClientEmailSetup() {
   const d = q.data;
   const c = d.connection;
   const can = d.can_manage;
+  const hasCaico = !!me?.roles.some((r) => r.role === 'caico');
   const connected = c.status === 'connected';
   const refresh = () => qc.invalidateQueries({ queryKey: ['mail-client'] });
   const done = [connected, connected ? !!c.mailbox_address && (c.onboarding_step ?? 1) >= 3 : sender.sender_mode === 'futran_on_behalf' && (c.onboarding_step ?? 1) >= 3, !!d.directory?.last_run_at, !!c.test_sent_at];
@@ -172,6 +173,7 @@ export function ClientEmailSetup() {
               {can && connected && <div><Button variant="ghost" size="sm" onClick={() => { if (window.confirm('Disconnect your email system? Emails then come from Futran on your behalf.')) void run(() => api.post('/mail/client/disconnect'), 'Disconnected.'); }}>Disconnect</Button></div>}
             </div>
           </Card>
+          <ClientTemplates canEdit={can || hasCaico} />
         </div>
       </div>
       {it && (
