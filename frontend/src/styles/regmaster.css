@@ -27,8 +27,8 @@
 .reg-law-list { list-style: none; margin: 0; padding: 0; }
 .reg-law-list li { padding: 10px 0; border-bottom: 1px solid var(--line); }
 .reg-law-list li:last-child { border-bottom: 0; }
-.letter-body { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 24px; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
-.letter-body table { border-collapse: collapse; width: 100%; font-size: 13px; margin: 8px 0 16px; display: block; overflow-x: auto; }
+.letter-body { overflow-x: auto; background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 24px; font-size: 14px; line-height: 1.5; }
+.letter-body table { border-collapse: collapse; width: 100%; font-size: 13px; margin: 8px 0 16px; }
 .letter-body th, .letter-body td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
 .letter-body h1 { font-size: 20px; } .letter-body h2 { font-size: 16px; margin-top: 20px; }
 .reg-form-section { margin-bottom: 20px; }
@@ -37,5 +37,6 @@
 .reg-quote { border-left: 3px solid var(--line); padding: 4px 10px; color: var(--muted); font-style: italic; font-size: 13px; margin-top: 4px; overflow-wrap: anywhere; }
 .reg-geo { display: flex; flex-wrap: wrap; gap: 8px; }
 .reg-geo .chip { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; }
-@media (max-width: 900px) { .reg-two { grid-template-columns: 1fr; } }
+.reg-two > * { min-width: 0; }
+@media (max-width: 900px) { .reg-two { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 600px) { .reg-kv { grid-template-columns: 1fr; gap: 2px; } .reg-kv dd { margin-bottom: 8px; } .letter-body { padding: 14px; } }

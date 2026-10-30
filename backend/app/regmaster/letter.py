@@ -53,6 +53,15 @@ def _list(names: list[str]) -> str:
     return ", ".join(names[:-1]) + " and " + names[-1]
 
 
+def _first_sentence(text: str | None, limit: int = 180) -> str | None:
+    if not text:
+        return None
+    s = " ".join(text.split())
+    cut = s.find(". ")
+    s = s[: cut + 1] if 0 < cut < limit else s
+    return s if len(s) <= limit else s[: limit - 1].rsplit(" ", 1)[0] + "…"
+
+
 def build_body(db: Session, org: Organization) -> dict:
     """The letter's content as structured data, from the current applicability result."""
     contact = caico_contact(db, org.id)
@@ -62,7 +71,7 @@ def build_body(db: Session, org: Organization) -> dict:
     for reg, v in sorted(pairs, key=lambda p: (p[0].binding is False, engine.law_label(p[0]))):
         j = db.get(Jurisdiction, reg.jurisdiction_id)
         laws.append({"regulation_id": reg.id, "law_version_id": v.id, "version_no": v.version_no, "geography": j.name if j else "", "law": engine.law_label(reg),
-                     "status": STATUS_LABELS.get(v.status, v.status), "binding": reg.binding is not False, "main_duty": v.main_duty or "See the law record"})
+                     "status": STATUS_LABELS.get(v.status, v.status), "binding": reg.binding is not False, "main_duty": v.main_duty or _first_sentence(reg.obligations_text) or "—"})
     roles = []
     for r in engine.required_roles(db, org.id):
         req_by = [s["law"] for s in r["sources"] if s["level"] == "required"] or [s["law"] for s in r["sources"]]
@@ -131,7 +140,7 @@ def to_markdown(letter: IntroLetter) -> str:
             f"Rule versions used in this letter: {', '.join(b['versions']) or 'none'}.", ""]
     if edits.get("closing"):
         out += [edits["closing"], ""]
-    out += ['<div class="pagebreak"></div>', "", "## Appendix A. Roles and the person named to each", "", "| Role | Level | Needed by | Person named |", "|---|---|---|---|"]
+    out += ["<!-- pagebreak -->", "", "## Appendix A. Roles and the person named to each", "", "| Role | Level | Needed by | Person named |", "|---|---|---|---|"]
     out += [f"| {_cell(r['name'])} | {'Required' if r['level'] == 'required' else 'Recommended'} | {_cell(r['needed_by'])} | |" for r in b["roles"]]
     out += ["", f"*{FOOTER}*"]
     return "\n".join(out)

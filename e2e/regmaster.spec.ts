@@ -93,6 +93,10 @@ test('Chief Auditor reviews a client\'s applicability, approves the intro letter
   await page.getByRole('button', { name: 'Send to Maria Lopez' }).click();
   await expect(page.getByText('Letter sent to Maria Lopez.')).toBeVisible();
   await expect(page.getByText('v1 · sent')).toBeVisible();
+  await page.setViewportSize({ width: 375, height: 812 });
+  await expect(page.getByTestId('letter-preview')).toBeVisible();
+  await noSidewaysScroll(page);
+  await page.setViewportSize({ width: 1280, height: 900 });
 
   await page.goto('/admin/outbox');
   await expect(page.getByText(/AI governance requirements for Harbor Staffing/).first()).toBeVisible();
