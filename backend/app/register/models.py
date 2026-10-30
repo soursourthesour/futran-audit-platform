@@ -8,6 +8,7 @@ from datetime import date, datetime
 from sqlalchemy import JSON, Boolean, Date, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.core.appendonly import append_only
 from app.core.clock import utcnow
 from app.core.models import Base, IdMixin, TimestampedTenantMixin
 
@@ -235,3 +236,7 @@ class RequirementStatus(TimestampedTenantMixin, Base):
     evidence_ids: Mapped[list] = mapped_column(JSON, default=list)
     checked_by: Mapped[str | None] = mapped_column(String(36))
     checked_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+
+# Evidence: never edited or deleted (§24.6, §27.7). Guards in the ORM and triggers in the database.
+append_only(ChangeLog, "register change log")
