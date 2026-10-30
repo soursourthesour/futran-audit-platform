@@ -26,8 +26,10 @@ def meta_for(db: Session, change: ProposedChange) -> RefreshProposalMeta:
     """Bookkeeping row; created on demand for changes proposed outside a refresh (Admin edits, Auditor suggestions)."""
     m = db.get(RefreshProposalMeta, change.id)
     if m is None:
+        from app.regmaster.changes import needs_second_review
+
         m = RefreshProposalMeta(proposed_change_id=change.id, kind="law", run_ids=[change.refresh_run_id] if change.refresh_run_id else [], seen_count=1,
-                                needs_second_review=change.confidence == "low" or change.change_type == "new_law", claude_confidence=change.confidence)
+                                needs_second_review=needs_second_review(change), claude_confidence=change.confidence)
         db.add(m)
         db.flush()
     return m
@@ -88,12 +90,11 @@ def apply_case_change(db: Session, change: ProposedChange, meta: RefreshProposal
     return case
 
 
-def apply_law_change(db: Session, change: ProposedChange, actor: User, value) -> None:
-    try:
-        from app.regmaster.versioning import apply_change
-    except ImportError as exc:  # the regulatory master writes law versions; nothing is applied without it
-        raise Conflict("Law versioning is not available yet, so law changes cannot be approved.") from exc
-    apply_change(db, change, actor, new_value=value)
+def apply_law_change(db: Session, change: ProposedChange, actor: User, value, edited: bool, note: str | None) -> None:
+    """The regulatory master writes the new LawVersion and versions its requirements and role maps (WS-A)."""
+    from app.regmaster.changes import apply_changes
+
+    apply_changes(db, [change], actor.id, edited={change.id: value} if edited else None, note=note)
 
 
 def _after_approval(db: Session, settings: Settings, change: ProposedChange, meta: RefreshProposalMeta, actor: User, case: Case | None) -> None:
@@ -154,15 +155,16 @@ def decide(db: Session, settings: Settings, change: ProposedChange, actor: User,
         case = None
         if meta.kind == "litigation":
             case = apply_case_change(db, change, meta, value, actor)
+            change.status = "approved" if action == "approve" else "edited_approved"
+            change.reviewer_id, change.reviewed_at, change.review_note = actor.id, now, note
         else:
-            apply_law_change(db, change, actor, value)
-        change.status = "approved" if action == "approve" else "edited_approved"
-        change.reviewer_id, change.reviewed_at, change.review_note = actor.id, now, note
+            apply_law_change(db, change, actor, value, action == "edit_approve", note)
         db.flush()
         _after_approval(db, settings, change, meta, actor, case)
     else:
-        change.status = {"hold": "held", "reject": "rejected", "legal_review": "legal_review"}[action]
-        change.reviewer_id, change.reviewed_at, change.review_note = actor.id, now, note
+        from app.regmaster.changes import decide as master_decide
+
+        master_decide(db, change, {"hold": "held", "reject": "rejected", "legal_review": "legal_review"}[action], actor.id, note)
         if action == "legal_review":
             meta.needs_second_review = True
             meta.second_review_outcome = None

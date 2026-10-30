@@ -51,11 +51,12 @@ def test_off_allowlist_source_is_forced_to_low_confidence(db, lit, reg, settings
     assert pc.confidence == "low" and meta.off_allowlist and meta.claude_confidence == "high" and meta.needs_second_review
 
 
-def test_secondary_sources_count_when_the_run_includes_them(db, lit, reg, settings):
+def test_secondary_sources_are_read_but_rest_on_low_confidence(db, lit, reg, settings):
+    """Law-firm alerts may be searched when the run includes them; a change that rests only on one stays low confidence."""
     fake = FakeRefreshClient({"US-IL": {"changes": [change(reg["law"], source_url="https://lawfirm.example/alert/il-ai")]}})
     run = _run(db, lit, settings, fake, source_set="with_secondary")
     pc = db.scalar(select(ProposedChange).where(ProposedChange.refresh_run_id == run.id))
-    assert pc.confidence == "high" and "lawfirm.example" in fake.calls[0]["allowed_domains"]
+    assert "lawfirm.example" in fake.calls[0]["allowed_domains"] and pc.confidence == "low"
 
 
 def test_items_without_quote_unknown_field_or_foreign_law_are_skipped(db, lit, reg, settings):
@@ -64,7 +65,7 @@ def test_items_without_quote_unknown_field_or_foreign_law_are_skipped(db, lit, r
     run = _run(db, lit, settings, FakeRefreshClient({"US-IL": {"changes": items}}))
     assert run.proposals_created == 0
     text = " ".join(run.warnings)
-    assert "no source quote" in text and "does not exist" in text and "not in this jurisdiction" in text
+    assert "no source quote" in text and "colour is not a law field" in text and "not in this jurisdiction" in text
 
 
 def test_free_text_reply_is_rejected_and_the_run_goes_on(db, lit, reg, settings):

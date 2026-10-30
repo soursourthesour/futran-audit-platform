@@ -174,8 +174,7 @@ def on_allowlist(url: str, domains: list[str]) -> bool:
 def _domains(sources: list[Source]) -> list[str]:
     out = set()
     for s in sources:
-        d = (s.domain or host_of(s.url)).lower()
-        out.add(d[4:] if d.startswith("www.") else d)
+        out.add(_bare(s.domain or host_of(s.url)))
     return sorted(d for d in out if d)
 
 
@@ -235,54 +234,8 @@ def dedupe_key(kind: str, ref: str, field_path: str, new_value) -> str:
     return hashlib.sha1(raw.encode()).hexdigest()[:40]
 
 
-def _field_ok(kind: str, path: str, role_codes: set[str]) -> bool:
-    if kind == "litigation":
-        return path == "new_case" or (path.startswith("case.") and path[5:] in CASE_FIELDS)
-    if path in ("new_law", "repeal"):
-        return True
-    head, _, rest = path.partition(".")
-    if head == "law":
-        return rest in VERSION_FIELDS + REGULATION_FIELDS
-    if head == "role_map":
-        return rest in role_codes
-    return head in ("requirement", "scope_test", "committee") and bool(rest)
-
-
-def _old_value(db: Session, reg: Regulation | None, case: Case | None, path: str, claude_old):
-    if case is not None and path.startswith("case."):
-        return _plain(getattr(case, path[5:]))
-    if reg is None:
-        return claude_old
-    f = path.split(".", 1)[1] if "." in path else ""
-    if path.startswith("law.") and f in REGULATION_FIELDS:
-        return _plain(getattr(reg, f, None))
-    v = db.get(LawVersion, reg.current_version_id) if reg.current_version_id else None
-    if path.startswith("law.") and v is not None:
-        return _plain(getattr(v, f))
-    if path.startswith("requirement.") and v is not None:
-        q = db.scalar(select(Requirement).where(Requirement.law_version_id == v.id, Requirement.code == f))
-        return {"code": q.code, "text": q.text} if q else None
-    return claude_old
-
-
-def _impacts(db: Session, change: ProposedChange, meta: RefreshProposalMeta) -> None:
-    """ChangeImpact rows: WS-A's computation for laws when present; litigation from the case's client matches."""
-    if meta.kind == "litigation":
-        for old in db.scalars(select(ChangeImpact).where(ChangeImpact.proposed_change_id == change.id)):
-            db.delete(old)
-        if meta.case_id:
-            for m in db.scalars(select(CaseClientMatch).where(CaseClientMatch.case_id == meta.case_id)):
-                db.add(ChangeImpact(proposed_change_id=change.id, organization_id=m.organization_id, ai_system_ids=list(m.ai_system_ids or []),
-                                    roles_affected=[], letter_update_needed=False, summary=m.match_reason[:600]))
-        db.flush()
-        return
-    from app.refresh import impact
-
-    impact.compute(db, change)
-
-
 def _process_item(db: Session, run: RefreshRun, j: Jurisdiction, i: int, raw: dict, domains: list[str], regs: dict[str, Regulation],
-                  cases: dict[str, Case], role_codes: set[str], warnings: list[str]) -> str:
+                  cases: dict[str, Case], warnings: list[str]) -> str:
     label = f"{j.code}, item {i}"
     try:
         it = ItemIn.model_validate(raw)
@@ -296,7 +249,7 @@ def _process_item(db: Session, run: RefreshRun, j: Jurisdiction, i: int, raw: di
     if len(it.source_quote.strip()) < 10:
         warnings.append(f"{label}: skipped because it has no source quote.")
         return "skipped"
-    if not _field_ok(run.kind, it.field_path, role_codes):
+    if run.kind == "litigation" and not (it.field_path == "new_case" or (it.field_path.startswith("case.") and it.field_path[5:] in CASE_FIELDS)):
         warnings.append(f"{label}: skipped because the field {it.field_path} does not exist.")
         return "skipped"
     reg = case = None
@@ -311,42 +264,100 @@ def _process_item(db: Session, run: RefreshRun, j: Jurisdiction, i: int, raw: di
             warnings.append(f"{label}: skipped because it refers to a case that is not in this jurisdiction.")
             return "skipped"
     new_value = _parse_value(it.new_value)
-    if run.kind == "litigation" and it.field_path == "case.stage" and new_value not in CASE_STAGES:
+    off = not on_allowlist(it.source_url, domains)
+    confidence = "low" if off else it.confidence
+    if run.kind == "law":
+        return _propose_law(db, run, j, label, it, reg, new_value, confidence, off, warnings)
+    return _propose_case(db, run, j, label, it, case, new_value, confidence, off, domains, warnings)
+
+
+def _merge(db: Session, run: RefreshRun, change: ProposedChange) -> str:
+    meta = db.get(RefreshProposalMeta, change.id)
+    if meta is None:
+        meta = RefreshProposalMeta(proposed_change_id=change.id, kind=run.kind, run_ids=[change.refresh_run_id] if change.refresh_run_id else [], seen_count=1,
+                                   needs_second_review=change.confidence == "low" or change.change_type == "new_law", claude_confidence=change.confidence)
+        db.add(meta)
+    if run.id not in (meta.run_ids or []):
+        meta.run_ids = [*(meta.run_ids or []), run.id]
+        meta.seen_count = (meta.seen_count or 0) + 1
+    meta.last_seen_at = utcnow()
+    return "merged"
+
+
+def _propose_law(db: Session, run: RefreshRun, j: Jurisdiction, label: str, it: ItemIn, reg: Regulation | None, new_value, confidence: str, off: bool,
+                 warnings: list[str]) -> str:
+    """Laws go through the regulatory master's `propose` (validation, old value, open-duplicate merge, impact)."""
+    from app.core.errors import Invalid
+    from app.regmaster import changes as master
+
+    key = master._dedupe_key(reg.id if reg else None, it.field_path, new_value)
+    closed = db.scalar(select(ProposedChange).where(ProposedChange.dedupe_key == key, ProposedChange.status.not_in(OPEN)).limit(1))
+    if closed is not None:
+        warnings.append(f"{label}: not proposed again; the same change was already {'rejected' if closed.status == 'rejected' else 'approved'}.")
+        return "skipped"
+    before = db.scalar(select(ProposedChange.id).where(ProposedChange.dedupe_key == key, ProposedChange.status.in_(OPEN)).limit(1))
+    try:
+        pc = master.propose(db, actor_id=None, regulation_id=reg.id if reg else None, field_path=it.field_path, new_value=new_value, summary=it.summary,
+                            origin="claude_refresh", change_type=it.change_type, source_url=it.source_url, source_quote=it.source_quote.strip(),
+                            confidence=confidence, refresh_run_id=run.id, jurisdiction_id=j.id)
+    except Invalid as exc:
+        reason = (exc.errors[0]["message"] if exc.errors else exc.detail).rstrip(".")
+        warnings.append(f"{label}: skipped because {reason[:1].lower() + reason[1:]}.")
+        return "skipped"
+    if before is not None and pc.id == before:
+        return _merge(db, run, pc)
+    db.add(RefreshProposalMeta(proposed_change_id=pc.id, kind="law", run_ids=[run.id], seen_count=1, off_allowlist=off or pc.confidence == "low" and it.confidence != "low",
+                               claude_confidence=it.confidence, needs_second_review=master.needs_second_review(pc)))
+    db.flush()
+    return "created"
+
+
+def _propose_case(db: Session, run: RefreshRun, j: Jurisdiction, label: str, it: ItemIn, case: Case | None, new_value, confidence: str, off: bool,
+                  domains: list[str], warnings: list[str]) -> str:
+    if it.field_path == "case.stage" and new_value not in CASE_STAGES:
         warnings.append(f"{label}: skipped because {new_value} is not a stage.")
         return "skipped"
-    ref = (reg.id if reg else None) or (case.id if case else None) or j.id
-    key = dedupe_key(run.kind, ref, it.field_path, new_value)
+    if it.field_path == "new_case" and not (isinstance(new_value, dict) and new_value.get("name") and new_value.get("stage") in CASE_STAGES):
+        warnings.append(f"{label}: skipped because a new case needs a name and a stage.")
+        return "skipped"
+    key = dedupe_key("litigation", case.id if case else j.id, it.field_path, new_value)
     same = db.scalar(select(ProposedChange).where(ProposedChange.dedupe_key == key).order_by(ProposedChange.created_at.desc()).limit(1))
     if same is not None:
         if same.status in OPEN:
-            meta = db.get(RefreshProposalMeta, same.id)
-            if meta is None:
-                meta = RefreshProposalMeta(proposed_change_id=same.id, kind=run.kind, run_ids=[], seen_count=0)
-                db.add(meta)
-            if run.id not in (meta.run_ids or []):
-                meta.run_ids = [*(meta.run_ids or []), run.id]
-                meta.seen_count = (meta.seen_count or 0) + 1
-            meta.last_seen_at = utcnow()
-            return "merged"
-        warnings.append(f"{label}: not proposed again; the same change was already {('rejected' if same.status == 'rejected' else 'approved')}.")
+            return _merge(db, run, same)
+        warnings.append(f"{label}: not proposed again; the same change was already {'rejected' if same.status == 'rejected' else 'approved'}.")
         return "skipped"
-    off = not on_allowlist(it.source_url, domains)
-    confidence = "low" if off else it.confidence
-    src = next((s for s in db.scalars(select(Source).where(Source.domain.in_(domains))) if on_allowlist(it.source_url, [s.domain or ""])), None) if domains else None
+    src = next((s for s in db.scalars(select(Source).where(Source.active.is_(True))) if s.domain and on_allowlist(it.source_url, [_bare(s.domain)])), None) if not off else None
     pc = ProposedChange(
-        refresh_run_id=run.id, origin="claude_refresh", change_type=it.change_type, regulation_id=reg.id if reg else None, jurisdiction_id=j.id,
-        base_version_id=reg.current_version_id if reg else None, field_path=it.field_path, old_value=_old_value(db, reg, case, it.field_path, it.old_value),
-        new_value=new_value, summary=it.summary, source_id=src.id if src else None, source_url=it.source_url, source_quote=it.source_quote.strip(),
-        confidence=confidence, status="pending", dedupe_key=key,
+        refresh_run_id=run.id, origin="claude_refresh", change_type=it.change_type, regulation_id=None, jurisdiction_id=j.id, field_path=it.field_path,
+        old_value=_plain(getattr(case, it.field_path[5:])) if case is not None and it.field_path.startswith("case.") else None, new_value=new_value,
+        summary=it.summary, source_id=src.id if src else None, source_url=it.source_url, source_quote=it.source_quote.strip(), confidence=confidence,
+        status="pending", dedupe_key=key,
     )
     db.add(pc)
     db.flush()
-    meta = RefreshProposalMeta(proposed_change_id=pc.id, kind=run.kind, case_id=case.id if case else None, run_ids=[run.id], seen_count=1, off_allowlist=off,
-                               claude_confidence=it.confidence, needs_second_review=confidence == "low" or it.change_type == "new_law")
+    meta = RefreshProposalMeta(proposed_change_id=pc.id, kind="litigation", case_id=case.id if case else None, run_ids=[run.id], seen_count=1, off_allowlist=off,
+                               claude_confidence=it.confidence, needs_second_review=confidence == "low")
     db.add(meta)
     db.flush()
-    _impacts(db, pc, meta)
+    case_impacts(db, pc, meta)
     return "created"
+
+
+def _bare(d: str) -> str:
+    d = d.lower()
+    return d[4:] if d.startswith("www.") else d
+
+
+def case_impacts(db: Session, change: ProposedChange, meta: RefreshProposalMeta) -> None:
+    """A case change touches the clients whose registers hold similar AI (§27.4)."""
+    for old in db.scalars(select(ChangeImpact).where(ChangeImpact.proposed_change_id == change.id)):
+        db.delete(old)
+    if meta.case_id:
+        for m in db.scalars(select(CaseClientMatch).where(CaseClientMatch.case_id == meta.case_id)):
+            db.add(ChangeImpact(proposed_change_id=change.id, organization_id=m.organization_id, ai_system_ids=list(m.ai_system_ids or []),
+                                roles_affected=[], letter_update_needed=False, summary=m.match_reason[:600]))
+    db.flush()
 
 
 def _cost(settings: Settings, input_tokens: int, output_tokens: int, searches: int) -> float:
@@ -360,7 +371,6 @@ def execute_run(db: Session, settings: Settings, run: RefreshRun, client: Struct
     run.model_id = getattr(client, "model", None)
     warnings: list[str] = list(run.warnings or [])
     responses: list[dict] = list(run.responses or [])
-    role_codes = set(db.scalars(select(RoleCatalog.code)))
     js = [db.get(Jurisdiction, jid) for jid in run.jurisdiction_ids]
     js = [j for j in js if j is not None]
     try:
@@ -402,7 +412,7 @@ def execute_run(db: Session, settings: Settings, run: RefreshRun, client: Struct
                 responses.append(entry)
                 continue
             for i, raw in enumerate(items, start=1):
-                result = _process_item(db, run, j, i, raw, domains, regs, cases, role_codes, warnings)
+                result = _process_item(db, run, j, i, raw, domains, regs, cases, warnings)
                 entry[{"created": "accepted", "merged": "merged", "skipped": "skipped"}[result]] += 1
                 if result == "created":
                     run.proposals_created += 1

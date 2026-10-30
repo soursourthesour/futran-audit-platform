@@ -23,7 +23,7 @@ def reg(db, lit):
     law = laws[0]
     db.add(Requirement(law_version_id=law.current_version_id, code="IL-01", order=1, text="Notify employees before AI is used.", needed_by_stage="go_live"))
     db.add_all([
-        Source(jurisdiction_id=il.id, name="Illinois General Assembly", url="https://www.ilga.gov/", domain="ilga.gov", kind="official"),
+        Source(jurisdiction_id=il.id, name="Illinois General Assembly", url="https://www.ilga.gov/", domain="www.ilga.gov", kind="official"),
         Source(jurisdiction_id=il.id, name="Illinois Department of Human Rights", url="https://dhr.illinois.gov/", domain="dhr.illinois.gov", kind="official"),
         Source(jurisdiction_id=il.id, name="A law firm blog", url="https://lawfirm.example/", domain="lawfirm.example", kind="secondary"),
     ])
