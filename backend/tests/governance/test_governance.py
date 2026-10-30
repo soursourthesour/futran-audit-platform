@@ -184,3 +184,55 @@ def test_extra_fields_saved(client, db, live):
     g = _gov(client, cid)
     assert g["request"]["extra_fields"] == {"policy_owner": "Maria Lopez", "risk_appetite": "informal"}
     assert any(f["key"] == "risk_appetite" and f["options"] for f in g["extra_field_defs"])
+
+
+@pytest.fixture
+def catalogue(db, people):
+    """The §24.1 role catalogue seeded before the engagement is approved, as on a real install."""
+    from app.regmaster.seed import load_roles
+
+    load_roles(db)
+    db.commit()
+
+
+@pytest.fixture
+def live_cat(catalogue, live):
+    return live
+
+
+def test_bias_review_stays_a_committee_with_the_catalogue_seeded(client, db, live_cat):
+    cid, e, maria = live_cat
+    login_as(client, db, maria)
+    g = _gov(client, cid)
+    gr02 = _item(g, "GR-02")
+    assert gr02["committee"] is True and gr02["title"] == "Bias and fairness review committee"
+    assert _item(g, "GR-01")["committee"] is True
+    # person roles keep their catalogue link (name from the §24.1 role catalogue)
+    assert _item(g, "GR-03")["committee"] is False and _item(g, "GR-03")["title"] == "Explainability contact"
+    r = client.put(f"/api/v1/governance/items/{gr02['id']}", json={"status": "planned", "target_date": LATER, "interim_owner": "Maria Lopez"})
+    assert r.status_code == 200, r.text
+    c = db.scalar(select(Commitment).where(Commitment.source_id == gr02["id"], Commitment.deleted_at.is_(None)))
+    assert c.description == "Constitute bias and fairness review committee"
+    # the Futran set-up screen names each item as the client sees it
+    titles = {o["code"]: o["title"] for o in g["catalog"]}
+    assert all(titles[i["code"]] == i["title"] for i in g["items"])
+
+
+def test_items_in_flight_are_never_rewritten(client, db, people, live_cat):
+    """Items stored before the catalogue link (or under an older title) keep their title and committee flag."""
+    cid, e, maria = live_cat
+    req = db.scalar(select(GovernanceRequest).where(GovernanceRequest.engagement_id == e.id))
+    gr02 = db.scalar(select(GovernanceItem).where(GovernanceItem.request_id == req.id, GovernanceItem.catalog_code == "GR-02"))
+    gr01 = db.scalar(select(GovernanceItem).where(GovernanceItem.request_id == req.id, GovernanceItem.catalog_code == "GR-01"))
+    gr02.title, gr02.committee = "Bias and fairness review committee (old)", True
+    gr01.title = "AI Governance Committee"
+    db.commit()
+    login_as(client, db, people["chief"])
+    g = _gov(client, cid)
+    codes = [i["code"] for i in g["items"]] + ["GD-05"]
+    assert client.put(f"/api/v1/clients/{cid}/governance/setup", json={"codes": codes, "due_date": LATER}).status_code == 200
+    g = _gov(client, cid)
+    assert _item(g, "GR-02")["title"] == "Bias and fairness review committee (old)" and _item(g, "GR-02")["committee"] is True
+    assert _item(g, "GR-01")["title"] == "AI Governance Committee"
+    titles = {o["code"]: o["title"] for o in g["catalog"]}
+    assert titles["GR-02"] == "Bias and fairness review committee (old)" and titles["GR-01"] == "AI Governance Committee"

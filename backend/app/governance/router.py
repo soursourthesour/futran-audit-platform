@@ -64,6 +64,7 @@ def request_out(db: Session, req: GovernanceRequest) -> dict:
     who = db.get(User, req.requested_by) if req.requested_by else None
     roles = [i for i in its if i.kind == "role"]
     docs = [i for i in its if i.kind != "role"]
+    stored = {i.catalog_code: i for i in its}
     commitments = db.scalars(select(Commitment).where(Commitment.engagement_id == req.engagement_id, Commitment.deleted_at.is_(None)).order_by(Commitment.target_date))
     return {
         "request": {"id": req.id, "status": req.status, "due_date": req.due_date.isoformat() if req.due_date else None, "requested_by": who.name if who else None, "submitted_at": req.submitted_at.isoformat() if req.submitted_at else None, "extra_fields": req.extra_fields or {}},
@@ -71,7 +72,7 @@ def request_out(db: Session, req: GovernanceRequest) -> dict:
         "counts": {"roles": {"answered": sum(i.status != "unanswered" for i in roles), "total": len(roles)}, "documents": {"answered": sum(i.status != "unanswered" for i in docs), "total": len(docs)}},
         "coverage": gov.coverage(its),
         "commitments": [{"id": c.id, "description": c.description, "target_date": c.target_date.isoformat(), "owner": c.owner, "status": c.status} for c in commitments],
-        "catalog": [{"code": c.code, "kind": c.kind, "title": gov.headline(db, c)["title"], "optional": c.optional, "selected": c.code in (req.items_selected or []), "available": c.conditional != "eu_operations" or eu} for c in gov.catalog(db)],
+        "catalog": [{"code": c.code, "kind": c.kind, "title": gov.setup_title(c, gov.headline(db, c), stored), "optional": c.optional, "selected": c.code in (req.items_selected or []), "available": c.conditional != "eu_operations" or eu} for c in gov.catalog(db)],
         "extra_field_defs": gov.EXTRA_FIELDS,
     }
 

@@ -51,15 +51,28 @@ def catalog(db: Session) -> list[GovernanceCatalogItem]:
     return list(db.scalars(select(GovernanceCatalogItem).order_by(GovernanceCatalogItem.order)))
 
 
+COMMITTEE_ROLES = {"ai_governance_committee"}  # catalogue roles that are bodies rather than people
+
+
 def headline(db: Session, c: GovernanceCatalogItem) -> dict:
     """The 8 headline roles read their name and responsibility from the role catalogue (§24.1); an item with no
-    catalogue counterpart (the EU representative contact) keeps its own text."""
+    catalogue counterpart (the EU representative contact) keeps its own text. A committee in the governance catalog
+    (§10.5) stays a committee with its own title: the catalogue may link it to a person role (GR-02 to the bias testing
+    lead), and that link never turns a committee into a person."""
     from app.regmaster.models import RoleCatalog
 
     role = db.scalar(select(RoleCatalog).where(RoleCatalog.headline_code == c.code, RoleCatalog.active.is_(True))) if c.kind == "role" else None
-    if role is None:
-        return {"code": c.code, "title": c.title, "description": c.description, "committee": c.committee, "role_code": None}
-    return {"code": c.code, "title": role.name, "description": role.description or c.description, "committee": role.code == "ai_governance_committee", "role_code": role.code}
+    if role is None or bool(c.committee) != (role.code in COMMITTEE_ROLES):
+        # no counterpart, or the counterpart is a different kind of thing (a person behind a committee): keep the item's own text
+        return {"code": c.code, "title": c.title, "description": c.description, "committee": bool(c.committee), "role_code": None}
+    return {"code": c.code, "title": role.name, "description": role.description or c.description, "committee": bool(c.committee), "role_code": role.code}
+
+
+def setup_title(c: GovernanceCatalogItem, h: dict, stored: dict[str, "GovernanceItem"]) -> str:
+    """The set-up screen names an item the way the client's request already stores it, so a title that changed
+    in the catalogue after the request was sent does not make the two screens disagree."""
+    it = stored.get(c.code)
+    return it.title if it is not None else h["title"]
 
 
 def catalog_roles(db: Session) -> list[dict]:
