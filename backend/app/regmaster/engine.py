@@ -79,13 +79,20 @@ def sync_from_locations(db: Session, org_id: str, actor_id: str | None) -> None:
     for loc in locs:
         if loc.jurisdiction_ids:
             wanted.setdefault(loc.jurisdiction_ids[0], loc.id)
-    for g in geographies(db, org_id):
+    current = geographies(db, org_id)
+    have = {g.jurisdiction_id for g in current if g.basis == "office"}
+    changed = False
+    for g in current:
         if g.source == "wizard" and g.basis == "office" and g.jurisdiction_id not in wanted:
             g.deleted_at, g.updated_by = utcnow(), actor_id
+            changed = True
     for jid, loc_id in wanted.items():
-        add_geography(db, org_id, jid, "office", actor_id, source="wizard", location_id=loc_id, rerun=False)
+        if jid not in have:
+            add_geography(db, org_id, jid, "office", actor_id, source="wizard", location_id=loc_id, rerun=False)
+            changed = True
     db.flush()
-    run(db, org_id, actor_id)
+    if changed:  # autosaves that leave the geographies as they were do not re-run the engine
+        run(db, org_id, actor_id)
 
 
 # ------------------------------------------------------------------ facts used to pre-fill scope answers
@@ -298,14 +305,25 @@ def in_scope_versions(db: Session, org_id: str) -> list[tuple[Regulation, LawVer
     return [(r, v) for r, v in rows]
 
 
-def roles_for_versions(db: Session, pairs: list[tuple[Regulation, LawVersion]]) -> list[dict]:
-    """Strictest-wins union of role maps over the given law versions (also used by the register, WS-B)."""
+def developer_only(applies_to: list | None) -> bool:
+    return bool(applies_to) and set(applies_to) <= {"developer"}
+
+
+def roles_for_versions(db: Session, pairs: list[tuple[Regulation, LawVersion]], is_agent: bool | None = None, bought: bool = False) -> list[dict]:
+    """Strictest-wins union of role maps over the given law versions.
+
+    For one AI system (the register, WS-B): `is_agent=False` drops agent-only roles, and `bought=True` drops maps
+    that bind developers only, because development-side duties sit with the vendor (§24.3)."""
     by_role: dict[str, dict] = {}
     for reg, v in pairs:
         for m in db.scalars(select(LawRoleMap).where(LawRoleMap.law_version_id == v.id)):
             if m.level not in LEVEL_RANK:
                 continue
+            if bought and developer_only(m.applies_to):
+                continue
             role = db.get(RoleCatalog, m.role_id)
+            if is_agent is False and role.level == "agent":
+                continue
             stage = m.needed_by_stage or role.default_stage
             cur = by_role.setdefault(role.code, {"role_id": role.id, "code": role.code, "number": role.number, "name": role.name, "level_kind": role.level, "description": role.description, "level": m.level, "needed_by": stage, "sources": []})
             if LEVEL_RANK[m.level] > LEVEL_RANK[cur["level"]]:

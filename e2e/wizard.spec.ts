@@ -162,12 +162,12 @@ test('auditor sets up a client, the Chief Auditor approves and the client signs 
   await page.getByLabel('Member 1', { exact: true }).fill('Raj Iyer');
   await page.getByRole('button', { name: 'Save answer' }).click();
   await expect(page.getByText('In place · chair Maria Lopez, Raj Iyer')).toBeVisible();
-  const bias = page.getByRole('group', { name: 'Answer for Bias and fairness review committee' });
+  const bias = page.getByRole('group', { name: 'Answer for Bias testing lead / independent auditor' });
   await bias.getByRole('button', { name: 'Will constitute' }).click();
   await page.getByLabel('Target date *').fill('2027-03-31');
   await page.getByLabel('Interim owner *').fill('Priya Shah');
   await page.getByRole('button', { name: 'Save answer' }).click();
-  await expect(page.getByText('Constitute bias and fairness review committee')).toBeVisible();
+  await expect(page.getByText('Appoint bias testing lead / independent auditor')).toBeVisible();  // 10a reads its role names from the catalogue (§24.1)
   await page.screenshot({ path: 'screenshots/p4-governance.png', fullPage: true });
 
   // Attestation campaign (Phase 4): acknowledge the notice, launch, staff answer on a phone

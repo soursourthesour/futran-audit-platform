@@ -15,6 +15,7 @@ def settings() -> Settings:
         email_mode="outbox",
         secret_key="test-secret-key-not-for-production-0123456789",
         disable_scheduler=True,
+        seed_on_start=False,
         file_store="local:./data/test-files",
     )
 

@@ -62,6 +62,10 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
         return JSONResponse(status_code=404, content={"detail": "Not found.", "errors": []})
 
     _mount_spa(app)
+    if settings.seed_on_start:
+        from app.regmaster.startup import seed_if_empty
+
+        seed_if_empty(app)
     _start_scheduler(app, settings)
     return app
 

@@ -162,3 +162,43 @@ def test_repealed_law_is_out_of_scope(master):
     changes.apply_changes(db, [pc], reviewer_id="chief")
     row = _row(db, org, "US-NYC", "Local Law 144")
     assert row.in_scope is False and row.reason_text == "Repealed or lapsed"
+
+
+def test_roles_for_one_system_drop_agent_roles_and_vendor_side_duties(master):
+    from app.regmaster.models import LawRoleMap, LawVersion, RoleCatalog
+    from sqlalchemy import select as sel
+
+    db = master
+    pairs = [(r, db.get(LawVersion, r.current_version_id)) for r in (find_law(db, "EU", "2024/1689"), find_law(db, "US-CO", "^SB 26-189$"))]
+    # make one Colorado map developer-only, as a law can for records kept by the developer
+    co_v = pairs[1][1]
+    rr = db.scalar(sel(RoleCatalog).where(RoleCatalog.code == "vendor_ai_risk_owner"))
+    db.scalar(sel(LawRoleMap).where(LawRoleMap.law_version_id == co_v.id, LawRoleMap.role_id == rr.id)).applies_to = ["developer"]
+    db.flush()
+    all_roles = {r["code"] for r in engine.roles_for_versions(db, pairs)}
+    assert {"stop_authority", "vendor_ai_risk_owner"} <= all_roles
+    one = {r["code"] for r in engine.roles_for_versions(db, pairs, is_agent=False, bought=True)}
+    assert "stop_authority" not in one
+    assert "vendor_ai_risk_owner" in one  # still recommended by the EU AI Act map, which is not developer-only
+    srcs = next(r for r in engine.roles_for_versions(db, pairs, is_agent=False, bought=True) if r["code"] == "vendor_ai_risk_owner")["sources"]
+    assert [s["law"] for s in srcs] == ["EU AI Act"]
+
+
+def test_wizard_autosave_reruns_only_when_the_geographies_change(master, monkeypatch):
+    from app.engagements.models import ClientLocation
+
+    db = master
+    org = make_org(db)
+    nyc, ny, us, il = by_code(db, "US-NYC"), by_code(db, "US-NY"), by_code(db, "US"), by_code(db, "US-IL")
+    db.add(ClientLocation(organization_id=org.id, site_name="HQ", country_code="US", in_scope=True, jurisdiction_ids=[nyc.id, ny.id, us.id]))
+    db.flush()
+    calls = []
+    real = engine.run
+    monkeypatch.setattr(engine, "run", lambda *a, **k: calls.append(1) or real(*a, **k))
+    engine.sync_from_locations(db, org.id, None)
+    engine.sync_from_locations(db, org.id, None)  # an autosave that changed nothing
+    assert len(calls) == 1
+    db.add(ClientLocation(organization_id=org.id, site_name="Chicago", country_code="US", in_scope=True, jurisdiction_ids=[il.id, us.id]))
+    db.flush()
+    engine.sync_from_locations(db, org.id, None)
+    assert len(calls) == 2

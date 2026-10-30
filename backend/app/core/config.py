@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     base_url: str = "http://localhost:8000"
     secret_key: str = "change-me-in-env"
     disable_scheduler: bool = False
+    seed_on_start: bool = True  # seed the regulatory master once when its role catalogue is empty (run.bat only migrates)
     max_upload_mb: int = 50
     trust_proxy_headers: bool = False  # true behind Render/Azure so rate limits see the real client address
     address_autocomplete: str = ""  # photon | google | off; blank means google when a key is set, else photon
