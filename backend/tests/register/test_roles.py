@@ -272,8 +272,8 @@ def test_company_roles_page(client, db, reg, cat):
 def test_suggested_laws_come_from_applicability(client, db, reg, cat):
     from app.regmaster.models import ClientLawApplicability
 
-    db.add(ClientLawApplicability(organization_id=reg.org.id, regulation_id=cat.a.id, in_scope=True, reason_text="Hires in New York City"))
-    db.add(ClientLawApplicability(organization_id=reg.org.id, regulation_id=cat.b.id, in_scope=False, reason_text="No operations there"))
+    db.add(ClientLawApplicability(organization_id=reg.org.id, regulation_id=cat.a.id, law_version_id=cat.va.id, in_scope=True, reason_text="Hires in New York City"))
+    db.add(ClientLawApplicability(organization_id=reg.org.id, regulation_id=cat.b.id, law_version_id=cat.vb.id, in_scope=False, reason_text="No operations there"))
     db.commit()
     reg.as_(reg.hr_lead)
     s = new_system(client, department_id=reg.hr.id)

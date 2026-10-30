@@ -567,9 +567,10 @@ def new_batch_id() -> str:
 def suggested_laws(db: Session, s: RegisterSystem) -> list[dict]:
     """Laws the applicability engine found in scope for the company (§25.4) that are not yet on this system.
 
-    Read from ClientLawApplicability, the engine's output. Before the engine has run for a client, the laws in scope on
-    its engagement (ClientRequirement) are used instead."""
+    Uses the engine's result (`regmaster.engine.in_scope_versions`). Before the engine has run for a client, the laws
+    in scope on its engagement (ClientRequirement) are suggested instead."""
     from app.engagements.models import ClientRequirement
+    from app.regmaster.engine import in_scope_versions
     from app.regmaster.models import ClientLawApplicability
 
     have = set()
@@ -577,9 +578,10 @@ def suggested_laws(db: Session, s: RegisterSystem) -> list[dict]:
         cur = current_regulation(db, link.regulation_id)
         if cur is not None:
             have.add(cur.id)
-    rows = list(db.scalars(select(ClientLawApplicability).where(ClientLawApplicability.organization_id == s.organization_id, ClientLawApplicability.deleted_at.is_(None))))
-    if rows:
-        pairs = [(r.regulation_id, r.reason_text) for r in rows if r.in_scope]
+    ran = db.scalar(select(ClientLawApplicability.id).where(ClientLawApplicability.organization_id == s.organization_id, ClientLawApplicability.deleted_at.is_(None)).limit(1)) is not None
+    if ran:
+        reasons = {r.regulation_id: r.reason_text for r in db.scalars(select(ClientLawApplicability).where(ClientLawApplicability.organization_id == s.organization_id, ClientLawApplicability.deleted_at.is_(None)))}
+        pairs = [(reg.id, reasons.get(reg.id)) for reg, _v in in_scope_versions(db, s.organization_id)]
     else:
         pairs = [(r.regulation_id, r.reason_text) for r in db.scalars(select(ClientRequirement).where(ClientRequirement.organization_id == s.organization_id, ClientRequirement.deleted_at.is_(None),
                                                                                                       ClientRequirement.in_scope.is_(True), ClientRequirement.regulation_id.is_not(None)))]

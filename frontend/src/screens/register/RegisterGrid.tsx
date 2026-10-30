@@ -73,10 +73,12 @@ export function RegisterGrid() {
     try { await fn(); await refresh(); setFlash({ tone: 'success', text: ok }); } catch (e) { setFlash({ tone: 'danger', text: errorMessage(e) }); }
   }
   async function importInventory() {
-    await act(async () => {
+    setFlash(null);
+    try {
       const r = await api.post<{ created: number; already_in_register: number }>('/register/import-inventory');
-      setTimeout(() => setFlash({ tone: 'success', text: `${r.created} AI systems added from the inventory as Proposed. ${r.already_in_register} were already in the register.` }), 0);
-    }, 'Imported.');
+      await refresh();
+      setFlash({ tone: 'success', text: `${r.created} AI systems added from the inventory as Proposed. ${r.already_in_register} were already in the register.` });
+    } catch (e) { setFlash({ tone: 'danger', text: errorMessage(e) }); }
   }
   function exportCsv(rows?: RegSystem[]) {
     const ids = rows ? `?ids=${rows.map((r) => r.id).join(',')}` : '';

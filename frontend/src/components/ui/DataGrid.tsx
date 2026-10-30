@@ -376,8 +376,10 @@ export function RowMenu({ label, items, x, y, anchor, onClose }: { label: string
   }, [x, y, anchor]);
 
   useEffect(() => {
+    const opened = performance.now();
     const down = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node) && !(anchor && anchor.contains(e.target as Node))) onClose(false); };
-    const away = (e: Event) => { if (!(ref.current && ref.current.contains(e.target as Node))) onClose(false); };
+    // A scroll that started with the click that opened the menu (the browser bringing the ⋯ button into view) must not close it.
+    const away = (e: Event) => { if (e.type === 'scroll' && performance.now() - opened < 250) return; if (!(ref.current && ref.current.contains(e.target as Node))) onClose(false); };
     document.addEventListener('mousedown', down);
     window.addEventListener('resize', away);
     window.addEventListener('scroll', away, true);
