@@ -2,6 +2,7 @@ import { Fragment, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
+import { can, useMe } from '@/api/auth';
 import { Alert, Badge, Button, Card, EmptyState, Loading, PageHeader, fileUrl, fmtDate, fmtDateTime } from '@/components/ui';
 import { StageTracker } from '@/components/StageTracker';
 import { SignPanel } from '@/components/SignPanel';
@@ -33,6 +34,7 @@ type Page = {
 export function ClientPage() {
   const { clientId = '' } = useParams();
   const qc = useQueryClient();
+  const { data: me } = useMe();
   const flash = (useLocation().state as { flash?: string } | null)?.flash;
   const q = useQuery({ queryKey: ['client-page', clientId], queryFn: () => api.get<Page>(`/clients/${clientId}`) });
   const [preview, setPreview] = useState<{ id: string; title: string } | null>(null);
@@ -164,7 +166,7 @@ export function ClientPage() {
                 <tbody>{p.sites.map((x, i) => <tr key={i}><td>{x.site_name}</td><td>{x.city ?? '—'}</td><td className="small">{x.jurisdictions.join(', ') || '—'}</td></tr>)}</tbody></table></div>
             )}
           </Card>
-          <Card title="Laws and frameworks in scope" actions={<Link className="btn btn-sm" to={`/clients/${clientId}/applicability`}>Applicability and intro letter</Link>}>
+          <Card title="Laws and frameworks in scope" actions={can(me, 'view_applicability') ? <Link className="btn btn-sm" to={`/clients/${clientId}/applicability`}>Applicability and intro letter</Link> : undefined}>
             {p.laws.length === 0 ? <EmptyState>None yet.</EmptyState> : (
               <LawsTable laws={p.laws} withType />
             )}
