@@ -87,7 +87,7 @@ test('review to close: sign-off 5, report and declarations, responses, final rep
   await staff(page, 'em@futran.demo');
   await page.goto(`/clients/${abc}/report`);
   await page.getByRole('button', { name: 'Release client draft v1.0' }).click();
-  await expect(page.getByText(/client draft \(v1.0\) is released/)).toBeVisible();
+  await expect(page.getByText(/client draft \(v1.0\) is released/)).toBeVisible({ timeout: 30_000 }); // renders the report PDF, 3.5–5.5 s on a busy machine
 
   // Stage 7: the client responds; Futran reviews adequacy; sign-off 6
   await clientUser(page, `maria.lopez@${ABC}`);
@@ -129,7 +129,7 @@ test('review to close: sign-off 5, report and declarations, responses, final rep
   await staff(page, 'auditor1@futran.demo');
   await page.goto(`/clients/${abc}/report`);
   await page.getByRole('button', { name: 'Prepare final v1.1 and send for signature' }).click();
-  await expect(page.getByText('Final report v1.1 prepared and sent to the Chief Auditor.')).toBeVisible();
+  await expect(page.getByText('Final report v1.1 prepared and sent to the Chief Auditor.')).toBeVisible({ timeout: 30_000 }); // renders the report PDF
   await page.getByLabel('Tool', { exact: true }).fill('ScreenRank ATS (résumé screening)');
   await page.getByLabel('Audit date').fill(new Date(Date.now() - 3 * 864e5).toISOString().slice(0, 10));
   await page.getByLabel('Data used').fill('Historical applicant data for New York roles, January to June.');
