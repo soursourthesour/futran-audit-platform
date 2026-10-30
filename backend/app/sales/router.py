@@ -186,13 +186,27 @@ class OppPatch(BaseModel):
         return v
 
 
+OFFER_STAGES = ("proposal", "won")  # an offer has gone out: a current audit client needs the Chief Auditor's approval first
+
+
 def _patch(db: Session, actor: Actor, o: Opportunity, body: OppPatch) -> None:
     data = body.model_dump(exclude_unset=True)
     if "owner_id" in data:
         _check_owner(db, actor, data["owner_id"])
+    if "service" in data and data["service"] is not None and data["service"].strip() != o.service:
+        # The approval was for the service as it stood: a new service is a new offer. Re-check the independence rule and
+        # whether the client is now a current audit client, and ask for approval again.
+        check_independence(db, o.organization_id, o.service_kind)
+        o.needs_ca_approval = is_current_audit_client(db, o.organization_id)
+        if o.ca_decision is not None or o.approval_requested_at is not None:
+            o.ca_decision, o.ca_approved_by, o.ca_approved_at, o.ca_note, o.approval_requested_at = None, None, None, None, None
+            log(db, o, "approval_reset", f"Service changed from “{o.service}”; the Chief Auditor's approval no longer applies", actor.id)
+        data["service"] = data["service"].strip()
     if "stage" in data and data["stage"] != o.stage:
-        if data["stage"] == "proposal" and not can_send_offer(o):
-            raise Conflict("This client is a current audit client. The Chief Auditor approves the offer before a proposal goes out.")
+        if data["stage"] in OFFER_STAGES:
+            o.needs_ca_approval = o.needs_ca_approval or is_current_audit_client(db, o.organization_id)
+            if not can_send_offer(o):
+                raise Conflict("This client is a current audit client. The Chief Auditor approves the offer before a proposal goes out or the opportunity is won.")
         log(db, o, "stage", f"Stage changed from {STAGE_LABELS[o.stage]} to {STAGE_LABELS[data['stage']]}", actor.id)
         o.closed_at = utcnow() if data["stage"] in ("won", "lost") else None
     for k, v in data.items():
@@ -220,15 +234,21 @@ class BulkIn(BaseModel):
 def bulk(body: BulkIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.WORK_OPPORTUNITIES)
     patch = OppPatch(**{k: v for k, v in {"owner_id": body.owner_id, "stage": body.stage}.items() if v is not None})
-    n = 0
+    n = skipped = 0
     for oid in body.ids:
         o = db.get(Opportunity, oid)
         if o is None:
             continue
-        _patch(db, actor, o, patch)
+        try:
+            with db.begin_nested():
+                _patch(db, actor, o, patch)
+        except Conflict:  # waiting for the Chief Auditor's approval: left as it is
+            skipped += 1
+            continue
         n += 1
-    audit.record(db, actor_id=actor.id, action="opportunity.bulk_update", object_type="Opportunity", request=request, organization_id=actor.organization.id, summary=f"Updated {n} opportunities")
-    return {"changed": n}
+    audit.record(db, actor_id=actor.id, action="opportunity.bulk_update", object_type="Opportunity", request=request, organization_id=actor.organization.id,
+                 summary=f"Updated {n} opportunities" + (f"; {skipped} left as they were (Chief Auditor approval needed)" if skipped else ""))
+    return {"changed": n, "skipped": skipped}
 
 
 class ActivityIn(BaseModel):
