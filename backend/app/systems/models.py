@@ -47,6 +47,7 @@ class AISystem(TimestampedTenantMixin, Base):
     completion_pct: Mapped[int] = mapped_column(Integer, default=0)
     methodology_version: Mapped[str | None] = mapped_column(String(10))
     source: Mapped[str] = mapped_column(String(10), default="auditor")  # wizard | auditor
+    register_system_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("register_systems.id"), index=True)  # the client's register row this system was taken from
 
 
 class SystemAdditionRequest(TimestampedTenantMixin, Base):
