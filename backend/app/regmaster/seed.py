@@ -27,6 +27,29 @@ def domain_of(url: str) -> str:
     return (urlparse(url).netloc or "").lower()
 
 
+def bare_host(host_or_url: str) -> str:
+    """Lower-case host without port or a leading www."""
+    h = (urlparse(host_or_url).hostname if "//" in host_or_url else host_or_url.split(":")[0]) or ""
+    h = h.lower().rstrip(".")
+    return h[4:] if h.startswith("www.") else h
+
+
+def host_matches(url: str, allowed: str) -> bool:
+    """True when the URL's host is the allowlisted domain or a subdomain of it; a look-alike suffix never matches
+    (evilx.gov is not x.gov)."""
+    h, d = bare_host(url), bare_host(allowed)
+    return bool(h and d) and (h == d or h.endswith("." + d))
+
+
+def allowlisted_source(db: Session, url: str, kind: str | None = "official"):
+    """The most specific active allowlist entry (not a law-specific page) that covers this URL."""
+    q = select(Source).where(Source.active.is_(True), Source.regulation_id.is_(None))
+    if kind:
+        q = q.where(Source.kind == kind)
+    hits = [s for s in db.scalars(q) if host_matches(url, s.domain or s.url)]
+    return max(hits, key=lambda s: len(bare_host(s.domain or s.url)), default=None)
+
+
 def load_roles(db: Session, data: dict | None = None) -> int:
     data = data or _data()
     have = {r.code: r for r in db.scalars(select(RoleCatalog))}

@@ -7,6 +7,7 @@ import { DataGrid } from '@/components/ui/DataGrid';
 import { AI_TYPE_OPTIONS, APPLIES_OPTIONS, STAGE_OPTIONS, appliesLabel, stageLabel, statusTone, type LawRecord as Law, type Requirement } from '@/api/regmaster';
 import { requirementHelp as H } from '@/help/regmaster';
 import { RegTabs } from './LawLibrary';
+import { LawCases } from '@/screens/litigation/LawCases';
 import '@/styles/regmaster.css';
 
 const LEVEL_LABEL: Record<string, string> = { required: 'Required', recommended: 'Recommended', no_longer_required: 'No longer required' };
@@ -106,6 +107,7 @@ export function LawRecord() {
           {d.committees.map((c) => <p key={c.committee_type} className="small" style={{ marginTop: 12 }}><strong>{c.title}</strong> · {c.level === 'required' ? 'Required' : 'Recommended'}{c.basis ? ` · ${c.basis}` : ''}{c.condition ? `. ${c.condition}.` : ''}</p>)}
           <p className="reg-note">Change a role's level from <Link to="/reg/roles">Roles and committees</Link>.</p>
         </Card>
+        <section id="cases" aria-label="Related cases"><LawCases regulationId={d.id} /></section>
         <section id="history">
           <Card title="Version history">
             <div className="table-wrap"><table className="table">

@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.core.clock import today
 from app.regmaster.models import AI_TYPES, APPLIES_TO, STAGES, VERSION_STATUSES, RoleCatalog, Source
-from app.regmaster.seed import domain_of
+from app.regmaster.seed import host_matches
 
 PROMPT_VERSION = "m1b-draft-1"
 
@@ -55,7 +55,7 @@ def draft_law(db: Session, client, ref: str) -> dict:
     for s in data.get("sources") or []:
         if not isinstance(s, dict) or not str(s.get("url", "")).startswith("http"):
             continue
-        kind = "official" if domain_of(s["url"]) in official else "secondary"
+        kind = "official" if any(host_matches(s["url"], d) for d in official) else "secondary"
         if kind == "secondary":
             warnings.append(f"{s['url']} is not on the official source list; it is marked secondary.")
         sources.append({"name": str(s.get("name") or s["url"])[:300], "url": s["url"][:600], "kind": kind})

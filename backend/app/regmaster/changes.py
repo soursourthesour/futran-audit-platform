@@ -168,10 +168,10 @@ def propose(
         return dup
     src = None
     if source_url:
-        from app.regmaster.seed import domain_of
+        from app.regmaster.seed import allowlisted_source
 
-        src = db.scalar(select(Source).where(Source.domain == domain_of(source_url), Source.active.is_(True), Source.regulation_id.is_(None)))
-        if src is None or src.kind != "official":
+        src = allowlisted_source(db, source_url)
+        if src is None:
             confidence = "low" if origin in ("claude_refresh", "claude_draft") else confidence
     if reg is not None and jurisdiction_id is None:
         jurisdiction_id = reg.jurisdiction_id

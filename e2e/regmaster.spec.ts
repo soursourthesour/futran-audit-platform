@@ -37,6 +37,7 @@ test('Chief Auditor browses the law library, opens Colorado SB 26-189 and an Adm
   await expect(page.getByRole('heading', { name: 'Statutory requirements (8)' })).toBeVisible();
   await expect(page.getByText('WITHIN THIRTY DAYS AFTER MAKING THE DECISION', { exact: false })).toBeVisible();
   await expect(page.getByRole('cell', { name: 'Explainability contact' }).first()).toBeVisible();
+  await expect(page.getByRole('heading', { name: /^Court cases \(\d+\)$/ })).toBeVisible();
 
   // An Admin's edit is a proposal: the live record does not change
   await signIn(page, 'admin@futran.demo');

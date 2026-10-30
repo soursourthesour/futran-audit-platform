@@ -123,3 +123,29 @@ def test_repeal_proposal_sets_status_on_approval(master):
     assert pc.old_value == "in_force"
     v = changes.apply_changes(db, [pc], reviewer_id="chief")
     assert v.status == "repealed"
+
+
+@pytest.mark.parametrize("url,expected", [
+    ("https://cppa.ca.gov/regulations/x.pdf", "high"),          # exact host
+    ("https://www.cppa.ca.gov/regulations/x.pdf", "high"),      # www. of an allowlisted host
+    ("https://leg.colorado.gov/bills/sb26-189", "high"),        # subdomain of an allowlisted host (colorado.gov)
+    ("https://nist.gov/itl/ai", "high"),                        # bare domain of an allowlisted www. host (www.nist.gov)
+    ("https://evilcolorado.gov/bills/sb26-189", "low"),         # look-alike suffix
+    ("https://colorado.gov.example.com/x", "low"),              # allowlisted name inside another domain
+    ("https://www.hklaw.com/x", "low"),                         # secondary source
+])
+def test_allowlist_matches_domain_and_subdomains_but_not_look_alikes(master, url, expected):
+    pc = changes.propose(master, actor_id=None, regulation_id=_co(master).id, field_path="law.cure_period", new_value=f"60 days ({url})", summary="x",
+                         origin="claude_refresh", source_url=url, source_quote="sixty days")
+    assert pc.confidence == expected
+
+
+def test_claude_draft_treats_a_www_host_of_an_official_domain_as_official(master):
+    from app.regmaster.draft import draft_law
+
+    class Fake:
+        def research(self, prompt):
+            return '```json {"short_name": "x", "sources": [{"name": "CPPA", "url": "https://www.cppa.ca.gov/regulations/"}, {"name": "Look-alike", "url": "https://evilcppa.ca.gov/x"}]} ```'
+
+    out = draft_law(master, Fake(), "CCPA regs")
+    assert [s["kind"] for s in out["draft"]["sources"]] == ["official", "secondary"]
