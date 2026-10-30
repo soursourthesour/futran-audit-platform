@@ -121,3 +121,31 @@ def test_rerun_when_geography_changes(master):
     engine.run(db, org.id)
     engine.add_geography(db, org.id, by_code(db, "US-CO").id, "customers", actor_id=None)
     assert _row(db, org, "US-CO", "^SB 26-189$").in_scope
+
+
+def test_existing_client_sites_become_geographies_on_first_run(master):
+    """Clients set up before the regulatory master have sites but no geographies (laptop data)."""
+    from app.engagements.models import ClientLocation
+
+    db = master
+    org = make_org(db)
+    nyc, ny, us = by_code(db, "US-NYC"), by_code(db, "US-NY"), by_code(db, "US")
+    db.add(ClientLocation(organization_id=org.id, site_name="HQ", country_code="US", subdivision_code="US-NY", city="New York", in_scope=True, jurisdiction_ids=[nyc.id, ny.id, us.id]))
+    db.flush()
+    engine.run(db, org.id)
+    assert [g.jurisdiction_id for g in engine.geographies(db, org.id)] == [nyc.id]
+    assert _row(db, org, "US-NYC", "Local Law 144").in_scope
+
+
+def test_confirmed_law_out_by_questions_says_so(master):
+    from app.engagements.models import ClientRequirement
+
+    db = master
+    org = make_org(db)
+    _geo(db, org, "US-NYC")
+    reg = find_law(db, "US-IL", "HB 3773")
+    db.add(ClientRequirement(organization_id=org.id, regulation_id=reg.id, source="manual", in_scope=True))
+    db.flush()
+    engine.run(db, org.id)
+    row = _row(db, org, "US-IL", "HB 3773")
+    assert row.in_scope and row.reason_text == "Confirmed in client set-up (scope questions: no Illinois operations or residents)"

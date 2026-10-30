@@ -163,7 +163,7 @@ export function ClientPage() {
                 <tbody>{p.sites.map((x, i) => <tr key={i}><td>{x.site_name}</td><td>{x.city ?? '—'}</td><td className="small">{x.jurisdictions.join(', ') || '—'}</td></tr>)}</tbody></table></div>
             )}
           </Card>
-          <Card title="Laws and frameworks in scope">
+          <Card title="Laws and frameworks in scope" actions={<Link className="btn btn-sm" to={`/clients/${clientId}/applicability`}>Applicability and intro letter</Link>}>
             {p.laws.length === 0 ? <EmptyState>None yet.</EmptyState> : (
               <LawsTable laws={p.laws} withType />
             )}

@@ -1,0 +1,41 @@
+/* Regulatory master screens (M1–M5). */
+.reg-tabs { display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid var(--line); margin: 8px 0 20px; }
+.reg-tabs a { padding: 10px 14px; min-height: 44px; display: inline-flex; align-items: center; text-decoration: none; color: var(--muted); font-weight: 600; border-bottom: 3px solid transparent; }
+.reg-tabs a.active { color: var(--navy, #1B3A6B); border-bottom-color: var(--navy, #1B3A6B); }
+.reg-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; align-items: end; margin-bottom: 12px; }
+.reg-filters .field { margin: 0; }
+.reg-sub { font-size: 12.5px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+.reg-note { font-size: 13px; color: var(--muted); margin-top: 12px; }
+.reg-kv { display: grid; grid-template-columns: minmax(140px, 200px) 1fr; gap: 8px 16px; font-size: 14px; }
+.reg-kv dt { color: var(--muted); font-weight: 600; }
+.reg-kv dd { margin: 0; }
+.reg-banner { border-left: 4px solid #B7791F; }
+.reg-matrix-wrap { overflow-x: auto; max-width: 100%; position: relative; }
+.reg-matrix { border-collapse: collapse; font-size: 13.5px; min-width: 900px; width: 100%; }
+.reg-matrix th, .reg-matrix td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.reg-matrix th { font-size: 12px; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); background: var(--bg, #F7F8FA); white-space: nowrap; }
+.reg-matrix .grp td { background: var(--bg, #F7F8FA); font-weight: 600; }
+.reg-matrix .cell { text-align: center; }
+.reg-matrix .cell button { min-width: 44px; min-height: 36px; border: 1px solid transparent; background: none; border-radius: 6px; cursor: pointer; font: inherit; }
+.reg-matrix .cell button:hover { border-color: var(--line); }
+.reg-matrix td.role-name { min-width: 220px; }
+.reg-pill-req { background: #E1F2E7; color: #1F5C38; font-weight: 600; font-size: 12px; padding: 2px 8px; border-radius: 10px; }
+.reg-pill-rec { background: #E3EEF9; color: #1B3A6B; font-weight: 600; font-size: 12px; padding: 2px 8px; border-radius: 10px; }
+.reg-committees { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.reg-committees ul, .letter-body ul { margin: 8px 0 0; padding-left: 20px; }
+.reg-two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 24px; align-items: start; }
+.reg-law-list { list-style: none; margin: 0; padding: 0; }
+.reg-law-list li { padding: 10px 0; border-bottom: 1px solid var(--line); }
+.reg-law-list li:last-child { border-bottom: 0; }
+.letter-body { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 24px; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.letter-body table { border-collapse: collapse; width: 100%; font-size: 13px; margin: 8px 0 16px; display: block; overflow-x: auto; }
+.letter-body th, .letter-body td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
+.letter-body h1 { font-size: 20px; } .letter-body h2 { font-size: 16px; margin-top: 20px; }
+.reg-form-section { margin-bottom: 20px; }
+.reg-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 16px; }
+.reg-checks { display: flex; flex-wrap: wrap; gap: 4px 20px; }
+.reg-quote { border-left: 3px solid var(--line); padding: 4px 10px; color: var(--muted); font-style: italic; font-size: 13px; margin-top: 4px; overflow-wrap: anywhere; }
+.reg-geo { display: flex; flex-wrap: wrap; gap: 8px; }
+.reg-geo .chip { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; }
+@media (max-width: 900px) { .reg-two { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .reg-kv { grid-template-columns: 1fr; gap: 2px; } .reg-kv dd { margin-bottom: 8px; } .letter-body { padding: 14px; } }

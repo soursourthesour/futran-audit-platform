@@ -43,6 +43,7 @@ export function FutranShell() {
   const nav: { to: string; label: string; show: boolean }[] = [
     { to: '/audits', label: 'Dashboard', show: true },
     { to: '/clients', label: 'Clients', show: true },
+    { to: '/reg', label: 'Regulatory master', show: hasRole(me, 'admin', 'chief_auditor', 'auditor', 'qa_reviewer') },
     { to: '/admin/templates', label: 'Templates', show: hasRole(me, 'admin', 'chief_auditor') },
     { to: '/admin/reference', label: 'Reference data', show: hasRole(me, 'admin', 'chief_auditor') },
     { to: '/admin/users', label: 'Users', show: hasRole(me, 'admin', 'chief_auditor') },

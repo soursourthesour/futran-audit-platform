@@ -180,6 +180,11 @@ def run(db: Session, org_id: str, actor_id: str | None = None) -> list[ClientLaw
     from app.regmaster.seed import ensure_versions
 
     ensure_versions(db)
+    if db.scalar(select(ClientGeography.id).where(ClientGeography.organization_id == org_id).limit(1)) is None:
+        # a client set up before the regulatory master: its sites become office geographies once
+        for loc in db.scalars(select(ClientLocation).where(ClientLocation.organization_id == org_id, ClientLocation.deleted_at.is_(None), ClientLocation.in_scope.is_(True))):
+            if loc.jurisdiction_ids:
+                add_geography(db, org_id, loc.jurisdiction_ids[0], "office", actor_id, source="wizard", location_id=loc.id, rerun=False)
     geo = expand(db, {g.jurisdiction_id for g in geographies(db, org_id)})
     facts = _facts(db, org_id)
     confirmed = {}
@@ -206,7 +211,7 @@ def run(db: Session, org_id: str, actor_id: str | None = None) -> list[ClientLaw
             else:
                 in_scope, reason, used = True, "Confirmed in client set-up", {}
             if not in_scope and reg.id in confirmed:
-                in_scope, reason = True, f"Confirmed in client set-up; {reason[:1].lower()}{reason[1:]}"
+                in_scope, reason = True, f"Confirmed in client set-up (scope questions: {reason[:1].lower()}{reason[1:]})"
             row.in_scope, row.reason_text = in_scope, reason
             row.scope_answers = {"used": used, "manual": answers}
             row.decided_by, row.decided_at = None, now

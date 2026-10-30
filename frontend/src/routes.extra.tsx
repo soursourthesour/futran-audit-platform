@@ -32,6 +32,11 @@ import { InventoryReview } from '@/screens/client/InventoryReview';
 import { RegisterGrid } from '@/screens/register/RegisterGrid';
 import { RegisterNew, RegisterSystemPage } from '@/screens/register/RegisterSystem';
 import { CompanyRoles } from '@/screens/register/CompanyRoles';
+import { LawLibrary } from '@/screens/futran/reg/LawLibrary';
+import { LawRecord } from '@/screens/futran/reg/LawRecord';
+import { LawEdit } from '@/screens/futran/reg/LawEdit';
+import { RoleCatalogue } from '@/screens/futran/reg/RoleCatalogue';
+import { Applicability } from '@/screens/futran/reg/Applicability';
 
 /** Screens added by later tasks register here, so routes.tsx stays stable. */
 export const futranRoutes: RouteObject[] = [
@@ -61,6 +66,12 @@ export const futranRoutes: RouteObject[] = [
   { path: '/clients/:clientId/report', element: <FinalReport /> },
   { path: '/clients/:clientId/responses', element: <ManagementResponse /> },
   { path: '/clients/:clientId/remediation', element: <Remediation /> },
+  { path: '/reg', element: <LawLibrary /> },
+  { path: '/reg/new', element: <LawEdit /> },
+  { path: '/reg/roles', element: <RoleCatalogue /> },
+  { path: '/reg/:lawId', element: <LawRecord /> },
+  { path: '/reg/:lawId/edit', element: <LawEdit /> },
+  { path: '/clients/:clientId/applicability', element: <Applicability /> },
 ];
 export const clientRoutes: RouteObject[] = [{ path: '/people', element: <Navigate to="/people/departments" replace /> }, { path: '/people/departments', element: <UsersDepartments tab="departments" /> }, { path: '/people/users', element: <UsersDepartments tab="users" /> }, { path: '/users', element: <Navigate to="/people/users" replace /> }, { path: '/governance', element: <Governance /> }, { path: '/attestation', element: <AttestationTracker /> }, { path: '/my-attestation', element: <MyAttestation /> }, { path: '/inventory', element: <Inventory /> }, { path: '/inventory/new', element: <UseCaseForm /> }, { path: '/inventory/:useCaseId', element: <UseCaseForm /> }, { path: '/systems', element: <SystemsPrefillList /> }, { path: '/systems/:systemId', element: <SystemPrefill /> }, { path: '/documents', element: <DocumentUploads /> }, { path: '/review', element: <InventoryReview /> }, { path: '/report', element: <ClientReport /> }, { path: '/responses', element: <ManagementResponse /> }, { path: '/remediation', element: <Remediation /> },
   // AI system register (spec §24, §27.2)

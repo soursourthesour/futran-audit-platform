@@ -65,7 +65,9 @@ def _effective_label(v: LawVersion | None) -> str:
     if v is None:
         return ""
     d = v.compliance_on or v.effective_on
-    return d.strftime("%-d %b %Y") if d and not v.effective_text else (v.effective_text or "")
+    if d:
+        return f"{d.day} {d.strftime('%b %Y')}" + (", phased" if v.status == "in_force_phased" else "")
+    return (v.effective_text or "")[:60]
 
 
 def _counts(db: Session, version_ids: list[str]) -> tuple[dict, dict, dict]:
