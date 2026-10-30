@@ -35,6 +35,19 @@ class Settings(BaseSettings):
     trust_proxy_headers: bool = False  # true behind Render/Azure so rate limits see the real client address
     address_autocomplete: str = ""  # photon | google | off; blank means google when a key is set, else photon
     google_places_api_key: str | None = None
+    # Email integration (spec §26): Microsoft Graph and Gmail / Directory API. Blank client IDs leave the outbox or SMTP
+    # as the only channel. MAIL_PROVIDER_MODE: auto (fake while EMAIL_MODE=outbox, else real), fake, or live.
+    mail_provider_mode: str = "auto"
+    ms_client_id: str | None = None
+    ms_client_secret: str | None = None
+    ms_redirect_uri: str | None = None  # default: BASE_URL/api/v1/mail/oauth/microsoft365
+    google_client_id: str | None = None
+    google_client_secret: str | None = None
+    google_redirect_uri: str | None = None  # default: BASE_URL/api/v1/mail/oauth/google
+    token_encryption_key: str | None = None  # blank: derived from SECRET_KEY
+    mail_pace_per_minute: int = 30  # Exchange Online allows 30 messages a minute per mailbox
+    mail_bcc_batch_size: int = 450  # Exchange Online allows 500 recipients per message by default
+    mail_link_days: int = 14
 
     @property
     def test_mode(self) -> bool:
