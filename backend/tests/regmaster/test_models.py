@@ -136,3 +136,22 @@ def test_guidance_type_maps_to_guidance_status():
     from app.regmaster.versioning import status_from_text
 
     assert status_from_text(None, "voluntary") == "guidance"
+
+
+def test_migration_gives_approved_repeals_their_date_back(tmp_path):
+    path = tmp_path / "r.db"
+    url = f"sqlite:///{path}"
+    _alembic(url, "4acc52a327dc")
+    c = sqlite3.connect(path)
+    c.execute("insert into jurisdictions (id, code, name, level, has_laws, active, created_at, updated_at) values ('j1','US-NYC','New York City','city',1,1,'2026-01-01','2026-01-01')")
+    c.execute("insert into matrix_versions (id, label, origin, status, published_at) values ('m1','m','import','published','2026-01-01')")
+    c.execute("insert into regulations (id, jurisdiction_id, matrix_version_id, short_name, feature, type, applies_to, verify_flag, public_summary, origin, created_at) values ('r1','j1','m1','LL144','employment_hiring','statute','deployer',0,0,'import','2026-01-01')")
+    for vid, no, status in (("v1", 1, "in_force"), ("v2", 2, "repealed")):
+        c.execute("insert into law_versions (id, regulation_id, version_no, status, verify_flag, created_at) values (?, 'r1', ?, ?, 0, '2026-01-01')", (vid, no, status))
+    c.execute("insert into proposed_changes (id, origin, change_type, regulation_id, field_path, new_value, summary, confidence, status, created_at, applied_version_id) "
+              "values ('p1','admin_edit','repeal','r1','repeal',?,'Repealed','high','approved','2026-01-01','v2')", ('{"status": "repealed", "effective_on": "2027-07-01"}',))
+    c.commit()
+    c.close()
+    _alembic(url, "head")
+    c = sqlite3.connect(path)
+    assert c.execute("select id, repealed_on from law_versions order by id").fetchall() == [("v1", None), ("v2", "2027-07-01")]

@@ -14,7 +14,7 @@ ProposedChange.field_path grammar (shared with the refresh pipeline, WS-D):
   scope_test.<order>        new_value = {"question_text", "answer_type", "in_scope_rule", "prefill_from"}; null = remove
   committee.<type>          new_value = committee rule dict; null = remove
   new_law                   new_value = {"jurisdiction_code", "short_name", ..., "version": {...}}
-  repeal                    new_value = {"status": "repealed", ...}
+  repeal                    new_value = {"status": "repealed", "effective_on": date the repeal takes effect (optional)}
 """
 from datetime import date, datetime
 
@@ -44,6 +44,7 @@ class LawVersion(IdMixin, Base):
     signed_on: Mapped[date | None] = mapped_column(Date)
     effective_on: Mapped[date | None] = mapped_column(Date)
     compliance_on: Mapped[date | None] = mapped_column(Date)
+    repealed_on: Mapped[date | None] = mapped_column(Date)  # status repealed: the law applies until this date (null = already)
     effective_text: Mapped[str | None] = mapped_column(String(200))  # e.g. "Aug 2024 – Aug 2027" when phased
     scope_text: Mapped[str | None] = mapped_column(Text)
     applies_to: Mapped[list | None] = mapped_column(JSON)

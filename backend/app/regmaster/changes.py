@@ -25,7 +25,7 @@ from app.regmaster.versioning import VERSION_FIELDS, clone_version
 
 REG_FIELDS = {"short_name", "citation", "type", "binding", "topics", "label", "region"}
 LAW_FIELDS = set(VERSION_FIELDS) - {"source_ids"} | REG_FIELDS
-DATE_FIELDS = {"signed_on", "effective_on", "compliance_on"}
+DATE_FIELDS = {"signed_on", "effective_on", "compliance_on", "repealed_on"}
 ORIGINS = {"admin_edit", "bulk_edit", "auditor_suggestion", "claude_draft", "claude_refresh"}
 CHANGE_TYPES = {"new_law", "amendment", "effective_date", "new_rule", "guidance", "role_mapping", "repeal", "enforcement"}
 OPEN = ("pending", "held", "legal_review")
@@ -88,6 +88,11 @@ def requirement_out(db: Session, r: Requirement) -> dict:
 def _validate(db: Session, field_path: str, value) -> None:
     head, _, key = field_path.partition(".")
     if field_path in ("new_law", "repeal"):
+        if field_path == "repeal" and isinstance(value, dict) and value.get("effective_on"):
+            try:
+                date.fromisoformat(str(value["effective_on"])[:10])
+            except ValueError:
+                _bad("new_value.effective_on", "Use a date (YYYY-MM-DD) for when the repeal takes effect.")
         if field_path == "new_law":
             if not isinstance(value, dict) or not (value.get("short_name") or "").strip() or not value.get("jurisdiction_code"):
                 _bad("new_value", "A new law needs a geography and a short name.")
@@ -279,7 +284,8 @@ def compute_impacts(db: Session, pc: ProposedChange) -> list[ChangeImpact]:
 def _apply_one(db: Session, reg: Regulation, v: LawVersion, pc: ProposedChange, value) -> None:
     head, _, key = pc.field_path.partition(".")
     if pc.field_path == "repeal":
-        v.status = "repealed"
+        on = value.get("effective_on") if isinstance(value, dict) else None
+        v.status, v.repealed_on = "repealed", date.fromisoformat(str(on)[:10]) if on else None  # in force until then
         return
     if head == "law":
         if key in REG_FIELDS:

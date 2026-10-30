@@ -22,6 +22,7 @@ from app.core.errors import Invalid
 from app.engagements.models import ClientLocation, ClientRequirement
 from app.laws.models import Regulation
 from app.reference.models import Jurisdiction, JurisdictionMembership
+from app.regmaster.versioning import repealed
 from app.regmaster.models import STAGES, ClientGeography, ClientLawApplicability, CommitteeRule, LawRoleMap, LawVersion, RoleCatalog, ScopeTest
 
 log = logging.getLogger(__name__)
@@ -238,14 +239,17 @@ def run(db: Session, org_id: str, actor_id: str | None = None) -> list[ClientLaw
         if not row.override:
             tests = list(db.scalars(select(ScopeTest).where(ScopeTest.law_version_id == v.id).order_by(ScopeTest.order)))
             answers = {k: v_ for k, v_ in ((row.scope_answers or {}).get("manual") or {}).items()}
-            if v.status == "repealed":
+            gone = repealed(v)  # a future-dated repeal leaves the law in force until its date
+            if gone:
                 in_scope, reason, used = False, "Repealed or lapsed", {}
             elif tests:
                 in_scope, reason, used = _decide(db, reg, v, tests, geo, facts, answers)
             else:
                 in_scope, reason, used = True, "Confirmed in client set-up", {}
-            if not in_scope and reg.id in confirmed and v.status != "repealed":
+            if not in_scope and reg.id in confirmed and not gone:
                 in_scope, reason = True, f"Confirmed in client set-up (scope questions: {reason[:1].lower()}{reason[1:]})"
+            if in_scope and v.status == "repealed" and v.repealed_on:
+                reason = f"{reason}; repealed from {v.repealed_on.day} {v.repealed_on:%B %Y}"[:600]
             row.in_scope, row.reason_text = in_scope, reason
             row.scope_answers = {"used": used, "manual": answers}
             row.decided_by, row.decided_at = None, now
@@ -275,6 +279,23 @@ def _rerun_before_commit(session: Session) -> None:
                 run(session, org_id)
         except Exception:  # the register change still saves; the next re-run (or M5) brings the result up to date
             log.exception("Applicability re-run for organisation %s failed", org_id)
+
+
+def run_repeal_dates(db: Session, on=None) -> int:
+    """Daily: re-run each client whose result no longer matches a dated repeal (the date has arrived, or a repeal
+    recorded before its date was kept). Returns the number of clients re-run."""
+    from app.core.clock import today
+
+    on = on or today()
+    rows = db.execute(
+        select(ClientLawApplicability, LawVersion).join(Regulation, Regulation.id == ClientLawApplicability.regulation_id)
+        .join(LawVersion, LawVersion.id == Regulation.current_version_id)
+        .where(LawVersion.status == "repealed", LawVersion.repealed_on.is_not(None), ClientLawApplicability.deleted_at.is_(None), ClientLawApplicability.override.is_(False))
+    ).all()
+    orgs = {row.organization_id for row, v in rows if row.in_scope == repealed(v, on) or (not row.in_scope and row.reason_text == "Repealed or lapsed" and not repealed(v, on))}
+    for org_id in sorted(orgs):
+        run(db, org_id)
+    return len(orgs)
 
 
 def rerun_for_regulation(db: Session, regulation_id: str) -> list[str]:

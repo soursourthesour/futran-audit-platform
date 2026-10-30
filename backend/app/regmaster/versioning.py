@@ -23,10 +23,19 @@ def status_from_text(status_text: str | None, reg_type: str | None) -> str:
 
 
 VERSION_FIELDS = [
-    "status", "signed_on", "effective_on", "compliance_on", "effective_text", "scope_text", "applies_to", "enforcer",
+    "status", "signed_on", "effective_on", "compliance_on", "repealed_on", "effective_text", "scope_text", "applies_to", "enforcer",
     "private_right_of_action", "penalty_text", "cure_period", "exemptions_text", "removed_text", "litigation_text",
     "main_duty", "verify_flag", "source_ids",
 ]
+
+
+def repealed(v, on=None) -> bool:
+    """A repealed version stops applying on its repeal date (none recorded: already)."""
+    if v is None or v.status != "repealed":
+        return False
+    from app.core.clock import today
+
+    return v.repealed_on is None or v.repealed_on <= (on or today())
 
 
 def first_version(db, reg, flush: bool = True) -> "LawVersion":

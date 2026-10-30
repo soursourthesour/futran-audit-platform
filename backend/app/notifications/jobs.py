@@ -208,6 +208,15 @@ def _wsd(name: str):
     return job
 
 
+def run_repeal_dates(db: Session, settings: Settings, now) -> int:
+    """A law repealed from a future date leaves clients' scope on that date (regulatory master, §25.4)."""
+    from app.regmaster.engine import run_repeal_dates as rerun
+
+    return rerun(db, _d(now))
+
+
+JOBS["repeal_dates"] = run_repeal_dates
+
 JOBS |= {"refresh_schedule": _wsd("run_scheduled"), "refresh_reminders": _wsd("run_reminders"), "client_alert_dates": _wsd("client_alert_dates"),
          "opportunity_dates": _wsd("opportunity_dates")}
 
