@@ -80,7 +80,7 @@ export function ClientShell() {
     { to: '/start', label: 'Getting started' },
     { to: '/people', label: 'People', show: hasRole(me, 'client_admin', 'caico') },
     { to: '/register', label: 'AI system register', show: hasRole(me, 'caico', 'client_admin', 'dept_compliance_lead') },
-    { to: '/governance/roles', label: 'Governance roles', show: hasRole(me, 'caico', 'client_admin') },
+    { to: '/governance/roles', label: 'Company roles', show: hasRole(me, 'caico', 'client_admin') },
     { to: '/governance', label: 'Governance', show: hasRole(me, 'caico', 'dpo', 'exec_sponsor'), end: true },
     { to: '/attestation', label: 'Attestation', show: hasRole(me, 'caico', 'dpo', 'dept_compliance_lead', 'client_admin') },
     { to: '/my-attestation', label: 'My AI attestation' },
