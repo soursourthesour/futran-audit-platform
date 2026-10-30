@@ -101,3 +101,20 @@ def test_sources_allowlist_marks_law_firms_secondary(matrix):
     kinds = {s.domain: s.kind for s in db.scalars(select(Source).where(Source.regulation_id.is_(None)))}
     assert kinds["eur-lex.europa.eu"] == "official"
     assert kinds["www.hklaw.com"] == "secondary"
+
+
+def test_law_replaced_by_a_matrix_edit_carries_its_content_forward(matrix):
+    from app.laws.service import edit_law
+    from tests.factories import make_org, make_user
+
+    db = matrix
+    seed_regmaster(db)
+    old = _law(db, "US-NYC", "Local Law 144")
+    old_v = db.get(LawVersion, old.current_version_id)
+    admin = make_user(db, make_org(db, type="futran"), roles=["admin"], name="Ada Admin")
+    new = edit_law(db, admin, old.id, {"obligations_text": "Yearly bias audit"})
+    ensure_versions(db)
+    v = db.get(LawVersion, new.current_version_id)
+    assert v.version_no == old_v.version_no + 1 and v.regulation_id == new.id
+    assert {r.code for r in db.scalars(select(Requirement).where(Requirement.law_version_id == v.id))} >= {"LL144-01", "LL144-05"}
+    assert new.label == "NYC LL144" or new.label is None  # label is copied by edit_law with the other columns

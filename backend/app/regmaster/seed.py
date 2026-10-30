@@ -63,18 +63,26 @@ def ensure_versions(db: Session) -> int:
     """Every current law has an approved version. A law the matrix import replaced carries its predecessor's
     content forward; a new law gets version 1 from its matrix fields."""
     made = 0
-    current = db.scalars(select(Regulation).where(Regulation.superseded_by_id.is_(None), Regulation.retired_in_version_id.is_(None), Regulation.current_version_id.is_(None)))
-    for reg in list(current):
-        prev = db.scalar(select(Regulation).where(Regulation.superseded_by_id == reg.id, Regulation.current_version_id.is_not(None)))
-        if prev is not None and (old := db.get(LawVersion, prev.current_version_id)) is not None:
+    live = (Regulation.superseded_by_id.is_(None), Regulation.retired_in_version_id.is_(None))
+    missing = list(db.scalars(select(Regulation).where(*live, Regulation.current_version_id.is_(None))))
+    # a row copied from its predecessor (Reference data edit, accepted law update) still points at the old law's version
+    borrowed = {r.id: r.current_version_id for r in db.scalars(select(Regulation).join(LawVersion, LawVersion.id == Regulation.current_version_id).where(*live, LawVersion.regulation_id != Regulation.id))}
+    missing += [db.get(Regulation, rid) for rid in borrowed]
+    if not missing:
+        return 0
+    preds = {r.superseded_by_id: r for r in db.scalars(select(Regulation).where(Regulation.superseded_by_id.in_([m.id for m in missing]), Regulation.current_version_id.is_not(None)))}
+    for reg in missing:
+        prev = preds.get(reg.id)
+        base_id = borrowed.get(reg.id) or (prev.current_version_id if prev is not None else None)
+        if base_id is not None and (old := db.get(LawVersion, base_id)) is not None:
             new = clone_version(db, old, regulation_id=reg.id, summary="Law matrix re-import: content carried forward")
             new.approved_at = utcnow()
             reg.current_version_id = new.id
             for k in ("binding", "topics", "region", "reviewer_id", "review_due_on", "refresh_every_days", "watch"):
-                if getattr(reg, k) is None:
+                if prev is not None and getattr(reg, k) is None:
                     setattr(reg, k, getattr(prev, k))
         else:
-            first_version(db, reg)
+            first_version(db, reg, flush=False)
         made += 1
     db.flush()
     return made

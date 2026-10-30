@@ -29,18 +29,20 @@ VERSION_FIELDS = [
 ]
 
 
-def first_version(db, reg) -> "LawVersion":
+def first_version(db, reg, flush: bool = True) -> "LawVersion":
     """Version 1 of a law from its matrix fields (the same move the migration made for existing laws)."""
+    from app.core.ids import new_id
     from app.regmaster.models import LawVersion
 
     applies = {"both": ["developer", "deployer"], "developer": ["developer"]}.get(reg.applies_to or "deployer", ["deployer"])
     v = LawVersion(
-        regulation_id=reg.id, version_no=1, status=status_from_text(reg.status_text, reg.type), effective_text=reg.effective_date_text,
+        id=new_id(), regulation_id=reg.id, version_no=1, status=status_from_text(reg.status_text, reg.type), effective_text=reg.effective_date_text,
         scope_text=reg.trigger_text, applies_to=applies, enforcer=reg.enforcer, verify_flag=bool(reg.verify_flag),
         change_summary="First record, from the law matrix",
     )
     db.add(v)
-    db.flush()
+    if flush:
+        db.flush()
     reg.current_version_id = v.id
     if reg.binding is None:
         reg.binding = reg.type in ("statute", "regulation", "executive")
