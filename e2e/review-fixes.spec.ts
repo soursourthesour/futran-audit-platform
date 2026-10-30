@@ -208,28 +208,40 @@ for (const [who, email] of [['QA Reviewer', 'qa@futran.demo'], ['Engagement Mana
   });
 }
 
+/** A litigation case for the checks that need one (the late seed has none). */
+async function makeCase(page: Page, regulationIds: string[] = []) {
+  const me = await (await page.request.get('/api/v1/auth/me')).json();
+  const r = await page.request.post('/api/v1/litigation', { data: { name: `Doe v. Screening Co ${Date.now().toString(36)}`, area: 'Hiring and employment', stage: 'filed', regulation_ids: regulationIds }, headers: { 'X-CSRF-Token': me.csrf_token } });
+  expect(r.status(), await r.text()).toBe(200);
+  return r.json() as Promise<{ id: string; name: string }>;
+}
+
 async function call(page: Page, method: 'POST' | 'PATCH', path: string, data?: unknown) {
   const me = await (await page.request.get('/api/v1/auth/me')).json();
   const r = await page.request.fetch(`/api/v1${path}`, { method, data, headers: { 'X-CSRF-Token': me.csrf_token } });
   expect(r.status(), `${method} ${path}: ${await r.text()}`).toBe(200);
 }
 
-test('a deep link survives the mailbox step and the personal mailbox consent; a foreign next is ignored', async ({ page }) => {
-  await signIn(page, 'katrin.vogel@meridian.example');
-  await call(page, 'PATCH', '/mail/settings', { per_user_sync: 'required' });
+test('a deep link survives the mailbox step and the personal mailbox consent; a foreign next is ignored', async ({ page, browser }) => {
+  // Katrin (Client Admin) keeps her own session to switch the policy on and back off
+  const admin = await (await browser.newContext({ baseURL: test.info().project.use.baseURL })).newPage();
+  await signIn(admin, 'katrin.vogel@meridian.example');
+  await signIn(page, 'lena.fischer@meridian.example');
+  const lena = await (await page.request.get('/api/v1/auth/me')).json();
+  await page.request.post('/api/v1/me/mailbox/disconnect', { headers: { 'X-CSRF-Token': lena.csrf_token } });  // a clean start if an earlier run left her connected
+  await call(admin, 'PATCH', '/mail/settings', { per_user_sync: 'required' });
   try {
-    await signIn(page, 'lena.fischer@meridian.example');
     await page.goto('/inventory?tab=tools');
     await expect(page).toHaveURL(/\/welcome\/mailbox\?next=%2Finventory%3Ftab%3Dtools$/);
     await page.getByRole('button', { name: /Connect Microsoft 365/ }).click();
     await page.getByRole('button', { name: 'Accept' }).click();
-    await expect(page).toHaveURL(/\/welcome\/mailbox\?connected=1&next=/);
+    await expect(page).toHaveURL(/\/welcome\/mailbox\?(?=.*connected=1)(?=.*next=%2F|.*next=\/)/);
     await page.getByRole('link', { name: 'Continue' }).click();
     await expect(page).toHaveURL(/\/inventory\?tab=tools$/);
     await call(page, 'POST', '/me/mailbox/disconnect');
   } finally {
-    await signIn(page, 'katrin.vogel@meridian.example');
-    await call(page, 'PATCH', '/mail/settings', { per_user_sync: 'optional' });
+    await call(admin, 'PATCH', '/mail/settings', { per_user_sync: 'optional' });
+    await admin.context().close();
   }
   // a next that leaves the site is not followed
   for (const bad of ['//evil.example/x', 'https://evil.example/x', '/\\evil.example']) {
@@ -279,10 +291,10 @@ test('one click, one write: import from inventory, retire and create opportuniti
   expect(ret.n).toBe(1);
   // litigation: assign one case to Sales
   await signIn(page, 'chief@futran.demo', true);
+  const kase = await makeCase(page);
   await page.goto('/litigation');
   const opp = await slowPosts(page, /\/api\/v1\/litigation\/(bulk-assign|[^/]+\/opportunities)$/);
-  const first = page.getByRole('button', { name: /^Actions for / }).first();
-  await first.click();
+  await page.getByRole('button', { name: new RegExp(`^Actions for ${kase.name}`) }).click();
   await page.getByRole('menuitem', { name: 'Create opportunity' }).click();
   const dialog = page.getByRole('dialog', { name: 'Assign to Sales' });
   await dialog.getByLabel('Owner', { exact: true }).selectOption({ index: 1 });
@@ -348,21 +360,26 @@ test('Contributor: no "Add a use case" once the inventory is locked', async ({ p
   await expect(page.getByRole('link', { name: 'Add a use case' })).toHaveCount(0);
 });
 
-test('Sales: the case record names laws as text, without links to the regulatory master', async ({ page }) => {
+test('Sales: the case record names laws as text, without links to the regulatory master', async ({ page, browser }) => {
+  // the Chief Auditor links a law to a case first (the seed has none)
+  const chief = await (await browser.newContext({ baseURL: test.info().project.use.baseURL })).newPage();
+  await signIn(chief, 'chief@futran.demo', true);
+  const laws = await (await chief.request.get('/api/v1/reg/laws')).json();
+  const law = laws.groups.flatMap((g: { laws: { id: string }[] }) => g.laws)[0];
+  const c = await makeCase(chief, [law.id]);
+  await chief.context().close();
   await signIn(page, 'sales@futran.demo', true);
-  const list = await (await page.request.get('/api/v1/litigation')).json();
-  const withLaw = (list.cases ?? list.items ?? []).find((c: { regulation_ids?: string[] }) => (c.regulation_ids ?? []).length);
-  test.skip(!withLaw, 'no case linked to a law in this data');
-  await page.goto(`/litigation/${withLaw.id}`);
+  await page.goto(`/litigation/${c.id}`);
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   await page.waitForLoadState('networkidle');
+  await expect(page.getByRole('heading', { name: 'Laws it interprets' })).toBeVisible();
   await expect(page.locator('main a[href^="/reg/"]')).toHaveCount(0);
   expect(await page.locator('main').innerText()).not.toMatch(/last checked \d{4}-\d{2}-\d{2}/);
 });
 
 test('help on a new input: the applicability geography search', async ({ page }) => {
   await signIn(page, 'chief@futran.demo', true);
-  await page.goto(`/clients/${late().abc}/applicability`);
+  await page.goto(`/clients/${late().meridian}/applicability`);
   await page.getByRole('button', { name: 'Add a geography' }).click();
   await expect(page.getByRole('dialog').getByRole('button', { name: 'About Search' })).toBeVisible();
 });

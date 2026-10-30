@@ -54,6 +54,7 @@ export function RegisterGrid() {
   const [importing, setImporting] = useState(false);
   const [retire, setRetire] = useState<RegSystem | null>(null);
   const [flash, setFlash] = useState<{ tone: 'success' | 'danger'; text: string } | null>(null);
+  const [pulling, setPulling] = useState(false);  // Import from inventory in flight
 
   const d = q.data;
   const lawOptions = useMemo(() => {
@@ -72,7 +73,6 @@ export function RegisterGrid() {
     setFlash(null);
     try { await fn(); await refresh(); setFlash({ tone: 'success', text: ok }); } catch (e) { setFlash({ tone: 'danger', text: errorMessage(e) }); }
   }
-  const [pulling, setPulling] = useState(false);
   async function importInventory() {
     if (pulling) return;
     setFlash(null); setPulling(true);
