@@ -304,7 +304,7 @@ def test_mail_tick_finishes_sends_and_runs_due_jobs(db, settings, w):
 
     out = run_mail_tick(db, settings, __import__("app.core.clock", fromlist=["utcnow"]).utcnow())
     assert set(out) == {"dispatched", "replies", "directory_syncs", "reminders"}
-    assert "email" in JOBS
+    assert "email" not in JOBS  # the scheduler runs the tick every minute; the daily run must not overlap it
 
 
 def test_futran_admin_may_set_up_a_clients_starting_groups_and_the_chief_auditor_only_views(client, db, w):

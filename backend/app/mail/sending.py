@@ -31,8 +31,9 @@ import secrets
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import set_committed_value
 
 from app.core.clock import utcnow
 from app.core.config import Settings
@@ -298,6 +299,19 @@ def pace_limit(settings: Settings, sender: delivery.Sender) -> int | None:
     return max(1, int(getattr(settings, "mail_pace_per_minute", 30)))
 
 
+def _claim(db: Session, r: MailRecipient) -> bool:
+    """Take a queued recipient for this run before the provider is called: a conditional update checked by its row
+    count. A scheduler run that overlaps waits for the other's commit and then finds the recipient taken, so nobody
+    gets the message twice. The claim is part of the run's transaction: if the run fails it is undone too."""
+    res = db.execute(update(MailRecipient).where(MailRecipient.id == r.id, MailRecipient.status == "queued").values(status="sending")
+                     .execution_options(synchronize_session=False))
+    if res.rowcount != 1:
+        db.refresh(r)
+        return False
+    set_committed_value(r, "status", "sending")
+    return True
+
+
 def dispatch(db: Session, settings: Settings, s: MailSend, now: datetime | None = None, limit: int | None = None) -> int:
     """Deliver the send's queued recipients that are due, at most `limit` messages (default: the pace for the channel).
     Returns the number of messages sent."""
@@ -319,6 +333,8 @@ def dispatch(db: Session, settings: Settings, s: MailSend, now: datetime | None 
         for r in due:
             if limit is not None and sent >= limit:
                 break
+            if not _claim(db, r):
+                continue
             link, expires = _issue_link(db, settings, s, r, now)
             person = db.get(DirectoryPerson, r.person_id) if r.person_id else None
             subj, html, text = render(db, s, person, link, expires, ref)
@@ -337,6 +353,7 @@ def dispatch(db: Session, settings: Settings, s: MailSend, now: datetime | None 
 def _dispatch_bcc(db: Session, settings: Settings, s: MailSend, sender: delivery.Sender, due: list[MailRecipient], now: datetime, ref: str | None, limit: int | None) -> int:
     """BCC mode: one message per batch, everyone in BCC, one shared link. All batches go together because the shared
     link is only known while sending (it is stored hashed)."""
+    due = [r for r in due if _claim(db, r)]
     if not due:
         return 0
     raw = secrets.token_urlsafe(32)
@@ -372,7 +389,7 @@ def _apply(r: MailRecipient, res: delivery.Result, now: datetime) -> None:
     if r.attempts >= len(RETRY_MINUTES):
         r.status, r.next_attempt_at = "bounced", None
     else:
-        r.next_attempt_at = now + timedelta(minutes=RETRY_MINUTES[r.attempts - 1])
+        r.status, r.next_attempt_at = "queued", now + timedelta(minutes=RETRY_MINUTES[r.attempts - 1])  # release the claim for the retry
 
 
 def _finish(db: Session, s: MailSend, now: datetime) -> None:

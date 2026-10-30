@@ -57,8 +57,9 @@ def test_recorded_notices_are_not_chased(client, db, trc, settings):
     assert run_incident_deadlines(db, settings, datetime(2028, 3, 1, 15, 0)) == 0
 
 
-def test_deadline_job_runs_daily_and_on_its_own_tick():
-    assert "incident_deadlines" in jobs.JOBS
+def test_deadline_job_runs_on_its_own_tick_not_in_the_daily_run():
+    """The 15-minute tick covers it; running it in the daily run too let the two overlap and send twice."""
+    assert "incident_deadlines" not in jobs.JOBS and "email" not in jobs.JOBS
 
 
 def test_recommended_addon_opportunity_skips_traced_systems_and_counts_past_incidents(client, db, trc, settings):

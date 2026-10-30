@@ -182,16 +182,19 @@ def run_weekly_digest(db: Session, settings: Settings, now) -> int:
 
 
 def run_email(db: Session, settings: Settings, now) -> int:
-    """Email (spec §26): paced sends, replies, directory sync and reminders. Also runs every minute (start_scheduler)."""
+    """Email (spec §26): paced sends, replies, directory sync and reminders. The scheduler runs it every minute
+    (start_scheduler); it is not part of the daily run."""
     from app.mail.jobs import run_mail_tick
 
     return sum(run_mail_tick(db, settings, _dt(now)).values())
 
 
 # ---- the daily run
+# Email (every minute) and incident deadlines (every 15 minutes) run on their own ticks in start_scheduler, never here
+# as well: two runs that overlap could send the same message twice.
 JOBS = {
     "invitation_warnings": run_invitation_warnings, "invitation_expiry": run_invitation_expiry, "due_soon": run_due_soon,
-    "escalations": run_escalations, "weekly_digest": run_weekly_digest, "email": run_email,
+    "escalations": run_escalations, "weekly_digest": run_weekly_digest,
 }
 
 
@@ -208,18 +211,6 @@ def _wsd(name: str):
 JOBS |= {"refresh_schedule": _wsd("run_scheduled"), "refresh_reminders": _wsd("run_reminders"), "client_alert_dates": _wsd("client_alert_dates"),
          "opportunity_dates": _wsd("opportunity_dates")}
 
-
-def _wse(name: str):
-    """WS-E job (incident deadline reminders), imported lazily."""
-    def job(db, settings, now):
-        from app.tracing import jobs as tracing_jobs
-
-        return getattr(tracing_jobs, name)(db, settings, _dt(now))
-
-    return job
-
-
-JOBS |= {"incident_deadlines": _wse("run_incident_deadlines")}
 
 
 def run_daily(db: Session, settings: Settings, now) -> dict[str, int | str]:

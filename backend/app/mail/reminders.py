@@ -1,8 +1,9 @@
 """Reminders to people who have not responded (spec §26.4 step 5), in the send's own delivery mode."""
 from datetime import datetime, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import set_committed_value
 
 from app.core.clock import utcnow
 from app.core.config import Settings
@@ -37,7 +38,22 @@ def non_responders(db: Session, s: MailSend, *, due_index: int | None = None) ->
     return out
 
 
+def _claim(db: Session, r: MailRecipient, due_index: int, now: datetime) -> bool:
+    """Record the planned reminder on the recipient before it is sent, only if no other run has: a conditional update
+    checked by its row count, so two scheduler runs that overlap remind each person once."""
+    res = db.execute(update(MailRecipient).where(MailRecipient.id == r.id, func.coalesce(MailRecipient.reminders_sent, 0) < due_index)
+                     .values(reminders_sent=due_index, last_reminded_at=now).execution_options(synchronize_session=False))
+    if res.rowcount != 1:
+        db.refresh(r)
+        return False
+    set_committed_value(r, "reminders_sent", due_index)
+    set_committed_value(r, "last_reminded_at", now)
+    return True
+
+
 def remind(db: Session, settings: Settings, s: MailSend, targets: list[MailRecipient], now: datetime, actor: User | None = None, due_index: int | None = None) -> MailSend | None:
+    if due_index is not None:
+        targets = [r for r in targets if _claim(db, r, due_index, now)]
     if not targets:
         return None
     rem = MailSend(organization_id=s.organization_id, engagement_id=s.engagement_id, kind="reminder", template_id=s.template_id, template_version=s.template_version,
@@ -57,8 +73,9 @@ def remind(db: Session, settings: Settings, s: MailSend, targets: list[MailRecip
     for i, r in enumerate(targets):
         db.add(MailRecipient(organization_id=s.organization_id, send_id=rem.id, person_id=r.person_id, email=r.email, name=r.name, status="queued",
                              batch_no=(i // (s.batch_size or 450)) + 1 if s.mode == "bcc" else None))
-        r.reminders_sent = due_index if due_index is not None else (r.reminders_sent or 0) + 1
-        r.last_reminded_at = now
+        if due_index is None:  # a reminder sent by hand; scheduled ones were claimed above
+            r.reminders_sent = (r.reminders_sent or 0) + 1
+            r.last_reminded_at = now
     db.flush()
     adminlog.write(db, organization_id=s.organization_id, category="send", action="reminder", actor=actor, engagement_id=s.engagement_id, send_id=rem.id,
                    summary=f"Reminder for {s.template_name or 'an email'} to {len(targets):,} {'person' if len(targets) == 1 else 'people'} who have not responded")
@@ -74,7 +91,7 @@ def run_reminders(db: Session, settings: Settings, now: datetime | None = None) 
         due = sum(1 for d in s.reminder_plan or [] if s.sent_at + timedelta(days=int(d)) <= now)
         if due == 0:
             continue
-        targets = non_responders(db, s, due_index=due)
-        if remind(db, settings, s, targets, now, due_index=due) is not None:
-            n += len(targets)
+        rem = remind(db, settings, s, non_responders(db, s, due_index=due), now, due_index=due)
+        if rem is not None:
+            n += rem.recipient_count
     return n
