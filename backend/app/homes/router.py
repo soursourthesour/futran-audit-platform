@@ -429,7 +429,7 @@ def my_tasks(actor: Actor = Depends(current_actor), db: Session = Depends(get_db
     depts = departments_for(actor, Action.VIEW_MY_TASKS) or set()
     e = current_engagement(db, org)
     if e is None:
-        return {"organization": org.name, "engagement": None, "returned": [], "drafts": [], "evidence": [], "documents": [], "entries": []}
+        return {"organization": org.name, "engagement": None, "returned": [], "drafts": [], "evidence": [], "documents": [], "entries": [], "inventory_open": False}
     authorize(db, actor, Action.VIEW_MY_TASKS, engagement_id=e.id, list_view=True)
     ucs = list(db.scalars(select(UseCase).where(UseCase.engagement_id == e.id, UseCase.deleted_at.is_(None), UseCase.department_id.in_(depts)).order_by(UseCase.name))) if depts else []
     mine = [u for u in ucs if actor.id in {u.created_by, u.submitted_by, *(u.editor_ids or [])}]
@@ -445,5 +445,12 @@ def my_tasks(actor: Actor = Depends(current_actor), db: Session = Depends(get_db
     except (Forbidden, NotFound):
         docs = []
     evidence = [r for r in my_evidence_requests(actor, db)["requests"] if r.get("status") == "outstanding"]
+    from app.inventory.service import assert_inventory_open
+
+    try:
+        assert_inventory_open(db, e)
+        inventory_open = True
+    except Conflict:
+        inventory_open = False  # sign-off 4 or the end of fieldwork locked it; "Add a use case" would only be refused
     return {"organization": org.name, "engagement": _eng_out(e), "returned": [uc(u) for u in mine if u.status == "returned"], "drafts": drafts,
-            "evidence": evidence, "documents": docs, "entries": [uc(u) for u in mine]}
+            "evidence": evidence, "documents": docs, "entries": [uc(u) for u in mine], "inventory_open": inventory_open}

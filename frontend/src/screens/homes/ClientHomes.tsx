@@ -230,7 +230,7 @@ export function MyTasks() {
     const n = d.returned.length + d.evidence.length + d.documents.length + d.drafts.length;
     return (
       <div className="page">
-        <PageHeader title="My tasks" subtitle="Help your department describe how it uses AI." actions={d.engagement ? <ButtonLink to="/inventory/new" variant="primary">Add a use case</ButtonLink> : undefined} />
+        <PageHeader title="My tasks" subtitle="Help your department describe how it uses AI." actions={d.engagement && d.inventory_open !== false ? <ButtonLink to="/inventory/new" variant="primary">Add a use case</ButtonLink> : undefined} />
         {!d.engagement ? <Card><EmptyState>{NO_ENGAGEMENT}</EmptyState></Card> : (
           <div className="split" style={{ marginTop: 16 }}>
             <div className="main">

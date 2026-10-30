@@ -62,4 +62,6 @@ export type MyTasksData = {
   evidence: { id: string; ref: string; description: string; due_date: string; use_case: string | null; overdue: boolean }[];
   documents: { id: string; title: string; system: string | null; due_at: string | null }[];
   entries: TaskUseCase[];
+  /** False once sign-off 4 or the end of fieldwork has locked the inventory. */
+  inventory_open?: boolean;
 };

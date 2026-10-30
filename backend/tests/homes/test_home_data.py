@@ -210,3 +210,30 @@ def test_my_tasks_shows_own_entries_and_returned_items(world, as_user):
     assert nina["returned"] == []  # another department's contributor
     uc.status, uc.returned_comment = before
     db.commit()
+
+
+def test_my_tasks_says_whether_the_inventory_is_open(world, as_user):
+    """The Contributor's 'Add a use case' is offered only while the inventory takes changes (inventory/service.py)."""
+    from app.engagements.models import Engagement
+    from app.signoffs.service import CORRECTABLE_UNTIL, current
+
+    db = world["db"]
+    tom = as_user(f"tom.reyes@{ABC}")
+    d = _get(tom, "/home/my-tasks")
+    e = db.get(Engagement, d["engagement"]["id"])
+    so = current(db, e, 4)
+    before = (e.stage, so.status if so else None)
+    try:
+        e.stage = CORRECTABLE_UNTIL[4] + 1  # fieldwork complete: locked
+        db.commit()
+        assert _get(tom, "/home/my-tasks")["inventory_open"] is False
+        e.stage = 2  # discovery, sign-off 4 not approved: open
+        if so:
+            so.status = "pending"
+        db.commit()
+        assert _get(tom, "/home/my-tasks")["inventory_open"] is True
+    finally:
+        e.stage = before[0]
+        if so:
+            so.status = before[1]
+        db.commit()
