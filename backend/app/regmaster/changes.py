@@ -143,6 +143,39 @@ def _dedupe_key(regulation_id, field_path, value) -> str:
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
+def norm_name(text: str | None) -> str:
+    """Case, punctuation and spacing do not make a different law or case ("Utah AI Policy Act." = "utah ai policy act")."""
+    return " ".join("".join(ch if ch.isalnum() else " " for ch in (text or "").casefold()).split())
+
+
+def law_identity(jurisdiction_code: str | None, short_name: str | None, citation: str | None) -> set[str]:
+    """A new law is the same law as another in the same geography with the same short name or the same citation."""
+    j = str(jurisdiction_code or "").upper()
+    return {f"{j}|{kind}|{n}" for kind, n in (("name", norm_name(short_name)), ("cite", norm_name(citation))) if n}
+
+
+def same_new_law(db: Session, value: dict, statuses) -> ProposedChange | None:
+    """A new-law proposal in these statuses for the same law, whatever its free text says."""
+    want = law_identity(value.get("jurisdiction_code"), value.get("short_name"), value.get("citation"))
+    for pc in db.scalars(select(ProposedChange).where(ProposedChange.field_path == "new_law", ProposedChange.status.in_(statuses)).order_by(ProposedChange.created_at)):
+        v = pc.new_value if isinstance(pc.new_value, dict) else {}
+        if want & law_identity(v.get("jurisdiction_code"), v.get("short_name"), v.get("citation")):
+            return pc
+    return None
+
+
+def law_in_library(db: Session, value: dict) -> Regulation | None:
+    """The current law in the library that a new-law proposal duplicates (same geography, name or citation)."""
+    from app.laws.publish import current_regulations
+
+    code = str(value.get("jurisdiction_code") or "").upper()
+    j = db.scalar(select(Jurisdiction).where(Jurisdiction.code == code))
+    if j is None:
+        return None
+    want = law_identity(code, value.get("short_name"), value.get("citation"))
+    return next((r for r in current_regulations(db) if r.jurisdiction_id == j.id and want & law_identity(code, r.short_name, r.citation)), None)
+
+
 def dedupe_keys(db: Session, regulation_id: str | None, field_path: str, value) -> list[str]:
     """The same change proposed against any row of the law (a Reference data edit replaces the row)."""
     from app.laws.publish import chain_ids
@@ -174,6 +207,8 @@ def propose(
     _validate(db, field_path, new_value)
     key = _dedupe_key(regulation_id, field_path, new_value)
     dup = db.scalar(select(ProposedChange).where(ProposedChange.dedupe_key.in_(dedupe_keys(db, regulation_id, field_path, new_value)), ProposedChange.status.in_(OPEN)).limit(1))
+    if dup is None and field_path == "new_law":
+        dup = same_new_law(db, new_value, OPEN)  # the same law in other words
     if dup is not None:
         return dup
     src = None
@@ -321,6 +356,9 @@ def _apply_one(db: Session, reg: Regulation, v: LawVersion, pc: ProposedChange, 
 
 def _create_new_law(db: Session, pc: ProposedChange, value: dict, reviewer_id: str) -> LawVersion:
     j = db.scalar(select(Jurisdiction).where(Jurisdiction.code == str(value["jurisdiction_code"]).upper()))
+    have = law_in_library(db, value)
+    if have is not None:
+        raise Conflict(f"{have.short_name} is already in the law library for {j.name}. Reject this proposal, or propose a change to that law instead.")
     mv = db.scalar(select(MatrixVersion).order_by(MatrixVersion.published_at.desc()).limit(1))
     if mv is None:
         mv = MatrixVersion(label="Regulatory master", origin="manual")

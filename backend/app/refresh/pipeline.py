@@ -323,6 +323,8 @@ def _propose_law(db: Session, run: RefreshRun, j: Jurisdiction, label: str, it: 
 
     keys = master.dedupe_keys(db, reg.id if reg else None, it.field_path, new_value)  # any row of the law
     closed = db.scalar(select(ProposedChange).where(ProposedChange.dedupe_key.in_(keys), ProposedChange.status.not_in(OPEN)).limit(1))
+    if closed is None and it.field_path == "new_law" and isinstance(new_value, dict):
+        closed = master.same_new_law(db, new_value, ("approved", "edited_approved", "rejected"))  # the same law in other words
     if closed is not None:
         warnings.append(f"{label}: not proposed again; the same change was already {'rejected' if closed.status == 'rejected' else 'approved'}.")
         return "skipped"
@@ -351,8 +353,12 @@ def _propose_case(db: Session, run: RefreshRun, j: Jurisdiction, label: str, it:
     if it.field_path == "new_case" and not (isinstance(new_value, dict) and new_value.get("name") and new_value.get("stage") in CASE_STAGES):
         warnings.append(f"{label}: skipped because a new case needs a name and a stage.")
         return "skipped"
-    key = dedupe_key("litigation", case.id if case else j.id, it.field_path, new_value)
-    same = db.scalar(select(ProposedChange).where(ProposedChange.dedupe_key == key).order_by(ProposedChange.created_at.desc()).limit(1))
+    if it.field_path == "new_case":  # one case: same court and docket, or same court and name when there is no docket
+        key = dedupe_key("litigation", j.id, "new_case", case_identity(new_value))
+        same = db.scalar(select(ProposedChange).where(ProposedChange.dedupe_key == key).order_by(ProposedChange.created_at.desc()).limit(1)) or same_new_case(db, j.id, new_value)
+    else:
+        key = dedupe_key("litigation", case.id if case else j.id, it.field_path, new_value)
+        same = db.scalar(select(ProposedChange).where(ProposedChange.dedupe_key == key).order_by(ProposedChange.created_at.desc()).limit(1))
     if same is not None:
         if same.status in OPEN:
             return _merge(db, run, same)
@@ -373,6 +379,27 @@ def _propose_case(db: Session, run: RefreshRun, j: Jurisdiction, label: str, it:
     db.flush()
     case_impacts(db, pc, meta)
     return "created"
+
+
+def case_identity(value: dict) -> str:
+    """Court plus docket, or court plus name when there is no docket (normalised)."""
+    from app.regmaster.changes import norm_name
+
+    court, docket = norm_name(value.get("court")), norm_name(value.get("docket_ref"))
+    return f"{court}|docket|{docket}" if docket else f"{court}|name|{norm_name(value.get('name'))}"
+
+
+def same_new_case(db: Session, jurisdiction_id: str | None, value: dict) -> ProposedChange | None:
+    """A new-case proposal for the same case in this geography, whatever its free text says (covers older keys)."""
+    want = case_identity(value)
+    q = select(ProposedChange).where(ProposedChange.field_path == "new_case", ProposedChange.jurisdiction_id == jurisdiction_id).order_by(ProposedChange.created_at.desc())
+    return next((pc for pc in db.scalars(q) if isinstance(pc.new_value, dict) and case_identity(pc.new_value) == want), None)
+
+
+def case_in_tracker(db: Session, jurisdiction_id: str | None, value: dict) -> Case | None:
+    want = case_identity(value)
+    q = select(Case).where(Case.deleted_at.is_(None), Case.jurisdiction_id == jurisdiction_id)
+    return next((c for c in db.scalars(q) if case_identity({"court": c.court, "docket_ref": c.docket_ref, "name": c.name}) == want), None)
 
 
 def _bare(d: str) -> str:

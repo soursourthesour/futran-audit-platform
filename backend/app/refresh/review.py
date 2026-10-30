@@ -61,6 +61,11 @@ def apply_case_change(db: Session, change: ProposedChange, meta: RefreshProposal
         v = value if isinstance(value, dict) else {}
         if not v.get("name") or v.get("stage") not in STAGES:
             raise Invalid("A new case needs a name and a stage.")
+        from app.refresh.pipeline import case_in_tracker
+
+        have = case_in_tracker(db, change.jurisdiction_id, v)
+        if have is not None:
+            raise Conflict(f"This case is already in the litigation tracker as {have.name}. Reject this proposal, or update that case instead.")
         case = Case(jurisdiction_id=change.jurisdiction_id, name=v["name"][:300], court=v.get("court"), docket_ref=v.get("docket_ref"), area=v.get("area") or "To classify",
                     stage=v["stage"], description=v.get("description"), last_update_on=_parse_date(v.get("last_update_on")) or today(), origin="claude",
                     sources=[{"title": "Source of the proposal", "url": change.source_url}] if change.source_url else [], timeline=[], match_rule={},
