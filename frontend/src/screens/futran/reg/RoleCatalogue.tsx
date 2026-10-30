@@ -81,16 +81,22 @@ function RoleEditor({ role, cat, onClose, onDone }: { role: RoleRow; cat: Catalo
   const [err, setErr] = useState<string | null>(null);
   const [errs, setErrs] = useState<Record<string, string>>({});
   const changed = cat.laws.filter((l) => JSON.stringify(levels[l.id]) !== JSON.stringify(start[l.id]));
+  const meta = Object.fromEntries(Object.entries({ ...f, extra_checks: f.extra_checks || null }).filter(([k, v]) => v !== ((role as unknown as Record<string, unknown>)[k] ?? (k === 'extra_checks' ? null : ''))));
+  const metaChanged = Object.keys(meta).length > 0;
+  const proposes = changed.length > 0 || (metaChanged && !cat.can_approve);
   async function save() {
     setErr(null); setErrs({});
     try {
-      const meta = Object.fromEntries(Object.entries({ ...f, extra_checks: f.extra_checks || null }).filter(([k, v]) => v !== ((role as unknown as Record<string, unknown>)[k] ?? (k === 'extra_checks' ? null : ''))));
-      if (Object.keys(meta).length) await api.patch(`/reg/roles/${role.code}`, meta);
+      let metaMessage = '';
+      if (metaChanged) {
+        const r = await api.patch<{ status: string }>(`/reg/roles/${role.code}`, { ...meta, reason: reason || null });
+        metaMessage = r.status === 'proposed' ? 'Role details sent for approval. They change once the Chief Auditor approves. ' : 'Role details saved. ';
+      }
       for (const l of changed) {
         const v = levels[l.id];
         await api.post(`/reg/laws/${l.id}/proposals`, { changes: [{ field_path: `role_map.${role.code}`, new_value: v.level === 'not_required' ? null : { level: v.level, needed_by_stage: v.needed_by_stage }, change_type: 'role_mapping' }], summary: `${role.name}: ${v.level.replace('_', ' ')} under ${l.label}`, reason: reason || null });
       }
-      onDone(`${Object.keys(meta).length ? 'Role details saved. ' : ''}${changed.length ? `${changed.length} level ${changed.length === 1 ? 'change' : 'changes'} sent to the Chief Auditor as proposed changes.` : ''}`.trim() || 'Nothing changed.');
+      onDone(`${metaMessage}${changed.length ? `${changed.length} level ${changed.length === 1 ? 'change' : 'changes'} sent to the Chief Auditor as proposed changes.` : ''}`.trim() || 'Nothing changed.');
     } catch (e) { setErr(errorMessage(e)); setErrs(fieldErrors(e)); }
   }
   return (
@@ -118,11 +124,10 @@ function RoleEditor({ role, cat, onClose, onDone }: { role: RoleRow; cat: Catalo
           ))}</tbody>
         </table>
       </div>
-      {changed.length > 0 && <>
-        <Alert tone="warn">Changing a level updates the required roles on every client AI system under that law, once the Chief Auditor approves.</Alert>
-        <TextField label="Reason for change" help={H.reason} value={reason} onChange={(e) => setReason(e.target.value)} />
-      </>}
-      <div className="row" style={{ justifyContent: 'flex-end', marginTop: 12 }}><Button onClick={onClose}>Cancel</Button><Button variant="primary" onClick={save}>Save{changed.length ? ' as proposed change' : ''}</Button></div>
+      {changed.length > 0 && <Alert tone="warn">Changing a level updates the required roles on every client AI system under that law, once the Chief Auditor approves.</Alert>}
+      {metaChanged && !cat.can_approve && <Alert tone="info">Your changes to the role details go to the Chief Auditor for approval. The catalogue changes once they approve.</Alert>}
+      {proposes && <TextField label="Reason for change" help={H.reason} value={reason} onChange={(e) => setReason(e.target.value)} />}
+      <div className="row" style={{ justifyContent: 'flex-end', marginTop: 12 }}><Button onClick={onClose}>Cancel</Button><Button variant="primary" onClick={save}>{proposes ? 'Send for approval' : 'Save'}</Button></div>
     </Dialog>
   );
 }

@@ -14,6 +14,7 @@ from app.core.errors import Conflict, Invalid
 from app.litigation.models import STAGES, Case, CaseClientMatch
 from app.litigation.service import add_timeline, match_case, touch
 from app.notifications.service import notify
+from app.policy.sod import assert_not_self_approval
 from app.refresh.models import RefreshProposalMeta
 from app.refresh.service import OPEN_STATUSES
 from app.regmaster.models import ChangeImpact, ProposedChange
@@ -145,6 +146,9 @@ def decide(db: Session, settings: Settings, change: ProposedChange, actor: User,
     if update_letters is not None:
         meta.update_letters = update_letters
     if action in ("approve", "edit_approve"):
+        # §6 rule 2. A change the refresh pipeline proposed records no proposer (Claude made it), so the Chief Auditor
+        # who ran the run may approve it; a change a person proposed, by hand or with "Draft with Claude", is theirs.
+        assert_not_self_approval(actor.id, change.proposed_by)
         reviewed = meta.edited_value if meta.edited_value is not None else change.new_value  # what the second reviewer saw
         if action == "edit_approve" and new_value is not None and meta.needs_second_review and meta.second_review_outcome == "concur" and new_value != reviewed:
             return _back_to_second_review(db, change, meta, actor, new_value, note)
@@ -216,6 +220,7 @@ def second_review(db: Session, change: ProposedChange, actor: User, outcome: str
     if outcome not in ("concur", "object"):
         raise Invalid(errors=[{"field": "outcome", "message": "Concur or object."}])
     _check_open(change)
+    assert_not_self_approval(actor.id, change.proposed_by)  # §6 rule 2: nobody second-reviews their own suggestion
     meta = meta_for(db, change)
     meta.second_review_outcome, meta.second_review_note = outcome, note
     change.second_reviewer_id, change.second_reviewed_at = actor.id, utcnow()

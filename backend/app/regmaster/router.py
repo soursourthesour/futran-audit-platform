@@ -4,7 +4,7 @@ from datetime import date, timedelta
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -574,6 +574,7 @@ def role_catalogue(laws: str = "top", jurisdiction: str | None = None, actor: Ac
         "committees": sorted(comm.values(), key=lambda c: (c["level"] != "required", c["title"])),
         "stages": STAGES,
         "can_edit": bool(actor.role_names & {"chief_auditor", "admin"}),
+        "can_approve": _may_approve(db, actor),
     }
 
 
@@ -583,32 +584,43 @@ class RoleIn(BaseModel):
     level: str | None = None
     default_stage: str | None = None
     extra_checks: str | None = None
+    reason: str | None = Field(default=None, max_length=1000)
+
+
+def _may_approve(db: Session, actor: Actor) -> bool:
+    try:
+        authorize(db, actor, Action.APPROVE_REG_CHANGE)
+        return True
+    except (Forbidden, NotFound):
+        return False
 
 
 @router.patch("/reg/roles/{code}")
 def edit_role(code: str, body: RoleIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
-    """Catalogue wording, level and default stage. Which laws require the role is changed through proposals."""
+    """Catalogue wording, level and default stage. §25.7: a Futran Admin's edit becomes a proposed change the Chief
+    Auditor approves; a Chief Auditor (who holds APPROVE_REG_CHANGE) applies it at once, with an audit log entry.
+    Which laws require the role is always changed through proposals."""
     authorize(db, actor, Action.PROPOSE_REG_CHANGE)
     role = db.scalar(select(RoleCatalog).where(RoleCatalog.code == code))
     if role is None:
         raise NotFound()
     data = body.model_dump(exclude_unset=True)
-    errors = []
-    if "name" in data and not (data["name"] or "").strip():
-        errors.append({"field": "name", "message": "Give the role a name."})
-    if "level" in data and data["level"] not in ("company", "system", "agent"):
-        errors.append({"field": "level", "message": "Choose company, system or agent."})
-    if "default_stage" in data and data["default_stage"] not in STAGES:
-        errors.append({"field": "default_stage", "message": "Choose a stage."})
-    if "description" in data and not (data["description"] or "").strip():
-        errors.append({"field": "description", "message": "Describe the responsibility. It is shown in the intro letter."})
-    if errors:
-        raise Invalid(errors=errors)
+    reason = (data.pop("reason", None) or "").strip() or None
+    data = {k: (v.strip() if isinstance(v, str) else v) for k, v in data.items() if (v.strip() if isinstance(v, str) else v) != getattr(role, k)}
+    if not data:
+        return {**changes.role_value(role), "code": role.code, "status": "unchanged"}
+    if not _may_approve(db, actor):
+        pc = changes.propose(db, actor_id=actor.id, regulation_id=None, field_path=f"role.{role.code}", new_value=data, summary=f"Change the {role.name} role: {', '.join(k.replace('_', ' ') for k in data)}",
+                             origin=_origin(actor), change_type="role_mapping", reason=reason)
+        audit.record(db, actor_id=actor.id, action="regmaster.role_edit_proposed", object_type="RoleCatalog", object_id=role.id, organization_id=actor.organization.id,
+                     before={k: getattr(role, k) for k in data}, after=data, summary=f"Proposed a change to the role {role.name}")
+        return {**changes.role_value(role), "code": role.code, "status": "proposed", "proposal_id": pc.id}
+    changes._validate(db, f"role.{role.code}", data)
     before = {k: getattr(role, k) for k in data}
-    for k, v in data.items():
-        setattr(role, k, v.strip() if isinstance(v, str) else v)
-    audit.record(db, actor_id=actor.id, action="regmaster.role_edit", object_type="RoleCatalog", object_id=role.id, organization_id=actor.organization.id, before=before, after=data, summary=f"Edited role {role.name}")
-    return {"code": role.code, "name": role.name, "description": role.description, "level": role.level, "default_stage": role.default_stage, "extra_checks": role.extra_checks}
+    changes.apply_role(db, role.code, data)
+    audit.record(db, actor_id=actor.id, action="regmaster.role_edit", object_type="RoleCatalog", object_id=role.id, organization_id=actor.organization.id, before=before, after=data,
+                 summary=f"Edited role {role.name}" + (f": {reason}" if reason else ""))
+    return {**changes.role_value(role), "code": role.code, "status": "applied"}
 
 
 # ------------------------------------------------------------------ M5 client applicability and intro letter

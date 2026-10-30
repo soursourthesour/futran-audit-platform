@@ -37,7 +37,7 @@ export type LawRecord = {
 export type RoleRow = { code: string; number: number; name: string; description: string | null; level: string; default_stage: string; main_sources: string | null; extra_checks: string | null };
 export type Cell = { level: string; needed_by_stage: string | null; basis: string | null; requirements: string[] };
 export type Committee = { committee_type: string; title: string; level: string; items: string[]; sources: { law: string; level: string; basis: string | null; condition?: string | null }[] };
-export type RoleCatalogue = { roles: RoleRow[]; laws: { id: string; label: string; short_name: string }[]; cells: Record<string, Record<string, Cell>>; committees: Committee[]; stages: string[]; can_edit: boolean };
+export type RoleCatalogue = { roles: RoleRow[]; laws: { id: string; label: string; short_name: string }[]; cells: Record<string, Record<string, Cell>>; committees: Committee[]; stages: string[]; can_edit: boolean; can_approve: boolean };
 export type ClientLaw = {
   regulation_id: string; label: string; short_name: string; geography: string; binding: boolean; kind: string; status: string; reason: string | null; override: boolean;
   version_no: number | null; main_duty: string | null; questions: { order: number; question_text: string; answer: string | null; manual: boolean; decisive: boolean }[];

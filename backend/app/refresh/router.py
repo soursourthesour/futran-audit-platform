@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.audit_log import service as audit
 from app.auth.deps import Actor, current_actor
 from app.core.db import get_db
-from app.core.errors import Conflict, Invalid, NotFound
+from app.core.errors import Conflict, Forbidden, Invalid, NotFound
 from app.laws.models import LawRefreshRun, Regulation
 from app.litigation.models import Case
 from app.policy.actions import Action
@@ -243,6 +243,11 @@ def put_run_settings(kind: str, body: RunSettingIn, request: Request, actor: Act
 
 # ---- the review queue
 def _subject(db: Session, c: ProposedChange, meta: RefreshProposalMeta | None) -> str:
+    if c.field_path.startswith("role."):
+        from app.regmaster.models import RoleCatalog
+
+        role = db.scalar(select(RoleCatalog).where(RoleCatalog.code == c.field_path.split(".", 1)[1]))
+        return f"Role: {role.name}" if role else "Role"
     if c.regulation_id:
         r = db.get(Regulation, c.regulation_id)
         return r.short_name if r else ""
@@ -402,6 +407,6 @@ def bulk(body: BulkIn, request: Request, actor: Actor = Depends(current_actor), 
             with db.begin_nested():
                 decide(db, request.app.state.settings, c, actor.user, body.action, note=body.note)
             results.append({"id": cid, "ok": True})
-        except (Conflict, Invalid) as exc:
+        except (Conflict, Invalid, Forbidden) as exc:  # Forbidden: the approver proposed it (§6 rule 2)
             results.append({"id": cid, "ok": False, "error": exc.detail})
     return {"results": results}

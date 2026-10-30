@@ -60,6 +60,13 @@ test('Chief Auditor browses the law library, opens Colorado SB 26-189 and an Adm
   await expect(page.getByRole('heading', { name: 'Role and committee catalogue' })).toBeVisible();
   await expect(page.getByRole('cell', { name: /Bias testing lead/ }).first()).toBeVisible();
   await noSidewaysScroll(page);
+  // §25.7: the Admin's change to a role's details is sent for approval, not applied
+  await page.getByRole('button', { name: /^Edit Bias testing lead/ }).click();
+  await page.getByLabel('Responsibility (shown in the intro letter) *', { exact: true }).fill('Plans and runs the bias tests for each AI system.');
+  await page.getByLabel('Reason for change', { exact: true }).fill('Clearer wording for the intro letter');
+  await page.getByRole('button', { name: 'Send for approval' }).click();
+  await expect(page.getByText(/Role details sent for approval/)).toBeVisible();
+  await expect(page.getByText('Plans and runs the bias tests for each AI system.')).toHaveCount(0);
 });
 
 test('Chief Auditor reviews a client\'s applicability, approves the intro letter and sends it', async ({ page }) => {

@@ -48,8 +48,19 @@ def _jsonable(v):
     return v.isoformat() if isinstance(v, date) else v
 
 
+ROLE_FIELDS = ("name", "description", "level", "default_stage", "extra_checks")
+
+
+def role_value(role: RoleCatalog) -> dict:
+    return {k: getattr(role, k) for k in ROLE_FIELDS}
+
+
 def current_value(db: Session, reg: Regulation | None, field_path: str):
-    """The value the change would replace, from the current approved version."""
+    """The value the change would replace, from the current approved version (for a role, the catalogue entry)."""
+    head, _, key = field_path.partition(".")
+    if head == "role":
+        r = db.scalar(select(RoleCatalog).where(RoleCatalog.code == key))
+        return role_value(r) if r else None
     if reg is None:
         return None
     v = db.get(LawVersion, reg.current_version_id) if reg.current_version_id else None
@@ -87,6 +98,19 @@ def requirement_out(db: Session, r: Requirement) -> dict:
 
 def _validate(db: Session, field_path: str, value) -> None:
     head, _, key = field_path.partition(".")
+    if head == "role":  # the role catalogue (M4): wording, level and default stage; not tied to one law
+        _role(db, key)
+        if not isinstance(value, dict) or not value or any(k not in ROLE_FIELDS for k in value):
+            _bad("new_value", "Say which role details change.")
+        if "name" in value and not str(value["name"] or "").strip():
+            _bad("name", "Give the role a name.")
+        if "level" in value and value["level"] not in ("company", "system", "agent"):
+            _bad("level", "Choose company, system or agent.")
+        if "default_stage" in value and value["default_stage"] not in STAGES:
+            _bad("default_stage", "Choose a stage.")
+        if "description" in value and not str(value["description"] or "").strip():
+            _bad("description", "Describe the responsibility. It is shown in the intro letter.")
+        return
     if field_path in ("new_law", "repeal"):
         if field_path == "repeal" and isinstance(value, dict) and value.get("effective_on"):
             try:
@@ -205,7 +229,7 @@ def propose(
     if regulation_id and reg is None:
         _bad("regulation_id", "Unknown law.")
     regulation_id = reg.id if reg is not None else None
-    if reg is None and field_path != "new_law":
+    if reg is None and field_path != "new_law" and not field_path.startswith("role."):
         _bad("regulation_id", "Choose the law this change is for.")
     if origin in ("auditor_suggestion", "claude_refresh", "claude_draft") and not ((source_url or "").strip() and (source_quote or "").strip()):
         _bad("source_url", "A suggestion needs the source link and the quoted passage it relies on.")
@@ -422,6 +446,16 @@ def _check_base(db: Session, reg: Regulation, pc: ProposedChange) -> None:
                        "Review it again against the current version: reject it and propose it again if it is still needed.")
 
 
+def apply_role(db: Session, code: str, value: dict) -> RoleCatalog:
+    """Write approved catalogue details to the role. Which laws require it changes through role_map proposals."""
+    role = _role(db, code)
+    for k, v in value.items():
+        if k in ROLE_FIELDS:
+            setattr(role, k, v.strip() if isinstance(v, str) else v)
+    db.flush()
+    return role
+
+
 def apply_changes(db: Session, items: list[ProposedChange], reviewer_id: str, edited: dict[str, object] | None = None, note: str | None = None) -> LawVersion | None:
     """Approve changes. Changes to one law become one new version. `edited` maps change id -> the value as edited
     by the reviewer (status `edited_approved`). Returns the last version written."""
@@ -446,6 +480,14 @@ def apply_changes(db: Session, items: list[ProposedChange], reviewer_id: str, ed
             for pc in group:
                 value = edited.get(pc.id, pc.new_value)
                 _validate(db, pc.field_path, value)
+                if pc.field_path.startswith("role."):
+                    now_value = current_value(db, None, pc.field_path) or {}
+                    if any(now_value.get(k) != (pc.old_value or {}).get(k) for k in value):
+                        raise Conflict(f"'{pc.summary[:80]}': the role has changed since this was proposed. Reject it and propose it again if it is still needed.")
+                    apply_role(db, pc.field_path.split(".", 1)[1], value)
+                    pc.status = "edited_approved" if pc.id in edited else "approved"
+                    pc.reviewer_id, pc.reviewed_at, pc.review_note = reviewer_id, now, note
+                    continue
                 v = _create_new_law(db, pc, value, reviewer_id)
                 v.approved_by, v.approved_at = reviewer_id, now
                 pc.status = "edited_approved" if pc.id in edited else "approved"
