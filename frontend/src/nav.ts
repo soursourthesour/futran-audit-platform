@@ -13,6 +13,8 @@ export const FUTRAN_NAV: NavEntry[] = [
   { to: '/audits', label: 'Dashboard', requires: ['view_engagement'], end: true },
   { to: '/clients', label: 'Clients', requires: ['view_engagement'], end: true },
   { to: '/reg', label: 'Regulatory master', requires: ['view_reg_master'] },
+  // the second-review queue: the Legal/Compliance Reviewer holds no other regulatory-master permission
+  { to: '/reg/refresh', label: 'Refresh and review', requires: ['view_reg_changes'] },
   { to: '/litigation', label: 'Litigation', requires: ['view_litigation'] },
   { to: '/opportunities', label: 'Opportunities', requires: ['view_opportunities'] },
   { to: '/alerts', label: 'Client alerts', requires: ['manage_client_alerts'] },
@@ -60,6 +62,13 @@ export const CLIENT_NAV: NavEntry[] = [
 
 export function navFor(me: Me, entries: NavEntry[]): NavEntry[] {
   return entries.filter((n) => can(me, ...n.requires));
+}
+
+/** The one entry to mark as current: the longest path that matches, so /reg/refresh lights up "Refresh and review"
+ *  and not "Regulatory master" as well. */
+export function activeNav(pathname: string, entries: NavEntry[]): string | null {
+  const hits = entries.filter((n) => pathname === n.to || (!n.end && pathname.startsWith(`${n.to}/`)));
+  return hits.sort((a, b) => b.to.length - a.to.length)[0]?.to ?? null;
 }
 
 /** Where this person lands after sign-in (their highest-authority role home, decided by the backend). */

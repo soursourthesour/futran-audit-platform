@@ -122,6 +122,34 @@ table.table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .client-header .shell-nav a.active { color: var(--navy); background: #eef3fb; }
 .client-header .shell-user { color: var(--muted); }
 .client-header .shell-user button { color: var(--navy); border-color: var(--input-line); }
+/* Header layout: the menu wrapper is invisible on wide screens, so the nav, bell and user menu sit in the header row. */
+.shell-menu { display: contents; }
+.shell-menu-btn, .shell-menu-org { display: none; }
+.shell-nav { order: 1; }
+.shell-bell { order: 2; margin-right: -12px; }
+.shell-user { order: 3; }
+.brand-org { white-space: nowrap; }
+.brand-org::before { content: '· '; }  /* the separator wraps with the name, never on its own */
+.shell-menu-btn { align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; border: 1px solid rgba(255,255,255,0.35); border-radius: 5px; background: none; color: #fff; cursor: pointer; }
+.client-header .shell-menu-btn { color: var(--navy); border-color: var(--input-line); }
+.shell-menu-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 600px) {
+  .shell-header { gap: 4px; flex-wrap: wrap; padding-top: 6px; padding-bottom: 6px; min-height: 56px; }
+  .shell-header .brand { flex: 1 1 auto; min-width: 0; gap: 8px; }
+  .shell-header .brand-logo { height: 20px; }
+  .shell-header .brand-logo + .brand-name { font-size: 14px; padding-left: 8px; }
+  .shell-header .brand-org { display: none; }
+  .shell-bell { order: 1; margin-right: 0; }
+  .shell-menu-btn { display: inline-flex; order: 2; }
+  .shell-menu { display: none; order: 3; flex: 1 0 100%; flex-direction: column; gap: 8px; padding: 4px 0 12px; }
+  .shell-menu[data-open='true'] { display: flex; }
+  .shell-menu-org { display: block; color: var(--header-sub); padding: 4px 12px 0; }
+  .client-header .shell-menu-org { color: var(--muted); }
+  .shell-menu .shell-nav { flex-direction: column; flex-wrap: nowrap; gap: 0; }
+  .shell-menu .shell-nav a { width: 100%; }
+  .shell-menu .shell-user { flex-wrap: wrap; justify-content: space-between; padding: 8px 12px 0; border-top: 1px solid rgba(255,255,255,0.18); }
+  .client-header .shell-menu .shell-user { border-top-color: var(--line); }
+}
 .test-mode-bar { background: var(--danger); color: #fff; font-size: 13px; font-weight: 600; padding: 8px 32px; text-align: center; }
 .phone-shell { max-width: 480px; margin: 0 auto; padding: 20px 16px 40px; display: flex; flex-direction: column; gap: 16px; }
 

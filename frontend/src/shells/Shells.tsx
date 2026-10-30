@@ -1,7 +1,7 @@
-import type { ReactNode } from 'react';
-import { Link, NavLink, Navigate, Outlet, useLocation } from 'react-router-dom';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Link, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { primaryRole, useMe, useSignOut, type Me } from '@/api/auth';
-import { CLIENT_NAV, FUTRAN_NAV, homePath, navFor } from '@/nav';
+import { CLIENT_NAV, FUTRAN_NAV, activeNav, homePath, navFor, type NavEntry } from '@/nav';
 import { Loading } from '@/components/ui';
 import { NotificationBell } from '@/components/NotificationBell';
 import logo from '@/assets/futran-logo.svg';
@@ -21,10 +21,45 @@ function UserMenu({ me }: { me: Me }) {
   const signOut = useSignOut();
   return (
     <div className="shell-user">
-      <NotificationBell />
       <span>{me.user.name} · {primaryRole(me)}</span>
       <button type="button" onClick={() => signOut(me.organization.type === 'futran')}>Sign out</button>
     </div>
+  );
+}
+
+/** The header of both shells. Under 600 px the navigation and the user menu fold behind a Menu button (44 px, with
+ *  aria-expanded) that closes on navigation and on Escape; focus is never trapped. */
+function ShellHeader({ me, entries, client }: { me: Me; entries: NavEntry[]; client?: boolean }) {
+  const [open, setOpen] = useState(false);
+  const loc = useLocation();
+  const btn = useRef<HTMLButtonElement>(null);
+  const mine = navFor(me, entries);
+  const current = activeNav(loc.pathname, mine);
+  useEffect(() => setOpen(false), [loc.pathname, loc.search]);
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { setOpen(false); btn.current?.focus(); } };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open]);
+  return (
+    <header className={`shell-header${client ? ' client-header' : ''}`}>
+      <Link to={homePath(me)} className="brand">
+        <img className="brand-logo" src={client ? logo : logoWhite} alt="Futran Solutions" /><span className="brand-name">Audit Platform</span>
+        {client && <span className="brand-org muted small">{me.organization.name}</span>}
+      </Link>
+      <div className="shell-bell"><NotificationBell /></div>
+      <button ref={btn} type="button" className="shell-menu-btn" aria-expanded={open} aria-controls="shell-menu" aria-label="Menu" onClick={() => setOpen((o) => !o)}>
+        <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d={open ? 'M6 6l12 12M18 6L6 18' : 'M4 7h16M4 12h16M4 17h16'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none" /></svg>
+      </button>
+      <div id="shell-menu" className="shell-menu" data-open={open ? 'true' : 'false'}>
+        {client && <div className="shell-menu-org small">{me.organization.name}</div>}
+        <nav className="shell-nav" aria-label="Main" onClick={(e) => { if ((e.target as HTMLElement).closest('a')) setOpen(false); }}>
+          {mine.map((n) => <Link key={n.to} to={n.to} className={n.to === current ? 'active' : undefined} aria-current={n.to === current ? 'page' : undefined}>{n.label}</Link>)}
+        </nav>
+        <UserMenu me={me} />
+      </div>
+    </header>
   );
 }
 
@@ -45,15 +80,8 @@ export function FutranShell() {
   return (
     <>
       <TestModeBar me={me} />
-      <header className="shell-header">
-        <Link to={homePath(me)} className="brand"><img className="brand-logo" src={logoWhite} alt="Futran Solutions" /><span className="brand-name">Audit Platform</span></Link>
-        <nav className="shell-nav" aria-label="Main">
-          {navFor(me, FUTRAN_NAV).map((n) => <NavLink key={n.to} to={n.to} end={n.end}>{n.label}</NavLink>)}
-        </nav>
-        <UserMenu me={me} />
-      </header>
-      <MailboxGate />
-      <main><Outlet /></main>
+      <ShellHeader me={me} entries={FUTRAN_NAV} />
+      <main><MailboxGate /><Outlet /></main>
     </>
   );
 }
@@ -64,15 +92,8 @@ export function ClientShell() {
   return (
     <>
       <TestModeBar me={me} />
-      <header className="shell-header client-header">
-        <Link to={homePath(me)} className="brand"><img className="brand-logo" src={logo} alt="Futran Solutions" /><span className="brand-name">Audit Platform</span><span className="muted small">· {me.organization.name}</span></Link>
-        <nav className="shell-nav" aria-label="Main">
-          {navFor(me, CLIENT_NAV).map((n) => <NavLink key={n.to} to={n.to} end={n.end}>{n.label}</NavLink>)}
-        </nav>
-        <UserMenu me={me} />
-      </header>
-      <MailboxGate />
-      <main><Outlet /></main>
+      <ShellHeader me={me} entries={CLIENT_NAV} client />
+      <main><MailboxGate /><Outlet /></main>
     </>
   );
 }
