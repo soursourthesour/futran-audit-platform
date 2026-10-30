@@ -209,6 +209,19 @@ JOBS |= {"refresh_schedule": _wsd("run_scheduled"), "refresh_reminders": _wsd("r
          "opportunity_dates": _wsd("opportunity_dates")}
 
 
+def _wse(name: str):
+    """WS-E job (incident deadline reminders), imported lazily."""
+    def job(db, settings, now):
+        from app.tracing import jobs as tracing_jobs
+
+        return getattr(tracing_jobs, name)(db, settings, _dt(now))
+
+    return job
+
+
+JOBS |= {"incident_deadlines": _wse("run_incident_deadlines")}
+
+
 def run_daily(db: Session, settings: Settings, now) -> dict[str, int | str]:
     out: dict[str, int | str] = {}
     for name, job in JOBS.items():
@@ -249,8 +262,22 @@ def start_scheduler(app) -> None:
         finally:
             db.close()
 
+    def deadline_tick():
+        from app.tracing.jobs import run_incident_deadlines
+
+        db = app.state.sessionmaker()
+        try:
+            run_incident_deadlines(db, settings, utcnow())
+            db.commit()
+        except Exception:  # logged; the next tick tries again
+            db.rollback()
+            log.exception("Incident deadline tick failed")
+        finally:
+            db.close()
+
     sched = BackgroundScheduler(timezone="UTC")
     sched.add_job(tick, "cron", hour=10, minute=0, id="daily", replace_existing=True)  # 06:00 New York
     sched.add_job(mail_tick, "interval", minutes=1, id="mail", replace_existing=True, max_instances=1, coalesce=True)
+    sched.add_job(deadline_tick, "interval", minutes=15, id="incident_deadlines", replace_existing=True, max_instances=1, coalesce=True)  # CERT-In: 6 hours
     sched.start()
     app.state.scheduler = sched

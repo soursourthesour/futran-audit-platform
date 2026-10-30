@@ -102,12 +102,22 @@ def open_effective_date_opportunities(db: Session, on) -> list[Opportunity]:
 
 
 def tracing_candidates(db: Session) -> dict[str, list[RegisterSystem]]:
-    """Live or about-to-go-live systems for which the tracing add-on is recommended (§27.3): Tier 3, or an agent
-    that acts (not suggest-only). Past incidents are added when the tracing module (WS-E) records them."""
+    """Live or about-to-go-live systems for which the tracing add-on is recommended (§27.3): Tier 3, an agent
+    that acts (not suggest-only), or a past incident in its history log. Systems the add-on already covers, or for which
+    it waits for the client's approval, are left out (WS-E)."""
+    from app.register.models import HistoryEntry
+    from app.tracing.addons import covered_ids
+
     out: dict[str, list[RegisterSystem]] = {}
+    covered: dict[str, set[str]] = {}
     q = select(RegisterSystem).where(RegisterSystem.deleted_at.is_(None), RegisterSystem.stage.in_(("ready_for_go_live", "live")))
     for s in db.scalars(q.order_by(RegisterSystem.reference)):
-        if s.risk_tier == 3 or (s.type == "agent" and s.autonomy in ("acts_with_approval", "autonomous")):
+        if s.organization_id not in covered:
+            covered[s.organization_id] = covered_ids(db, s.organization_id)
+        if s.id in covered[s.organization_id]:
+            continue
+        incident = db.scalar(select(HistoryEntry.id).where(HistoryEntry.register_system_id == s.id, HistoryEntry.type == "incident", HistoryEntry.deleted_at.is_(None)).limit(1))
+        if s.risk_tier == 3 or (s.type == "agent" and s.autonomy in ("acts_with_approval", "autonomous")) or incident:
             out.setdefault(s.organization_id, []).append(s)
     return out
 

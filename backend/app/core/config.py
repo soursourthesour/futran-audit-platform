@@ -54,6 +54,11 @@ class Settings(BaseSettings):
     mail_pace_per_minute: int = 30  # Exchange Online allows 30 messages a minute per mailbox
     mail_bcc_batch_size: int = 450  # Exchange Online allows 500 recipients per message by default
     mail_link_days: int = 14
+    # Tracing add-on (spec §27.3): the GuardRail action feed. GUARDRAIL_MODE: auto (live when GUARDRAIL_URL is set, the
+    # in-process fake in test mode, else off), fake, live or off.
+    guardrail_mode: str = "auto"
+    guardrail_url: str | None = None
+    guardrail_token: str | None = None
 
     @property
     def test_mode(self) -> bool:

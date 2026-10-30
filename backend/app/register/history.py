@@ -321,7 +321,16 @@ def statement_out(db: Session, s: RegisterSystem) -> dict | None:
 
 
 def tracing(db: Session, s: RegisterSystem) -> dict:
-    """The tracing add-on is shown locked on every system; recommended for Tier 3, agents that take actions, or a past incident (§27.3)."""
+    """The tracing add-on tab: locked unless an active subscription covers the system (WS-E, app.tracing.access);
+    recommended for Tier 3, agents that take actions, or a past incident (§27.3)."""
+    from app.tracing.access import state_for
+
+    reasons = tracing_reasons(db, s)
+    state, _ = state_for(db, s)
+    return {"locked": state != "active", "state": state, "recommended": bool(reasons), "reasons": reasons}
+
+
+def tracing_reasons(db: Session, s: RegisterSystem) -> list[str]:
     reasons = []
     if s.risk_tier == 3:
         reasons.append("Tier 3")
@@ -330,7 +339,7 @@ def tracing(db: Session, s: RegisterSystem) -> dict:
     n = sum(1 for e in _entries(db, s) if e.type == "incident")
     if n:
         reasons.append(f"{n} past incident{'s' if n != 1 else ''}")
-    return {"locked": True, "recommended": bool(reasons), "reasons": reasons}
+    return reasons
 
 
 def history_summary(db: Session, s: RegisterSystem) -> dict:

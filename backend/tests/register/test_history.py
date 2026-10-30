@@ -123,7 +123,7 @@ def test_bulk_link_requirement_and_delete(client, db, reg):
 def test_tracing_recommended_rule(client, db, reg):
     reg.as_(reg.hr_lead)
     plain = new_system(client, department_id=reg.hr.id)
-    assert client.get(f"/api/v1/register/{plain['id']}/history").json()["tracing"] == {"locked": True, "recommended": False, "reasons": []}
+    assert client.get(f"/api/v1/register/{plain['id']}/history").json()["tracing"] == {"locked": True, "state": "locked", "recommended": False, "reasons": []}
     t3 = new_system(client, name="Ranker", department_id=reg.hr.id, decision_impact="consequential")
     assert client.get(f"/api/v1/register/{t3['id']}/history").json()["tracing"]["reasons"] == ["Tier 3"]
     agent = new_system(client, name="Agent", type="agent", department_id=reg.hr.id, actions=[{"action_code": "send_email"}])

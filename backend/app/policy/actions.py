@@ -105,3 +105,10 @@ class Action(StrEnum):
     APPROVE_INTRO_LETTER = "approve_intro_letter"  # approve and send the intro letter
     # v0.6 WS-D: M3 review queue and run history (approval uses APPROVE_REG_CHANGE and SECOND_REVIEW_REG_CHANGE above)
     VIEW_REG_CHANGES = "view_reg_changes"
+    # v0.6 WS-E: tracing add-on and unlock (§27.3, §27.8 R7, R8)
+    VIEW_TRACING = "view_tracing"  # the Tracing tab on a register system
+    RECORD_TRACES = "record_traces"  # manual entries, CSV/JSON import, GuardRail sync
+    MANAGE_INCIDENTS = "manage_incidents"  # incident register, notices and regulator deadlines
+    VIEW_ADDONS = "view_addons"
+    REQUEST_ADDON = "request_addon"  # R8: pick systems, plan, approver and trial
+    APPROVE_ADDON = "approve_addon"  # the Executive Sponsor approves, declines or cancels

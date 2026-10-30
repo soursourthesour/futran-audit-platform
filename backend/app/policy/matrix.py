@@ -325,3 +325,18 @@ _WS_C: dict[R, dict[A, S]] = {
 }
 for _role, _grants in _WS_C.items():
     MATRIX.setdefault(_role, {}).update(_grants)
+
+
+# ---- v0.6 WS-E: tracing add-on (§27.3; screens R7 and R8 in §27.8). R7 is used by the CAICO and the Department Head
+# (own department); the AI Incident Response Lead, a governance role rather than a platform role, is granted incident
+# work in app.tracing.access. R8 is sent by the CAICO or Client Admin and approved by the Executive Sponsor.
+# Futran roles get nothing here: buying the add-on never changes audit results (§27.3), and Sales sees the request
+# only as an Opportunity (§27.5).
+_WS_E: dict[R, dict[A, S]] = {
+    R.CAICO: {A.VIEW_TRACING: S.ORG, A.RECORD_TRACES: S.ORG, A.MANAGE_INCIDENTS: S.ORG, A.VIEW_ADDONS: S.ORG, A.REQUEST_ADDON: S.ORG},
+    R.DEPT_COMPLIANCE_LEAD: {A.VIEW_TRACING: S.DEPT, A.RECORD_TRACES: S.DEPT, A.MANAGE_INCIDENTS: S.DEPT},
+    R.CLIENT_ADMIN: {A.VIEW_ADDONS: S.ORG, A.REQUEST_ADDON: S.ORG},
+    R.EXEC_SPONSOR: {A.VIEW_ADDONS: S.ORG, A.APPROVE_ADDON: S.ORG},
+}
+for _role, _grants in _WS_E.items():
+    MATRIX.setdefault(_role, {}).update(_grants)

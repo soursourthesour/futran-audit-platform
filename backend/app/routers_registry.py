@@ -12,3 +12,6 @@ def api_routers() -> list[APIRouter]:
 
 # v0.6 WS-D: litigation, opportunities, refresh alerts (M6), client alerts (A1), refresh and review (M3)
 ROUTER_MODULES += ["litigation.router", "sales.router", "staffalerts.router", "clientalerts.router", "refresh.router"]
+
+# v0.6 WS-E: tracing add-on and unlock (R7, R8)
+ROUTER_MODULES += ["tracing.router"]
