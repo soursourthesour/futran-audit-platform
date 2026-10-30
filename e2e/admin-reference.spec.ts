@@ -38,6 +38,7 @@ test('admin re-imports the law matrix, browses Illinois and edits a law into a n
   await page.screenshot({ path: 'screenshots/p2-jurisdictions.png', fullPage: true });
 
   await page.getByRole('tab', { name: 'Law updates' }).click();
-  await expect(page.getByText('Law updates are switched off')).toBeVisible();
+  await expect(page.getByText(/Claude law updates now run from/)).toBeVisible(); // v0.6: the shared refresh and review screen (M3)
+  await expect(page.getByRole('link', { name: 'Open refresh and review' })).toHaveAttribute('href', '/reg/refresh');
   await page.screenshot({ path: 'screenshots/p2-law-updates.png', fullPage: true });
 });
