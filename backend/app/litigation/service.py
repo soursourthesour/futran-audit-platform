@@ -80,15 +80,26 @@ def match_case(db: Session, case: Case) -> list[CaseClientMatch]:
     return out
 
 
-def matches_out(db: Session, case: Case) -> list[dict]:
-    """Client name and system type only: no audit evidence, findings or scores (§27.5)."""
+def matches_out(db: Session, case: Case, sees_register=None) -> list[dict]:
+    """Clients with similar AI. No audit evidence, findings or scores (§27.5). `sees_register(org_id)` says whether the
+    viewer may read that client's register; when it does not (Sales, an Auditor not on the client's engagement), or no
+    check is given, the match shows the client name and system type only."""
     out = []
     for m in db.scalars(select(CaseClientMatch).where(CaseClientMatch.case_id == case.id)):
         org = db.get(Organization, m.organization_id)
-        systems = [db.get(RegisterSystem, sid) for sid in m.ai_system_ids]
+        systems = [s for s in (db.get(RegisterSystem, sid) for sid in m.ai_system_ids) if s is not None]
+        if sees_register is not None and sees_register(m.organization_id):
+            out.append({
+                "organization_id": m.organization_id, "organization_name": org.name if org else "", "match_reason": m.match_reason, "restricted": False,
+                "systems": [{"id": s.id, "name": s.name, "type": s.type, "type_label": TYPE_LABELS.get(s.type, s.type), "stage": s.stage} for s in systems],
+            })
+            continue
+        types = list(dict.fromkeys(s.type for s in systems))
+        labels = [TYPE_LABELS.get(t, t) for t in types]
         out.append({
-            "organization_id": m.organization_id, "organization_name": org.name if org else "", "match_reason": m.match_reason,
-            "systems": [{"id": s.id, "name": s.name, "type": s.type, "type_label": TYPE_LABELS.get(s.type, s.type), "stage": s.stage} for s in systems if s is not None],
+            "organization_id": m.organization_id, "organization_name": org.name if org else "", "restricted": True,
+            "match_reason": ("Uses AI of the same type: " + ", ".join(lbl[0].lower() + lbl[1:] for lbl in labels)) if labels else "Uses similar AI",
+            "systems": [{"type": t, "type_label": lbl} for t, lbl in zip(types, labels)],
         })
     return sorted(out, key=lambda x: x["organization_name"].casefold())
 
@@ -98,15 +109,15 @@ def add_timeline(case: Case, stage: str, label: str | None = None, on=None) -> N
     case.timeline = [*(case.timeline or []), entry]
 
 
-def case_out(db: Session, case: Case, *, following: bool = False, detail: bool = False) -> dict:
-    matches = matches_out(db, case)
+def case_out(db: Session, case: Case, *, following: bool = False, detail: bool = False, sees_register=None) -> dict:
+    matches = matches_out(db, case, sees_register)
     out = {
         "id": case.id, "name": case.name, "geography": case.geography, "jurisdiction_id": case.jurisdiction_id, "area": case.area,
         "court": case.court, "docket_ref": case.docket_ref, "description": case.description, "stage": case.stage,
         "stage_label": STAGE_LABELS.get(case.stage, case.stage), "stage_note": case.stage_note,
         "last_update_on": case.last_update_on.isoformat() if case.last_update_on else None, "version": case.version,
         "regulation_ids": case.regulation_ids or [], "clients_count": len(matches),
-        "systems_count": sum(len(m["systems"]) for m in matches), "following": following, "origin": case.origin,
+        "systems_count": sum(len(m.ai_system_ids or []) for m in db.scalars(select(CaseClientMatch).where(CaseClientMatch.case_id == case.id))), "following": following, "origin": case.origin,
         "updated_at": case.updated_at.isoformat() if case.updated_at else None,
     }
     if detail:

@@ -13,7 +13,7 @@ from app.audit_log import service as audit
 from app.auth.deps import Actor, current_actor
 from app.core.clock import today
 from app.core.db import get_db
-from app.core.errors import NotFound
+from app.core.errors import Forbidden, NotFound
 from app.core.models import column_snapshot
 from app.litigation.models import STAGE_LABELS, STAGES, Case, CaseClientMatch, CaseFollow
 from app.litigation.service import add_timeline, case_out, match_case, touch
@@ -130,6 +130,22 @@ def list_cases(stage: str | None = None, area: str | None = None, geography: str
     }
 
 
+def _register_check(db: Session, actor: Actor):
+    """Whether the actor may read a client's register, per client (cached for one response)."""
+    seen: dict[str, bool] = {}
+
+    def sees(org_id: str) -> bool:
+        if org_id not in seen:
+            try:
+                authorize(db, actor, Action.VIEW_REGISTER, org_id=org_id)
+                seen[org_id] = True
+            except (Forbidden, NotFound):
+                seen[org_id] = False
+        return seen[org_id]
+
+    return sees
+
+
 def _can(db: Session, actor: Actor, action: Action) -> bool:
     try:
         authorize(db, actor, action)
@@ -168,14 +184,14 @@ def create_case(body: CaseIn, request: Request, actor: Actor = Depends(current_a
     db.flush()
     match_case(db, c)
     audit.record(db, actor_id=actor.id, action="case.create", obj=c, after=column_snapshot(c), request=request, organization_id=actor.organization.id, summary=f"Added case {c.name}")
-    return case_out(db, c, detail=True)
+    return case_out(db, c, detail=True, sees_register=_register_check(db, actor))
 
 
 @router.get("/litigation/{case_id}")
 def get_case(case_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.VIEW_LITIGATION)
     c = _get(db, case_id)
-    out = case_out(db, c, following=_following(db, c.id, actor.id), detail=True)
+    out = case_out(db, c, following=_following(db, c.id, actor.id), detail=True, sees_register=_register_check(db, actor))
     out["can_edit"] = _can(db, actor, Action.MANAGE_LITIGATION)
     return out
 
@@ -194,7 +210,7 @@ def update_case(case_id: str, body: CaseIn, request: Request, actor: Actor = Dep
     db.flush()
     match_case(db, c)
     audit.record(db, actor_id=actor.id, action="case.update", obj=c, before=before, after=column_snapshot(c), request=request, organization_id=actor.organization.id, summary=f"Edited case {c.name}")
-    return case_out(db, c, following=_following(db, c.id, actor.id), detail=True)
+    return case_out(db, c, following=_following(db, c.id, actor.id), detail=True, sees_register=_register_check(db, actor))
 
 
 @router.post("/litigation/{case_id}/rematch")
@@ -202,7 +218,7 @@ def rematch(case_id: str, actor: Actor = Depends(current_actor), db: Session = D
     authorize(db, actor, Action.VIEW_LITIGATION)
     c = _get(db, case_id)
     match_case(db, c)
-    return case_out(db, c, following=_following(db, c.id, actor.id), detail=True)
+    return case_out(db, c, following=_following(db, c.id, actor.id), detail=True, sees_register=_register_check(db, actor))
 
 
 @router.post("/litigation/{case_id}/follow")

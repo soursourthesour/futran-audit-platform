@@ -38,7 +38,8 @@ export function CaseRecord() {
   }
   const columns: GridColumn<Match>[] = [
     { key: 'client', header: 'Client', value: (m) => m.organization_name, render: (m) => <strong>{m.organization_name}</strong> },
-    { key: 'systems', header: 'AI system', value: (m) => m.systems.map((s) => s.name).join(', '), render: (m) => <span>{m.systems.map((s) => <span key={s.id} className="block">{s.name} <span className="small muted">({s.type_label})</span></span>)}</span> },
+    { key: 'systems', header: 'AI system', value: (m) => m.systems.map((s) => s.name ?? s.type_label).join(', '),
+      render: (m) => <span>{m.systems.map((s, i) => <span key={s.id ?? `${s.type}-${i}`} className="block">{s.name ? <>{s.name} <span className="small muted">({s.type_label})</span></> : s.type_label}</span>)}</span> },
     { key: 'why', header: 'Why it matches', value: (m) => m.match_reason },
   ];
   return (

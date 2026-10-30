@@ -1,4 +1,5 @@
-export type Match = { organization_id: string; organization_name: string; match_reason: string; systems: { id: string; name: string; type: string; type_label: string; stage: string }[] };
+/** `restricted`: the viewer has no access to this client's register, so only the system type is shown (§27.5). */
+export type Match = { organization_id: string; organization_name: string; match_reason: string; restricted: boolean; systems: { id?: string; name?: string; type: string; type_label: string; stage?: string }[] };
 export type CaseRow = {
   id: string; name: string; geography: string | null; jurisdiction_id: string | null; area: string; court: string | null; docket_ref: string | null; description: string | null;
   stage: string; stage_label: string; stage_note: string | null; last_update_on: string | null; version: number; regulation_ids: string[]; clients_count: number;
