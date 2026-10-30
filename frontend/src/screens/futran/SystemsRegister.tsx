@@ -11,13 +11,16 @@ export type SystemRow = {
   department_id: string | null; department: string | null; owner: Person; technical_owner: Person; use_cases: { id: string; name: string; tier: number | null }[];
   tools: { id: string; label: string }[]; assessment_depth: 'full' | 'light'; status: string; completion_pct: number; methodology_version: string | null; source: string;
   inherent: number | null; maturity: number | null; residual: number | null; rating: string | null; knockouts: string[];
+  register_system: { id: string; reference: string; name: string } | null;
 };
+type RegisterOption = { id: string; reference: string; name: string; type_label: string; sourcing_label: string; stage_label: string; risk_tier: number | null; built_by: string | null; vendor_id: string | null; department_id: string | null; owner_user_id: string | null; linked_to: string | null };
 type VendorRow = { id: string; legal_name: string; capability: string | null; personal_data_processed: boolean | null; baa_dpa_signed: boolean | null; last_risk_review: string | null; risk_level: 'H' | 'M' | 'L' | null };
 type Request = { id: string; payload: Record<string, unknown>; reason: string; status: string; requested_by: Person; requested_at: string };
 type Register = {
   client: { id: string; name: string }; audit_ref: string; stage: number; systems: SystemRow[]; unmapped_tier3: { id: string; name: string }[];
   use_case_options: { id: string; name: string; tier: number | null }[]; tool_options: { id: string; label: string }[]; vendors: VendorRow[];
   departments: { id: string; name: string }[]; people: { id: string; name: string }[]; pending_requests: Request[]; can_manage: boolean; can_approve_additions: boolean;
+  register_options: RegisterOption[];
 };
 
 const BUILT_BY = [{ value: 'in_house', label: 'In-house' }, { value: 'vendor', label: 'Vendor' }, { value: 'open_source_customized', label: 'Open source (customized)' }, { value: 'hybrid', label: 'Hybrid' }];
@@ -71,7 +74,7 @@ export function SystemsRegister() {
                 <td>
                   <Link to={`/systems/${s.id}/assess`}><strong>{s.name}</strong></Link>
                   {d.can_manage && <> <button type="button" className="linklike small" onClick={() => setEditing(s)}>Edit</button></>}
-                  <div className="small muted">{[s.reference_id, s.department, s.use_cases.some((u) => u.tier === 3) ? 'from Tier 3 use case' : s.source === 'wizard' ? 'listed at initiation' : null].filter(Boolean).join(' · ')}</div>
+                  <div className="small muted">{[s.reference_id, s.department, s.use_cases.some((u) => u.tier === 3) ? 'from Tier 3 use case' : s.source === 'wizard' ? 'listed at initiation' : null, s.register_system ? `client register ${s.register_system.reference}` : null].filter(Boolean).join(' · ')}</div>
                 </td>
                 <td>{s.built_by ? s.built_by_label : <span className="muted">Not set</span>}{s.vendor && <div className="small muted">{s.vendor}</div>}</td>
                 <td><Badge tone={s.assessment_depth === 'full' ? 'navy' : 'muted'}>{s.assessment_depth === 'full' ? 'Full' : 'Light'}</Badge></td>
@@ -121,13 +124,18 @@ function UseCasePicker({ d, value, onChange }: { d: Register; value: string[]; o
 
 function AddSystem({ clientId, d, preselected, onClose, onDone }: { clientId: string; d: Register; preselected: string[]; onClose: () => void; onDone: (m: string) => void }) {
   const qc = useQueryClient();
-  const [f, setF] = useState({ name: '', built_by: '', vendor_id: '', use_case_ids: preselected, reason: preselected.length ? 'Tier 3 use case found in discovery.' : '' });
+  const [f, setF] = useState({ name: '', built_by: '', vendor_id: '', register_system_id: '', use_case_ids: preselected, reason: preselected.length ? 'Tier 3 use case found in discovery.' : '' });
+  const regOpts = (d.register_options ?? []).filter((o) => !o.linked_to);
+  function pickRegister(id: string) {
+    const o = d.register_options.find((x) => x.id === id);
+    setF({ ...f, register_system_id: id, ...(o ? { name: o.name, built_by: o.built_by ?? f.built_by, vendor_id: o.vendor_id ?? f.vendor_id, reason: f.reason || `In the client's AI system register as ${o.reference}.` } : {}) });
+  }
   const [err, setErr] = useState<string | null>(null);
   const [fe, setFe] = useState<Record<string, string>>({});
   async function save(e: FormEvent) {
     e.preventDefault();
     try {
-      await api.post(`/clients/${clientId}/systems`, { ...f, vendor_id: f.vendor_id || null, built_by: f.built_by || null });
+      await api.post(`/clients/${clientId}/systems`, { ...f, vendor_id: f.vendor_id || null, built_by: f.built_by || null, register_system_id: f.register_system_id || null });
       await qc.invalidateQueries({ queryKey: ['systems', clientId] });
       onDone('Sent to the Engagement Manager for approval. The system appears here once approved.');
     } catch (ex) { setErr(errorMessage(ex)); setFe(fieldErrors(ex)); }
@@ -137,6 +145,10 @@ function AddSystem({ clientId, d, preselected, onClose, onDone }: { clientId: st
       <form className="stack" onSubmit={save} noValidate>
         <p className="small muted" style={{ margin: 0 }}>Adding a system after initiation needs the Engagement Manager's approval (template §1.3).</p>
         {err && <Alert tone="danger">{err}</Alert>}
+        {regOpts.length > 0 && (
+          <SelectField label="Start from the client's AI system register" help="Copies the system's name, who built it, vendor, department and owner from the client's register, and links the two so its bias tests and history show on the assessment." value={f.register_system_id} placeholder="Not from the register" onChange={(e) => pickRegister(e.target.value)}
+            options={regOpts.map((o) => ({ value: o.id, label: `${o.reference} · ${o.name} · ${o.type_label} · ${o.stage_label}${o.risk_tier ? ` · Tier ${o.risk_tier}` : ''}` }))} error={fe.register_system_id} />
+        )}
         <UseCasePicker d={d} value={f.use_case_ids} onChange={(v) => setF({ ...f, use_case_ids: v })} />
         {fe.use_case_ids && <div className="small" style={{ color: "var(--danger)" }}>{fe.use_case_ids}</div>}
         <TextField label="System name" help={S.name} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} error={fe.name} />

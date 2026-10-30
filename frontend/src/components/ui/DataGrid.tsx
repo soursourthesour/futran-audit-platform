@@ -83,6 +83,8 @@ export type DataGridProps<T> = {
   /** Shown when filters or search hide every row. */
   noMatchText?: ReactNode;
   rowClassName?: (row: T) => string | undefined;
+  /** Filter values to start with, by filter key (for example from the page address). */
+  initialFilters?: Record<string, string>;
 };
 
 type Sort = { key: string; dir: 'asc' | 'desc' } | null;
@@ -98,9 +100,9 @@ function compare(a: unknown, b: unknown): number {
 }
 
 export function DataGrid<T>(props: DataGridProps<T>) {
-  const { label, rows, columns, rowId, rowLabel, selectable, bulkActions = [], rowActions, filters = [], search, initialSort, emptyText, noMatchText, rowClassName } = props;
+  const { label, rows, columns, rowId, rowLabel, selectable, bulkActions = [], rowActions, filters = [], search, initialSort, emptyText, noMatchText, rowClassName, initialFilters } = props;
   const [sort, setSort] = useState<Sort>(initialSort ?? null);
-  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
+  const [filterValues, setFilterValues] = useState<Record<string, string>>(initialFilters ?? {});
   const [text, setText] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [menu, setMenu] = useState<{ id: string; x?: number; y?: number; anchor?: HTMLElement | null } | null>(null);

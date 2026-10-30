@@ -5,6 +5,7 @@ import { api, errorMessage } from '@/api/client';
 import { Alert, Badge, Button, ButtonLink, Card, Loading, PageHeader, TextField, fileUrl } from '@/components/ui';
 import { scoringHelp } from '@/help/fieldwork';
 import { QuestionCard, type DraftFinding, type FileRef, type QuestionView, type SaveBody } from '@/components/QuestionCard';
+import { RegisterRecord } from './RegisterRecord';
 
 export type Section = { code: string; title: string; answered: number; applicable: number; note?: string | null };
 type ChecklistRow = { code: string; section: string; section_title: string; text: string; maturity_domain: string; pending_review: boolean; confirmed: boolean; evidence: FileRef[]; auditor_note: string | null };
@@ -32,7 +33,8 @@ export function SystemAssessment() {
   const checklistSections = [...new Set((d.checklists ?? []).map((c) => c.section))];
   const nav = [...d.sections.map((x) => ({ key: x.code, label: `§${x.code} ${x.title}`, count: `${x.answered}/${x.applicable}` })),
     ...(checklistSections.length ? [{ key: 'checklists', label: `Checklists ${checklistSections.join(', ')}`, count: `${(d.checklists ?? []).filter((c) => c.confirmed).length}/${(d.checklists ?? []).length}` }] : []),
-    { key: 'drafts', label: 'Draft findings', count: String(d.draft_findings?.length ?? 0) }];
+    { key: 'drafts', label: 'Draft findings', count: String(d.draft_findings?.length ?? 0) },
+    ...(s ? [{ key: 'register', label: "Client's register record", count: '' }] : [])];
   const current = section ?? d.sections[0]?.code ?? 'checklists';
   const sec = d.sections.find((x) => x.code === current);
   const refresh = () => qc.invalidateQueries({ queryKey: key });
@@ -72,6 +74,7 @@ export function SystemAssessment() {
           )}
           {current === 'checklists' && <Checklists base={base} rows={d.checklists ?? []} files={d.evidence_files ?? []} locked={d.locked} onUpload={upload} onDone={refresh} />}
           {current === 'drafts' && <Drafts rows={d.draft_findings ?? []} onDone={refresh} />}
+          {current === 'register' && s && <RegisterRecord systemId={s.id} />}
           <div className="row" style={{ justifyContent: 'space-between', marginTop: 16 }}>
             <span />
             <div className="row" style={{ gap: 8 }}>

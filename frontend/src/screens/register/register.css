@@ -1,0 +1,54 @@
+/* AI system register (R1–R6) and company roles (R5) */
+.reg-page { gap: 20px; }
+.reg-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.reg-kpi { padding: 14px 16px; }
+.reg-kpi .value { font-size: 26px; font-weight: 700; color: var(--navy); line-height: 1.1; }
+.reg-kpi .label { font-size: 13px; color: var(--muted); margin-top: 4px; }
+.reg-kpi-danger .value { color: var(--danger); }
+.reg-kpi-warn .value { color: var(--warn); }
+.reg-preset { max-width: 260px; }
+.reg-danger { color: var(--danger); }
+.reg-lock { display: inline-flex; align-items: center; margin-left: 6px; color: var(--muted); vertical-align: middle; }
+.reg-roles { min-width: 110px; }
+.reg-bar { height: 6px; border-radius: 3px; background: var(--line-soft); overflow: hidden; width: 80px; margin: 4px 0; }
+.reg-bar span { display: block; height: 100%; background: var(--success); }
+.reg-bar span.gap { background: var(--sev-medium); }
+.reg-chips { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; font-size: 14px; }
+.reg-tabs a { display: inline-flex; align-items: center; gap: 6px; padding: 10px 14px; min-height: 44px; border-bottom: 2px solid transparent; color: var(--muted); text-decoration: none; white-space: nowrap; font-size: 15px; }
+.reg-tabs a.active { color: var(--navy); border-bottom-color: var(--navy); font-weight: 600; }
+.reg-count { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: var(--danger); color: #fff; font-size: 12px; font-weight: 700; }
+.reg-plain { border: 0; padding: 0; margin: 0; min-width: 0; }
+.reg-fieldset { border: 1px solid var(--line-soft); border-radius: var(--radius-sm); padding: 12px 16px 16px; margin: 0; min-width: 0; }
+.reg-fieldset > legend { font-weight: 600; padding: 0 6px; }
+.reg-radio { justify-content: flex-start; height: auto; min-height: 44px; padding: 8px 14px; text-align: left; }
+.reg-lawchips { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.reg-chip-pending { border-style: dashed; color: var(--warn); }
+.reg-chip-suggest { border-style: dashed; background: #f8fafc; gap: 8px; }
+.reg-x { min-width: 28px; min-height: 28px; font-size: 18px; line-height: 1; padding: 0 4px; }
+.reg-lawsearch { position: relative; }
+.reg-lawlist { list-style: none; margin: 4px 0 0; padding: 4px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); max-height: 260px; overflow-y: auto; }
+.reg-lawlist button { display: block; width: 100%; min-height: 44px; text-align: left; padding: 8px 10px; border: 0; background: none; font: inherit; color: var(--ink); cursor: pointer; border-radius: 4px; }
+.reg-lawlist button:hover, .reg-lawlist button:focus { background: #eef3fb; outline: none; }
+.reg-bulk-role { padding: 10px 0; border-top: 1px solid var(--line-soft); }
+.reg-bulk-role:first-of-type { border-top: 0; }
+.reg-bulk-foot { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid var(--line-soft); }
+.reg-steps { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 0; padding: 0; counter-reset: step; }
+.reg-steps li { counter-increment: step; font-size: 13px; padding: 6px 10px; border-radius: 14px; border: 1px solid var(--line); color: var(--muted); background: var(--surface); }
+.reg-steps li::before { content: counter(step) ' · '; }
+.reg-steps li.current { border-color: var(--navy); color: var(--navy); font-weight: 600; }
+.reg-steps li.done { color: var(--success); border-color: var(--success-line); }
+.reg-step-actions { justify-content: flex-end; }
+.reg-legend { gap: 6px 8px; }
+.reg-tracing { border-style: dashed; }
+.reg-ticks { margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.7; }
+.reg-file { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; padding: 10px 0; border-top: 1px solid var(--line-soft); }
+.reg-form-card .card-header h2 { font-size: 17px; }
+@media (max-width: 600px) {
+  .reg-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .reg-kpi .value { font-size: 22px; }
+  .reg-preset { max-width: none; }
+  .reg-step-actions { justify-content: stretch; }
+  .reg-step-actions .btn { flex: 1 1 auto; }
+  .reg-bulk-foot .row { width: 100%; }
+  .reg-bulk-foot .row .btn { flex: 1 1 auto; }
+}

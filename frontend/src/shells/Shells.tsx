@@ -66,7 +66,7 @@ export function FutranShell() {
 }
 
 /** Client screens that exist so far; later phases add theirs here. */
-const BUILT_CLIENT_ROUTES = new Set(['/start', '/people', '/governance', '/attestation', '/my-attestation', '/inventory', '/systems', '/documents', '/review', '/report', '/responses', '/remediation']);
+const BUILT_CLIENT_ROUTES = new Set(['/start', '/people', '/register', '/governance/roles', '/governance', '/attestation', '/my-attestation', '/inventory', '/systems', '/documents', '/review', '/report', '/responses', '/remediation']);
 
 export function ClientShell() {
   const { data: me } = useMe();
@@ -74,7 +74,9 @@ export function ClientShell() {
   const nav = [
     { to: '/start', label: 'Getting started' },
     { to: '/people', label: 'People', show: hasRole(me, 'client_admin', 'caico') },
-    { to: '/governance', label: 'Governance', show: hasRole(me, 'caico', 'dpo', 'exec_sponsor') },
+    { to: '/register', label: 'AI system register', show: hasRole(me, 'caico', 'client_admin', 'dept_compliance_lead') },
+    { to: '/governance/roles', label: 'Governance roles', show: hasRole(me, 'caico', 'client_admin') },
+    { to: '/governance', label: 'Governance', show: hasRole(me, 'caico', 'dpo', 'exec_sponsor'), end: true },
     { to: '/attestation', label: 'Attestation', show: hasRole(me, 'caico', 'dpo', 'dept_compliance_lead', 'client_admin') },
     { to: '/my-attestation', label: 'My AI attestation' },
     { to: '/inventory', label: 'AI inventory' },
@@ -91,7 +93,7 @@ export function ClientShell() {
       <header className="shell-header client-header">
         <Link to="/start" className="brand"><img className="brand-logo" src={logo} alt="Futran Solutions" /><span className="brand-name">Audit Platform</span><span className="muted small">· {me.organization.name}</span></Link>
         <nav className="shell-nav" aria-label="Main">
-          {nav.map((n) => <NavLink key={n.to} to={n.to}>{n.label}</NavLink>)}
+          {nav.map((n) => <NavLink key={n.to} to={n.to} end={'end' in n ? n.end : undefined}>{n.label}</NavLink>)}
         </nav>
         <UserMenu me={me} />
       </header>

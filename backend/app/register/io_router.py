@@ -60,3 +60,14 @@ def import_inventory(actor: Actor = Depends(current_actor), db: Session = Depend
     org = client_org(actor)
     authorize(db, actor, Action.IMPORT_INVENTORY_TO_REGISTER, org_id=org.id)
     return seeding.import_inventory(db, actor.user, org)
+
+
+@router.get("/register/role-catalog")
+def role_catalog(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    """The governance roles (§24.1), for the bulk edit role picker."""
+    from app.register.roles import catalog_roles
+
+    org = client_org(actor)
+    authorize(db, actor, Action.VIEW_REGISTER, org_id=org.id, list_view=True)
+    return [{"id": r.id, "code": r.code, "number": r.number, "name": r.name, "level": r.level, "default_stage": r.default_stage, "main_sources": r.main_sources, "extra_checks": r.extra_checks}
+            for r in catalog_roles(db)]

@@ -281,3 +281,10 @@ def test_suggested_laws_come_from_applicability(client, db, reg, cat):
     assert got == [{"regulation_id": cat.a.id, "short_name": cat.a.short_name, "reason": "Hires in New York City"}]
     client.post(f"/api/v1/register/{s['id']}/laws", json={"regulation_id": cat.a.id})
     assert client.get(f"/api/v1/register/{s['id']}").json()["suggested_laws"] == []
+
+
+def test_role_catalog_for_bulk_edit(client, db, reg, cat):
+    reg.as_(reg.hr_lead)
+    rows = client.get("/api/v1/register/role-catalog").json()
+    assert [r["code"] for r in rows][:2] == ["accountable_executive", "records_retention_owner"]
+    assert {r["level"] for r in rows} == {"company", "system", "agent"} and rows[0]["name"] == "Accountable executive"
