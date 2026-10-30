@@ -66,6 +66,14 @@ def _directory_out(db: Session, conn: MailConnection | None) -> dict | None:
             "groups": [{"id": g.directory_id, "name": g.name, "member_count": g.member_count} for g in groups]}
 
 
+def _send_test(db: Session, settings, actor: Actor, conn: MailConnection, to: str) -> None:
+    try:
+        cx.send_test(db, settings, actor.user, conn, to or actor.user.email)
+    except cx.TestEmailFailed:
+        db.commit()  # keep the record and the admin log entry of the failed attempt (§26.7)
+        raise
+
+
 # ---- E1: the Futran mailbox
 def _futran(db: Session, actor: Actor, manage: bool = False) -> Organization:
     if not actor.is_futran:
@@ -99,7 +107,7 @@ def futran_update(data: dict, actor: Actor = Depends(current_actor), db: Session
 def futran_test(body: ToIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     org = _futran(db, actor, manage=True)
     conn = cx.org_connection(db, org, create=True)
-    cx.send_test(db, settings, actor.user, conn, body.to or actor.user.email)
+    _send_test(db, settings, actor, conn, body.to)
     return {"sent": True}
 
 
@@ -201,6 +209,7 @@ def client_directory_sync(actor: Actor = Depends(current_actor), db: Session = D
     directory.run_directory_sync(db, settings, ds, actor=actor.user)
     conn.onboarding_step = max(conn.onboarding_step or 1, 3)
     if ds.status != "ok":
+        db.commit()  # keep the failed run and its admin log entry (§26.7)
         raise Conflict(f"The directory sync did not finish: {(ds.report or {}).get('error', 'unknown error')}")
     return _directory_out(db, conn)
 
@@ -209,7 +218,7 @@ def client_directory_sync(actor: Actor = Depends(current_actor), db: Session = D
 def client_test(body: ToIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     org = _client(db, actor, manage=True)
     conn = cx.org_connection(db, org, create=True)
-    cx.send_test(db, settings, actor.user, conn, body.to or actor.user.email)
+    _send_test(db, settings, actor, conn, body.to)
     return _client_out(db, settings, actor, org)
 
 

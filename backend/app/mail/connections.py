@@ -32,6 +32,11 @@ class BadRequest(AppError):
     status_code = 400
 
 
+class TestEmailFailed(Conflict):
+    """The test email was recorded and logged but not delivered. The caller commits before reporting it (§26.7: failed
+    attempts are logged too)."""
+
+
 def safe_next(v) -> str | None:
     """A return path is kept only when it is a same-origin relative path that starts with a single "/"."""
     if not isinstance(v, str) or not v.startswith("/") or v.startswith("//") or len(v) > 500 or re.search(r"[\x00-\x1f\x7f\\]", v):
@@ -361,7 +366,7 @@ def send_test(db: Session, settings: Settings, actor: User, conn: MailConnection
                    summary=f"Test email to {to} from {sender.label}" + ("" if res.ok else f" failed: {(res.error or '')[:150]}"))
     db.flush()
     if not res.ok:
-        raise Conflict(f"The test email was not sent: {res.error}")
+        raise TestEmailFailed(f"The test email was not sent: {res.error}")
     return s
 
 
