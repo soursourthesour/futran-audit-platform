@@ -120,14 +120,14 @@ test('the CAICO edits and resends the data notice; another user acknowledges it 
   await expect(page.getByText(/Version \d+ of the notice was emailed to/)).toBeVisible();
 
   await clientUser(page, AARAV);
-  await expect(page).toHaveURL(/\/welcome\/notice$/);
+  await expect(page).toHaveURL(/\/welcome\/notice(\?next=%2Fmy-department)?$/);
   await expect(page.getByRole('heading', { name: 'Read and acknowledge' })).toBeVisible();
   await expect(page.getByText('Questions about this notice go to the Head of AI Compliance.')).toBeVisible();
   await page.goto('/inventory');
-  await expect(page).toHaveURL(/\/welcome\/notice$/);  // nothing else opens until it is acknowledged
+  await expect(page).toHaveURL(/\/welcome\/notice\?next=%2Finventory$/);  // nothing else opens until it is acknowledged
   await page.getByRole('checkbox', { name: 'I have read and understand this notice.' }).check();
   await page.getByRole('button', { name: 'Acknowledge and continue' }).click();
-  await expect(page).toHaveURL(/\/my-department$/);  // a Department Compliance Lead's home (spec §13.1)
+  await expect(page).toHaveURL(/\/inventory$/);  // the page he asked for survives the notice step
 
   await clientUser(page, KATRIN);
   await page.goto('/people/users');
