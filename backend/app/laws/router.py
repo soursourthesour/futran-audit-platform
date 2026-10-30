@@ -63,7 +63,7 @@ MAX_ROWS = 5000
 
 
 @router.post("/admin/laws/import")
-def import_preview(request: Request, file: UploadFile = File(...), actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def import_preview(request: Request, file: UploadFile = File(...), actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.MANAGE_REFERENCE_DATA)
     limit = request.app.state.settings.max_upload_mb * 1024 * 1024
     data = file.file.read(limit + 1)
@@ -89,7 +89,7 @@ def import_preview(request: Request, file: UploadFile = File(...), actor: Actor 
 
 
 @router.get("/admin/laws/import/{preview_id}")
-def get_preview(preview_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_preview(preview_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.MANAGE_REFERENCE_DATA)
     rec = db.get(LawImportPreview, preview_id)
     if rec is None:
@@ -98,7 +98,7 @@ def get_preview(preview_id: str, actor: Actor = Depends(current_actor), db: Sess
 
 
 @router.post("/admin/laws/import/{preview_id}/publish")
-def publish_preview(preview_id: str, body: PublishIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def publish_preview(preview_id: str, body: PublishIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.MANAGE_REFERENCE_DATA)
     rec = db.get(LawImportPreview, preview_id)
     if rec is None:
@@ -114,7 +114,7 @@ def publish_preview(preview_id: str, body: PublishIn, actor: Actor = Depends(cur
 
 
 @router.get("/admin/laws/versions")
-def versions(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def versions(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.MANAGE_REFERENCE_DATA)
     rows = db.scalars(select(MatrixVersion).order_by(MatrixVersion.published_at.desc()).limit(200))
     return [{"id": v.id, "label": v.label, "origin": v.origin, "status": v.status, "status_date": v.status_date.isoformat() if v.status_date else None, "published_at": v.published_at.isoformat(), "warnings": v.warnings or []} for v in rows]
@@ -127,7 +127,7 @@ def list_laws(
     q: str | None = None,
     exclude_developer: bool = False,
     actor: Actor = Depends(current_actor),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db, scope="function"),
 ):
     """Reference data, readable by any signed-in user. `codes` is a comma list of jurisdiction codes or 'all'."""
     code_list = None if codes == "all" else [c.strip().upper() for c in codes.split(",") if c.strip()]
@@ -142,7 +142,7 @@ def features(actor: Actor = Depends(current_actor)):
 
 
 @router.get("/laws/{law_id}")
-def get_law(law_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_law(law_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     r = db.get(Regulation, law_id)
     if r is None:
         raise NotFound()
@@ -150,14 +150,14 @@ def get_law(law_id: str, actor: Actor = Depends(current_actor), db: Session = De
 
 
 @router.patch("/laws/{law_id}")
-def patch_law(law_id: str, body: LawIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def patch_law(law_id: str, body: LawIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.MANAGE_REFERENCE_DATA)
     new = edit_law(db, actor.user, law_id, body.model_dump(exclude_unset=True, exclude={"jurisdiction_code"}))
     return law_out(new, db.get(Jurisdiction, new.jurisdiction_id))
 
 
 @router.post("/laws")
-def post_law(body: LawIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def post_law(body: LawIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.MANAGE_REFERENCE_DATA)
     if not body.jurisdiction_code:
         raise Invalid(errors=[{"field": "jurisdiction_code", "message": "Choose a jurisdiction."}])
@@ -194,7 +194,7 @@ def _run_out(db: Session, run, with_proposals: bool = False) -> dict:
 
 
 @router.post("/admin/laws/proposals/decide")
-def decide(body: DecideIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def decide(body: DecideIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """Earlier RegulationProposal rows only; new proposals are reviewed at /reg/changes."""
     from app.laws.refresh import accept_proposals
 

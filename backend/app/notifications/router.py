@@ -12,7 +12,7 @@ router = APIRouter(tags=["notifications"])
 
 
 @router.get("/me/notifications")
-def mine(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def mine(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """Your own notifications only; no permission beyond being signed in is needed."""
     rows = db.scalars(select(Notification).where(Notification.user_id == actor.id, Notification.deleted_at.is_(None)).order_by(Notification.created_at.desc()).limit(30))
     unread = db.scalar(select(func.count()).select_from(Notification).where(Notification.user_id == actor.id, Notification.read_at.is_(None), Notification.deleted_at.is_(None))) or 0
@@ -20,7 +20,7 @@ def mine(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
 
 
 @router.post("/notifications/{notification_id}/read")
-def read(notification_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def read(notification_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     n = db.get(Notification, notification_id)
     if n is None or n.user_id != actor.id:
         raise NotFound()
@@ -29,7 +29,7 @@ def read(notification_id: str, actor: Actor = Depends(current_actor), db: Sessio
 
 
 @router.post("/notifications/read-all")
-def read_all(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def read_all(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     for n in db.scalars(select(Notification).where(Notification.user_id == actor.id, Notification.read_at.is_(None))):
         n.read_at = utcnow()
     return {"ok": True}

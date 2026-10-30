@@ -11,7 +11,7 @@ router = APIRouter(prefix="/admin/outbox", tags=["admin"])
 
 
 @router.get("")
-def list_outbox(limit: int = 200, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def list_outbox(limit: int = 200, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     if not (actor.is_futran and (actor.has_role("admin") or actor.has_role("chief_auditor"))):
         raise Forbidden()
     rows = db.scalars(select(OutboxMessage).order_by(OutboxMessage.created_at.desc()).limit(min(limit, 1000)))

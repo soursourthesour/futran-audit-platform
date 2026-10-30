@@ -120,7 +120,7 @@ def capabilities(db: Session, actor: Actor) -> dict:
 
 # ---- grid and record
 @router.get("/register")
-def get_register(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_register(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = client_org(actor)
     authorize(db, actor, Action.VIEW_REGISTER, org_id=org.id, list_view=True)
     rows = [system_out(db, s, actor) for s in svc.systems_for(db, org.id, departments_for(actor, Action.VIEW_REGISTER))]
@@ -128,7 +128,7 @@ def get_register(actor: Actor = Depends(current_actor), db: Session = Depends(ge
 
 
 @router.post("/register")
-def post_register(data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def post_register(data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = client_org(actor)
     if data.get("company_wide"):
         authorize(db, actor, Action.EDIT_REGISTER, org_id=org.id)
@@ -150,12 +150,12 @@ def post_register(data: dict, actor: Actor = Depends(current_actor), db: Session
 
 
 @router.get("/register/{system_id}")
-def get_system(system_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_system(system_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     return system_out(db, load(db, actor, system_id), actor, full=True)
 
 
 @router.patch("/register/{system_id}")
-def patch_system(system_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def patch_system(system_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     s = load(db, actor, system_id)
     check(db, actor, Action.EDIT_REGISTER, s)
     check_edit_payload(db, actor, data, s)
@@ -165,21 +165,21 @@ def patch_system(system_id: str, data: dict, actor: Actor = Depends(current_acto
 
 
 @router.post("/register/{system_id}/retire")
-def post_retire(system_id: str, body: ReasonIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def post_retire(system_id: str, body: ReasonIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     s = load(db, actor, system_id)
     check(db, actor, Action.EDIT_REGISTER, s)
     return system_out(db, svc.retire(db, actor.user, s, body.reason or ""), actor, full=True)
 
 
 @router.post("/register/{system_id}/duplicate")
-def post_duplicate(system_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def post_duplicate(system_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     s = load(db, actor, system_id)
     check(db, actor, Action.EDIT_REGISTER, s)
     return system_out(db, svc.duplicate(db, actor.user, s), actor, full=True)
 
 
 @router.get("/register/{system_id}/changes")
-def get_changes(system_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_changes(system_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     s = load(db, actor, system_id)
     rows = db.scalars(select(ChangeLog).where(ChangeLog.register_system_id == s.id).order_by(ChangeLog.at.desc(), ChangeLog.id))
     names: dict[str, str] = {}
@@ -195,7 +195,7 @@ def get_changes(system_id: str, actor: Actor = Depends(current_actor), db: Sessi
 
 # ---- laws
 @router.post("/register/{system_id}/laws")
-def post_law(system_id: str, body: LawIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def post_law(system_id: str, body: LawIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     s = load(db, actor, system_id)
     check(db, actor, Action.ADD_SYSTEM_LAW, s)
     svc.add_law(db, actor.user, s, body.regulation_id, reason=body.reason)
@@ -210,7 +210,7 @@ def _link(db: Session, s: RegisterSystem, link_id: str) -> RegisterSystemLaw:
 
 
 @router.post("/register/{system_id}/laws/{link_id}/remove")
-def post_law_remove(system_id: str, link_id: str, body: ReasonIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def post_law_remove(system_id: str, link_id: str, body: ReasonIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     s = load(db, actor, system_id)
     link = _link(db, s, link_id)
     direct = may(db, actor, Action.REMOVE_SYSTEM_LAW, s)
@@ -221,7 +221,7 @@ def post_law_remove(system_id: str, link_id: str, body: ReasonIn, actor: Actor =
 
 
 @router.post("/register/{system_id}/laws/{link_id}/decide")
-def post_law_decide(system_id: str, link_id: str, body: DecideIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def post_law_decide(system_id: str, link_id: str, body: DecideIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     s = load(db, actor, system_id)
     check(db, actor, Action.REMOVE_SYSTEM_LAW, s)
     svc.decide_law_removal(db, actor.user, s, _link(db, s, link_id), body.approve, body.comment)
@@ -230,7 +230,7 @@ def post_law_decide(system_id: str, link_id: str, body: DecideIn, actor: Actor =
 
 # ---- bulk edit (R2)
 @router.post("/register/bulk")
-def post_bulk(body: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def post_bulk(body: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     from app.register.bulk import bulk_edit
 
     ids = body.get("system_ids")
@@ -256,7 +256,7 @@ class SignIn(BaseModel):
 
 
 @router.get("/register/{system_id}/history")
-def get_history(system_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_history(system_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     from app.register.history import history_out
 
     s = load(db, actor, system_id)
@@ -264,7 +264,7 @@ def get_history(system_id: str, actor: Actor = Depends(current_actor), db: Sessi
 
 
 @router.post("/register/{system_id}/history")
-def post_history(system_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def post_history(system_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     from app.register.history import add_entry, entry_out
 
     s = load(db, actor, system_id)
@@ -273,7 +273,7 @@ def post_history(system_id: str, data: dict, actor: Actor = Depends(current_acto
 
 
 @router.patch("/register/{system_id}/history/{entry_id}")
-def patch_history(system_id: str, entry_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def patch_history(system_id: str, entry_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     from app.register.history import entry_out, get_entry, update_entry
 
     s = load(db, actor, system_id)
@@ -282,7 +282,7 @@ def patch_history(system_id: str, entry_id: str, data: dict, actor: Actor = Depe
 
 
 @router.delete("/register/{system_id}/history/{entry_id}")
-def delete_history(system_id: str, entry_id: str, body: ReasonIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def delete_history(system_id: str, entry_id: str, body: ReasonIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     from app.register.history import delete_entry, get_entry
 
     s = load(db, actor, system_id)
@@ -292,7 +292,7 @@ def delete_history(system_id: str, entry_id: str, body: ReasonIn, actor: Actor =
 
 
 @router.post("/register/{system_id}/history/bulk")
-def post_history_bulk(system_id: str, body: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def post_history_bulk(system_id: str, body: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     from app.register.history import delete_entry, get_entry, update_entry
 
     s = load(db, actor, system_id)
@@ -317,7 +317,7 @@ def post_history_bulk(system_id: str, body: dict, actor: Actor = Depends(current
 
 
 @router.post("/register/{system_id}/history-answers")
-def post_history_answers(system_id: str, body: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def post_history_answers(system_id: str, body: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     from app.register.history import answer_questions, history_out
 
     s = load(db, actor, system_id)
@@ -327,7 +327,7 @@ def post_history_answers(system_id: str, body: dict, actor: Actor = Depends(curr
 
 
 @router.post("/register/{system_id}/no-incident/sign")
-def post_sign_statement(system_id: str, body: SignIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def post_sign_statement(system_id: str, body: SignIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     from app.register.history import history_out, sign_statement
 
     s = load(db, actor, system_id)  # the owner may be any user who can see the system; the check is ownership
@@ -336,7 +336,7 @@ def post_sign_statement(system_id: str, body: SignIn, actor: Actor = Depends(cur
 
 
 @router.post("/register/{system_id}/bias-tests")
-def post_bias_test(system_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def post_bias_test(system_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     from app.register.history import entry_out, record_bias_test
 
     s = load(db, actor, system_id)
@@ -347,7 +347,7 @@ def post_bias_test(system_id: str, data: dict, actor: Actor = Depends(current_ac
 
 # ---- evidence (files attached to a system: vendor documents, consent, appointment letters, test reports)
 @router.post("/register/{system_id}/evidence")
-async def post_evidence(system_id: str, request: Request, file: UploadFile = File(...), actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+async def post_evidence(system_id: str, request: Request, file: UploadFile = File(...), actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     from app.files.service import upload
 
     s = load(db, actor, system_id)
@@ -360,7 +360,7 @@ async def post_evidence(system_id: str, request: Request, file: UploadFile = Fil
 
 
 @router.get("/register/{system_id}/evidence")
-def get_evidence(system_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_evidence(system_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     from app.files.models import FileObject
 
     s = load(db, actor, system_id)
@@ -381,7 +381,7 @@ def file_access(db: Session, actor: Actor, f) -> None:
 
 # ---- governance roles (R3) and the go-live gate (§24.3)
 @router.get("/register/{system_id}/roles")
-def get_roles(system_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_roles(system_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     from app.register.gate import gate_for, role_summary
     from app.register.roles import people_options, role_rows
 
@@ -393,7 +393,7 @@ def get_roles(system_id: str, actor: Actor = Depends(current_actor), db: Session
 
 
 @router.put("/register/{system_id}/roles/{role_id}")
-def put_role(system_id: str, role_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def put_role(system_id: str, role_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     from app.register.roles import catalog_role, check_role_rights, clean_assignment, row_for, set_assignment
 
     s = load(db, actor, system_id)
@@ -412,7 +412,7 @@ def put_role(system_id: str, role_id: str, data: dict, actor: Actor = Depends(cu
 
 
 @router.post("/register/{system_id}/go-live/submit")
-def post_go_live_submit(system_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def post_go_live_submit(system_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     from app.register.gate import submit_go_live
 
     s = load(db, actor, system_id)
@@ -421,7 +421,7 @@ def post_go_live_submit(system_id: str, actor: Actor = Depends(current_actor), d
 
 
 @router.post("/register/{system_id}/go-live/decide")
-def post_go_live_decide(system_id: str, body: DecideIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def post_go_live_decide(system_id: str, body: DecideIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     from app.register.gate import decide_go_live
 
     s = load(db, actor, system_id)
@@ -431,7 +431,7 @@ def post_go_live_decide(system_id: str, body: DecideIn, actor: Actor = Depends(c
 
 # ---- requirements checklist (R6)
 @router.get("/register/{system_id}/requirements")
-def get_requirements(system_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_requirements(system_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     from app.register.requirements import checklist
 
     s = load(db, actor, system_id)
@@ -439,7 +439,7 @@ def get_requirements(system_id: str, actor: Actor = Depends(current_actor), db: 
 
 
 @router.put("/register/{system_id}/requirements/{requirement_id}")
-def put_requirement(system_id: str, requirement_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def put_requirement(system_id: str, requirement_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     from app.register.requirements import checklist, set_status
 
     s = load(db, actor, system_id)

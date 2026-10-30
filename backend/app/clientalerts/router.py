@@ -40,7 +40,7 @@ def send_out(db: Session, s: AlertSend) -> dict:
 
 
 @router.get("/alerts/rules")
-def list_rules(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def list_rules(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.MANAGE_CLIENT_ALERTS)
     return {"rules": [rule_out(r) for r in ensure_rules(db)], "groups": sorted(GROUP_ROLES), "approvals": [{"value": a, "label": APPROVAL_LABELS[a]} for a in APPROVALS]}
 
@@ -67,7 +67,7 @@ class RulePatch(BaseModel):
 
 
 @router.patch("/alerts/rules/{rule_id}")
-def patch_rule(rule_id: str, body: RulePatch, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def patch_rule(rule_id: str, body: RulePatch, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.MANAGE_CLIENT_ALERTS)
     r = db.get(AlertRule, rule_id)
     if r is None:
@@ -87,7 +87,7 @@ class RuleBulk(BaseModel):
 
 
 @router.post("/alerts/rules/bulk")
-def bulk_rules(body: RuleBulk, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def bulk_rules(body: RuleBulk, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.MANAGE_CLIENT_ALERTS)
     n = 0
     for rid in body.ids:
@@ -100,7 +100,7 @@ def bulk_rules(body: RuleBulk, request: Request, actor: Actor = Depends(current_
 
 
 @router.get("/alerts/rules/{rule_id}/history")
-def rule_history(rule_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def rule_history(rule_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.MANAGE_CLIENT_ALERTS)
     return [send_out(db, s) for s in db.scalars(select(AlertSend).where(AlertSend.alert_rule_id == rule_id).order_by(AlertSend.created_at.desc()).limit(200))]
 
@@ -116,7 +116,7 @@ def _can_queue(db: Session, actor: Actor) -> bool:
 
 
 @router.get("/alerts/queue")
-def queue(status: str = "waiting_approval", actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def queue(status: str = "waiting_approval", actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """Sends waiting for approval, grouped by the change that created them."""
     if not _can_queue(db, actor):
         raise Forbidden()
@@ -150,7 +150,7 @@ def _authorize_send(db: Session, actor: Actor, s: AlertSend) -> None:
 
 
 @router.get("/alerts/sends/{send_id}/preview")
-def send_preview(send_id: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def send_preview(send_id: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     if not _can_queue(db, actor):
         raise Forbidden()
     s = _send_or_404(db, send_id)
@@ -163,7 +163,7 @@ class SendPatch(BaseModel):
 
 
 @router.patch("/alerts/sends/{send_id}")
-def edit_send(send_id: str, body: SendPatch, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def edit_send(send_id: str, body: SendPatch, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     s = _send_or_404(db, send_id)
     _authorize_send(db, actor, s)
     if s.status == "sent":
@@ -181,7 +181,7 @@ class IdsIn(BaseModel):
 
 
 @router.post("/alerts/sends/approve")
-def approve_sends(body: IdsIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def approve_sends(body: IdsIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     settings = request.app.state.settings
     sends = [_send_or_404(db, i) for i in body.ids]
     for s in sends:
@@ -195,7 +195,7 @@ def approve_sends(body: IdsIn, request: Request, actor: Actor = Depends(current_
 
 
 @router.post("/alerts/sends/hold")
-def hold_sends(body: IdsIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def hold_sends(body: IdsIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     n = 0
     for i in body.ids:
         s = _send_or_404(db, i)

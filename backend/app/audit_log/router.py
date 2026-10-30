@@ -40,7 +40,7 @@ def list_audit_log(
     limit: int = 500,
     format: str = "json",
     actor: Actor = Depends(current_actor),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db, scope="function"),
 ):
     scopes = scopes_for(actor.role_names, Action.VIEW_AUDIT_LOG)
     if not scopes:

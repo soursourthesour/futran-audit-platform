@@ -101,7 +101,7 @@ FILE_ACCESS = {
 
 
 @router.get("/{file_id}")
-def download(file_id: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def download(file_id: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     f = db.get(FileObject, file_id)
     if f is None or f.deleted_at:
         raise NotFound()

@@ -119,19 +119,19 @@ def assessment_out(db: Session, actor: Actor, t: qs.Target) -> dict:
 
 # ---- per system
 @router.get("/systems/{system_id}/assessment")
-def get_assessment(system_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_assessment(system_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     return assessment_out(db, actor, _system_target(db, actor, system_id))
 
 
 @router.put("/systems/{system_id}/responses/{code}")
-def put_response(system_id: str, code: str, body: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def put_response(system_id: str, code: str, body: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     t = _system_target(db, actor, system_id, write=True)
     r = qs.save_response(db, actor.user, t, code, body, actor.is_futran)
     return {"id": r.id, "response": futran_response(db, r) if actor.is_futran else client_response(db, r), "completion": {k: v for k, v in qs.completion(db, t, actor.is_futran).items() if k != "sections"}}
 
 
 @router.put("/systems/{system_id}/checklist/{code}")
-def put_checklist(system_id: str, code: str, body: ChecklistIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def put_checklist(system_id: str, code: str, body: ChecklistIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     t = _system_target(db, actor, system_id, write=True)
     if not actor.is_futran:
         raise Forbidden("Only the auditor can do this.")
@@ -140,7 +140,7 @@ def put_checklist(system_id: str, code: str, body: ChecklistIn, actor: Actor = D
 
 
 @router.post("/systems/{system_id}/sections/{sub_section}/verify")
-def verify_section(system_id: str, sub_section: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def verify_section(system_id: str, sub_section: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     t = _system_target(db, actor, system_id, write=True)
     if not actor.is_futran:
         raise Forbidden("Only the auditor can do this.")
@@ -148,7 +148,7 @@ def verify_section(system_id: str, sub_section: str, actor: Actor = Depends(curr
 
 
 @router.post("/systems/{system_id}/prefill/submit")
-def submit_prefill(system_id: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def submit_prefill(system_id: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     t = _system_target(db, actor, system_id, write=True)
     if actor.is_futran:
         raise Forbidden("The client submits its own pre-fill.")
@@ -173,25 +173,25 @@ def _evidence_upload(db: Session, request: Request, actor: Actor, t: qs.Target, 
 
 
 @router.post("/systems/{system_id}/evidence")
-def post_system_evidence(system_id: str, request: Request, file: UploadFile = File(...), actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def post_system_evidence(system_id: str, request: Request, file: UploadFile = File(...), actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     return _evidence_upload(db, request, actor, _system_target(db, actor, system_id, write=True), file)
 
 
 # ---- engagement level (§4, checklist 4.3)
 @router.get("/clients/{client_id}/assessment")
-def get_engagement_assessment(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_engagement_assessment(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     return assessment_out(db, actor, _engagement_target(db, actor, client_id))
 
 
 @router.put("/clients/{client_id}/responses/{code}")
-def put_engagement_response(client_id: str, code: str, body: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def put_engagement_response(client_id: str, code: str, body: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     t = _engagement_target(db, actor, client_id, write=True)
     r = qs.save_response(db, actor.user, t, code, body, actor.is_futran)
     return {"id": r.id, "response": futran_response(db, r) if actor.is_futran else client_response(db, r)}
 
 
 @router.put("/clients/{client_id}/checklist/{code}")
-def put_engagement_checklist(client_id: str, code: str, body: ChecklistIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def put_engagement_checklist(client_id: str, code: str, body: ChecklistIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     t = _engagement_target(db, actor, client_id, write=True)
     if not actor.is_futran:
         raise Forbidden("Only the auditor can do this.")
@@ -200,7 +200,7 @@ def put_engagement_checklist(client_id: str, code: str, body: ChecklistIn, actor
 
 
 @router.post("/clients/{client_id}/sections/{sub_section}/verify")
-def verify_engagement_section(client_id: str, sub_section: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def verify_engagement_section(client_id: str, sub_section: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     t = _engagement_target(db, actor, client_id, write=True)
     if not actor.is_futran:
         raise Forbidden("Only the auditor can do this.")
@@ -208,13 +208,13 @@ def verify_engagement_section(client_id: str, sub_section: str, actor: Actor = D
 
 
 @router.post("/clients/{client_id}/evidence")
-def post_engagement_evidence(client_id: str, request: Request, file: UploadFile = File(...), actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def post_engagement_evidence(client_id: str, request: Request, file: UploadFile = File(...), actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     return _evidence_upload(db, request, actor, _engagement_target(db, actor, client_id, write=True), file)
 
 
 # ---- shared
 @router.post("/responses/{response_id}/verify")
-def verify_response(response_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def verify_response(response_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     r = db.get(Response, response_id)
     if r is None or r.deleted_at is not None:
         raise NotFound()
@@ -232,7 +232,7 @@ def _link(db: Session, actor: Actor, link_id: str) -> DraftFindingLink:
 
 
 @router.post("/draft-findings/{link_id}/dismiss")
-def dismiss(link_id: str, body: ReasonIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def dismiss(link_id: str, body: ReasonIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     link = _link(db, actor, link_id)
     qs.dismiss_draft(db, actor.user, link, body.reason)
     from app.engagements.gates import advance_if_ready
@@ -245,13 +245,13 @@ def dismiss(link_id: str, body: ReasonIn, actor: Actor = Depends(current_actor),
 
 
 @router.post("/draft-findings/{link_id}/confirm")
-def confirm(link_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def confirm(link_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     f = qs.confirm_draft(db, actor.user, _link(db, actor, link_id))
     return {"ref": f.ref, "confirmed": True}
 
 
 @router.get("/me/systems")
-def my_systems(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def my_systems(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """The client's systems this person can pre-fill, with their own progress."""
     if actor.is_futran:
         raise NotFound()

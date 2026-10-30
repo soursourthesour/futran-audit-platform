@@ -110,7 +110,7 @@ def _visible(db: Session, *, stage=None, area=None, geography=None, client_id=No
 
 @router.get("/litigation")
 def list_cases(stage: str | None = None, area: str | None = None, geography: str | None = None, client_id: str | None = None, q: str | None = None,
-               actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+               actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.VIEW_LITIGATION)
     rows = _visible(db, stage=stage, area=area, geography=geography, client_id=client_id, q=q)
     follows = set(db.scalars(select(CaseFollow.case_id).where(CaseFollow.user_id == actor.id)))
@@ -139,7 +139,7 @@ def _can(db: Session, actor: Actor, action: Action) -> bool:
 
 
 @router.get("/litigation/export.csv")
-def export(ids: str | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def export(ids: str | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.VIEW_LITIGATION)
     rows = _visible(db, ids=ids.split(",") if ids else None)
     buf = io.StringIO()
@@ -153,7 +153,7 @@ def export(ids: str | None = None, actor: Actor = Depends(current_actor), db: Se
 
 
 @router.post("/litigation")
-def create_case(body: CaseIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def create_case(body: CaseIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.MANAGE_LITIGATION)
     from app.core.errors import Invalid
 
@@ -172,7 +172,7 @@ def create_case(body: CaseIn, request: Request, actor: Actor = Depends(current_a
 
 
 @router.get("/litigation/{case_id}")
-def get_case(case_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_case(case_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.VIEW_LITIGATION)
     c = _get(db, case_id)
     out = case_out(db, c, following=_following(db, c.id, actor.id), detail=True)
@@ -181,7 +181,7 @@ def get_case(case_id: str, actor: Actor = Depends(current_actor), db: Session = 
 
 
 @router.patch("/litigation/{case_id}")
-def update_case(case_id: str, body: CaseIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def update_case(case_id: str, body: CaseIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.MANAGE_LITIGATION)
     c = _get(db, case_id)
     before = column_snapshot(c)
@@ -198,7 +198,7 @@ def update_case(case_id: str, body: CaseIn, request: Request, actor: Actor = Dep
 
 
 @router.post("/litigation/{case_id}/rematch")
-def rematch(case_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def rematch(case_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.VIEW_LITIGATION)
     c = _get(db, case_id)
     match_case(db, c)
@@ -206,7 +206,7 @@ def rematch(case_id: str, actor: Actor = Depends(current_actor), db: Session = D
 
 
 @router.post("/litigation/{case_id}/follow")
-def follow(case_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def follow(case_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.VIEW_LITIGATION)
     c = _get(db, case_id)
     if not _following(db, c.id, actor.id):
@@ -215,7 +215,7 @@ def follow(case_id: str, actor: Actor = Depends(current_actor), db: Session = De
 
 
 @router.post("/litigation/{case_id}/unfollow")
-def unfollow(case_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def unfollow(case_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.VIEW_LITIGATION)
     c = _get(db, case_id)
     for f in db.scalars(select(CaseFollow).where(CaseFollow.case_id == c.id, CaseFollow.user_id == actor.id)):
@@ -229,7 +229,7 @@ class BulkFollowIn(BaseModel):
 
 
 @router.post("/litigation/bulk-follow")
-def bulk_follow(body: BulkFollowIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def bulk_follow(body: BulkFollowIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.VIEW_LITIGATION)
     n = 0
     for cid in body.ids:
@@ -247,7 +247,7 @@ def bulk_follow(body: BulkFollowIn, actor: Actor = Depends(current_actor), db: S
 
 
 @router.get("/laws/{law_id}/cases")
-def cases_for_law(law_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def cases_for_law(law_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """Cases that interpret a law, for the law record (M2). Earlier versions of the law count as the same law."""
     authorize(db, actor, Action.VIEW_LITIGATION)
     from app.laws.models import Regulation
@@ -274,7 +274,7 @@ class OrgsIn(BaseModel):
 
 
 @router.post("/litigation/{case_id}/briefing")
-def send_briefing(case_id: str, body: OrgsIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def send_briefing(case_id: str, body: OrgsIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """Queue a case briefing for clients with similar AI. It waits for the Chief Auditor in the client alerts queue (A1)."""
     authorize(db, actor, Action.VIEW_LITIGATION)
     from app.clientalerts.service import queue_for_case
@@ -304,7 +304,7 @@ def _opportunities_for(db: Session, actor: Actor, c: Case, org_ids: list[str] | 
 
 
 @router.post("/litigation/{case_id}/opportunities")
-def create_opportunities(case_id: str, body: OrgsIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def create_opportunities(case_id: str, body: OrgsIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.WORK_OPPORTUNITIES)
     from app.sales.router import _check_owner
 
@@ -318,7 +318,7 @@ class BulkIdsIn(BaseModel):
 
 
 @router.post("/litigation/bulk-assign")
-def bulk_assign(body: BulkIdsIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def bulk_assign(body: BulkIdsIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """Assign to Sales: an opportunity per client with similar AI, owned by the chosen person."""
     authorize(db, actor, Action.WORK_OPPORTUNITIES)
     from app.sales.router import _check_owner
@@ -328,7 +328,7 @@ def bulk_assign(body: BulkIdsIn, actor: Actor = Depends(current_actor), db: Sess
 
 
 @router.post("/litigation/bulk-briefing")
-def bulk_briefing(body: BulkIdsIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def bulk_briefing(body: BulkIdsIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.VIEW_LITIGATION)
     from app.clientalerts.service import queue_for_case
 

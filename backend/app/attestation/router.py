@@ -45,14 +45,14 @@ def _engagement(db: Session, actor: Actor, client_id: str, action: Action, list_
 
 
 @router.post("/clients/{client_id}/attestation/campaigns")
-def launch(client_id: str, body: LaunchIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def launch(client_id: str, body: LaunchIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     e = _engagement(db, actor, client_id, Action.LAUNCH_ATTESTATION)
     c = att.launch(db, actor.user, e, body.department_ids, body.closes_at, body.policy_version)
     return {"id": c.id, "status": "open", "link": f"/attest/{c.link_token}", "closes_at": c.closes_at.isoformat()}
 
 
 @router.get("/clients/{client_id}/attestation")
-def get_tracker(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_tracker(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     e = _engagement(db, actor, client_id, Action.VIEW_ATTESTATION_AGGREGATES, list_view=True)
     c = att.current_campaign(db, e)
     if c is None:
@@ -85,13 +85,13 @@ def _campaign(db: Session, e: Engagement):
 
 # ---- in-app line items (Client Admin and CAICO send; every client user completes their own)
 @router.post("/clients/{client_id}/attestation/send")
-def send(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db), settings=Depends(get_settings_dep)):
+def send(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     e = _engagement(db, actor, client_id, Action.SEND_ATTESTATION)
     return att.send_in_app(db, settings, actor.user, _campaign(db, e))
 
 
 @router.get("/clients/{client_id}/attestation/in-app")
-def in_app(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def in_app(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """For the Client Admin, who sends the line items but does not see answers: the campaign and counts only."""
     e = _engagement(db, actor, client_id, Action.SEND_ATTESTATION)
     c = att.current_campaign(db, e)
@@ -110,19 +110,19 @@ def _own_engagement(db: Session, actor: Actor) -> Engagement | None:
 
 
 @router.get("/me/attestation")
-def my_attestation(actor: Actor = Depends(current_actor), db: Session = Depends(get_db), settings=Depends(get_settings_dep)):
+def my_attestation(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     return att.my_attestation(db, settings, actor.user, _own_engagement(db, actor))
 
 
 @router.post("/me/attestation")
-def submit_my_attestation(payload: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db), settings=Depends(get_settings_dep)):
+def submit_my_attestation(payload: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     a = att.submit_own(db, settings, actor.user, _own_engagement(db, actor), payload)
     return {"received": True, "submitted_at": a.submitted_at.isoformat()}
 
 
 # ---- individual answers
 @router.get("/clients/{client_id}/attestation/answers/{answer_id}")
-def get_answer(client_id: str, answer_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_answer(client_id: str, answer_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     e = _engagement(db, actor, client_id, Action.VIEW_INDIVIDUAL_ATTESTATIONS)
     c = _campaign(db, e)
     r = att.answer(db, c, answer_id)
@@ -134,7 +134,7 @@ def get_answer(client_id: str, answer_id: str, actor: Actor = Depends(current_ac
 
 
 @router.patch("/clients/{client_id}/attestation/answers/{answer_id}")
-def patch_answer(client_id: str, answer_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def patch_answer(client_id: str, answer_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     e = _engagement(db, actor, client_id, Action.MANAGE_ATTESTATION_ANSWERS)
     c = _campaign(db, e)
     r = att.edit(db, actor.user, c, att.answer(db, c, answer_id), data)
@@ -143,26 +143,26 @@ def patch_answer(client_id: str, answer_id: str, data: dict, actor: Actor = Depe
 
 
 @router.post("/clients/{client_id}/attestation/answers/review")
-def review_answers(client_id: str, body: IdsIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def review_answers(client_id: str, body: IdsIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     e = _engagement(db, actor, client_id, Action.MANAGE_ATTESTATION_ANSWERS)
     return {"reviewed": att.mark_reviewed(db, actor.user, _campaign(db, e), body.ids)}
 
 
 @router.post("/clients/{client_id}/attestation/answers/remove")
-def remove_answers(client_id: str, body: RemoveIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def remove_answers(client_id: str, body: RemoveIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     e = _engagement(db, actor, client_id, Action.MANAGE_ATTESTATION_ANSWERS)
     return {"removed": att.remove(db, actor.user, _campaign(db, e), body.ids, body.reason)}
 
 
 @router.post("/clients/{client_id}/attestation/answers/export")
-def export_answers(client_id: str, body: IdsIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def export_answers(client_id: str, body: IdsIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     e = _engagement(db, actor, client_id, Action.VIEW_INDIVIDUAL_ATTESTATIONS)
     csv = att.export_csv(db, actor.user, _campaign(db, e), body.ids)
     return Response(csv, media_type="text/csv; charset=utf-8", headers={"Content-Disposition": 'attachment; filename="attestation_answers.csv"'})
 
 
 @router.post("/clients/{client_id}/attestation/close")
-def close(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def close(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     e = _engagement(db, actor, client_id, Action.LAUNCH_ATTESTATION)
     c = att.current_campaign(db, e)
     if c is None:
@@ -177,12 +177,12 @@ def close(client_id: str, actor: Actor = Depends(current_actor), db: Session = D
 
 # ---- public, no sign-in (schematic D13): one shared link for all staff in scope
 @router.get("/public/attest/{token}")
-def public_get(token: str, db: Session = Depends(get_db)):
+def public_get(token: str, db: Session = Depends(get_db, scope="function")):
     return att.public_view(db, att.by_token(db, token))
 
 
 @router.post("/public/attest/{token}")
-def public_post(token: str, payload: dict, request: Request, db: Session = Depends(get_db)):
+def public_post(token: str, payload: dict, request: Request, db: Session = Depends(get_db, scope="function")):
     limiter(request, "attest", 30).check(f"{token}:{client_ip(request)}")
     att.submit(db, token, payload, request)
     return {"received": True}

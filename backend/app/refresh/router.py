@@ -130,7 +130,7 @@ def run_in_background(app, run_id: str) -> None:
 
 
 @router.post("/admin/laws/refresh")
-def start(body: RunIn, background: BackgroundTasks, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def start(body: RunIn, background: BackgroundTasks, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, _run_action(body.kind))
     settings = request.app.state.settings
     if client_for(request.app.state, settings) is None:
@@ -147,7 +147,7 @@ def start(body: RunIn, background: BackgroundTasks, request: Request, actor: Act
 
 
 @router.get("/admin/laws/refresh")
-def list_runs(kind: str = "law", actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def list_runs(kind: str = "law", actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.VIEW_REG_CHANGES if kind == "law" else Action.VIEW_LITIGATION)
     from app.laws.refresh import fail_stale_runs
 
@@ -169,7 +169,7 @@ def _fail_stale(db: Session) -> None:
 
 
 @router.get("/admin/laws/refresh/{run_id}")
-def get_run(run_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_run(run_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     run = db.get(RefreshRun, run_id)
     if run is not None:
         authorize(db, actor, Action.VIEW_REG_CHANGES if run.kind == "law" else Action.VIEW_LITIGATION)
@@ -201,7 +201,7 @@ def _setting_out(db: Session, kind: str) -> dict:
 
 
 @router.get("/admin/laws/refresh-settings/{kind}")
-def get_run_settings(kind: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_run_settings(kind: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     if kind not in CHECKS:
         raise NotFound()
     authorize(db, actor, Action.VIEW_REG_CHANGES if kind == "law" else Action.VIEW_LITIGATION)
@@ -219,7 +219,7 @@ class RunSettingIn(BaseModel):
 
 
 @router.put("/admin/laws/refresh-settings/{kind}")
-def put_run_settings(kind: str, body: RunSettingIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def put_run_settings(kind: str, body: RunSettingIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     if kind not in CHECKS:
         raise NotFound()
     authorize(db, actor, _run_action(kind))
@@ -286,7 +286,7 @@ def change_out(db: Session, c: ProposedChange, detail: bool = False) -> dict:
 
 @router.get("/reg/changes")
 def queue(kind: str = "law", status: str = "open", change_type: str | None = None, confidence: str | None = None, run_id: str | None = None,
-          actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+          actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.VIEW_REG_CHANGES if kind == "law" else Action.VIEW_LITIGATION)
     metas = {m.proposed_change_id: m for m in db.scalars(select(RefreshProposalMeta))}
     rows = [c for c in db.scalars(select(ProposedChange).order_by(ProposedChange.created_at.desc()).limit(1000)) if (metas[c.id].kind if c.id in metas else "law") == kind]
@@ -317,7 +317,7 @@ def _change(db: Session, cid: str) -> ProposedChange:
 
 
 @router.get("/reg/changes/{change_id}")
-def get_change(change_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_change(change_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     c = _change(db, change_id)
     authorize(db, actor, Action.VIEW_REG_CHANGES if kind_of(db, c) == "law" else Action.VIEW_LITIGATION)
     return change_out(db, c, detail=True)
@@ -339,7 +339,7 @@ class DecideIn(BaseModel):
 
 
 @router.post("/reg/changes/{change_id}/decide")
-def decide_one(change_id: str, body: DecideIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def decide_one(change_id: str, body: DecideIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.APPROVE_REG_CHANGE)
     c = _change(db, change_id)
     decide(db, request.app.state.settings, c, actor.user, body.action, new_value=body.new_value, note=body.note, notify_clients=body.notify_clients, update_letters=body.update_letters)
@@ -352,7 +352,7 @@ class SecondIn(BaseModel):
 
 
 @router.post("/reg/changes/{change_id}/second-review")
-def second(change_id: str, body: SecondIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def second(change_id: str, body: SecondIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.SECOND_REVIEW_REG_CHANGE)
     c = _change(db, change_id)
     second_review(db, c, actor.user, body.outcome, body.note)
@@ -364,7 +364,7 @@ class AssignIn(BaseModel):
 
 
 @router.post("/reg/changes/{change_id}/assign")
-def assign(change_id: str, body: AssignIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def assign(change_id: str, body: AssignIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.APPROVE_REG_CHANGE)
     c = _change(db, change_id)
     from app.staffalerts.service import futran_users_with
@@ -383,7 +383,7 @@ class BulkIn(BaseModel):
 
 
 @router.post("/reg/changes/bulk")
-def bulk(body: BulkIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def bulk(body: BulkIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.APPROVE_REG_CHANGE)
     if body.action not in ACTIONS or body.action == "edit_approve":
         raise Invalid(errors=[{"field": "action", "message": "Approve, hold, reject or send to legal review."}])

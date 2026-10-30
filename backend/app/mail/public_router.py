@@ -54,20 +54,20 @@ def _submit(db: Session, r: MailRecipient, s: MailSend, payload: dict) -> dict:
 
 # ---- personal links
 @router.get("/{token}")
-def personal_view(token: str, db: Session = Depends(get_db)):
+def personal_view(token: str, db: Session = Depends(get_db, scope="function")):
     r, s = links.open_personal(db, token)
     return {"mode": "personal", **_view(db, r, s)}
 
 
 @router.post("/{token}/attestation")
-def personal_submit(token: str, payload: dict, request: Request, db: Session = Depends(get_db)):
+def personal_submit(token: str, payload: dict, request: Request, db: Session = Depends(get_db, scope="function")):
     limiter(request, "mail_link_submit", 30).check(f"{token}:{client_ip(request)}")
     r, s = links.personal(db, token)
     return _submit(db, r, s, payload)
 
 
 @router.post("/{token}/done")
-def personal_done(token: str, db: Session = Depends(get_db)):
+def personal_done(token: str, db: Session = Depends(get_db, scope="function")):
     r, _ = links.personal(db, token)
     links.mark_completed(db, r)
     return {"done": True}
@@ -75,20 +75,20 @@ def personal_done(token: str, db: Session = Depends(get_db)):
 
 # ---- shared (BCC) links: work email and a one-time code first
 @router.get("/s/{token}")
-def shared_view(token: str, db: Session = Depends(get_db)):
+def shared_view(token: str, db: Session = Depends(get_db, scope="function")):
     s = links.shared_send(db, token)
     return {"mode": "shared", **_view(db, None, s)}
 
 
 @router.post("/s/{token}/code")
-def shared_code(token: str, body: EmailIn, request: Request, db: Session = Depends(get_db)):
+def shared_code(token: str, body: EmailIn, request: Request, db: Session = Depends(get_db, scope="function")):
     limiter(request, "mail_code", 10).check(client_ip(request))
     links.request_code(db, request.app.state.settings, token, body.email)
     return {"sent": True}
 
 
 @router.post("/s/{token}/verify")
-def shared_verify(token: str, body: CodeIn, request: Request, db: Session = Depends(get_db)):
+def shared_verify(token: str, body: CodeIn, request: Request, db: Session = Depends(get_db, scope="function")):
     limiter(request, "mail_verify", 20).check(client_ip(request))
     try:
         proof = links.verify_code(db, token, body.email, body.code)
@@ -99,14 +99,14 @@ def shared_verify(token: str, body: CodeIn, request: Request, db: Session = Depe
 
 
 @router.post("/s/{token}/attestation")
-def shared_submit(token: str, payload: dict, request: Request, db: Session = Depends(get_db)):
+def shared_submit(token: str, payload: dict, request: Request, db: Session = Depends(get_db, scope="function")):
     limiter(request, "mail_link_submit", 30).check(f"{token}:{client_ip(request)}")
     r = links.recipient_for_proof(db, token, str(payload.pop("proof", "") or ""))
     return _submit(db, r, db.get(MailSend, r.send_id), payload)
 
 
 @router.post("/s/{token}/done")
-def shared_done(token: str, body: ProofIn, db: Session = Depends(get_db)):
+def shared_done(token: str, body: ProofIn, db: Session = Depends(get_db, scope="function")):
     r = links.recipient_for_proof(db, token, body.proof)
     links.mark_completed(db, r)
     return {"done": True}

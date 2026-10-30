@@ -84,7 +84,7 @@ def use_case_out(db: Session, uc: UseCase, detail: bool = False) -> dict:
 
 
 @router.get("/clients/{client_id}/inventory")
-def get_inventory(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_inventory(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org, e = _ctx(db, actor, client_id, Action.VIEW_INVENTORY, list_view=True)
     scope = None if actor.is_futran else departments_for(actor, Action.VIEW_INVENTORY)
     ucs = [u for u in db.scalars(select(UseCase).where(UseCase.engagement_id == e.id, UseCase.deleted_at.is_(None)).order_by(UseCase.name)) if scope is None or u.department_id in scope]
@@ -103,13 +103,13 @@ def get_inventory(client_id: str, actor: Actor = Depends(current_actor), db: Ses
 
 
 @router.post("/clients/{client_id}/tools")
-def post_tool(client_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def post_tool(client_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org, e = _ctx(db, actor, client_id, Action.REGISTER_AI_TOOL, list_view=True)
     return tool_out(inv.save_tool(db, actor.user, org, {k: v for k, v in data.items() if k != "approval_status"}))
 
 
 @router.patch("/tools/{tool_id}")
-def patch_tool(tool_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def patch_tool(tool_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     t = db.get(AITool, tool_id)
     if t is None or t.deleted_at:
         raise NotFound()
@@ -123,7 +123,7 @@ def patch_tool(tool_id: str, data: dict, actor: Actor = Depends(current_actor), 
 
 
 @router.post("/clients/{client_id}/use-cases/tier-preview")
-def tier_preview(client_id: str, body: PreviewIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def tier_preview(client_id: str, body: PreviewIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org, e = _ctx(db, actor, client_id, Action.VIEW_INVENTORY, list_view=True)
     tools = [t for t in inv.tools_for(db, org.id) if t.id in body.tool_ids]
     tier = inv.propose_tier(body.decision_impact, body.data_categories, tools)
@@ -131,7 +131,7 @@ def tier_preview(client_id: str, body: PreviewIn, actor: Actor = Depends(current
 
 
 @router.post("/clients/{client_id}/use-cases")
-def post_use_case(client_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def post_use_case(client_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     dept = data.get("department_id") if isinstance(data.get("department_id"), str) else None
     org, e = _ctx(db, actor, client_id, Action.SUBMIT_USE_CASE, department_id=dept)
     return use_case_out(db, inv.save_use_case(db, actor.user, org, e, data), detail=True)
@@ -146,12 +146,12 @@ def _uc(db: Session, actor: Actor, uc_id: str, action: Action) -> UseCase:
 
 
 @router.get("/use-cases/{uc_id}")
-def get_use_case(uc_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_use_case(uc_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     return use_case_out(db, _uc(db, actor, uc_id, Action.VIEW_INVENTORY), detail=True)
 
 
 @router.put("/use-cases/{uc_id}")
-def put_use_case(uc_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def put_use_case(uc_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     uc = _uc(db, actor, uc_id, Action.SUBMIT_USE_CASE)
     if isinstance(data.get("department_id"), str) and data["department_id"] != uc.department_id:
         authorize(db, actor, Action.SUBMIT_USE_CASE, engagement_id=uc.engagement_id, department_id=data["department_id"])
@@ -160,19 +160,19 @@ def put_use_case(uc_id: str, data: dict, actor: Actor = Depends(current_actor), 
 
 
 @router.post("/use-cases/{uc_id}/submit")
-def submit(uc_id: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def submit(uc_id: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     uc = _uc(db, actor, uc_id, Action.SUBMIT_USE_CASE)
     return use_case_out(db, inv.submit_use_case(db, request.app.state.settings, actor.user, uc), detail=True)
 
 
 @router.post("/use-cases/{uc_id}/review")
-def review(uc_id: str, body: ReviewIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def review(uc_id: str, body: ReviewIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     uc = _uc(db, actor, uc_id, Action.APPROVE_USE_CASE)
     return use_case_out(db, inv.review_use_case(db, actor.user, uc, body.approve, body.comment), detail=True)
 
 
 @router.post("/use-cases/{uc_id}/final-tier")
-def final_tier(uc_id: str, body: TierIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def final_tier(uc_id: str, body: TierIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     uc = db.get(UseCase, uc_id)
     if uc is None or uc.deleted_at:
         raise NotFound()
@@ -186,12 +186,12 @@ def final_tier(uc_id: str, body: TierIn, request: Request, actor: Actor = Depend
 
 # ---- public named-user confirmation (D13)
 @router.get("/public/confirm/{token}")
-def public_confirm_get(token: str, db: Session = Depends(get_db)):
+def public_confirm_get(token: str, db: Session = Depends(get_db, scope="function")):
     return inv.public_confirm_view(db, inv.link_by_token(db, token))
 
 
 @router.post("/public/confirm/{token}")
-def public_confirm_post(token: str, payload: dict, request: Request, db: Session = Depends(get_db)):
+def public_confirm_post(token: str, payload: dict, request: Request, db: Session = Depends(get_db, scope="function")):
     limiter(request, "confirm", 30).check(f"{token}:{client_ip(request)}")
     inv.confirm(db, token, payload, request)
     return {"received": True}
@@ -202,7 +202,7 @@ class UnableIn(BaseModel):
 
 
 @router.post("/named-users/{named_user_id}/unable")
-def mark_unable(named_user_id: str, body: UnableIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def mark_unable(named_user_id: str, body: UnableIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """The Department Lead records that a named user cannot confirm (left, on leave), so sign-off 2 can proceed (§8a)."""
     from app.audit_log import service as audit
     from app.core.errors import Invalid
@@ -222,7 +222,7 @@ def mark_unable(named_user_id: str, body: UnableIn, actor: Actor = Depends(curre
 
 
 @router.get("/use-cases/{uc_id}/fieldwork")
-def fieldwork(uc_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def fieldwork(uc_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """Screen 16, Futran only."""
     from app.inventory.fieldwork import fieldwork_view
 

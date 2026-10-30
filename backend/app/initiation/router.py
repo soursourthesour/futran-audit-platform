@@ -64,7 +64,7 @@ def package_out(db: Session, request: Request, e: Engagement, pkg: InitiationPac
 
 
 @router.get("/clients/{client_id}/package")
-def get_package(client_id: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_package(client_id: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     _, e = _load(db, actor, client_id, Action.VIEW_ENGAGEMENT)
     if not actor.is_futran:
         raise NotFound()
@@ -83,20 +83,20 @@ def _doc(db: Session, actor: Actor, doc_id: str, action: Action) -> PackageDocum
 
 
 @router.get("/packages/documents/{doc_id}/preview")
-def preview(doc_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def preview(doc_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     d = _doc(db, actor, doc_id, Action.VIEW_ENGAGEMENT)
     html = f"<pre>{escape(d.body_md)}</pre>" if d.format == "csv" else render_markdown(d.body_md)
     return {"id": d.id, "title": d.title, "html": html, "body_md": d.body_md if actor.is_futran else None}
 
 
 @router.put("/packages/documents/{doc_id}")
-def put_document(doc_id: str, body: EditIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def put_document(doc_id: str, body: EditIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     d = _doc(db, actor, doc_id, Action.APPROVE_ENGAGEMENT)
     return doc_out(edit_document(db, request.app.state.settings, actor.user, d, body.body_md))
 
 
 @router.post("/clients/{client_id}/approve")
-def approve(client_id: str, body: ApproveIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def approve(client_id: str, body: ApproveIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     _, e = _load(db, actor, client_id, Action.APPROVE_ENGAGEMENT)
     pkg = approve_and_send(db, request.app.state.settings, actor.user, e, (body.client_message or "").strip() or None, body.checklist)
     return {"engagement_id": e.id, "status": e.status, "stage": e.stage, "package_id": pkg.id}
@@ -119,7 +119,7 @@ def _client_e(db: Session, actor: Actor) -> Engagement:
 
 
 @router.get("/me/notice")
-def get_notice(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_notice(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     from app.initiation import notice
 
     e = _client_e(db, actor)
@@ -139,7 +139,7 @@ def get_notice(actor: Actor = Depends(current_actor), db: Session = Depends(get_
 
 
 @router.put("/me/notice")
-def put_notice(body: NoticeIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def put_notice(body: NoticeIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     from app.initiation import notice
 
     e = _client_e(db, actor)
@@ -148,7 +148,7 @@ def put_notice(body: NoticeIn, request: Request, actor: Actor = Depends(current_
 
 
 @router.post("/me/notice/send")
-def send_notice(request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def send_notice(request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     from app.initiation import notice
 
     e = _client_e(db, actor)
@@ -157,7 +157,7 @@ def send_notice(request: Request, actor: Actor = Depends(current_actor), db: Ses
 
 
 @router.get("/me/notice/pending")
-def pending_notice(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def pending_notice(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     from app.initiation import notice
 
     e = _client_e(db, actor)
@@ -169,7 +169,7 @@ def pending_notice(actor: Actor = Depends(current_actor), db: Session = Depends(
 
 
 @router.post("/me/notice/acknowledge")
-def acknowledge_notice(body: NoticeAckIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def acknowledge_notice(body: NoticeAckIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     from app.initiation import notice
 
     _client_e(db, actor)

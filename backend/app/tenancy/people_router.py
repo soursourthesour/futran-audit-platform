@@ -52,7 +52,7 @@ def _org(db: Session, actor: Actor, client_id: str, action: Action) -> Organizat
 
 
 @router.get("/people")
-def get_people(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_people(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _org(db, actor, client_id, Action.VIEW_CLIENT_USERS)
     manage = True
     try:
@@ -99,19 +99,19 @@ def get_people(client_id: str, actor: Actor = Depends(current_actor), db: Sessio
 
 
 @router.get("/departments/template.csv")
-def department_template(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def department_template(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _org(db, actor, client_id, Action.MANAGE_CLIENT_USERS)
     return Response(people.department_template(db, org), media_type="text/csv; charset=utf-8", headers={"Content-Disposition": 'attachment; filename="department_list.csv"'})
 
 
 @router.get("/users/template.csv")
-def user_template(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def user_template(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _org(db, actor, client_id, Action.MANAGE_CLIENT_USERS)
     return Response(people.user_template(db, org), media_type="text/csv; charset=utf-8", headers={"Content-Disposition": 'attachment; filename="user_list.csv"'})
 
 
 @router.post("/departments")
-def post_department(client_id: str, body: DepartmentIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def post_department(client_id: str, body: DepartmentIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _org(db, actor, client_id, Action.MANAGE_CLIENT_USERS)
     d = people.add_department(db, actor.user, org, body.name, body.headcount)
     return {"id": d.id, "name": d.name}
@@ -132,52 +132,52 @@ def _person(db: Session, org: Organization, user_id: str) -> User:
 
 
 @router.patch("/departments/{dept_id}")
-def patch_department(client_id: str, dept_id: str, body: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def patch_department(client_id: str, dept_id: str, body: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _org(db, actor, client_id, Action.MANAGE_CLIENT_USERS)
     d = people.edit_department(db, actor.user, org, _dept(db, org, dept_id), body)
     return {"id": d.id, "name": d.name, "in_scope": d.in_scope, "headcount": d.headcount, "head_name": d.head_name, "head_email": d.head_email}
 
 
 @router.delete("/departments/{dept_id}")
-def delete_department(client_id: str, dept_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def delete_department(client_id: str, dept_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _org(db, actor, client_id, Action.MANAGE_CLIENT_USERS)
     people.delete_department(db, actor.user, org, _dept(db, org, dept_id))
     return {"deleted": True}
 
 
 @router.post("/departments/import/preview")
-def preview_departments(client_id: str, body: CsvIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def preview_departments(client_id: str, body: CsvIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     _org(db, actor, client_id, Action.MANAGE_CLIENT_USERS)
     return parse_department_csv(body.csv_text).to_json()
 
 
 @router.post("/departments/import")
-def import_departments(client_id: str, body: CsvIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def import_departments(client_id: str, body: CsvIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _org(db, actor, client_id, Action.MANAGE_CLIENT_USERS)
     return people.import_departments(db, actor.user, org, body.csv_text)
 
 
 @router.post("/departments/confirm")
-def confirm_departments(client_id: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def confirm_departments(client_id: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _org(db, actor, client_id, Action.MANAGE_CLIENT_USERS)
     people.confirm_departments(db, request.app.state.settings, actor.user, org)
     return {"confirmed": True}
 
 
 @router.post("/users/import/preview")
-def preview_users(client_id: str, body: CsvIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def preview_users(client_id: str, body: CsvIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _org(db, actor, client_id, Action.MANAGE_CLIENT_USERS)
     return parse_user_csv(body.csv_text, [d.name for d in people.departments(db, org)]).to_json()
 
 
 @router.post("/users/import")
-def import_users(client_id: str, body: CsvIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def import_users(client_id: str, body: CsvIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _org(db, actor, client_id, Action.MANAGE_CLIENT_USERS)
     return people.import_users(db, request.app.state.settings, actor.user, org, body.csv_text)
 
 
 @router.post("/users")
-def post_user(client_id: str, body: ClientUserIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def post_user(client_id: str, body: ClientUserIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _org(db, actor, client_id, Action.MANAGE_CLIENT_USERS)
     u = people.add_user(db, request.app.state.settings, actor.user, org, body.model_dump())
     return {"id": u.id, "name": u.name, "email": u.email}
@@ -196,27 +196,27 @@ class RoleIn(BaseModel):
 
 
 @router.patch("/users/{user_id}")
-def patch_user(client_id: str, user_id: str, body: UserPatchIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def patch_user(client_id: str, user_id: str, body: UserPatchIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _org(db, actor, client_id, Action.MANAGE_CLIENT_USERS)
     u = people.edit_user(db, actor.user, org, _person(db, org, user_id), body.model_dump(exclude_unset=True))
     return {"id": u.id, "name": u.name, "email": u.email, "job_title": u.job_title}
 
 
 @router.delete("/users/{user_id}")
-def delete_user(client_id: str, user_id: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def delete_user(client_id: str, user_id: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _org(db, actor, client_id, Action.MANAGE_CLIENT_USERS)
     return {"result": people.remove_user(db, request.app.state.settings, actor.user, org, _person(db, org, user_id))}
 
 
 @router.post("/users/{user_id}/roles")
-def post_role(client_id: str, user_id: str, body: RoleIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def post_role(client_id: str, user_id: str, body: RoleIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _org(db, actor, client_id, Action.MANAGE_CLIENT_USERS)
     u = people.add_role(db, request.app.state.settings, actor.user, org, _person(db, org, user_id), body.role, body.department)
     return {"id": u.id}
 
 
 @router.delete("/users/{user_id}/roles/{assignment_id}")
-def delete_role(client_id: str, user_id: str, assignment_id: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def delete_role(client_id: str, user_id: str, assignment_id: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _org(db, actor, client_id, Action.MANAGE_CLIENT_USERS)
     u = db.get(User, user_id)
     if u is None or u.organization_id != org.id:
@@ -226,7 +226,7 @@ def delete_role(client_id: str, user_id: str, assignment_id: str, request: Reque
 
 
 @router.put("/role-holders/{role}")
-def put_role_holder(client_id: str, role: str, body: NotAppointedIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def put_role_holder(client_id: str, role: str, body: NotAppointedIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _org(db, actor, client_id, Action.MANAGE_CLIENT_USERS)
     people.set_not_appointed(db, actor.user, org, role, body.not_appointed)
     return people.role_holders(db, org)[role]

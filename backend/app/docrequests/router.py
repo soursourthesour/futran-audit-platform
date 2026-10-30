@@ -84,7 +84,7 @@ def request_out(db: Session, r: DocumentRequest, futran: bool) -> dict:
 
 
 @router.get("/clients/{client_id}/document-requests")
-def register(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def register(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     if not actor.is_futran:
         raise NotFound()
     e = _engagement(db, actor, client_id, Action.VIEW_ENGAGEMENT)
@@ -101,26 +101,26 @@ def register(client_id: str, actor: Actor = Depends(current_actor), db: Session 
 
 
 @router.get("/clients/{client_id}/document-requests/preview")
-def preview(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def preview(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     e = _engagement(db, actor, client_id, Action.MANAGE_DOCUMENT_REQUESTS)
     return svc.preview(db, actor.user, e)
 
 
 @router.post("/clients/{client_id}/document-requests/issue")
-def issue(client_id: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def issue(client_id: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     e = _engagement(db, actor, client_id, Action.MANAGE_DOCUMENT_REQUESTS)
     rows = svc.issue_register(db, request.app.state.settings, actor.user, e)
     return {"kpis": svc.kpis(db, rows), "count": len(rows)}
 
 
 @router.post("/clients/{client_id}/document-requests/chase")
-def chase_all(client_id: str, body: NoteIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def chase_all(client_id: str, body: NoteIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     e = _engagement(db, actor, client_id, Action.MANAGE_DOCUMENT_REQUESTS)
     return {"chased": svc.chase_all(db, request.app.state.settings, actor.user, e, body.note)}
 
 
 @router.post("/document-requests/{req_id}/chase")
-def chase(req_id: str, body: NoteIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def chase(req_id: str, body: NoteIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     req = _request(db, actor, req_id)
     if not actor.is_futran:
         raise NotFound()
@@ -129,7 +129,7 @@ def chase(req_id: str, body: NoteIn, actor: Actor = Depends(current_actor), db: 
 
 
 @router.post("/document-requests/{req_id}/files")
-def post_file(req_id: str, request: Request, file: UploadFile = File(...), actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def post_file(req_id: str, request: Request, file: UploadFile = File(...), actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     req = _request(db, actor, req_id)
     settings = request.app.state.settings
     data = file.file.read(settings.max_upload_mb * 1024 * 1024 + 1)
@@ -141,13 +141,13 @@ def post_file(req_id: str, request: Request, file: UploadFile = File(...), actor
 
 
 @router.post("/document-requests/{req_id}/not-available")
-def not_available(req_id: str, body: NoteIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def not_available(req_id: str, body: NoteIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     req = _request(db, actor, req_id)
     return request_out(db, svc.mark_not_available(db, actor.user, req, body.note), actor.is_futran)
 
 
 @router.get("/me/document-requests")
-def mine(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def mine(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """The client's own requests: organization-wide ones for organization-level roles, and those for systems in the person's departments."""
     if actor.is_futran:
         raise NotFound()
@@ -182,7 +182,7 @@ class WaiveIn(BaseModel):
 
 
 @router.post("/use-cases/{uc_id}/evidence-requests")
-def create_evidence_request(uc_id: str, data: dict, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def create_evidence_request(uc_id: str, data: dict, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     uc = db.get(UseCase, uc_id)
     if uc is None or uc.deleted_at is not None or not actor.is_futran:
         raise NotFound()
@@ -204,13 +204,13 @@ def _er(db: Session, actor: Actor, req_id: str) -> EvidenceRequest:
 
 
 @router.post("/evidence-requests/{req_id}/answer")
-def answer_evidence_request(req_id: str, body: AnswerIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def answer_evidence_request(req_id: str, body: AnswerIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     r = _er(db, actor, req_id)
     return er.request_out(db, er.answer(db, actor.user, r, body.answer), actor.is_futran)
 
 
 @router.post("/evidence-requests/{req_id}/files")
-def evidence_request_file(req_id: str, request: Request, file: UploadFile = File(...), actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def evidence_request_file(req_id: str, request: Request, file: UploadFile = File(...), actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     r = _er(db, actor, req_id)
     settings = request.app.state.settings
     data = file.file.read(settings.max_upload_mb * 1024 * 1024 + 1)
@@ -222,7 +222,7 @@ def evidence_request_file(req_id: str, request: Request, file: UploadFile = File
 
 
 @router.post("/evidence-requests/{req_id}/waive")
-def waive_evidence_request(req_id: str, body: WaiveIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def waive_evidence_request(req_id: str, body: WaiveIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     if not actor.is_futran:
         raise NotFound()
     r = _er(db, actor, req_id)
@@ -230,7 +230,7 @@ def waive_evidence_request(req_id: str, body: WaiveIn, actor: Actor = Depends(cu
 
 
 @router.get("/me/evidence-requests")
-def my_evidence_requests(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def my_evidence_requests(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     if actor.is_futran:
         raise NotFound()
     from sqlalchemy import select

@@ -36,14 +36,14 @@ def _finding(db: Session, actor: Actor, finding_id: str, action: Action) -> Find
 
 
 @router.post("/clients/{client_id}/findings")
-def create(client_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def create(client_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     assert_not_admin_judgment(actor)
     e = _engagement(db, actor, client_id, Action.RECORD_FINDINGS)
     return svc.finding_out(db, svc.create_finding(db, actor.user, e, data))
 
 
 @router.patch("/findings/{finding_id}")
-def patch(finding_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def patch(finding_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     assert_not_admin_judgment(actor)
     f = _finding(db, actor, finding_id, Action.RECORD_FINDINGS)
     return svc.finding_out(db, svc.update_finding(db, actor.user, f, data))
@@ -62,28 +62,28 @@ class ReasonIn(BaseModel):
 
 
 @router.post("/findings/{finding_id}/submit")
-def submit(finding_id: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def submit(finding_id: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     assert_not_admin_judgment(actor)
     f = _finding(db, actor, finding_id, Action.RECORD_FINDINGS)
     return svc.finding_out(db, svc.submit(db, request.app.state.settings, actor.user, f))
 
 
 @router.post("/findings/{finding_id}/approve")
-def approve(finding_id: str, body: CommentIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def approve(finding_id: str, body: CommentIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     assert_not_admin_judgment(actor)
     f = _finding(db, actor, finding_id, Action.APPROVE_FINDINGS)
     return svc.finding_out(db, svc.approve(db, actor.user, f, body.comment))
 
 
 @router.post("/findings/{finding_id}/return")
-def return_finding(finding_id: str, body: CommentIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def return_finding(finding_id: str, body: CommentIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     assert_not_admin_judgment(actor)
     f = _finding(db, actor, finding_id, Action.APPROVE_FINDINGS)
     return svc.finding_out(db, svc.return_(db, request.app.state.settings, actor.user, f, body.comment))
 
 
 @router.post("/findings/{finding_id}/dismiss")
-def dismiss(finding_id: str, body: ReasonIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def dismiss(finding_id: str, body: ReasonIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     assert_not_admin_judgment(actor)
     f = _finding(db, actor, finding_id, Action.RECORD_FINDINGS)
     svc.dismiss(db, actor.user, f, body.reason)
@@ -94,7 +94,7 @@ CLIENT_STAGE = 7  # findings reach the client with the draft report (stage 6 →
 
 
 @router.get("/clients/{client_id}/findings")
-def list_findings(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def list_findings(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """Futran sees every finding. The client sees approved findings only, from the draft report on (spec §6 rule 5)."""
     from app.core.errors import Forbidden
     from app.inventory.fieldwork import control_options

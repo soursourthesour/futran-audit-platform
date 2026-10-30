@@ -26,12 +26,12 @@ def _load(db: Session, actor: Actor, so_id: str) -> SignOff:
 
 
 @router.get("/{so_id}")
-def get_sign_off(so_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_sign_off(so_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     return sign_off_out(db, actor, _load(db, actor, so_id))
 
 
 @router.post("/{so_id}/sign")
-def post_sign(so_id: str, body: SignIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def post_sign(so_id: str, body: SignIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     so = _load(db, actor, so_id)
     sign(db, request.app.state.settings, actor, so, body.typed_name, request)
     return sign_off_out(db, actor, so)
@@ -72,7 +72,7 @@ client_router = APIRouter(tags=["sign-offs"])
 
 
 @client_router.post("/clients/{client_id}/signoffs/{number}/submit")
-def submit(client_id: str, number: int, body: SubmitIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def submit(client_id: str, number: int, body: SubmitIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org, e = _client_engagement(db, actor, client_id)
     from app.signoffs.service import STATEMENTS
 
@@ -82,13 +82,13 @@ def submit(client_id: str, number: int, body: SubmitIn, request: Request, actor:
 
 
 @router.post("/{so_id}/return")
-def post_return(so_id: str, body: CommentIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def post_return(so_id: str, body: CommentIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     so = _load(db, actor, so_id)
     return sign_off_out(db, actor, return_signoff(db, request.app.state.settings, actor, so, body.comment))
 
 
 @router.post("/{so_id}/withdraw")
-def post_withdraw(so_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def post_withdraw(so_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     from app.signoffs.service import withdraw
 
     so = _load(db, actor, so_id)
@@ -96,13 +96,13 @@ def post_withdraw(so_id: str, actor: Actor = Depends(current_actor), db: Session
 
 
 @router.post("/{so_id}/correct")
-def post_correct(so_id: str, body: ReasonIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def post_correct(so_id: str, body: ReasonIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     so = _load(db, actor, so_id)
     return sign_off_out(db, actor, correct(db, request.app.state.settings, actor, so, body.reason))
 
 
 @client_router.get("/clients/{client_id}/review")
-def review(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def review(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """Screen 15: the client's inventory review — sign-off 2 per department, 3, 4 and the snapshot."""
     from app.inventory.snapshot import current_snapshot
     from app.signoffs.service import SIGNOFF_SPECS, _can_prepare

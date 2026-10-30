@@ -36,7 +36,7 @@ def j_out(j: Jurisdiction, parent_code: str | None = None) -> dict:
 
 
 @router.get("")
-def list_jurisdictions(level: str | None = None, parent: str | None = None, has_laws: bool | None = None, q: str | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def list_jurisdictions(level: str | None = None, parent: str | None = None, has_laws: bool | None = None, q: str | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     stmt = select(Jurisdiction).where(Jurisdiction.active.is_(True))
     if level:
         stmt = stmt.where(Jurisdiction.level == level)
@@ -55,12 +55,12 @@ def list_jurisdictions(level: str | None = None, parent: str | None = None, has_
 
 
 @router.get("/resolve")
-def resolve(country: str, subdivision: str | None = None, city: str | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def resolve(country: str, subdivision: str | None = None, city: str | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     return [j_out(j) for j in resolve_jurisdictions(db, country, subdivision, city)]
 
 
 @router.post("")
-def add_jurisdiction(body: JurisdictionIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def add_jurisdiction(body: JurisdictionIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.MANAGE_REFERENCE_DATA)
     if body.level == "city":
         if not body.parent_code:
@@ -87,7 +87,7 @@ def add_jurisdiction(body: JurisdictionIn, actor: Actor = Depends(current_actor)
 
 
 @router.patch("/{code}")
-def patch_jurisdiction(code: str, body: JurisdictionPatch, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def patch_jurisdiction(code: str, body: JurisdictionPatch, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.MANAGE_REFERENCE_DATA)
     j = by_code(db, code.upper())
     if j is None:

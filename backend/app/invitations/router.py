@@ -16,7 +16,7 @@ class AcceptIn(BaseModel):
 
 
 @router.get("/accept/{token}")
-def invitation_info(token: str, db: Session = Depends(get_db)):
+def invitation_info(token: str, db: Session = Depends(get_db, scope="function")):
     inv = find_invitation(db, token)
     state = invitation_state(inv)
     if state["used"] or state["expired"]:
@@ -31,7 +31,7 @@ def invitation_info(token: str, db: Session = Depends(get_db)):
 
 
 @router.post("/decline/{token}")
-def decline(token: str, request: Request, db: Session = Depends(get_db)):
+def decline(token: str, request: Request, db: Session = Depends(get_db, scope="function")):
     """"Not you?": the person who received the email cancels the invitation, and whoever sent it is told."""
     from app.invitations.service import decline_invitation
 
@@ -40,7 +40,7 @@ def decline(token: str, request: Request, db: Session = Depends(get_db)):
 
 
 @router.post("/accept/{token}")
-def accept(token: str, body: AcceptIn, request: Request, response: Response, db: Session = Depends(get_db)):
+def accept(token: str, body: AcceptIn, request: Request, response: Response, db: Session = Depends(get_db, scope="function")):
     settings = request.app.state.settings
     user = accept_invitation(db, settings, token, body.password)
     s, raw = create_session(db, user, settings, request, mfa_passed=not settings.mfa_required)

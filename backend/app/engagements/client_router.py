@@ -62,7 +62,7 @@ FILTERS = {
 
 
 @router.get("/engagements")
-def dashboard(filter: str = "all", q: str | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def dashboard(filter: str = "all", q: str | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.VIEW_ENGAGEMENT, list_view=True)
     if not actor.is_futran:
         raise NotFound()
@@ -92,7 +92,7 @@ def dashboard(filter: str = "all", q: str | None = None, actor: Actor = Depends(
 
 
 @router.get("/clients")
-def clients_list(q: str | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def clients_list(q: str | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """The Clients page: each client the Futran user can see, with its current engagement."""
     authorize(db, actor, Action.VIEW_ENGAGEMENT, list_view=True)
     if not actor.is_futran:
@@ -131,7 +131,7 @@ def _activity(db: Session, org_ids: list[str] | None, limit: int) -> list[dict]:
 
 
 @router.get("/engagements/activity")
-def activity(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def activity(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.VIEW_ENGAGEMENT, list_view=True)
     if not actor.is_futran:
         raise NotFound()
@@ -155,7 +155,7 @@ def invite_status(db: Session, user: User | None) -> str:
 
 
 @router.get("/clients/{client_id}")
-def client_page(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def client_page(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org, e = _load(db, actor, client_id, Action.VIEW_ENGAGEMENT)
     if not actor.is_futran:
         raise NotFound()
@@ -218,7 +218,7 @@ def package_documents_out(db: Session, actor: Actor, e: Engagement, pkg) -> dict
 
 
 @router.post("/clients/{client_id}/contacts/{role}/resend")
-def resend(client_id: str, role: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def resend(client_id: str, role: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     _, e = _load(db, actor, client_id, Action.CREATE_CLIENT_ENGAGEMENT)
     if role not in ("caico", "client_admin"):
         raise NotFound()
@@ -253,7 +253,7 @@ from app.mail.onboarding import getting_started_items  # noqa: E402  (email onbo
 
 
 @router.get("/me/initiation")
-def my_initiation(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def my_initiation(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     e = _client_engagement(db, actor)
     pkg = current_package(db, e)
     docs = {d.item: d for d in documents(db, pkg)} if pkg else {}
@@ -289,7 +289,7 @@ def my_initiation(actor: Actor = Depends(current_actor), db: Session = Depends(g
 
 
 @router.post("/me/initiation/items/{key}/done")
-def mark_done(key: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def mark_done(key: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     e = _client_engagement(db, actor)
     if key not in SELF_COMPLETE:
         raise Invalid("This item is completed by doing it, not by ticking it off.")

@@ -106,7 +106,7 @@ def request_out(db: Session, r: SystemAdditionRequest) -> dict:
 
 
 @router.get("/clients/{client_id}/systems")
-def get_register(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_register(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     if not actor.is_futran:
         raise NotFound()  # the client's systems page is the pre-fill screen
     org, e = _ctx(db, actor, client_id, Action.VIEW_ENGAGEMENT)
@@ -132,14 +132,14 @@ def get_register(client_id: str, actor: Actor = Depends(current_actor), db: Sess
 
 
 @router.post("/clients/{client_id}/systems")
-def add_system(client_id: str, data: dict, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def add_system(client_id: str, data: dict, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """After initiation every addition goes to the Engagement Manager (template §1.3)."""
     org, e = _ctx(db, actor, client_id, Action.MANAGE_SYSTEMS)
     return request_out(db, svc.request_addition(db, request.app.state.settings, actor.user, e, data))
 
 
 @router.post("/system-requests/{request_id}/decide")
-def decide(request_id: str, body: DecideIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def decide(request_id: str, body: DecideIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     r = db.get(SystemAdditionRequest, request_id)
     if r is None or r.deleted_at is not None:
         raise NotFound()
@@ -148,20 +148,20 @@ def decide(request_id: str, body: DecideIn, request: Request, actor: Actor = Dep
 
 
 @router.patch("/systems/{system_id}")
-def patch_system(system_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def patch_system(system_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     s = svc.get_system(db, system_id)
     authorize(db, actor, Action.MANAGE_SYSTEMS, engagement_id=s.engagement_id)
     return system_out(db, svc.update_system(db, actor.user, s, data))
 
 
 @router.post("/clients/{client_id}/vendors")
-def post_vendor(client_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def post_vendor(client_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org, e = _ctx(db, actor, client_id, Action.MANAGE_SYSTEMS)
     return vendor_out(svc.save_vendor(db, actor.user, org, data))
 
 
 @router.patch("/vendors/{vendor_id}")
-def patch_vendor(vendor_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def patch_vendor(vendor_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     v = db.get(Vendor, vendor_id)
     if v is None or v.deleted_at is not None:
         raise NotFound()
@@ -170,7 +170,7 @@ def patch_vendor(vendor_id: str, data: dict, actor: Actor = Depends(current_acto
 
 
 @router.get("/systems/{system_id}/register-record")
-def get_register_record(system_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_register_record(system_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """The client's register record behind an audit system: bias tests and history, read-only for the audit team."""
     s = svc.get_system(db, system_id)
     if not actor.is_futran:

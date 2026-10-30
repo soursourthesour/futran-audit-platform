@@ -53,14 +53,14 @@ def _check_futran_roles(roles: list[str]) -> None:
 
 
 @router.get("/admin/users")
-def list_futran_users(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def list_futran_users(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.VIEW_FUTRAN_USERS)
     users = db.scalars(select(User).where(User.organization_id == actor.organization.id, User.deleted_at.is_(None)).order_by(User.name))
     return [user_out(db, u) for u in users]
 
 
 @router.post("/admin/users")
-def create_futran_user(body: UserIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def create_futran_user(body: UserIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.MANAGE_FUTRAN_USERS)
     _check_futran_roles(body.roles)
     u = create_user(db, actor.organization, name=body.name, email=body.email, job_title=body.job_title, actor_id=actor.id)
@@ -72,7 +72,7 @@ def create_futran_user(body: UserIn, request: Request, actor: Actor = Depends(cu
 
 
 @router.patch("/admin/users/{user_id}")
-def update_futran_user(user_id: str, body: UserPatch, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def update_futran_user(user_id: str, body: UserPatch, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.MANAGE_FUTRAN_USERS)
     u = db.get(User, user_id)
     if u is None or u.organization_id != actor.organization.id or u.deleted_at:
@@ -115,7 +115,7 @@ def update_futran_user(user_id: str, body: UserPatch, request: Request, actor: A
 
 
 @router.post("/invitations/{user_id}/resend")
-def resend_invitation(user_id: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def resend_invitation(user_id: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     u = db.get(User, user_id)
     if u is None or u.deleted_at:
         raise NotFound()
@@ -144,7 +144,7 @@ def _futran_resend_ok(db: Session, actor: Actor, org: Organization) -> None:
 
 
 @router.get("/admin/settings")
-def platform_settings(request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def platform_settings(request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.VIEW_FUTRAN_USERS)
     s = request.app.state.settings
     return {

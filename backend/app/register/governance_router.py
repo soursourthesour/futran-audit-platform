@@ -28,14 +28,14 @@ def _out(db: Session, actor: Actor, c) -> dict:
 
 
 @router.get("/governance/committee")
-def get_committee(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_committee(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = client_org(actor)
     authorize(db, actor, Action.VIEW_REGISTER, org_id=org.id, list_view=True)
     return _out(db, actor, com.committee_for(db, org, actor.user))
 
 
 @router.put("/governance/committee")
-def put_committee(data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def put_committee(data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = client_org(actor)
     authorize(db, actor, Action.RECORD_COMMITTEE, org_id=org.id)
     c = com.committee_for(db, org, actor.user)
@@ -44,7 +44,7 @@ def put_committee(data: dict, actor: Actor = Depends(current_actor), db: Session
 
 
 @router.post("/governance/committee/formed")
-def post_formed(data: dict, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def post_formed(data: dict, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = client_org(actor)
     authorize(db, actor, Action.RECORD_COMMITTEE, org_id=org.id)
     c = com.committee_for(db, org, actor.user)
@@ -53,7 +53,7 @@ def post_formed(data: dict, request: Request, actor: Actor = Depends(current_act
 
 
 @router.post("/governance/committee/members")
-def post_member(data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def post_member(data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = client_org(actor)
     authorize(db, actor, Action.MANAGE_COMMITTEE_MEMBERS, org_id=org.id)
     c = com.committee_for(db, org, actor.user)
@@ -61,7 +61,7 @@ def post_member(data: dict, actor: Actor = Depends(current_actor), db: Session =
 
 
 @router.patch("/governance/committee/members/{member_id}")
-def patch_member(member_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def patch_member(member_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = client_org(actor)
     authorize(db, actor, Action.MANAGE_COMMITTEE_MEMBERS, org_id=org.id)
     c = com.committee_for(db, org, actor.user)
@@ -69,7 +69,7 @@ def patch_member(member_id: str, data: dict, actor: Actor = Depends(current_acto
 
 
 @router.delete("/governance/committee/members/{member_id}")
-def delete_member(member_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def delete_member(member_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = client_org(actor)
     authorize(db, actor, Action.MANAGE_COMMITTEE_MEMBERS, org_id=org.id)
     c = com.committee_for(db, org, actor.user)
@@ -79,7 +79,7 @@ def delete_member(member_id: str, actor: Actor = Depends(current_actor), db: Ses
 
 # ---- company-wide roles (R5)
 @router.get("/governance/company-roles")
-def get_company_roles(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_company_roles(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     from app.register.roles import company_page, people_options
 
     org = client_org(actor)
@@ -88,7 +88,7 @@ def get_company_roles(actor: Actor = Depends(current_actor), db: Session = Depen
 
 
 @router.put("/governance/company-roles/{role_id}")
-def put_company_role(role_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def put_company_role(role_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     from app.core.errors import NotFound
     from app.register.roles import catalog_role, check_role_rights, clean_assignment, company_page, company_required_anywhere, set_assignment
 

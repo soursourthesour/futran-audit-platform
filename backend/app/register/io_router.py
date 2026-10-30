@@ -22,7 +22,7 @@ def _csv(text: str, filename: str) -> Response:
 
 
 @router.get("/register/export.csv")
-def export_csv(ids: str | None = Query(None), actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def export_csv(ids: str | None = Query(None), actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = client_org(actor)
     authorize(db, actor, Action.VIEW_REGISTER, org_id=org.id, list_view=True)
     if ids:
@@ -33,7 +33,7 @@ def export_csv(ids: str | None = Query(None), actor: Actor = Depends(current_act
 
 
 @router.get("/register/import-template.csv")
-def import_template(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def import_template(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = client_org(actor)
     authorize(db, actor, Action.EDIT_REGISTER, org_id=org.id, list_view=True)
     example = [["Résumé screening", "Vendor app with AI", "Bought from vendor", "Human Resources", "In development / procurement", "Ranks applicants for recruiters", "TalentRank Inc.",
@@ -42,7 +42,7 @@ def import_template(actor: Actor = Depends(current_actor), db: Session = Depends
 
 
 @router.post("/register/import")
-async def import_csv(file: UploadFile = File(...), actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+async def import_csv(file: UploadFile = File(...), actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = client_org(actor)
     authorize(db, actor, Action.EDIT_REGISTER, org_id=org.id, list_view=True)
     raw = await file.read()
@@ -56,14 +56,14 @@ async def import_csv(file: UploadFile = File(...), actor: Actor = Depends(curren
 
 
 @router.post("/register/import-inventory")
-def import_inventory(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def import_inventory(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = client_org(actor)
     authorize(db, actor, Action.IMPORT_INVENTORY_TO_REGISTER, org_id=org.id)
     return seeding.import_inventory(db, actor.user, org)
 
 
 @router.get("/register/role-catalog")
-def role_catalog(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def role_catalog(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """The governance roles (§24.1), for the bulk edit role picker."""
     from app.register.roles import catalog_roles
 

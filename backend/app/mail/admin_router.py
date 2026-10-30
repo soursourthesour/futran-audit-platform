@@ -74,7 +74,7 @@ def _futran(db: Session, actor: Actor, manage: bool = False) -> Organization:
 
 
 @router.get("/mail/futran")
-def futran_status(actor: Actor = Depends(current_actor), db: Session = Depends(get_db), settings=Depends(get_settings_dep)):
+def futran_status(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     org = _futran(db, actor)
     conn = cx.org_connection(db, org)
     return {"connection": cx.connection_out(conn), "credentials": credentials_status(settings), "can_manage": _may(db, actor, Action.MANAGE_FUTRAN_MAILBOX),
@@ -82,20 +82,20 @@ def futran_status(actor: Actor = Depends(current_actor), db: Session = Depends(g
 
 
 @router.post("/mail/futran/connect")
-def futran_connect(body: ConnectIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db), settings=Depends(get_settings_dep)):
+def futran_connect(body: ConnectIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     org = _futran(db, actor, manage=True)
     conn = cx.org_connection(db, org, create=True)
     return {"url": cx.start_consent(db, settings, actor.user, conn, provider=body.provider, kind="admin", mailbox=body.mailbox_address, tenant=body.tenant)}
 
 
 @router.patch("/mail/futran/connection")
-def futran_update(data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def futran_update(data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _futran(db, actor, manage=True)
     return cx.connection_out(cx.update(db, actor.user, cx.org_connection(db, org, create=True), data))
 
 
 @router.post("/mail/futran/test")
-def futran_test(body: ToIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db), settings=Depends(get_settings_dep)):
+def futran_test(body: ToIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     org = _futran(db, actor, manage=True)
     conn = cx.org_connection(db, org, create=True)
     cx.send_test(db, settings, actor.user, conn, body.to or actor.user.email)
@@ -103,7 +103,7 @@ def futran_test(body: ToIn, actor: Actor = Depends(current_actor), db: Session =
 
 
 @router.post("/mail/futran/check-domain")
-def futran_check(actor: Actor = Depends(current_actor), db: Session = Depends(get_db), settings=Depends(get_settings_dep)):
+def futran_check(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     org = _futran(db, actor, manage=True)
     conn = cx.org_connection(db, org)
     if conn is None or not conn.domain:
@@ -113,7 +113,7 @@ def futran_check(actor: Actor = Depends(current_actor), db: Session = Depends(ge
 
 
 @router.post("/mail/futran/disconnect")
-def futran_disconnect(actor: Actor = Depends(current_actor), db: Session = Depends(get_db), settings=Depends(get_settings_dep)):
+def futran_disconnect(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     org = _futran(db, actor, manage=True)
     conn = cx.org_connection(db, org)
     if conn is None:
@@ -145,33 +145,33 @@ def _client_out(db: Session, settings, actor: Actor, org: Organization) -> dict:
 
 
 @router.get("/mail/client")
-def client_status(actor: Actor = Depends(current_actor), db: Session = Depends(get_db), settings=Depends(get_settings_dep)):
+def client_status(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     return _client_out(db, settings, actor, _client(db, actor))
 
 
 @router.post("/mail/client/connect")
-def client_connect(body: ConnectIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db), settings=Depends(get_settings_dep)):
+def client_connect(body: ConnectIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     org = _client(db, actor, manage=True)
     conn = cx.org_connection(db, org, create=True)
     return {"url": cx.start_consent(db, settings, actor.user, conn, provider=body.provider, kind="admin", mailbox=body.mailbox_address, tenant=body.tenant)}
 
 
 @router.post("/mail/client/request-it")
-def client_request_it(body: ItIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db), settings=Depends(get_settings_dep)):
+def client_request_it(body: ItIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     org = _client(db, actor, manage=True)
     cx.request_it(db, settings, actor.user, cx.org_connection(db, org, create=True), body.email, body.provider)
     return {"sent": True}
 
 
 @router.patch("/mail/client/connection")
-def client_update(data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db), settings=Depends(get_settings_dep)):
+def client_update(data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     org = _client(db, actor, manage=True)
     cx.update(db, actor.user, cx.org_connection(db, org, create=True), data)
     return _client_out(db, settings, actor, org)
 
 
 @router.post("/mail/client/directory")
-def client_directory(data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db), settings=Depends(get_settings_dep)):
+def client_directory(data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     org = _client(db, actor, manage=True)
     conn = cx.org_connection(db, org)
     if conn is None or conn.status != "connected":
@@ -191,7 +191,7 @@ def client_directory(data: dict, actor: Actor = Depends(current_actor), db: Sess
 
 
 @router.post("/mail/client/directory/sync")
-def client_directory_sync(actor: Actor = Depends(current_actor), db: Session = Depends(get_db), settings=Depends(get_settings_dep)):
+def client_directory_sync(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     org = _client(db, actor, manage=True)
     conn = cx.org_connection(db, org)
     if conn is None or conn.status != "connected":
@@ -205,7 +205,7 @@ def client_directory_sync(actor: Actor = Depends(current_actor), db: Session = D
 
 
 @router.post("/mail/client/test")
-def client_test(body: ToIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db), settings=Depends(get_settings_dep)):
+def client_test(body: ToIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     org = _client(db, actor, manage=True)
     conn = cx.org_connection(db, org, create=True)
     cx.send_test(db, settings, actor.user, conn, body.to or actor.user.email)
@@ -213,7 +213,7 @@ def client_test(body: ToIn, actor: Actor = Depends(current_actor), db: Session =
 
 
 @router.post("/mail/client/finish")
-def client_finish(actor: Actor = Depends(current_actor), db: Session = Depends(get_db), settings=Depends(get_settings_dep)):
+def client_finish(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     org = _client(db, actor, manage=True)
     conn = cx.org_connection(db, org, create=True)
     from app.core.clock import utcnow
@@ -224,7 +224,7 @@ def client_finish(actor: Actor = Depends(current_actor), db: Session = Depends(g
 
 
 @router.post("/mail/client/disconnect")
-def client_disconnect(actor: Actor = Depends(current_actor), db: Session = Depends(get_db), settings=Depends(get_settings_dep)):
+def client_disconnect(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     org = _client(db, actor, manage=True)
     conn = cx.org_connection(db, org)
     if conn is None:
@@ -234,7 +234,7 @@ def client_disconnect(actor: Actor = Depends(current_actor), db: Session = Depen
 
 
 @router.get("/mail/clients/{client_id}/status")
-def client_status_for_futran(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def client_status_for_futran(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """The client's email connection, for wizard step 6 (client contacts) and the client page."""
     org = db.get(Organization, client_id)
     if org is None or org.type != "client":
@@ -263,7 +263,7 @@ def _finish(db: Session, settings, provider: str, params: dict) -> str:
 
 
 @router.get("/mail/oauth/{provider}")
-def oauth_callback(provider: str, request: Request, db: Session = Depends(get_db), settings=Depends(get_settings_dep)):
+def oauth_callback(provider: str, request: Request, db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     """Where Microsoft or Google send the browser back. No sign-in needed: the signed, single-use state identifies the
     connection (the client's IT admin may approve from an emailed link)."""
     params = dict(request.query_params)
@@ -278,7 +278,7 @@ def oauth_callback(provider: str, request: Request, db: Session = Depends(get_db
 
 
 @router.post("/mail/oauth/{provider}/test")
-def oauth_test_consent(provider: str, body: TestConsentIn, db: Session = Depends(get_db), settings=Depends(get_settings_dep)):
+def oauth_test_consent(provider: str, body: TestConsentIn, db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     """Test mode only: the platform's own consent page stands in for Microsoft's or Google's."""
     if not use_fake(settings):
         raise NotFound()
@@ -289,7 +289,7 @@ def oauth_test_consent(provider: str, body: TestConsentIn, db: Session = Depends
 
 
 @router.get("/mail/test-consent-info")
-def test_consent_info(state: str, settings=Depends(get_settings_dep), db: Session = Depends(get_db)):
+def test_consent_info(state: str, settings=Depends(get_settings_dep), db: Session = Depends(get_db, scope="function")):
     """What the test consent page shows: which organisation asked and for what."""
     if not use_fake(settings):
         raise NotFound()
@@ -320,12 +320,12 @@ def _me_out(db: Session, actor: Actor, settings) -> dict:
 
 
 @router.get("/me/mailbox")
-def my_mailbox(actor: Actor = Depends(current_actor), db: Session = Depends(get_db), settings=Depends(get_settings_dep)):
+def my_mailbox(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     return _me_out(db, actor, settings)
 
 
 @router.post("/me/mailbox/connect")
-def my_mailbox_connect(body: ConnectIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db), settings=Depends(get_settings_dep)):
+def my_mailbox_connect(body: ConnectIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     if cx.per_user_policy(db, actor.organization.id) == "off":
         raise Conflict("Your organisation has switched off personal mailbox connections.")
     uc = cx.user_connection(db, actor.user, create=True)
@@ -334,7 +334,7 @@ def my_mailbox_connect(body: ConnectIn, actor: Actor = Depends(current_actor), d
 
 
 @router.post("/me/mailbox/decline")
-def my_mailbox_decline(actor: Actor = Depends(current_actor), db: Session = Depends(get_db), settings=Depends(get_settings_dep)):
+def my_mailbox_decline(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     if cx.per_user_policy(db, actor.organization.id) == "required":
         raise Conflict("Your organisation asks everyone to connect their mailbox.")
     uc = cx.user_connection(db, actor.user, create=True)
@@ -344,7 +344,7 @@ def my_mailbox_decline(actor: Actor = Depends(current_actor), db: Session = Depe
 
 
 @router.post("/me/mailbox/disconnect")
-def my_mailbox_disconnect(actor: Actor = Depends(current_actor), db: Session = Depends(get_db), settings=Depends(get_settings_dep)):
+def my_mailbox_disconnect(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     uc = cx.user_connection(db, actor.user)
     if uc is None:
         raise NotFound()
@@ -354,13 +354,13 @@ def my_mailbox_disconnect(actor: Actor = Depends(current_actor), db: Session = D
 
 # ---- settings
 @router.get("/mail/settings")
-def get_settings(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_settings(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.SET_USER_MAIL_SYNC, org_id=None if actor.is_futran else actor.organization.id)
     return {"per_user_sync": cx.per_user_policy(db, actor.organization.id)}
 
 
 @router.patch("/mail/settings")
-def set_settings(body: SettingsIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def set_settings(body: SettingsIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """Client Admin for client users; Futran Admin for Futran staff. Always the actor's own organisation."""
     authorize(db, actor, Action.SET_USER_MAIL_SYNC, org_id=None if actor.is_futran else actor.organization.id)
     if body.per_user_sync not in ("required", "optional", "off"):

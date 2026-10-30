@@ -14,7 +14,7 @@ router = APIRouter(tags=["clients"])
 
 
 @router.get("/clients/{client_id}/stages/{number}")
-def get_stage(client_id: str, number: int, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_stage(client_id: str, number: int, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     _, e = _load(db, actor, client_id, Action.VIEW_ENGAGEMENT)
     if not actor.is_futran or number not in STAGE_NAMES:
         raise NotFound()

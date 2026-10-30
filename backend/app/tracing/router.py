@@ -46,21 +46,21 @@ def _has(db: Session, actor: Actor, action: Action) -> bool:
 
 
 @router.get("/addons/tracing")
-def get_addons(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_addons(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = client_org(actor)
     authorize(db, actor, Action.VIEW_ADDONS, org_id=org.id)
     return addons.page(db, org.id, can_request=_has(db, actor, Action.REQUEST_ADDON), can_approve=_has(db, actor, Action.APPROVE_ADDON))
 
 
 @router.post("/addons/tracing/requests")
-def post_request(data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db), settings=Depends(get_settings_dep)):
+def post_request(data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     org = client_org(actor)
     authorize(db, actor, Action.REQUEST_ADDON, org_id=org.id)
     return addons.request_out(db, addons.request(db, settings, actor, data))
 
 
 @router.post("/addons/requests/{sub_id}/decide")
-def post_decide(sub_id: str, body: DecideIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db), settings=Depends(get_settings_dep)):
+def post_decide(sub_id: str, body: DecideIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     org = client_org(actor)
     addons._load(db, actor, sub_id)  # 404 outside the tenant before 403
     authorize(db, actor, Action.APPROVE_ADDON, org_id=org.id)
@@ -68,7 +68,7 @@ def post_decide(sub_id: str, body: DecideIn, actor: Actor = Depends(current_acto
 
 
 @router.post("/addons/requests/{sub_id}/cancel")
-def post_cancel(sub_id: str, body: ReasonIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db), settings=Depends(get_settings_dep)):
+def post_cancel(sub_id: str, body: ReasonIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     org = client_org(actor)
     addons._load(db, actor, sub_id)
     authorize(db, actor, Action.APPROVE_ADDON, org_id=org.id)
@@ -93,7 +93,7 @@ def _people(db: Session, org_id: str) -> list[dict]:
 
 
 @router.get("/register/{system_id}/tracing")
-def get_tracing(system_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db), settings=Depends(get_settings_dep)):
+def get_tracing(system_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     from app.register.history import tracing_reasons
 
     s = _system(db, actor, system_id)
@@ -126,21 +126,21 @@ def get_tracing(system_id: str, actor: Actor = Depends(current_actor), db: Sessi
 
 
 @router.get("/register/{system_id}/tracing/traces")
-def get_traces(system_id: str, decision: str | None = None, period: str = "24h", actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_traces(system_id: str, decision: str | None = None, period: str = "24h", actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     s = _system(db, actor, system_id)
     _active(db, s)
     return {"rows": [tr_svc.trace_out(t) for t in tr_svc.query(db, s, decision=decision or None, period=period)]}
 
 
 @router.post("/register/{system_id}/tracing/traces")
-def post_trace(system_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def post_trace(system_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     s = _system(db, actor, system_id, Action.RECORD_TRACES)
     _active(db, s)
     return tr_svc.trace_out(tr_svc.add_manual(db, actor, s, data))
 
 
 @router.post("/register/{system_id}/tracing/traces/import")
-async def post_import(system_id: str, file: UploadFile = File(...), actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+async def post_import(system_id: str, file: UploadFile = File(...), actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     s = _system(db, actor, system_id, Action.RECORD_TRACES)
     _active(db, s)
     data = await file.read()
@@ -151,7 +151,7 @@ async def post_import(system_id: str, file: UploadFile = File(...), actor: Actor
 
 
 @router.post("/register/{system_id}/tracing/guardrail-sync")
-def post_guardrail_sync(system_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db), settings=Depends(get_settings_dep)):
+def post_guardrail_sync(system_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     s = _system(db, actor, system_id, Action.RECORD_TRACES)
     _active(db, s)
     imp = tr_svc.guardrail_sync(db, settings, actor, s)
@@ -159,7 +159,7 @@ def post_guardrail_sync(system_id: str, actor: Actor = Depends(current_actor), d
 
 
 @router.get("/register/{system_id}/tracing/export")
-def get_export(system_id: str, what: str = "incidents", actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_export(system_id: str, what: str = "incidents", actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     from app.audit_log import service as audit
 
     s = _system(db, actor, system_id)
@@ -189,28 +189,28 @@ def _incidents_csv(db: Session, s: RegisterSystem) -> str:
 
 
 @router.post("/register/{system_id}/tracing/incidents")
-def post_incident(system_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db), settings=Depends(get_settings_dep)):
+def post_incident(system_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     s = _system(db, actor, system_id, Action.MANAGE_INCIDENTS)
     _active(db, s)
     return inc_svc.incident_out(db, inc_svc.create(db, settings, actor, s, data))
 
 
 @router.patch("/register/{system_id}/tracing/incidents/{incident_id}")
-def patch_incident(system_id: str, incident_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db), settings=Depends(get_settings_dep)):
+def patch_incident(system_id: str, incident_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     s = _system(db, actor, system_id, Action.MANAGE_INCIDENTS)
     _active(db, s)
     return inc_svc.incident_out(db, inc_svc.update(db, settings, actor, s, inc_svc.load(db, s, incident_id), data))
 
 
 @router.post("/register/{system_id}/tracing/incidents/{incident_id}/close")
-def post_close(system_id: str, incident_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def post_close(system_id: str, incident_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     s = _system(db, actor, system_id, Action.MANAGE_INCIDENTS)
     _active(db, s)
     return inc_svc.incident_out(db, inc_svc.close(db, actor, s, inc_svc.load(db, s, incident_id), data))
 
 
 @router.post("/register/{system_id}/tracing/incidents/bulk")
-def post_bulk(system_id: str, body: BulkIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db), settings=Depends(get_settings_dep)):
+def post_bulk(system_id: str, body: BulkIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     s = _system(db, actor, system_id, Action.MANAGE_INCIDENTS)
     _active(db, s)
     rows = [inc_svc.load(db, s, i) for i in dict.fromkeys(body.ids)]
@@ -225,7 +225,7 @@ def post_bulk(system_id: str, body: BulkIn, actor: Actor = Depends(current_actor
 
 
 @router.post("/register/{system_id}/tracing/deadlines/{deadline_id}")
-def post_deadline(system_id: str, deadline_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def post_deadline(system_id: str, deadline_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     s = _system(db, actor, system_id, Action.MANAGE_INCIDENTS)
     _active(db, s)
     return inc_svc.incident_out(db, inc_svc.act_on_deadline(db, actor, s, inc_svc.load_deadline(db, s, deadline_id), data))

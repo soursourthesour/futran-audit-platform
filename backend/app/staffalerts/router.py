@@ -30,7 +30,7 @@ def alert_out(db: Session, a: StaffAlert) -> dict:
 
 
 @router.get("/staff/alerts")
-def my_alerts(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def my_alerts(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """Your own alerts. Unresolved alerts stay at the top until the changes are reviewed."""
     if not actor.is_futran:
         raise Forbidden()
@@ -48,14 +48,14 @@ def _mine(db: Session, actor: Actor, alert_id: str) -> StaffAlert:
 
 
 @router.post("/staff/alerts/{alert_id}/read")
-def read(alert_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def read(alert_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     a = _mine(db, actor, alert_id)
     a.read_at = a.read_at or utcnow()
     return {"ok": True}
 
 
 @router.post("/staff/alerts/read-all")
-def read_all(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def read_all(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     for a in db.scalars(select(StaffAlert).where(StaffAlert.user_id == actor.id, StaffAlert.read_at.is_(None))):
         a.read_at = utcnow()
     return {"ok": True}
@@ -67,7 +67,7 @@ def setting_out(s: AlertSetting) -> dict:
 
 
 @router.get("/staff/alerts/settings")
-def get_settings(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_settings(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.MANAGE_ALERT_SETTINGS)
     return {"settings": [setting_out(get_setting(db, sc)) for sc in SCOPES], "chief_auditors": [{"id": u.id, "name": u.name} for u in futran_users_with(db, {"chief_auditor"})]}
 
@@ -110,7 +110,7 @@ class SettingIn(BaseModel):
 
 
 @router.put("/staff/alerts/settings/{scope}")
-def put_settings(scope: str, body: SettingIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def put_settings(scope: str, body: SettingIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.MANAGE_ALERT_SETTINGS)
     if scope not in SCOPES:
         raise NotFound()
@@ -129,7 +129,7 @@ class TestIn(BaseModel):
 
 
 @router.post("/staff/alerts/test")
-def test_alert(body: TestIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def test_alert(body: TestIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.MANAGE_ALERT_SETTINGS)
     if body.scope not in SCOPES:
         raise NotFound()

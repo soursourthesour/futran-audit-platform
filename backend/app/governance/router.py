@@ -77,12 +77,12 @@ def request_out(db: Session, req: GovernanceRequest) -> dict:
 
 
 @router.get("/clients/{client_id}/governance")
-def get_governance(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_governance(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     return request_out(db, _request(db, actor, client_id, Action.VIEW_GOVERNANCE))
 
 
 @router.put("/clients/{client_id}/governance/setup")
-def put_setup(client_id: str, body: SetupIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def put_setup(client_id: str, body: SetupIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     req = _request(db, actor, client_id, Action.APPROVE_ENGAGEMENT)  # the Chief Auditor chooses the items
     gov.update_setup(db, actor.user, req, body.codes, body.due_date)
     return request_out(db, req)
@@ -97,13 +97,13 @@ def _item(db: Session, actor: Actor, item_id: str, action: Action) -> Governance
 
 
 @router.put("/governance/items/{item_id}")
-def put_item(item_id: str, payload: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def put_item(item_id: str, payload: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     it = gov.answer_item(db, actor.user, _item(db, actor, item_id, Action.ANSWER_GOVERNANCE), payload)
     return item_out(db, it)
 
 
 @router.post("/governance/items/{item_id}/files")
-def post_file(item_id: str, request: Request, file: UploadFile = File(...), actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def post_file(item_id: str, request: Request, file: UploadFile = File(...), actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     it = _item(db, actor, item_id, Action.ANSWER_GOVERNANCE)
     settings = request.app.state.settings
     data = file.file.read(settings.max_upload_mb * 1024 * 1024 + 1)
@@ -113,13 +113,13 @@ def post_file(item_id: str, request: Request, file: UploadFile = File(...), acto
 
 
 @router.put("/clients/{client_id}/governance/extra")
-def put_extra(client_id: str, body: ExtraIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def put_extra(client_id: str, body: ExtraIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     req = _request(db, actor, client_id, Action.ANSWER_GOVERNANCE)
     return {"extra_fields": gov.save_extra(db, actor.user, req, body.fields)}
 
 
 @router.post("/clients/{client_id}/governance/submit")
-def post_submit(client_id: str, body: SubmitIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def post_submit(client_id: str, body: SubmitIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     req = _request(db, actor, client_id, Action.ANSWER_GOVERNANCE)
     gov.submit(db, request.app.state.settings, actor.user, req, body.accuracy_confirmed)
     return {"status": req.status}

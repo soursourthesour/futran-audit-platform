@@ -85,7 +85,7 @@ def _kpis(db: Session) -> dict:
 
 @router.get("/opportunities")
 def list_opps(trigger: str | None = None, stage: str | None = None, owner: str | None = None, q: str | None = None,
-              actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+              actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.VIEW_OPPORTUNITIES)
     stmt = select(Opportunity)
     if trigger:
@@ -118,7 +118,7 @@ def _actions(db: Session, actor: Actor) -> set[Action]:
 
 
 @router.get("/opportunities/export.csv")
-def export(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def export(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.VIEW_OPPORTUNITIES)
     buf = io.StringIO()
     w = csv.writer(buf)
@@ -147,7 +147,7 @@ class OppIn(BaseModel):
 
 
 @router.post("/opportunities")
-def create_opp(body: OppIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def create_opp(body: OppIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.WORK_OPPORTUNITIES)
     org = db.get(Organization, body.organization_id)
     if org is None or org.type != "client":
@@ -164,7 +164,7 @@ def create_opp(body: OppIn, request: Request, actor: Actor = Depends(current_act
 
 
 @router.get("/opportunities/{opp_id}")
-def get_opp(opp_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_opp(opp_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.VIEW_OPPORTUNITIES)
     o = _get(db, opp_id)
     acts = db.scalars(select(OpportunityActivity).where(OpportunityActivity.opportunity_id == o.id).order_by(OpportunityActivity.at.desc()))
@@ -200,7 +200,7 @@ def _patch(db: Session, actor: Actor, o: Opportunity, body: OppPatch) -> None:
 
 
 @router.patch("/opportunities/{opp_id}")
-def patch_opp(opp_id: str, body: OppPatch, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def patch_opp(opp_id: str, body: OppPatch, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.WORK_OPPORTUNITIES)
     o = _get(db, opp_id)
     before = column_snapshot(o)
@@ -217,7 +217,7 @@ class BulkIn(BaseModel):
 
 
 @router.post("/opportunities/bulk")
-def bulk(body: BulkIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def bulk(body: BulkIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.WORK_OPPORTUNITIES)
     patch = OppPatch(**{k: v for k, v in {"owner_id": body.owner_id, "stage": body.stage}.items() if v is not None})
     n = 0
@@ -244,7 +244,7 @@ class ActivityIn(BaseModel):
 
 
 @router.post("/opportunities/{opp_id}/activities")
-def add_activity(opp_id: str, body: ActivityIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def add_activity(opp_id: str, body: ActivityIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.WORK_OPPORTUNITIES)
     o = _get(db, opp_id)
     if body.kind == "proposal" and not can_send_offer(o):
@@ -260,7 +260,7 @@ class NoteIn(BaseModel):
 
 
 @router.post("/opportunities/{opp_id}/request-approval")
-def request_approval(opp_id: str, body: NoteIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def request_approval(opp_id: str, body: NoteIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.WORK_OPPORTUNITIES)
     o = _get(db, opp_id)
     if not o.needs_ca_approval:
@@ -286,7 +286,7 @@ class DecisionIn(BaseModel):
 
 
 @router.post("/opportunities/{opp_id}/approve")
-def decide(opp_id: str, body: DecisionIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def decide(opp_id: str, body: DecisionIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.APPROVE_OPPORTUNITY)
     o = _get(db, opp_id)
     check_independence(db, o.organization_id, o.service_kind)  # approval never overrides the independence rule
@@ -304,7 +304,7 @@ class ProposalIn(BaseModel):
 
 
 @router.post("/opportunities/{opp_id}/send-proposal")
-def send_proposal(opp_id: str, body: ProposalIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def send_proposal(opp_id: str, body: ProposalIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.WORK_OPPORTUNITIES)
     o = _get(db, opp_id)
     if not can_send_offer(o):

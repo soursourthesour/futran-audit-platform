@@ -80,7 +80,7 @@ def score_out(db: Session, s: AISystem, row: SystemRiskScore | None, futran: boo
 
 
 @router.get("/systems/{system_id}/score")
-def get_score(system_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_score(system_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     s = get_system(db, system_id)
     e = db.get(Engagement, s.engagement_id)
     _can_view(db, actor, e)
@@ -97,7 +97,7 @@ def get_score(system_id: str, actor: Actor = Depends(current_actor), db: Session
 
 
 @router.put("/systems/{system_id}/score/domains/{domain}")
-def put_domain(system_id: str, domain: str, body: DomainIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def put_domain(system_id: str, domain: str, body: DomainIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     s = get_system(db, system_id)
     authorize(db, actor, Action.SCORE_SYSTEM, engagement_id=s.engagement_id)
     raw = body.score
@@ -117,7 +117,7 @@ def _advance(db: Session, actor: Actor, s) -> None:
 
 
 @router.put("/systems/{system_id}/score/override")
-def put_override(system_id: str, body: OverrideIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def put_override(system_id: str, body: OverrideIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     s = get_system(db, system_id)
     authorize(db, actor, Action.SCORE_SYSTEM, engagement_id=s.engagement_id)
     row = svc.override_rating(db, actor.user, s, body.rating or None, body.rationale)
@@ -126,7 +126,7 @@ def put_override(system_id: str, body: OverrideIn, actor: Actor = Depends(curren
 
 
 @router.get("/clients/{client_id}/scorecard")
-def scorecard(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def scorecard(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = db.get(Organization, client_id)
     if org is None or org.type != "client":
         raise NotFound()

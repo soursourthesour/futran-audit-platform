@@ -43,7 +43,7 @@ def set_session_cookie(response: Response, raw: str, settings: Settings) -> None
 
 
 @router.post("/login")
-def login(body: LoginIn, request: Request, response: Response, db: Session = Depends(get_db)):
+def login(body: LoginIn, request: Request, response: Response, db: Session = Depends(get_db, scope="function")):
     settings: Settings = request.app.state.settings
     user = authenticate(db, body.email, body.password, request)
     from app.tenancy.models import Organization
@@ -62,7 +62,7 @@ def login(body: LoginIn, request: Request, response: Response, db: Session = Dep
 
 
 @router.get("/session")
-def session_state(request: Request, db: Session = Depends(get_db)):
+def session_state(request: Request, db: Session = Depends(get_db, scope="function")):
     """Pre-MFA view of the session, so the sign-in screens know what to show."""
     from app.auth.sessions import load_session
 
@@ -80,7 +80,7 @@ def session_state(request: Request, db: Session = Depends(get_db)):
 
 
 @router.post("/mfa/enroll")
-def mfa_enroll(request: Request, s: AuthSession = Depends(current_session), db: Session = Depends(get_db)):
+def mfa_enroll(request: Request, s: AuthSession = Depends(current_session), db: Session = Depends(get_db, scope="function")):
     settings: Settings = request.app.state.settings
     if confirmed_mfa(db, s.user_id):
         raise Conflict("An authenticator app is already set up for this account. Ask an administrator to reset it.")
@@ -102,7 +102,7 @@ def _qr_svg(data: str) -> str:
 
 
 @router.post("/mfa/verify")
-def mfa_verify(body: CodeIn, request: Request, response: Response, s: AuthSession = Depends(current_session), db: Session = Depends(get_db)):
+def mfa_verify(body: CodeIn, request: Request, response: Response, s: AuthSession = Depends(current_session), db: Session = Depends(get_db, scope="function")):
     settings: Settings = request.app.state.settings
     actor = build_actor(db, s, request)
     if recent_mfa_failures(db, actor.id) >= MFA_FAILURES:
@@ -140,14 +140,14 @@ def mfa_verify(body: CodeIn, request: Request, response: Response, s: AuthSessio
 
 
 @router.post("/logout")
-def logout(response: Response, s: AuthSession = Depends(current_session), db: Session = Depends(get_db)):
+def logout(response: Response, s: AuthSession = Depends(current_session), db: Session = Depends(get_db, scope="function")):
     revoke(db, s)
     response.delete_cookie(COOKIE_NAME, path="/")
     return {"ok": True}
 
 
 @router.get("/me")
-def me(request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def me(request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     settings: Settings = request.app.state.settings
     u, o = actor.user, actor.organization
     return {
@@ -177,7 +177,7 @@ def terms_required(actor: Actor) -> bool:
 
 
 @router.post("/terms")
-def accept_terms(body: TermsIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def accept_terms(body: TermsIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """Screen 9a, last step: the client user accepts the terms and that their actions are recorded in the audit log."""
     from app.core.errors import Invalid
 

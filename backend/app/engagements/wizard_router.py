@@ -42,7 +42,7 @@ def _summary(e: Engagement) -> dict:
 
 
 @router.post("")
-def new_client(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def new_client(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.CREATE_CLIENT_ENGAGEMENT)
     org = create_organization(db, name="New client", type="client", actor_id=actor.id, status="draft")
     e = create_engagement(db, actor.user, org, name="New client AI governance audit")
@@ -55,7 +55,7 @@ def new_client(actor: Actor = Depends(current_actor), db: Session = Depends(get_
 
 
 @router.get("/team-options")
-def team_options(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def team_options(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.CREATE_CLIENT_ENGAGEMENT)
     out = []
     users = db.scalars(select(User).join(Organization, Organization.id == User.organization_id).where(Organization.type == "futran", User.status != "disabled", User.deleted_at.is_(None)).order_by(User.name))
@@ -67,7 +67,7 @@ def team_options(actor: Actor = Depends(current_actor), db: Session = Depends(ge
 
 
 @router.get("/{client_id}/wizard")
-def get_wizard(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_wizard(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org, e = _load(db, actor, client_id, Action.VIEW_ENGAGEMENT)
     if not actor.is_futran:  # Futran-internal: engagement reason, conflict confirmations, suggestion reasoning
         raise NotFound()
@@ -75,7 +75,7 @@ def get_wizard(client_id: str, actor: Actor = Depends(current_actor), db: Sessio
 
 
 @router.put("/{client_id}/wizard/{step}")
-def save_step(client_id: str, step: str, payload: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def save_step(client_id: str, step: str, payload: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     if step not in wizard.STEPS:
         raise NotFound()
     org, e = _load(db, actor, client_id)
@@ -95,7 +95,7 @@ def save_step(client_id: str, step: str, payload: dict, actor: Actor = Depends(c
 
 
 @router.get("/{client_id}/suggestions")
-def suggestions(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def suggestions(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org, e = _load(db, actor, client_id, Action.VIEW_ENGAGEMENT)
     if not actor.is_futran:
         raise NotFound()
@@ -110,7 +110,7 @@ def _chief_auditors(db: Session, e: Engagement) -> list[User]:
 
 
 @router.post("/{client_id}/submit")
-def submit(client_id: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def submit(client_id: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org, e = _load(db, actor, client_id)
     if e.status != "draft":
         raise Conflict("This engagement has already been submitted.")
@@ -129,7 +129,7 @@ def submit(client_id: str, request: Request, actor: Actor = Depends(current_acto
 
 
 @router.post("/{client_id}/return")
-def return_to_author(client_id: str, body: ReturnIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def return_to_author(client_id: str, body: ReturnIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org, e = _load(db, actor, client_id, Action.APPROVE_ENGAGEMENT)
     transition(db, actor.user, e, "draft", comment=body.comment)
     author = db.get(User, e.created_by) if e.created_by else None

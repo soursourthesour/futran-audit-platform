@@ -118,7 +118,7 @@ def _futran_view(db: Session, actor: Actor, e: Engagement) -> dict:
 
 
 @router.get("/clients/{client_id}/report")
-def get_report(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_report(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     e = _engagement(db, actor, client_id, Action.VIEW_FINAL_REPORT)
     return _futran_view(db, actor, e) if actor.is_futran else _client_view(db, actor, e)
 
@@ -128,7 +128,7 @@ class GenerateIn(BaseModel):
 
 
 @router.put("/clients/{client_id}/report/summary")
-def put_summary(client_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def put_summary(client_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     assert_not_admin_judgment(actor)
     e = _engagement(db, actor, client_id, Action.RECORD_FINDINGS)
     svc.save_narrative(db, actor.user, e, data)
@@ -136,7 +136,7 @@ def put_summary(client_id: str, data: dict, actor: Actor = Depends(current_actor
 
 
 @router.post("/clients/{client_id}/report/roadmap")
-def add_roadmap(client_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def add_roadmap(client_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     assert_not_admin_judgment(actor)
     e = _engagement(db, actor, client_id, Action.RECORD_FINDINGS)
     return svc.roadmap_out(db, svc.add_roadmap_item(db, actor.user, e, data))
@@ -151,20 +151,20 @@ def _item(db: Session, actor: Actor, item_id: str) -> RoadmapItem:
 
 
 @router.patch("/roadmap-items/{item_id}")
-def patch_roadmap(item_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def patch_roadmap(item_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     assert_not_admin_judgment(actor)
     return svc.roadmap_out(db, svc.update_roadmap_item(db, actor.user, _item(db, actor, item_id), data))
 
 
 @router.delete("/roadmap-items/{item_id}")
-def delete_roadmap(item_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def delete_roadmap(item_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     assert_not_admin_judgment(actor)
     svc.delete_roadmap_item(db, actor.user, _item(db, actor, item_id))
     return {"deleted": True}
 
 
 @router.post("/clients/{client_id}/report/generate")
-def generate(client_id: str, body: GenerateIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def generate(client_id: str, body: GenerateIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     assert_not_admin_judgment(actor)
     e = _engagement(db, actor, client_id, Action.RECORD_FINDINGS)
     return svc.report_out(db, svc.generate(db, request.app.state.settings, actor.user, e, body.version), futran=True)
@@ -176,7 +176,7 @@ class DeclareIn(BaseModel):
 
 
 @router.post("/reports/{report_id}/declarations")
-def declare(report_id: str, body: DeclareIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def declare(report_id: str, body: DeclareIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     r = db.get(Report, report_id)
     if r is None or r.deleted_at is not None:
         raise NotFound()
@@ -188,13 +188,13 @@ def declare(report_id: str, body: DeclareIn, request: Request, actor: Actor = De
 
 
 @router.post("/clients/{client_id}/report/release")
-def release(client_id: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def release(client_id: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     e = _engagement(db, actor, client_id, Action.ADVANCE_STAGE)
     return svc.report_out(db, svc.release_client_draft(db, request.app.state.settings, actor.user, e), futran=True)
 
 
 @router.post("/clients/{client_id}/report/final")
-def prepare_final(client_id: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def prepare_final(client_id: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     from app.signoffs.service import sign_off_out
 
     assert_not_admin_judgment(actor)
@@ -210,7 +210,7 @@ class AckIn(BaseModel):
 
 
 @router.post("/clients/{client_id}/report/acknowledge")
-def acknowledge(client_id: str, body: AckIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def acknowledge(client_id: str, body: AckIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     if actor.is_futran:
         raise Forbidden("The client's authorized representative acknowledges the report.")
     e = _engagement(db, actor, client_id, Action.SIGN_DECLARATION)
@@ -219,7 +219,7 @@ def acknowledge(client_id: str, body: AckIn, request: Request, actor: Actor = De
 
 
 @router.get("/clients/{client_id}/public-summary")
-def get_summary(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_summary(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     from app.signoffs.service import current
 
     e = _engagement(db, actor, client_id, Action.VIEW_FINAL_REPORT)
@@ -229,7 +229,7 @@ def get_summary(client_id: str, actor: Actor = Depends(current_actor), db: Sessi
 
 
 @router.put("/clients/{client_id}/public-summary")
-def put_summary_public(client_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def put_summary_public(client_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     assert_not_admin_judgment(actor)
     e = _engagement(db, actor, client_id, Action.RECORD_FINDINGS)
     ps.save_summary(db, actor.user, e, data)

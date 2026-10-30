@@ -16,13 +16,13 @@ def gate_out(db: Session, e) -> dict:
 
 
 @router.get("/{engagement_id}/gate")
-def get_gate(engagement_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_gate(engagement_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     e = authorize(db, actor, Action.VIEW_ENGAGEMENT, engagement_id=engagement_id)
     return gate_out(db, e)
 
 
 @router.post("/{engagement_id}/advance")
-def advance(engagement_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def advance(engagement_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     e = authorize(db, actor, Action.ADVANCE_STAGE, engagement_id=engagement_id)
     advance_stage(db, actor.user, e)
     return gate_out(db, e)

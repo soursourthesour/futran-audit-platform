@@ -54,13 +54,16 @@ def _check_csrf(request: Request, s: AuthSession) -> None:
         raise Forbidden("Your session security token is missing or out of date. Reload the page and try again.")
 
 
-def current_session(request: Request, db: Session = Depends(get_db)) -> AuthSession:
+def current_session(request: Request, db: Session = Depends(get_db, scope="function")) -> AuthSession:
     """A valid session, MFA not necessarily completed. Used by the MFA endpoints."""
     settings: Settings = request.app.state.settings
     s = load_session(db, request.cookies.get(COOKIE_NAME), settings)
     if s is None:
         raise Unauthorized()
     _check_csrf(request, s)
+    # Commit the session's last-seen time now. On SQLite the touch takes the database write lock, and a request that then
+    # waits on an outside service (address lookup, Claude, a mail provider) would keep every other writer out until it ends.
+    db.commit()
     return s
 
 
@@ -72,7 +75,7 @@ def build_actor(db: Session, s: AuthSession, request: Request | None = None) -> 
     return Actor(user=user, organization=org, roles=roles_of(db, user.id), session=s, request=request)
 
 
-def current_actor(request: Request, db: Session = Depends(get_db)) -> Actor:
+def current_actor(request: Request, db: Session = Depends(get_db, scope="function")) -> Actor:
     s = current_session(request, db)
     settings: Settings = request.app.state.settings
     if settings.mfa_required and not s.mfa_passed:

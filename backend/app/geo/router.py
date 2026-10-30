@@ -20,13 +20,13 @@ def _staff(db: Session, actor: Actor) -> None:
 
 
 @router.get("/suggest")
-def suggest(request: Request, q: str = "", session: str | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def suggest(request: Request, q: str = "", session: str | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     _staff(db, actor)
     return service.suggest(db, request.app.state.settings, q, (session or "")[:80] or None)
 
 
 @router.get("/place")
-def place(request: Request, id: str, session: str | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def place(request: Request, id: str, session: str | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """The parts of a Google suggestion, fetched when the user picks it."""
     _staff(db, actor)
     try:

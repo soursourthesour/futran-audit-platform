@@ -133,7 +133,7 @@ def _claude_available(request: Request) -> bool:
 
 @router.get("/reg/laws")
 def law_library(request: Request, region: str | None = None, status: str | None = None, applies_to: str | None = None, topic: str | None = None, q: str | None = None,
-                show: str = "library", actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+                show: str = "library", actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.VIEW_REG_MASTER)
     ensure_versions(db)
     rows = db.execute(select(Regulation, Jurisdiction).join(Jurisdiction, Jurisdiction.id == Regulation.jurisdiction_id)
@@ -190,7 +190,7 @@ def _req_out(db, r: Requirement) -> dict:
 
 
 @router.get("/reg/laws/{law_id}")
-def law_record(law_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def law_record(law_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.VIEW_REG_MASTER)
     reg = _reg_or_404(db, law_id)
     v = _version(db, reg)
@@ -285,7 +285,7 @@ def _change_type(field_path: str, given: str | None) -> str:
 
 
 @router.post("/reg/laws/{law_id}/proposals")
-def propose_changes(law_id: str, body: ProposalsIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def propose_changes(law_id: str, body: ProposalsIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """Save edits to a law as proposed changes (M1b edit, M2 requirement editor, M4 role levels). Nothing goes live."""
     _authorize_propose(db, actor)
     reg = _reg_or_404(db, law_id)
@@ -312,7 +312,7 @@ class RequirementBulkIn(BaseModel):
 
 
 @router.post("/reg/laws/{law_id}/requirements/bulk")
-def bulk_requirements(law_id: str, body: RequirementBulkIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def bulk_requirements(law_id: str, body: RequirementBulkIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """M2 bulk bar: set role, needed-by or applies-to on the selected requirements (as proposed changes)."""
     authorize(db, actor, Action.PROPOSE_REG_CHANGE)
     reg = _reg_or_404(db, law_id)
@@ -377,7 +377,7 @@ def _role_level_on(db: Session, reg: Regulation, role: RoleCatalog) -> LawRoleMa
 
 
 @router.post("/reg/laws/bulk/preview")
-def bulk_preview(body: BulkIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def bulk_preview(body: BulkIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """Step 4 of M1a: what each role change would do, before saving."""
     authorize(db, actor, Action.PROPOSE_REG_CHANGE)
     regs = _bulk_regs(db, body.ids)
@@ -411,7 +411,7 @@ def bulk_preview(body: BulkIn, actor: Actor = Depends(current_actor), db: Sessio
 
 
 @router.post("/reg/laws/bulk")
-def bulk_edit(body: BulkIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def bulk_edit(body: BulkIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """M1a: tracking fields apply at once; content changes become proposed changes (one batch)."""
     regs = _bulk_regs(db, body.ids)
     content = bool(body.topics_add or body.applies_to_add or [r for r in body.role_levels if r.level != "keep"])
@@ -476,7 +476,7 @@ class DraftIn(BaseModel):
 
 
 @router.post("/reg/laws/draft")
-def draft_with_claude(body: DraftIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def draft_with_claude(body: DraftIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.PROPOSE_REG_CHANGE)
     if not _claude_available(request):
         raise Conflict("Drafting with Claude needs an Anthropic API key in settings. Fill the form by hand, or ask an administrator to add the key.")
@@ -502,7 +502,7 @@ class NewLawIn(BaseModel):
 
 
 @router.post("/reg/laws/new")
-def propose_new_law(body: NewLawIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def propose_new_law(body: NewLawIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """M1b "Send for approval": the whole record as one new-law proposal for the Chief Auditor."""
     authorize(db, actor, Action.PROPOSE_REG_CHANGE)
     law = dict(body.law)
@@ -537,7 +537,7 @@ TOP_LAWS = ["eu_ai_act", "co_sb26_189", "nyc_ll144", "il_hb3773", "ca_ccpa_admt"
 
 
 @router.get("/reg/roles")
-def role_catalogue(laws: str = "top", jurisdiction: str | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def role_catalogue(laws: str = "top", jurisdiction: str | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.VIEW_REG_MASTER)
     ensure_versions(db)
     roles = list(db.scalars(select(RoleCatalog).order_by(RoleCatalog.number)))
@@ -586,7 +586,7 @@ class RoleIn(BaseModel):
 
 
 @router.patch("/reg/roles/{code}")
-def edit_role(code: str, body: RoleIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def edit_role(code: str, body: RoleIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """Catalogue wording, level and default stage. Which laws require the role is changed through proposals."""
     authorize(db, actor, Action.PROPOSE_REG_CHANGE)
     role = db.scalar(select(RoleCatalog).where(RoleCatalog.code == code))
@@ -631,7 +631,7 @@ def _letter_out(db: Session, x: IntroLetter, html: bool = True) -> dict:
 
 
 @router.get("/clients/{client_id}/applicability")
-def applicability(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def applicability(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _client(db, actor, client_id, Action.VIEW_APPLICABILITY)
     rows = engine.run(db, org.id, actor.id)
     geos = []
@@ -681,7 +681,7 @@ class GeoIn(BaseModel):
 
 
 @router.post("/clients/{client_id}/geographies")
-def add_geo(client_id: str, body: GeoIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def add_geo(client_id: str, body: GeoIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _client(db, actor, client_id, Action.EDIT_APPLICABILITY)
     j = db.scalar(select(Jurisdiction).where(Jurisdiction.code == body.jurisdiction_code.strip().upper()))
     if j is None:
@@ -692,7 +692,7 @@ def add_geo(client_id: str, body: GeoIn, actor: Actor = Depends(current_actor), 
 
 
 @router.delete("/clients/{client_id}/geographies/{geo_id}")
-def remove_geo(client_id: str, geo_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def remove_geo(client_id: str, geo_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _client(db, actor, client_id, Action.EDIT_APPLICABILITY)
     g = db.get(ClientGeography, geo_id)
     if g is None or g.organization_id != org.id or g.deleted_at:
@@ -708,7 +708,7 @@ class AnswersIn(BaseModel):
 
 
 @router.put("/clients/{client_id}/applicability/{regulation_id}/answers")
-def put_answers(client_id: str, regulation_id: str, body: AnswersIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def put_answers(client_id: str, regulation_id: str, body: AnswersIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _client(db, actor, client_id, Action.EDIT_APPLICABILITY)
     row = engine.set_answers(db, org.id, regulation_id, body.answers, actor.id)
     audit.record(db, actor_id=actor.id, action="applicability.answers", obj=row, after=body.answers, summary=f"Answered scope questions for {org.name}")
@@ -721,7 +721,7 @@ class OverrideIn(BaseModel):
 
 
 @router.put("/clients/{client_id}/applicability/{regulation_id}/override")
-def put_override(client_id: str, regulation_id: str, body: OverrideIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def put_override(client_id: str, regulation_id: str, body: OverrideIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _client(db, actor, client_id, Action.EDIT_APPLICABILITY)
     row = engine.override(db, org.id, regulation_id, body.in_scope, body.reason, actor.id)
     audit.record(db, actor_id=actor.id, action="applicability.override", obj=row, after={"in_scope": body.in_scope, "reason": body.reason}, summary=f"Set a law {'in' if body.in_scope else 'out of' if body.in_scope is False else 'back to automatic'} scope for {org.name}")
@@ -736,7 +736,7 @@ def _letter(db: Session, org: Organization, letter_id: str) -> IntroLetter:
 
 
 @router.post("/clients/{client_id}/letters")
-def draft_letter(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def draft_letter(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _client(db, actor, client_id, Action.EDIT_APPLICABILITY)
     return _letter_out(db, letters.draft(db, org, actor.user))
 
@@ -747,19 +747,19 @@ class LetterEditIn(BaseModel):
 
 
 @router.patch("/clients/{client_id}/letters/{letter_id}")
-def edit_letter(client_id: str, letter_id: str, body: LetterEditIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def edit_letter(client_id: str, letter_id: str, body: LetterEditIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _client(db, actor, client_id, Action.EDIT_APPLICABILITY)
     return _letter_out(db, letters.edit(db, _letter(db, org, letter_id), actor.user, body.opening, body.closing))
 
 
 @router.post("/clients/{client_id}/letters/{letter_id}/approve")
-def approve_letter(client_id: str, letter_id: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def approve_letter(client_id: str, letter_id: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _client(db, actor, client_id, Action.APPROVE_INTRO_LETTER)
     return _letter_out(db, letters.approve(db, request.app.state.settings, _letter(db, org, letter_id), actor.user))
 
 
 @router.post("/clients/{client_id}/letters/{letter_id}/send")
-def send_letter(client_id: str, letter_id: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def send_letter(client_id: str, letter_id: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _client(db, actor, client_id, Action.APPROVE_INTRO_LETTER)
     return _letter_out(db, letters.send(db, request.app.state.settings, _letter(db, org, letter_id), actor.user))
 

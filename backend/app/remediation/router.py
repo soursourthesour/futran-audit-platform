@@ -39,7 +39,7 @@ def _visible(db: Session, actor: Actor, dept_id: str | None, owner_id: str | Non
 
 
 @router.get("/clients/{client_id}/responses")
-def list_responses(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def list_responses(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """Every approved finding with its response; the client sees the findings in its scope from the draft report on."""
     from app.signoffs.service import SIGNOFF_SPECS, _can_prepare, current, sign_off_out
 
@@ -85,7 +85,7 @@ def _can(db: Session, actor: Actor, action: Action, e: Engagement, dept: str | N
 
 
 @router.put("/findings/{finding_id}/response")
-def put_response(finding_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def put_response(finding_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     f = db.get(Finding, finding_id)
     if f is None or f.deleted_at is not None:
         raise NotFound()
@@ -102,7 +102,7 @@ class AdequacyIn(BaseModel):
 
 
 @router.post("/responses/{response_id}/adequacy")
-def adequacy(response_id: str, body: AdequacyIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def adequacy(response_id: str, body: AdequacyIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     assert_not_admin_judgment(actor)
     r = db.get(ManagementResponse, response_id)
     if r is None or r.deleted_at is not None:
@@ -113,7 +113,7 @@ def adequacy(response_id: str, body: AdequacyIn, request: Request, actor: Actor 
 
 
 @router.get("/clients/{client_id}/remediation")
-def list_items(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def list_items(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     e = _engagement(db, actor, client_id, Action.VIEW_FINDINGS_RESPONSES, list_view=True)
     if not actor.is_futran and e.stage < 7:
         raise Forbidden("Remediation starts with the draft report.")
@@ -144,33 +144,33 @@ class NoteIn(BaseModel):
 
 
 @router.post("/remediation/{item_id}/start")
-def start(item_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def start(item_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     item = _item(db, actor, item_id, Action.VIEW_FINDINGS_RESPONSES)
     return svc.item_out(db, svc.start(db, actor, item))
 
 
 @router.post("/remediation/{item_id}/done")
-def done(item_id: str, body: NoteIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def done(item_id: str, body: NoteIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     item = _item(db, actor, item_id, Action.VIEW_FINDINGS_RESPONSES)
     return svc.item_out(db, svc.mark_done(db, request.app.state.settings, actor, item, body.note))
 
 
 @router.post("/remediation/{item_id}/verify")
-def verify(item_id: str, body: NoteIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def verify(item_id: str, body: NoteIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     assert_not_admin_judgment(actor)
     item = _item(db, actor, item_id, Action.VERIFY_REMEDIATION)
     return svc.item_out(db, svc.verify(db, actor.user, item, body.note))
 
 
 @router.post("/remediation/{item_id}/close")
-def close(item_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def close(item_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     assert_not_admin_judgment(actor)
     item = _item(db, actor, item_id, Action.CLOSE_REMEDIATION)
     return svc.item_out(db, svc.close(db, actor.user, item))
 
 
 @router.post("/remediation/{item_id}/reopen")
-def reopen(item_id: str, body: NoteIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def reopen(item_id: str, body: NoteIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     assert_not_admin_judgment(actor)
     if not actor.is_futran:
         raise Forbidden("Futran reopens remediation items.")

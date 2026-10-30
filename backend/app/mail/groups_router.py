@@ -101,7 +101,7 @@ def _depts(db: Session, org_id: str) -> dict:
 
 
 @router.get("/groups")
-def list_groups(client_id: str | None = None, owner: str | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def list_groups(client_id: str | None = None, owner: str | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _org(db, actor, client_id, owner)
     _view(db, actor, org)
     ensure_default_groups(db, org.id)
@@ -121,7 +121,7 @@ def list_groups(client_id: str | None = None, owner: str | None = None, actor: A
 
 
 @router.post("/groups")
-def new_group(data: dict, client_id: str | None = None, owner: str | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def new_group(data: dict, client_id: str | None = None, owner: str | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _org(db, actor, client_id, owner)
     dept = data.get("department_id") or None
     _manage(db, actor, org, dept)
@@ -135,7 +135,7 @@ def new_group(data: dict, client_id: str | None = None, owner: str | None = None
 
 
 @router.get("/groups/{group_id}")
-def get_group(group_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def get_group(group_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     g, org = _group(db, actor, group_id)
     depts = _depts(db, org.id)
     can = _may(db, actor, Action.MANAGE_FUTRAN_GROUPS) if org.type == "futran" else _may(db, actor, Action.MANAGE_CLIENT_GROUPS, org_id=org.id, department_id=g.department_id)
@@ -160,7 +160,7 @@ def get_group(group_id: str, actor: Actor = Depends(current_actor), db: Session 
 
 
 @router.patch("/groups/{group_id}")
-def edit_group(group_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def edit_group(group_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     g, org = _group(db, actor, group_id)
     _manage(db, actor, org, g.department_id)
     before = {"name": g.name, "purpose": g.purpose, "rule": g.rule, "exclude_on_leave": g.exclude_on_leave, "exclusions": list(g.exclusions or [])}
@@ -197,7 +197,7 @@ def edit_group(group_id: str, data: dict, actor: Actor = Depends(current_actor),
 
 
 @router.delete("/groups/{group_id}")
-def delete_group(group_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def delete_group(group_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     g, org = _group(db, actor, group_id)
     _manage(db, actor, org, g.department_id)
     if g.is_default:
@@ -210,7 +210,7 @@ def delete_group(group_id: str, actor: Actor = Depends(current_actor), db: Sessi
 
 
 @router.post("/groups/{group_id}/members")
-def add_group_member(group_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def add_group_member(group_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     g, org = _group(db, actor, group_id)
     _manage(db, actor, org, g.department_id)
     person_id = data.get("person_id")
@@ -227,7 +227,7 @@ def add_group_member(group_id: str, data: dict, actor: Actor = Depends(current_a
 
 
 @router.delete("/groups/{group_id}/members/{member_id}")
-def remove_group_member(group_id: str, member_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def remove_group_member(group_id: str, member_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     g, org = _group(db, actor, group_id)
     _manage(db, actor, org, g.department_id)
     remove_member(db, g, member_id)
@@ -236,7 +236,7 @@ def remove_group_member(group_id: str, member_id: str, actor: Actor = Depends(cu
 
 
 @router.post("/groups/{group_id}/import")
-def import_members(group_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def import_members(group_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """CSV with columns email and name (a header row is optional)."""
     g, org = _group(db, actor, group_id)
     _manage(db, actor, org, g.department_id)
@@ -257,7 +257,7 @@ def import_members(group_id: str, data: dict, actor: Actor = Depends(current_act
 
 
 @router.post("/groups/{group_id}/duplicate")
-def duplicate_group(group_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def duplicate_group(group_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     g, org = _group(db, actor, group_id)
     _manage(db, actor, org, g.department_id)
     n, name = 2, f"{g.name} (copy)"
@@ -275,7 +275,7 @@ def duplicate_group(group_id: str, actor: Actor = Depends(current_actor), db: Se
 
 
 @router.get("/groups/{group_id}/export")
-def export_group(group_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def export_group(group_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     g, org = _group(db, actor, group_id)
     depts = _depts(db, org.id)
     rows = [[p.name, p.email, depts.get(p.department_id) or p.department or "", p.job_title or "", p.office or ""] for p in active_members(db, g)]
@@ -285,7 +285,7 @@ def export_group(group_id: str, actor: Actor = Depends(current_actor), db: Sessi
 
 
 @router.post("/groups/sync")
-def sync_groups(data: dict, client_id: str | None = None, owner: str | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db),
+def sync_groups(data: dict, client_id: str | None = None, owner: str | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"),
                 settings=Depends(get_settings_dep)):
     """Sync now: run the directory sync (when connected) and refresh the chosen groups."""
     org = _org(db, actor, client_id, owner)
@@ -304,7 +304,7 @@ def sync_groups(data: dict, client_id: str | None = None, owner: str | None = No
 
 
 @router.post("/groups/import-directory")
-def import_directory_groups(data: dict, client_id: str | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def import_directory_groups(data: dict, client_id: str | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _org(db, actor, client_id, None)
     authorize(db, actor, Action.MANAGE_CLIENT_GROUPS, org_id=org.id)
     made = []
@@ -321,7 +321,7 @@ def import_directory_groups(data: dict, client_id: str | None = None, actor: Act
 
 
 @router.get("/people")
-def search_people(q: str = "", client_id: str | None = None, owner: str | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def search_people(q: str = "", client_id: str | None = None, owner: str | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _org(db, actor, client_id, owner)
     if org.type == "futran":
         authorize(db, actor, Action.MANAGE_FUTRAN_GROUPS)
@@ -391,7 +391,7 @@ def _expand_args(db: Session, actor: Actor, data: dict) -> dict:
 
 
 @router.get("/send/options")
-def send_options(client_id: str | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db), settings=Depends(get_settings_dep)):
+def send_options(client_id: str | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     ctx = _send_context(db, actor, {"client_id": client_id})
     org, e = ctx["org"], ctx["engagement"]
     ensure_default_groups(db, org.id)
@@ -433,7 +433,7 @@ def _sample(db: Session, a: dict, data: dict, person: DirectoryPerson | None, se
 
 
 @router.post("/send/preview")
-def send_preview(data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db), settings=Depends(get_settings_dep)):
+def send_preview(data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     a = _expand_args(db, actor, data)
     ex = _expansion(db, a, data)
     from app.mail.delivery import resolve_sender
@@ -445,7 +445,7 @@ def send_preview(data: dict, actor: Actor = Depends(current_actor), db: Session 
 
 
 @router.post("/send/people.csv")
-def send_people_csv(data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def send_people_csv(data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     a = _expand_args(db, actor, data)
     ex = _expansion(db, a, data)
     depts = _depts(db, a["ctx"]["org"].id)
@@ -454,7 +454,7 @@ def send_people_csv(data: dict, actor: Actor = Depends(current_actor), db: Sessi
 
 
 @router.post("/send")
-def send(data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db), settings=Depends(get_settings_dep)):
+def send(data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     a = _expand_args(db, actor, data)
     when = None
     if data.get("scheduled_at"):
@@ -472,7 +472,7 @@ def send(data: dict, actor: Actor = Depends(current_actor), db: Session = Depend
 
 
 @router.post("/send/test")
-def send_test_to_me(data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db), settings=Depends(get_settings_dep)):
+def send_test_to_me(data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     a = _expand_args(db, actor, {**data, "group_ids": data.get("group_ids") or []})
     from app.mail import delivery
 
@@ -537,7 +537,7 @@ def _visible_send(db: Session, actor: Actor, s: MailSend) -> bool:
 
 @router.get("/log/sends")
 def log_sends(client_id: str | None = None, template: str | None = None, group: str | None = None, days: int = 30, actor: Actor = Depends(current_actor),
-              db: Session = Depends(get_db)):
+              db: Session = Depends(get_db, scope="function")):
     orgs, engs, depts = _log_scope(db, actor, client_id)
     stmt = select(MailSend).where(MailSend.kind != "test", MailSend.created_at >= utcnow() - timedelta(days=max(1, min(days, 3650))))
     if orgs is not None:
@@ -564,7 +564,7 @@ def _send(db: Session, actor: Actor, send_id: str) -> MailSend:
 
 
 @router.get("/log/sends/{send_id}")
-def log_send(send_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def log_send(send_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     s = _send(db, actor, send_id)
     msg = db.scalar(select(OutboxMessage).where(OutboxMessage.mail_send_id == s.id).order_by(OutboxMessage.created_at).limit(1))
     recips = list(db.scalars(select(MailRecipient).where(MailRecipient.send_id == s.id).order_by(MailRecipient.name, MailRecipient.email)))
@@ -590,7 +590,7 @@ def _act_on_send(db: Session, actor: Actor, s: MailSend) -> None:
 
 
 @router.post("/log/sends/{send_id}/remind")
-def log_remind(send_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db), settings=Depends(get_settings_dep)):
+def log_remind(send_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     s = _send(db, actor, send_id)
     _act_on_send(db, actor, s)
     if s.kind not in ("group", "reminder"):
@@ -602,7 +602,7 @@ def log_remind(send_id: str, actor: Actor = Depends(current_actor), db: Session 
 
 
 @router.post("/log/sends/{send_id}/resend-bounced")
-def log_resend_bounced(send_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db), settings=Depends(get_settings_dep)):
+def log_resend_bounced(send_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     s = _send(db, actor, send_id)
     _act_on_send(db, actor, s)
     bounced = list(db.scalars(select(MailRecipient).where(MailRecipient.send_id == s.id, MailRecipient.status == "bounced")))
@@ -617,7 +617,7 @@ def log_resend_bounced(send_id: str, actor: Actor = Depends(current_actor), db: 
 
 
 @router.get("/log/sends/{send_id}/export")
-def log_export(send_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def log_export(send_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     s = _send(db, actor, send_id)
     rows = [[r.name or "", r.email, r.status, r.reminders_sent, r.opened_at.strftime("%Y-%m-%d %H:%M") if r.opened_at else "", r.completed_at.strftime("%Y-%m-%d %H:%M") if r.completed_at else "",
              r.error or ""] for r in db.scalars(select(MailRecipient).where(MailRecipient.send_id == s.id).order_by(MailRecipient.email))]
@@ -630,7 +630,7 @@ CATEGORY_LABELS = {"connection": "Email connection", "consent": "Approved access
 
 
 @router.get("/log/admin")
-def log_admin(client_id: str | None = None, category: str | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def log_admin(client_id: str | None = None, category: str | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     orgs, engs, depts = _log_scope(db, actor, client_id)
     if actor.is_futran and orgs is None and engs is not None:
         orgs = set(db.scalars(select(Engagement.client_id).where(Engagement.id.in_(engs)))) | {actor.organization.id}
@@ -643,7 +643,7 @@ def log_admin(client_id: str | None = None, category: str | None = None, actor: 
 
 # ---- templates
 @router.get("/templates")
-def list_templates(client_id: str | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def list_templates(client_id: str | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     if actor.is_futran and not client_id:
         authorize(db, actor, Action.VIEW_FUTRAN_GROUPS)
         library.ensure_defaults(db)
@@ -662,7 +662,7 @@ def _may_edit(db: Session, actor: Actor, t: MailTemplate) -> bool:
 
 
 @router.post("/templates/{key}/copy")
-def copy_template(key: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def copy_template(key: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     if actor.is_futran:
         raise Forbidden("Clients copy and edit their own templates.")
     authorize(db, actor, Action.EDIT_MAIL_TEMPLATES, org_id=actor.organization.id)
@@ -674,7 +674,7 @@ def copy_template(key: str, actor: Actor = Depends(current_actor), db: Session =
 
 
 @router.put("/templates/{template_id}")
-def edit_template(template_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+def edit_template(template_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     t = db.get(MailTemplate, template_id)
     if t is None or t.deleted_at is not None or (t.organization_id != FUTRAN_OWNER and (actor.is_futran or t.organization_id != actor.organization.id)):
         raise NotFound()
