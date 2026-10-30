@@ -3,7 +3,7 @@ does no research: every proposal it makes says so in its summary, so nobody mist
 import json
 import re
 
-from app.refresh.claude import FakeRefreshClient
+from app.refresh.claude import FakeRefreshClient, cites_of
 
 NOTE = "Test client proposal, not research"
 
@@ -45,7 +45,8 @@ class DemoClient(FakeRefreshClient):
     def propose(self, *, system, prompt, schema, allowed_domains):
         self.replies = {}
         reply = super().propose(system=system, prompt=prompt, schema=schema, allowed_domains=allowed_domains)
-        reply.text = json.dumps(_reply(prompt))
+        made = _reply(prompt)
+        reply.text, reply.cited = json.dumps(made), cites_of(made)
         return reply
 
 

@@ -20,6 +20,9 @@ class ClaudeReply:
     input_tokens: int = 0
     output_tokens: int = 0
     searches: int = 0
+    # pages web search cited and the passages it cited from each ({url: [passage, ...]}); the pipeline checks every
+    # change's source_url and source_quote against these. None = the client reported no citations at all.
+    cited: dict[str, list[str]] | None = None
 
 
 class StructuredClaude(Protocol):
@@ -95,19 +98,33 @@ class AnthropicStructuredClient:
         )
         count(msg)
         texts = [getattr(b, "text", "") for b in msg.content if getattr(b, "type", "") == "text"]
-        return ClaudeReply(text=texts[-1] if texts else "", model=model, input_tokens=totals["in"], output_tokens=totals["out"], searches=totals["searches"])
+        return ClaudeReply(text=texts[-1] if texts else "", model=model, input_tokens=totals["in"], output_tokens=totals["out"], searches=totals["searches"],
+                           cited=cited)
+
+
+def cites_of(reply) -> dict[str, list[str]]:
+    """What a search would have cited for this reply: each change's own page and quote (the fakes' default)."""
+    out: dict[str, list[str]] = {}
+    for item in (reply.get("changes") or []) if isinstance(reply, dict) else []:
+        if isinstance(item, dict) and item.get("source_url") and item.get("source_quote"):
+            out.setdefault(item["source_url"], []).append(item["source_quote"])
+    return out
 
 
 @dataclass
 class FakeRefreshClient:
     """Returns canned replies by jurisdiction code (law runs) or `litigation:<code>` (litigation runs).
-    A reply is a dict (sent back as JSON) or a str (sent back as is, to test free-text rejection)."""
+    A reply is a dict (sent back as JSON) or a str (sent back as is, to test free-text rejection).
+
+    `citations` maps the same keys to what the searches cited ({url: [passage, ...]}); a key that is not listed cites
+    each change's own page and quote, as a search that found them would."""
 
     replies: dict = field(default_factory=dict)
     model: str = "fake-claude"
     tokens: tuple[int, int] = (12000, 1500)
     searches: int = 3
     calls: list = field(default_factory=list)
+    citations: dict = field(default_factory=dict)
 
     def propose(self, *, system: str, prompt: str, schema: dict, allowed_domains: list[str]) -> ClaudeReply:
         key = _key_from(prompt)
@@ -116,7 +133,8 @@ class FakeRefreshClient:
         if callable(reply):
             reply = reply(prompt)
         text = reply if isinstance(reply, str) else json.dumps(reply)
-        return ClaudeReply(text=text, model=self.model, input_tokens=self.tokens[0], output_tokens=self.tokens[1], searches=self.searches)
+        cited = self.citations[key] if key in self.citations else cites_of(reply)
+        return ClaudeReply(text=text, model=self.model, input_tokens=self.tokens[0], output_tokens=self.tokens[1], searches=self.searches, cited=cited)
 
 
 def _key_from(prompt: str) -> str:

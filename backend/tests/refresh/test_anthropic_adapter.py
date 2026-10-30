@@ -84,3 +84,10 @@ def test_usage_adds_up_across_both_steps(adapter):
     reply = a.propose(system="s", prompt="Jurisdiction code: US-IL", schema=SCHEMA, allowed_domains=[])
     assert (reply.input_tokens, reply.output_tokens, reply.searches) == (3500, 470, 3)
     assert reply.model == "claude-test"
+
+
+def test_the_reply_carries_the_pages_and_passages_web_search_cited(adapter):
+    """The JSON step has no tools, so its links and quotes are checked later against what the searches really cited."""
+    a, _ = adapter
+    reply = a.propose(system="s", prompt="Jurisdiction code: US-IL", schema=SCHEMA, allowed_domains=["ilga.gov"])
+    assert reply.cited == {URL: [QUOTE]}

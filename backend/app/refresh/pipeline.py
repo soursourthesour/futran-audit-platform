@@ -171,6 +171,33 @@ def on_allowlist(url: str, domains: list[str]) -> bool:
     return bool(h) and any(h == d or h.endswith("." + d) for d in domains)
 
 
+def _ws(text: str | None) -> str:
+    return " ".join((text or "").split())
+
+
+def _page(url: str) -> str:
+    """A cited page, compared without scheme, a leading www, a fragment or a trailing slash; the host is case-blind."""
+    p = urlparse((url or "").strip())
+    host = (p.hostname or "").lower()
+    host = host[4:] if host.startswith("www.") else host
+    return f"{host}{p.path.rstrip('/')}" + (f"?{p.query}" if p.query else "")
+
+
+def citation_supported(cited: dict[str, list[str]] | None, url: str, quote: str) -> bool:
+    """True when `url` is a page web search cited and `quote` comes from what it cited there (whitespace normalised;
+    the quote may be part of a passage, or run across the passages cited from that page)."""
+    if not cited or not (quote or "").strip():
+        return False
+    want, q = _page(url), _ws(quote)
+    for page, passages in cited.items():
+        if _page(page) != want:
+            continue
+        texts = [_ws(p) for p in passages or []]
+        if any(q in t for t in texts) or q in " ".join(texts):
+            return True
+    return False
+
+
 def _domains(sources: list[Source]) -> list[str]:
     out = set()
     for s in sources:
@@ -235,7 +262,7 @@ def dedupe_key(kind: str, ref: str, field_path: str, new_value) -> str:
 
 
 def _process_item(db: Session, run: RefreshRun, j: Jurisdiction, i: int, raw: dict, domains: list[str], regs: dict[str, Regulation],
-                  cases: dict[str, Case], warnings: list[str]) -> str:
+                  cases: dict[str, Case], warnings: list[str], official: list[str] | None = None, cited: dict | None = None) -> str:
     label = f"{j.code}, item {i}"
     try:
         it = ItemIn.model_validate(raw)
@@ -265,7 +292,11 @@ def _process_item(db: Session, run: RefreshRun, j: Jurisdiction, i: int, raw: di
             return "skipped"
     new_value = _parse_value(it.new_value)
     off = not on_allowlist(it.source_url, domains)
-    confidence = "low" if off else it.confidence
+    secondary = not off and not on_allowlist(it.source_url, official if official is not None else domains)  # a law-firm alert, not an official source
+    uncited = not citation_supported(cited, it.source_url, it.source_quote)
+    if uncited:
+        warnings.append(f"{label}: the link or quote is not among the passages the search cited; marked low confidence for a second review.")
+    confidence = "low" if off or secondary or uncited else it.confidence
     if run.kind == "law":
         return _propose_law(db, run, j, label, it, reg, new_value, confidence, off, warnings)
     return _propose_case(db, run, j, label, it, case, new_value, confidence, off, domains, warnings)
@@ -306,7 +337,7 @@ def _propose_law(db: Session, run: RefreshRun, j: Jurisdiction, label: str, it: 
         return "skipped"
     if before is not None and pc.id == before:
         return _merge(db, run, pc)
-    db.add(RefreshProposalMeta(proposed_change_id=pc.id, kind="law", run_ids=[run.id], seen_count=1, off_allowlist=off or pc.confidence == "low" and it.confidence != "low",
+    db.add(RefreshProposalMeta(proposed_change_id=pc.id, kind="law", run_ids=[run.id], seen_count=1, off_allowlist=off or pc.source_id is None,
                                claude_confidence=it.confidence, needs_second_review=master.needs_second_review(pc)))
     db.flush()
     return "created"
@@ -390,6 +421,7 @@ def execute_run(db: Session, settings: Settings, run: RefreshRun, client: Struct
                 records = _law_records(db, list(regs.values()))
             sources = allowlist(db, j, run.source_set)
             domains = _domains(sources)
+            official = _domains([s for s in sources if s.kind == "official"])
             prompt = build_prompt(db, run, j, records, sources)
             run.sources_read += len(sources)
             run.records_compared += len(records)
@@ -412,7 +444,7 @@ def execute_run(db: Session, settings: Settings, run: RefreshRun, client: Struct
                 responses.append(entry)
                 continue
             for i, raw in enumerate(items, start=1):
-                result = _process_item(db, run, j, i, raw, domains, regs, cases, warnings)
+                result = _process_item(db, run, j, i, raw, domains, regs, cases, warnings, official=official, cited=getattr(reply, "cited", None))
                 entry[{"created": "accepted", "merged": "merged", "skipped": "skipped"}[result]] += 1
                 if result == "created":
                     run.proposals_created += 1
