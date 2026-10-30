@@ -75,3 +75,21 @@ def clone_version(db, old, regulation_id: str | None = None, summary: str | None
             db.add(model(law_version_id=new.id, **{c.key: getattr(row, c.key) for c in model.__table__.columns if c.key not in ("id", "law_version_id")}))
     db.flush()
     return new
+
+
+def deadline_keys(db, reg, deadline, suffix: str | None = None) -> tuple[str, list[str]]:
+    """(key, every key that counts as the same) for something sent once per law and deadline: a client's 90- and
+    30-day alerts and a Sales opportunity. The key is the law's first row (stable through Reference data edits, which
+    replace the row) and the date, so a new version with the same date is not news. Keys written before this used
+    the version id ("date:<version id>[:<mark>]"); those still count for any version of the law with this date."""
+    from sqlalchemy import or_, select
+
+    from app.laws.publish import chain_ids
+    from app.regmaster.models import LawVersion
+
+    ids = chain_ids(db, reg.id) or [reg.id]
+    tail = f":{suffix}" if suffix else ""
+    key = f"date:{ids[0]}:{deadline.isoformat()}{tail}"
+    same = db.scalars(select(LawVersion.id).where(LawVersion.regulation_id.in_(ids), or_(LawVersion.compliance_on == deadline,
+                                                                                          (LawVersion.compliance_on.is_(None)) & (LawVersion.effective_on == deadline))))
+    return key, [key, *(f"date:{vid}{tail}" for vid in same)]

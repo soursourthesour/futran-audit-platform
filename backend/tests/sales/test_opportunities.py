@@ -158,3 +158,25 @@ def test_recommended_tracing_addon_opens_one_opportunity_per_client(db, lit):
     assert o.organization_id == lit["abc"].id and o.trigger == "recommended_addon" and o.addon_status == "recommended"
     assert set(o.system_ids) == {lit["screening"].id, lit["chatbot"].id} and "2 systems" in o.service
     assert open_recommended_addon_opportunities(db) == []  # once per client
+
+
+def test_effective_date_opportunity_is_not_reopened_by_a_new_version(db, lit):
+    from datetime import date, timedelta
+
+    from app.laws.publish import current_regulations
+    from app.regmaster.models import ClientLawApplicability, LawVersion
+    from app.regmaster.versioning import clone_version
+    from app.sales.service import open_effective_date_opportunities
+
+    reg = current_regulations(db)[0]
+    v = LawVersion(regulation_id=reg.id, version_no=9, compliance_on=date(2027, 1, 1))
+    db.add(v)
+    db.flush()
+    reg.current_version_id = v.id
+    db.add(ClientLawApplicability(organization_id=lit["abc"].id, regulation_id=reg.id, law_version_id=v.id, in_scope=True))
+    db.commit()
+    assert len(open_effective_date_opportunities(db, date(2027, 1, 1) - timedelta(days=60))) == 1
+    v2 = clone_version(db, v, summary="Wording")
+    reg.current_version_id = v2.id
+    db.commit()
+    assert open_effective_date_opportunities(db, date(2027, 1, 1) - timedelta(days=50)) == []

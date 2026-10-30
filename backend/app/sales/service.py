@@ -79,22 +79,28 @@ def can_send_offer(o: Opportunity) -> bool:
 
 def open_effective_date_opportunities(db: Session, on) -> list[Opportunity]:
     """Daily: a law the client is in scope of reaches its compliance (or effective) date within 90 days (§27.5).
-    Returns only the opportunities created today; one per client and law version."""
+    Returns only the opportunities created today; one per client, law and date."""
     from app.laws.models import Regulation
     from app.regmaster.models import ClientLawApplicability, LawVersion
 
+    from app.laws.publish import chain_ids
+    from app.regmaster.versioning import deadline_keys
+
     out = []
-    for reg in db.scalars(select(Regulation).where(Regulation.current_version_id.is_not(None))):
+    live = (Regulation.current_version_id.is_not(None), Regulation.superseded_by_id.is_(None), Regulation.retired_in_version_id.is_(None))
+    for reg in db.scalars(select(Regulation).where(*live)):
         v = db.get(LawVersion, reg.current_version_id)
         d = (v.compliance_on or v.effective_on) if v else None
         if d is None or not 0 <= (d - on).days <= 90:
             continue
-        for row in db.scalars(select(ClientLawApplicability).where(ClientLawApplicability.regulation_id == reg.id, ClientLawApplicability.in_scope.is_(True))):
-            ref = f"date:{v.id}"
-            if db.scalar(select(Opportunity.id).where(Opportunity.organization_id == row.organization_id, Opportunity.trigger == "effective_date", Opportunity.trigger_ref == ref)):
+        ids = chain_ids(db, reg.id) or [reg.id]
+        ref, same = deadline_keys(db, reg, d)  # one per client, law and date (a new version with the same date is not news)
+        rows = db.scalars(select(ClientLawApplicability).where(ClientLawApplicability.regulation_id.in_(ids), ClientLawApplicability.in_scope.is_(True), ClientLawApplicability.deleted_at.is_(None)))
+        for org_id in dict.fromkeys(r.organization_id for r in rows):
+            if db.scalar(select(Opportunity.id).where(Opportunity.organization_id == org_id, Opportunity.trigger == "effective_date", Opportunity.trigger_ref.in_(same)).limit(1)):
                 continue
             try:
-                out.append(open_from_trigger(db, row.organization_id, "effective_date", ref, service=f"{reg.short_name} readiness review"[:200], service_kind="readiness",
+                out.append(open_from_trigger(db, org_id, "effective_date", ref, service=f"{reg.short_name} readiness review"[:200], service_kind="readiness",
                                              why_now=f"{reg.short_name} applies from {d.day} {d:%B %Y}"))
             except IndependenceError:
                 continue

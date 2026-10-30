@@ -131,7 +131,11 @@ def queue_effective_dates(db: Session, settings: Settings, on: date) -> list[Ale
         return []
     marks = sorted(rule.days_before or [90, 30], reverse=True)
     out = []
-    for reg in db.scalars(select(Regulation).where(Regulation.current_version_id.is_not(None))):
+    from app.laws.publish import chain_ids
+    from app.regmaster.versioning import deadline_keys
+
+    live = (Regulation.current_version_id.is_not(None), Regulation.superseded_by_id.is_(None), Regulation.retired_in_version_id.is_(None))
+    for reg in db.scalars(select(Regulation).where(*live)):
         v = db.get(LawVersion, reg.current_version_id)
         d = _deadline(v)
         if d is None:
@@ -140,12 +144,15 @@ def queue_effective_dates(db: Session, settings: Settings, on: date) -> list[Ale
         for i, mark in enumerate(marks):
             lower = marks[i + 1] if i + 1 < len(marks) else -1
             if lower < left <= mark:
-                for app_row in db.scalars(select(ClientLawApplicability).where(ClientLawApplicability.regulation_id == reg.id, ClientLawApplicability.in_scope.is_(True))):
-                    ref = f"date:{v.id}:{mark}"
-                    if db.scalar(select(AlertSend.id).where(AlertSend.alert_rule_id == rule.id, AlertSend.organization_id == app_row.organization_id, AlertSend.change_ref == ref)):
+                ids = chain_ids(db, reg.id) or [reg.id]
+                ref, same = deadline_keys(db, reg, d, str(mark))
+                rows = db.scalars(select(ClientLawApplicability).where(ClientLawApplicability.regulation_id.in_(ids), ClientLawApplicability.in_scope.is_(True),
+                                                                       ClientLawApplicability.deleted_at.is_(None)))
+                for org_id in dict.fromkeys(r.organization_id for r in rows):
+                    if db.scalar(select(AlertSend.id).where(AlertSend.alert_rule_id == rule.id, AlertSend.organization_id == org_id, AlertSend.change_ref.in_(same)).limit(1)):
                         continue
-                    systems = list(db.scalars(select(RegisterSystemLaw.register_system_id).where(RegisterSystemLaw.organization_id == app_row.organization_id, RegisterSystemLaw.regulation_id == reg.id, RegisterSystemLaw.status == "active")))
-                    out.append(_queue(db, settings, rule, app_row.organization_id, ref, f"{reg.short_name}: {mark} days to {d.day} {d:%B %Y}", systems, _todos(db, v, reg.short_name), d))
+                    systems = list(db.scalars(select(RegisterSystemLaw.register_system_id).where(RegisterSystemLaw.organization_id == org_id, RegisterSystemLaw.regulation_id.in_(ids), RegisterSystemLaw.status == "active", RegisterSystemLaw.deleted_at.is_(None))))
+                    out.append(_queue(db, settings, rule, org_id, ref, f"{reg.short_name}: {mark} days to {d.day} {d:%B %Y}", systems, _todos(db, v, reg.short_name), d))
     return out
 
 
