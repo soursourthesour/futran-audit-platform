@@ -107,6 +107,11 @@ def generate_package(db: Session, settings: Settings, actor: User | None, e: Eng
         db.flush()
         _write_files(db, settings, actor, e, doc)
     db.flush()
+    from app.regmaster.letter import attach_to_package, latest_approved  # §25.8: the intro letter goes with the package
+
+    intro = latest_approved(db, e.client_id)
+    if intro is not None:
+        attach_to_package(db, settings, actor, intro, pkg)
     audit.record(db, actor_id=actor.id if actor else None, action="package.generate", obj=pkg, summary=f"Generated initiation package v{pkg.version} for {e.audit_ref}")
     return pkg
 

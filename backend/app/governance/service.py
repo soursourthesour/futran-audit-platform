@@ -51,6 +51,21 @@ def catalog(db: Session) -> list[GovernanceCatalogItem]:
     return list(db.scalars(select(GovernanceCatalogItem).order_by(GovernanceCatalogItem.order)))
 
 
+def headline(db: Session, c: GovernanceCatalogItem) -> dict:
+    """The 8 headline roles read their name and responsibility from the role catalogue (§24.1); an item with no
+    catalogue counterpart (the EU representative contact) keeps its own text."""
+    from app.regmaster.models import RoleCatalog
+
+    role = db.scalar(select(RoleCatalog).where(RoleCatalog.headline_code == c.code, RoleCatalog.active.is_(True))) if c.kind == "role" else None
+    if role is None:
+        return {"code": c.code, "title": c.title, "description": c.description, "committee": c.committee, "role_code": None}
+    return {"code": c.code, "title": role.name, "description": role.description or c.description, "committee": role.code == "ai_governance_committee", "role_code": role.code}
+
+
+def catalog_roles(db: Session) -> list[dict]:
+    return [headline(db, c) for c in catalog(db) if c.kind == "role"]
+
+
 def default_codes(db: Session, org: Organization) -> list[str]:
     eu = eu_operations(db, org)
     return [c.code for c in catalog(db) if not c.optional and (c.conditional != "eu_operations" or eu)]
@@ -71,7 +86,8 @@ def _set_items(db: Session, req: GovernanceRequest, codes: list[str]) -> None:
     for code in codes:
         if code not in current:
             c = cat[code]
-            db.add(GovernanceItem(organization_id=req.organization_id, request_id=req.id, engagement_id=req.engagement_id, catalog_code=code, kind=c.kind, title=c.title, description=c.description, control_refs=c.control_refs or [], committee=c.committee, optional=c.optional, order=order[code]))
+            h = headline(db, c)
+            db.add(GovernanceItem(organization_id=req.organization_id, request_id=req.id, engagement_id=req.engagement_id, catalog_code=code, kind=c.kind, title=h["title"], description=h["description"], control_refs=c.control_refs or [], committee=h["committee"], optional=c.optional, order=order[code]))
     for code, it in current.items():
         if code not in codes:
             it.deleted_at = utcnow()

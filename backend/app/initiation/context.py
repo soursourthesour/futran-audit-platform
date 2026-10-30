@@ -36,11 +36,13 @@ def _locations(db: Session, org: Organization) -> list[ClientLocation]:
 def governance_groups(db: Session, org: Organization, codes: list[str] | None = None) -> list[dict]:
     """Catalog items grouped for the request. Default selection: every non-optional item that applies to the client."""
     eu = eu_operations(db, org)
+    from app.governance.service import headline
+
     items = list(db.scalars(select(GovernanceCatalogItem).order_by(GovernanceCatalogItem.order)))
     out = []
     for kind, title, note in GROUPS:
         chosen = [
-            {"code": i.code, "title": i.title, "description": i.description}
+            {"code": i.code, "title": headline(db, i)["title"], "description": headline(db, i)["description"]}
             for i in items
             if i.kind == kind and (i.code in codes if codes is not None else not i.optional and (i.conditional != "eu_operations" or eu))
         ]

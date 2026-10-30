@@ -93,3 +93,13 @@ class Action(StrEnum):
     EDIT_MAIL_TEMPLATES = "edit_mail_templates"  # Futran Admin: Futran's templates; client: its own copies
     VIEW_MAIL_LOG = "view_mail_log"  # E5
     SET_USER_MAIL_SYNC = "set_user_mail_sync"  # per-user mailbox: required, optional or off
+    # v0.6 WS-A: regulatory master (§25.7) and client applicability (§25.4–25.5)
+    VIEW_REG_MASTER = "view_reg_master"  # law library, law records, role catalogue
+    PROPOSE_REG_CHANGE = "propose_reg_change"  # edits that become proposed changes (Chief Auditor, Futran Admin)
+    SUGGEST_REG_CHANGE = "suggest_reg_change"  # a suggestion with its source (Auditor, QA Reviewer)
+    APPROVE_REG_CHANGE = "approve_reg_change"  # approve, hold or reject proposed changes
+    SECOND_REVIEW_REG_CHANGE = "second_review_reg_change"  # low-confidence and new-law items (QA Reviewer)
+    MANAGE_REG_TRACKING = "manage_reg_tracking"  # reviewer, next review date, refresh frequency, watch list
+    VIEW_APPLICABILITY = "view_applicability"
+    EDIT_APPLICABILITY = "edit_applicability"  # geographies, scope answers, overrides, draft the intro letter
+    APPROVE_INTRO_LETTER = "approve_intro_letter"  # approve and send the intro letter

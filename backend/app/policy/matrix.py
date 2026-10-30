@@ -67,6 +67,14 @@ MATRIX: dict[R, dict[A, S]] = {
         A.MANAGE_SYSTEMS: S.ALL,
         A.ADVANCE_STAGE: S.ALL,
         A.VIEW_REGISTER: S.ALL,
+        # regulatory master (§25.7)
+        A.VIEW_REG_MASTER: S.ALL,
+        A.PROPOSE_REG_CHANGE: S.ALL,
+        A.APPROVE_REG_CHANGE: S.ALL,
+        A.MANAGE_REG_TRACKING: S.ALL,
+        A.VIEW_APPLICABILITY: S.ALL,
+        A.EDIT_APPLICABILITY: S.ALL,
+        A.APPROVE_INTRO_LETTER: S.ALL,
     },
     R.ADMIN: {
         A.MANAGE_FUTRAN_USERS: S.ALL,
@@ -79,6 +87,12 @@ MATRIX: dict[R, dict[A, S]] = {
         A.VIEW_AUDIT_LOG: S.ALL,
         A.MANAGE_REFERENCE_DATA: S.ALL,
         A.RUN_LAW_REFRESH: S.ALL,
+        # regulatory master (§25.7): edits become proposals the Chief Auditor approves
+        A.VIEW_REG_MASTER: S.ALL,
+        A.PROPOSE_REG_CHANGE: S.ALL,
+        A.MANAGE_REG_TRACKING: S.ALL,
+        A.VIEW_APPLICABILITY: S.ALL,
+        A.EDIT_APPLICABILITY: S.ALL,
     },
     R.AUDITOR: {
         **_FUTRAN_TEAM_VIEW,
@@ -97,11 +111,18 @@ MATRIX: dict[R, dict[A, S]] = {
         A.MANAGE_DOCUMENT_REQUESTS: S.ASSIGNED,
         A.MANAGE_SYSTEMS: S.ASSIGNED,
         A.ADVANCE_STAGE: S.ASSIGNED,
+        # regulatory master (§25.7): read, and suggest a change with its source
+        A.VIEW_REG_MASTER: S.ALL,
+        A.SUGGEST_REG_CHANGE: S.ALL,
+        A.VIEW_APPLICABILITY: S.ASSIGNED,
     },
     R.QA_REVIEWER: {
         **_FUTRAN_TEAM_VIEW,
         A.APPROVE_FINDINGS: S.ASSIGNED,
         A.SIGN_DECLARATION: S.ASSIGNED,
+        A.VIEW_REG_MASTER: S.ALL,
+        A.SUGGEST_REG_CHANGE: S.ALL,
+        A.SECOND_REVIEW_REG_CHANGE: S.ALL,
     },
     R.ENGAGEMENT_MANAGER: {
         **_FUTRAN_TEAM_VIEW,

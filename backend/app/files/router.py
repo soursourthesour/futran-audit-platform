@@ -85,7 +85,14 @@ def _register_access(db: Session, actor: Actor, f: FileObject) -> None:
     file_access(db, actor, f)
 
 
+def _intro_letter_access(db: Session, actor: Actor, f: FileObject) -> None:
+    from app.regmaster.router import file_access
+
+    file_access(db, actor, f)
+
+
 FILE_ACCESS = {
+    "intro_letter": _intro_letter_access,
     "governance_document": _governance_access,
     "register_evidence": _register_access,
     "package_document": _package_document_access,

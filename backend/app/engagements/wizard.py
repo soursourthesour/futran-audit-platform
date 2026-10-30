@@ -258,6 +258,10 @@ def save_locations(db: Session, actor: User, org: Organization, e: Engagement, p
     for loc in existing:
         if loc.id not in keep:
             loc.deleted_at = utcnow()
+    db.flush()
+    from app.regmaster.engine import sync_from_locations  # §25.8: step 2 writes ClientGeography
+
+    sync_from_locations(db, org.id, actor.id)
     return errors
 
 

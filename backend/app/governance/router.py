@@ -71,7 +71,7 @@ def request_out(db: Session, req: GovernanceRequest) -> dict:
         "counts": {"roles": {"answered": sum(i.status != "unanswered" for i in roles), "total": len(roles)}, "documents": {"answered": sum(i.status != "unanswered" for i in docs), "total": len(docs)}},
         "coverage": gov.coverage(its),
         "commitments": [{"id": c.id, "description": c.description, "target_date": c.target_date.isoformat(), "owner": c.owner, "status": c.status} for c in commitments],
-        "catalog": [{"code": c.code, "kind": c.kind, "title": c.title, "optional": c.optional, "selected": c.code in (req.items_selected or []), "available": c.conditional != "eu_operations" or eu} for c in gov.catalog(db)],
+        "catalog": [{"code": c.code, "kind": c.kind, "title": gov.headline(db, c)["title"], "optional": c.optional, "selected": c.code in (req.items_selected or []), "available": c.conditional != "eu_operations" or eu} for c in gov.catalog(db)],
         "extra_field_defs": gov.EXTRA_FIELDS,
     }
 
