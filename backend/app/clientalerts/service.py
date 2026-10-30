@@ -96,8 +96,16 @@ def queue_for_change(db: Session, settings: Settings, change: ProposedChange, ac
     todos = _todos(db, version, law_name, code)
     headline = f"{CHANGE_LABELS.get(change.change_type, 'Change')}: {law_name}: {change.summary}"
     out = []
-    for imp in db.scalars(select(ChangeImpact).where(ChangeImpact.proposed_change_id == change.id).order_by(ChangeImpact.created_at)):
-        out.append(_queue(db, settings, rule, imp.organization_id, f"change:{change.id}", headline, list(imp.ai_system_ids or []), todos, _deadline(version), actor_id=actor_id))
+    targets = [(imp.organization_id, list(imp.ai_system_ids or [])) for imp in db.scalars(select(ChangeImpact).where(ChangeImpact.proposed_change_id == change.id).order_by(ChangeImpact.created_at))]
+    if change.change_type == "new_law" and change.jurisdiction_id:
+        from app.regmaster.models import ClientGeography
+
+        seen = {o for o, _ in targets}
+        for org_id in dict.fromkeys(db.scalars(select(ClientGeography.organization_id).where(ClientGeography.jurisdiction_id == change.jurisdiction_id, ClientGeography.deleted_at.is_(None)))):
+            if org_id not in seen:
+                targets.append((org_id, []))
+    for org_id, systems in targets:
+        out.append(_queue(db, settings, rule, org_id, f"change:{change.id}", headline, systems, todos, _deadline(version), actor_id=actor_id))
     return out
 
 

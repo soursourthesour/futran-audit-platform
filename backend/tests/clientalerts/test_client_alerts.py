@@ -172,3 +172,17 @@ def test_send_goes_to_the_client_group_through_group_email(client, db, lit, law,
     assert [r.email for r in db.scalars(select(MailRecipient).where(MailRecipient.send_id == ms.id))] == ["maria@abc.test"]
     assert db.scalar(select(AdminLogEntry).where(AdminLogEntry.send_id == ms.id)) is not None
     assert s.sent_from == "Futran on behalf (no client mailbox)"
+
+
+def test_new_law_alert_goes_to_clients_in_that_geography(db, lit, settings):
+    from app.reference.models import Jurisdiction
+    from app.regmaster.models import ClientGeography
+
+    il = db.scalar(select(Jurisdiction).where(Jurisdiction.code == "US-IL"))
+    db.add(ClientGeography(organization_id=lit["nw"].id, jurisdiction_id=il.id, basis="employees"))
+    pc = ProposedChange(origin="claude_refresh", change_type="new_law", jurisdiction_id=il.id, field_path="new_law", summary="New Illinois AI notice law",
+                        new_value={"jurisdiction_code": "US-IL", "short_name": "HB 0000"}, status="approved")
+    db.add(pc)
+    db.commit()
+    sends = queue_for_change(db, settings, pc)
+    assert [s.organization_id for s in sends] == [lit["nw"].id] and sends[0].status == "waiting_approval"
