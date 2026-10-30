@@ -5,3 +5,7 @@ DOMAINS_WITH_MODELS: list[str] = ["tenancy", "audit_log", "auth", "mail", "invit
 
 for _mod in DOMAINS_WITH_MODELS:
     importlib.import_module(f"app.{_mod}.models")
+
+# v0.6 WS-D domains: litigation, Sales Team opportunities, refresh pipeline, staff and client alerts
+for _mod in ["litigation", "sales", "refresh", "staffalerts", "clientalerts"]:
+    importlib.import_module(f"app.{_mod}.models")
