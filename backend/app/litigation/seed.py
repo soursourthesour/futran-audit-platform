@@ -97,7 +97,7 @@ CASES = [
     },
     {
         "name": "The New York Times Co. v. Microsoft Corp. and OpenAI", "jurisdiction": "US", "geography": "United States · federal", "area": "Copyright (training data)",
-        "court": "U.S. District Court, Southern District of New York (MDL No. 3143, In re OpenAI Copyright Infringement Litigation)", "docket_ref": "MDL No. 3143",
+        "court": "U.S. District Court, Southern District of New York", "docket_ref": "MDL No. 3143 (In re OpenAI Copyright Infringement Litigation)",
         "stage": "discovery", "stage_note": "Summary judgment briefing began September 2026", "last_update_on": CHECKED_ON,
         "description": "The Times says OpenAI and Microsoft used its articles without permission to train their models. The case is consolidated with other copyright suits against OpenAI before Judge Stein.",
         "why_matters": "The outcome shapes whether training on copyrighted text needs a licence.\nClients relying on generative AI vendors should know what their contracts say about copyright indemnity.",

@@ -40,10 +40,14 @@ export function RequireAuth({ children, side }: { children: ReactNode; side?: 'f
 export function FutranShell() {
   const { data: me } = useMe();
   if (!me) return null;
+  const salesOnly = me.roles.every((r) => r.role === 'sales_team');
   const nav: { to: string; label: string; show: boolean }[] = [
-    { to: '/audits', label: 'Dashboard', show: true },
-    { to: '/clients', label: 'Clients', show: true },
+    { to: '/audits', label: 'Dashboard', show: !salesOnly },
+    { to: '/clients', label: 'Clients', show: !salesOnly },
     { to: '/reg', label: 'Regulatory master', show: hasRole(me, 'admin', 'chief_auditor', 'auditor', 'qa_reviewer') },
+    { to: '/litigation', label: 'Litigation', show: hasRole(me, 'chief_auditor', 'auditor', 'sales_team') },
+    { to: '/opportunities', label: 'Opportunities', show: hasRole(me, 'chief_auditor', 'sales_team') },
+    { to: '/alerts', label: 'Client alerts', show: hasRole(me, 'chief_auditor', 'admin') },
     { to: '/admin/templates', label: 'Templates', show: hasRole(me, 'admin', 'chief_auditor') },
     { to: '/admin/reference', label: 'Reference data', show: hasRole(me, 'admin', 'chief_auditor') },
     { to: '/admin/users', label: 'Users', show: hasRole(me, 'admin', 'chief_auditor') },
@@ -55,7 +59,7 @@ export function FutranShell() {
     <>
       <TestModeBar me={me} />
       <header className="shell-header">
-        <Link to="/audits" className="brand"><img className="brand-logo" src={logoWhite} alt="Futran Solutions" /><span className="brand-name">Audit Platform</span></Link>
+        <Link to={salesOnly ? '/opportunities' : '/audits'} className="brand"><img className="brand-logo" src={logoWhite} alt="Futran Solutions" /><span className="brand-name">Audit Platform</span></Link>
         <nav className="shell-nav" aria-label="Main">
           {nav.filter((n) => n.show).map((n) => <NavLink key={n.to} to={n.to}>{n.label}</NavLink>)}
         </nav>

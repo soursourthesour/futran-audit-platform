@@ -28,6 +28,7 @@ export const ROLE_LABELS: Record<string, string> = {
   qa_reviewer: 'QA Reviewer',
   engagement_manager: 'Engagement Manager',
   legal_reviewer: 'Legal/Compliance Reviewer',
+  sales_team: 'Sales Team',
   exec_sponsor: 'Executive Sponsor',
   caico: 'Chief AI Compliance Officer',
   client_admin: 'Client Admin',

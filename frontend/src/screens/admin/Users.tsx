@@ -5,7 +5,7 @@ import { ROLE_LABELS, hasRole, useMe } from '@/api/auth';
 import { Alert, Badge, Button, Card, Checkbox, Loading, PageHeader, TextField } from '@/components/ui';
 
 type U = { id: string; name: string; email: string; job_title: string | null; status: string; mfa_enabled: boolean; roles: string[]; role_labels: string[] };
-const FUTRAN_ROLES = ['chief_auditor', 'admin', 'auditor', 'qa_reviewer', 'engagement_manager', 'legal_reviewer'];
+const FUTRAN_ROLES = ['chief_auditor', 'admin', 'auditor', 'qa_reviewer', 'engagement_manager', 'legal_reviewer', 'sales_team'];
 
 function AddUser({ onDone }: { onDone: () => void }) {
   const [name, setName] = useState('');

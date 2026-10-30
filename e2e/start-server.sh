@@ -7,7 +7,7 @@ MODE=${2:-fresh}
 cd "$(dirname "$0")/../backend"
 DB="e2e"; [ "$MODE" = "late" ] && DB="e2e-late"
 export DATABASE_URL="sqlite:///./data/${DB}.db" FILE_STORE="local:./data/${DB}-files" MFA_REQUIRED=false EMAIL_MODE=outbox \
-       SECRET_KEY="e2e-secret-key-0123456789abcdef" BASE_URL="http://127.0.0.1:${PORT}" DISABLE_SCHEDULER=true
+       SECRET_KEY="e2e-secret-key-0123456789abcdef" BASE_URL="http://127.0.0.1:${PORT}" DISABLE_SCHEDULER=true REFRESH_CLIENT=fake
 rm -f "data/${DB}.db" "data/${DB}.db-wal" "data/${DB}.db-shm"
 .venv/bin/alembic upgrade head >/dev/null
 .venv/bin/python -m app.cli seed-reference >/dev/null

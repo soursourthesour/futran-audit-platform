@@ -11,7 +11,8 @@ type LoginOut = { mfa_required: boolean; mfa_enrolled: boolean; csrf_token: stri
 export function homeFor(me: Me | null | undefined): string {
   if (!me) return '/login';
   if (me.terms_required) return '/welcome/terms';
-  return me.organization.type === 'futran' ? '/audits' : '/start';
+  if (me.organization.type !== 'futran') return '/start';
+  return me.roles.length > 0 && me.roles.every((r) => r.role === 'sales_team') ? '/opportunities' : '/audits';
 }
 
 function SignInForm({ portal }: { portal: 'staff' | 'client' }) {

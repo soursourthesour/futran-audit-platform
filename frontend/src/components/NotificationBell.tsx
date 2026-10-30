@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/api/client';
 import { fmtDateTime } from '@/components/ui';
+import { useMe } from '@/api/auth';
+import { staffAlerts, type StaffAlert } from '@/api/monitoring';
 
 type Item = { id: string; kind: string; title: string; body: string | null; link: string | null; at: string; read: boolean };
 
@@ -18,14 +20,29 @@ export function NotificationBell() {
     document.addEventListener('mousedown', close);
     return () => document.removeEventListener('mousedown', close);
   }, []);
-  const unread = q.data?.unread ?? 0;
+  const { data: me } = useMe();
+  const staff = me?.organization.type === 'futran';
+  const sa = useQuery({ queryKey: ['staff-alerts'], queryFn: staffAlerts, refetchInterval: 60_000, enabled: staff });
+  const waiting = (sa.data?.items ?? []).filter((a) => a.needs_action || !a.read).slice(0, 5);
+  const unread = (q.data?.unread ?? 0) + (sa.data?.unread ?? 0);
+  async function openAlert(a: StaffAlert) {
+    if (!a.read) await api.post(`/staff/alerts/${a.id}/read`);
+    await qc.invalidateQueries({ queryKey: ['staff-alerts'] });
+    setOpen(false);
+    nav(a.link);
+  }
   async function openItem(n: Item) {
     if (!n.read) await api.post(`/notifications/${n.id}/read`);
     await qc.invalidateQueries({ queryKey: ['notifications'] });
     setOpen(false);
     if (n.link) nav(n.link);
   }
-  async function readAll() { await api.post('/notifications/read-all'); await qc.invalidateQueries({ queryKey: ['notifications'] }); }
+  async function readAll() {
+    await api.post('/notifications/read-all');
+    if (staff) await api.post('/staff/alerts/read-all');
+    await qc.invalidateQueries({ queryKey: ['notifications'] });
+    await qc.invalidateQueries({ queryKey: ['staff-alerts'] });
+  }
   return (
     <div className="bell" ref={ref}>
       <button type="button" className="bell-btn" aria-label={`Notifications, ${unread} unread`} aria-expanded={open} onClick={() => setOpen(!open)}>
@@ -38,9 +55,25 @@ export function NotificationBell() {
             <strong>Notifications</strong>
             {unread > 0 && <button type="button" className="linklike small" onClick={readAll}>Mark all read</button>}
           </div>
-          {(q.data?.items ?? []).length === 0 ? <p className="small muted" style={{ padding: 14, margin: 0 }}>Nothing yet.</p> : (
+          {waiting.length > 0 && (
+            <div className="bell-section">
+              <div className="row bell-section-head"><strong className="small">Refresh alerts</strong><button type="button" className="linklike small" onClick={() => { setOpen(false); nav('/staff/alerts'); }}>All alerts and settings</button></div>
+              <ul>
+                {waiting.map((a) => (
+                  <li key={a.id} className={a.read ? '' : 'unread'}>
+                    <button type="button" onClick={() => openAlert(a)}>
+                      <span className="t">{a.title}</span>
+                      <span className="b">{a.needs_action ? `${a.waiting} waiting for review` : 'No action needed'}{a.summary.clients_affected ? ` · ${a.summary.clients_affected} ${a.summary.clients_affected === 1 ? 'client' : 'clients'}` : ''}</span>
+                      <span className="d">{fmtDateTime(a.at)}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {(q.data?.items ?? []).length === 0 && !waiting.length ? <p className="small muted" style={{ padding: 14, margin: 0 }}>Nothing yet.</p> : (
             <ul>
-              {q.data!.items.map((n) => (
+              {(q.data?.items ?? []).map((n) => (
                 <li key={n.id} className={n.read ? '' : 'unread'}>
                   <button type="button" onClick={() => openItem(n)}>
                     <span className="t">{n.title}</span>

@@ -37,9 +37,11 @@ import { LawRecord } from '@/screens/futran/reg/LawRecord';
 import { LawEdit } from '@/screens/futran/reg/LawEdit';
 import { RoleCatalogue } from '@/screens/futran/reg/RoleCatalogue';
 import { Applicability } from '@/screens/futran/reg/Applicability';
+import { wsdRoutes } from '@/routes.wsd';
 
 /** Screens added by later tasks register here, so routes.tsx stays stable. */
 export const futranRoutes: RouteObject[] = [
+  ...wsdRoutes,
   { path: '/admin/users', element: <UsersAdmin /> },
   { path: '/admin/audit-log', element: <AuditLogScreen /> },
   { path: '/admin/outbox', element: <OutboxScreen /> },

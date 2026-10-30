@@ -4,8 +4,7 @@ import { api, errorMessage, fieldErrors } from '@/api/client';
 import { hasRole, useMe } from '@/api/auth';
 import { TYPE_LABELS, useFeatures, useLawJurisdictions, type Law } from '@/api/laws';
 import { LawPicker } from '@/components/LawPicker';
-import { Alert, Badge, Button, Card, Checkbox, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField, fmtDate, fmtDateTime } from '@/components/ui';
-import { LawUpdates } from './LawUpdates';
+import { Alert, Badge, Button, ButtonLink, Card, Checkbox, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField, fmtDate, fmtDateTime } from '@/components/ui';
 
 type Tab = 'laws' | 'jurisdictions' | 'import' | 'versions' | 'updates';
 
@@ -31,7 +30,7 @@ export function ReferenceData() {
       {tab === 'laws' && <LawsTab canEdit={isAdmin} />}
       {tab === 'jurisdictions' && <JurisdictionsTab canEdit={isAdmin} />}
       {tab === 'import' && <ImportTab />}
-      {tab === 'updates' && <LawUpdates />}
+      {tab === 'updates' && <LawUpdatesMoved />}
       {tab === 'versions' && <VersionsTab />}
     </div>
   );
@@ -315,6 +314,19 @@ function VersionsTab() {
           </table>
         </div>
       )}
+    </Card>
+  );
+}
+
+
+/** Law updates now run through the shared refresh pipeline on the regulatory master (M3). */
+function LawUpdatesMoved() {
+  return (
+    <Card title="Law updates">
+      <div className="stack">
+        <p style={{ margin: 0 }}>Claude law updates now run from <strong>Regulatory master › Refresh and review</strong>, with a review queue, second review for low-confidence and new-law changes, a schedule and a cost log. Earlier runs are listed there too.</p>
+        <div><ButtonLink to="/reg/refresh" variant="primary">Open refresh and review</ButtonLink></div>
+      </div>
     </Card>
   );
 }
