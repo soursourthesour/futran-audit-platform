@@ -28,30 +28,74 @@ class StructuredClaude(Protocol):
     def propose(self, *, system: str, prompt: str, schema: dict, allowed_domains: list[str]) -> ClaudeReply: ...
 
 
-class AnthropicStructuredClient:
-    def __init__(self, settings: Settings):
-        import anthropic
+RESEARCH_NOTE = ("First research only. Search the allowlisted sources and write plain notes: for each change you find, the record it "
+                 "affects, the old and new value, and the page it comes from. Do not write JSON yet.")
+STRUCTURE_NOTE = ("Turn the research below into the JSON the schema describes. Use only changes the research supports. Each source_url must "
+                  "be one of the cited pages listed, and each source_quote must be copied from that page's cited passage. If the research "
+                  "found nothing, reply with an empty list of changes.")
+MAX_PAUSES = 4  # a long search turn can pause; it is sent back unchanged up to this many times
 
+
+class AnthropicStructuredClient:
+    """Two calls per jurisdiction. The API refuses JSON output together with citations, and web search always cites, so
+    the first call researches with web search and the second turns that research into schema-checked JSON, with no tools.
+    See platform.claude.com/docs/en/build-with-claude/structured-outputs (Incompatible with: Citations) and
+    platform.claude.com/docs/en/agents-and-tools/tool-use/web-search-tool (Citations are always enabled for web search)."""
+
+    def __init__(self, settings: Settings, client=None):
         self.settings = settings
         self.model = settings.claude_model
-        self.client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+        if client is None:
+            import anthropic
+
+            client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+        self.client = client
 
     def propose(self, *, system: str, prompt: str, schema: dict, allowed_domains: list[str]) -> ClaudeReply:
         tool = {"type": self.settings.claude_web_search_tool, "name": "web_search", "max_uses": self.settings.refresh_max_searches}
         if allowed_domains:
             tool["allowed_domains"] = allowed_domains[:100]
+        totals = {"in": 0, "out": 0, "searches": 0}
+        model = self.model
+
+        def count(msg) -> None:
+            nonlocal model
+            usage = getattr(msg, "usage", None)
+            stu = getattr(usage, "server_tool_use", None) if usage else None
+            totals["in"] += getattr(usage, "input_tokens", 0) or 0
+            totals["out"] += getattr(usage, "output_tokens", 0) or 0
+            totals["searches"] += getattr(stu, "web_search_requests", 0) or 0
+            model = getattr(msg, "model", None) or model
+
+        # 1. Research with web search (free text with citations).
+        messages: list[dict] = [{"role": "user", "content": f"{prompt}\n\n{RESEARCH_NOTE}"}]
+        notes: list[str] = []
+        cited: dict[str, list[str]] = {}
+        for _ in range(MAX_PAUSES + 1):
+            msg = self.client.messages.create(model=self.model, max_tokens=16000, system=system, tools=[tool], messages=messages)
+            count(msg)
+            for b in msg.content:
+                if getattr(b, "type", "") != "text":
+                    continue
+                notes.append(getattr(b, "text", "") or "")
+                for c in getattr(b, "citations", None) or []:
+                    url, quote = getattr(c, "url", None), getattr(c, "cited_text", None)
+                    if url and quote and quote not in cited.setdefault(url, []):
+                        cited[url].append(quote)
+            if getattr(msg, "stop_reason", "") != "pause_turn":
+                break
+            messages = messages + [{"role": "assistant", "content": msg.content}]
+
+        # 2. Structure the research as JSON (no tools, so no citations).
+        sources = "\n".join(f"- {url}\n" + "\n".join(f"    \"{q}\"" for q in quotes) for url, quotes in cited.items()) or "- none"
+        content = f"{prompt}\n\n{STRUCTURE_NOTE}\n\nResearch:\n{''.join(notes).strip() or '(no findings)'}\n\nCited pages and passages:\n{sources}"
         msg = self.client.messages.create(
-            model=self.model, max_tokens=16000, system=system, tools=[tool], messages=[{"role": "user", "content": prompt}],
+            model=self.model, max_tokens=16000, system=system, messages=[{"role": "user", "content": content}],
             extra_body={"output_config": {"format": {"type": "json_schema", "schema": schema}}},
         )
+        count(msg)
         texts = [getattr(b, "text", "") for b in msg.content if getattr(b, "type", "") == "text"]
-        usage = getattr(msg, "usage", None)
-        stu = getattr(usage, "server_tool_use", None) if usage else None
-        return ClaudeReply(
-            text=texts[-1] if texts else "", model=getattr(msg, "model", self.model),
-            input_tokens=getattr(usage, "input_tokens", 0) or 0, output_tokens=getattr(usage, "output_tokens", 0) or 0,
-            searches=getattr(stu, "web_search_requests", 0) or 0,
-        )
+        return ClaudeReply(text=texts[-1] if texts else "", model=model, input_tokens=totals["in"], output_tokens=totals["out"], searches=totals["searches"])
 
 
 @dataclass
