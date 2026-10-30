@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
 import { HISTORY_TYPES, type HistoryEntry, type HistoryPage, type RegSystem, type RequirementRow, type Requirements, type Tracing } from '@/api/register';
@@ -38,12 +38,12 @@ export function FirstEntryQuestions({ stage, liveSince, answers, onChange, help 
   );
 }
 
-export function TracingCard({ t, compact }: { t: Tracing; compact?: boolean }) {
+export function TracingCard({ t, compact, systemId }: { t: Tracing; compact?: boolean; systemId: string }) {
   return (
     <section className="card reg-tracing" aria-labelledby="tracing-h">
       <div className="card-header">
         <h2 id="tracing-h">Tracing and incident module</h2>
-        <span className="row" style={{ gap: 6 }}><Badge tone="muted"><Lock /> Add-on · locked</Badge>{t.recommended && <Badge tone="warn">Recommended for this system</Badge>}</span>
+        <span className="row" style={{ gap: 6 }}>{t.state === 'active' ? <Badge tone="success">Add-on · active</Badge> : <Badge tone="muted"><Lock /> Add-on · locked</Badge>}{t.recommended && <Badge tone="warn">Recommended for this system</Badge>}</span>
       </div>
       <div className="card-body stack-sm">
         {t.recommended && <p style={{ margin: 0 }}><strong>Why:</strong> {t.reasons.join(', ')}.</p>}
@@ -55,16 +55,13 @@ export function TracingCard({ t, compact }: { t: Tracing; compact?: boolean }) {
             <li>Audit-ready export for regulators and Futran</li>
           </ul>
         )}
-        <div className="row"><Button disabled title="Available when the tracing add-on is offered for your account">Unlock for this system</Button></div>
+        {t.state === 'active' ? <div className="row"><Link className="btn" to={`/register/${systemId}/tracing`}>Open tracing and incidents</Link></div>
+          : t.state === 'requested' ? <p className="small" style={{ margin: 0 }}>Waiting for the Executive Sponsor to approve.</p>
+          : <div className="row"><Link className="btn" to={`/register/${systemId}/tracing`}>Unlock for this system</Link></div>}
         <p className="small muted" style={{ margin: 0 }}>Your Executive Sponsor approves the purchase. Buying it never changes audit results; auditors keep reviewing the system independently.</p>
       </div>
     </section>
   );
-}
-
-export function TracingTab({ s }: { s: RegSystem }) {
-  const t = s.history?.tracing ?? { locked: true, recommended: false, reasons: [] };
-  return <TracingCard t={t} />;
 }
 
 export function HistoryTab({ s, onChanged }: { s: RegSystem; onChanged: () => unknown }) {
@@ -80,6 +77,11 @@ export function HistoryTab({ s, onChanged }: { s: RegSystem; onChanged: () => un
   const [flash, setFlash] = useState<{ tone: 'success' | 'danger'; text: string } | null>(null);
   useEffect(() => { const add = params.get('add'); if (add) { setEntry({ type: add }); params.delete('add'); setParams(params, { replace: true }); } }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (q.data) setAnswers(q.data.answers); }, [q.data]);
+  useEffect(() => { // ?entry=<id>: open that entry, for links from the incident register (tracing add-on)
+    const id = params.get('entry');
+    const e = id ? q.data?.entries.find((x) => x.id === id) : undefined;
+    if (e) { setEntry({ type: e.type, e }); params.delete('entry'); setParams(params, { replace: true }); }
+  }, [q.data]); // eslint-disable-line react-hooks/exhaustive-deps
   if (q.isLoading) return <Loading />;
   if (!q.data) return <Alert tone="danger">{errorMessage(q.error)}</Alert>;
   const h = q.data;
@@ -170,7 +172,7 @@ export function HistoryTab({ s, onChanged }: { s: RegSystem; onChanged: () => un
         </div>
       </section>
 
-      <TracingCard t={h.tracing} />
+      <TracingCard t={h.tracing} systemId={s.id} />
 
       {entry && <EntryDialog s={s} type={entry.type} e={entry.e} readOnly={!h.can_record} reqs={reqs?.rows ?? []} onClose={() => setEntry(null)} onSaved={async () => { setEntry(null); await refresh(); }} />}
       {linking && <LinkDialog s={s} entries={linking} reqs={reqs?.rows ?? []} onClose={() => setLinking(null)} onDone={async () => { setLinking(null); await refresh(); }} />}

@@ -10,7 +10,8 @@ import { historyHelp, systemHelp as H } from '@/help/register';
 import { AgentActions, Card, DataConsent, ImpactField, VendorModel, WhatItIs, emptyForm, formFrom, payload, scrollToError, type Form } from './SystemForm';
 import { LawSearch } from './LawSearch';
 import { RolesTab } from './RolesTab';
-import { FirstEntryQuestions, HistoryTab, TracingTab } from './HistoryTab';
+import { FirstEntryQuestions, HistoryTab } from './HistoryTab';
+import { TracingTab } from '@/screens/tracing/TracingTab';
 import { Lock } from './RegisterGrid';
 import './register.css';
 
@@ -71,7 +72,7 @@ export function RegisterSystemPage({ tab }: { tab: Tab }) {
       <nav className="tabs reg-tabs" aria-label="AI system sections">
         {tabs.map(([k, label, to]) => (
           <NavLink key={k} to={to} end className={tab === k ? 'active' : ''} aria-current={tab === k ? 'page' : undefined}>
-            {label}{k === 'roles' && gaps > 0 && <span className="reg-count" aria-label={`${gaps} gaps`}>{gaps}</span>}{k === 'tracing' && <Lock />}
+            {label}{k === 'roles' && gaps > 0 && <span className="reg-count" aria-label={`${gaps} gaps`}>{gaps}</span>}{k === 'tracing' && s.history?.tracing.locked !== false && <Lock />}
           </NavLink>
         ))}
       </nav>

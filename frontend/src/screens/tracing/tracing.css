@@ -1,0 +1,67 @@
+/* Tracing add-on: R7 tracing and incidents, R8 unlock, the Add-ons page. */
+.trc-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+.trc-head .row { flex-wrap: wrap; }
+.trc-card-head { flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.trc-filters { display: flex; flex-wrap: wrap; gap: 12px; }
+.trc-filters .field { margin: 0; min-width: 160px; }
+.trc-tools { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: flex-end; }
+.trc-tools .field { margin: 0; flex: 1 1 260px; min-width: 0; }
+.trc-tools input[type=file] { min-height: 44px; max-width: 100%; }
+.trc-nowrap { white-space: nowrap; }
+.trc-clamp { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.stack-xs { display: flex; flex-direction: column; gap: 2px; }
+
+/* incidents grid beside the incident panel, stacked on narrower screens */
+.trc-split { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+.trc-split > .trc-incidents { flex: 999 1 640px; min-width: 0; }
+.trc-panel { flex: 1 1 360px; max-width: 460px; min-width: 0; border-color: var(--navy); }
+/* the page column is about 1180 px wide, so the panel sits under the grid unless the window is very wide */
+@media (max-width: 1599px) { .trc-split > .trc-incidents, .trc-panel { flex: 1 1 100%; max-width: none; } .trc-panel .trc-notice-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); } }
+.trc-panel .card-header { gap: 8px; }
+.trc-panel-actions { justify-content: flex-end; flex-wrap: wrap; }
+.trc-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+tr.is-selected td { background: #eef3fa; }
+
+/* the live countdown */
+.trc-clock { font-weight: 600; font-size: 13px; color: var(--navy); white-space: nowrap; }
+.trc-clock.is-soon { color: var(--warn); }
+.trc-clock.is-over { color: var(--danger); }
+.trc-clock.is-soft { color: var(--muted); }
+
+.trc-notices h3 { margin: 0 0 8px; font-size: 15px; }
+.trc-notice-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.trc-notice { border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; background: var(--surface); }
+.trc-notice.is-over { border-color: var(--danger-line); background: var(--danger-bg); }
+.trc-notice-top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; }
+.trc-notice .row { flex-wrap: wrap; }
+.trc-notice summary { cursor: pointer; min-height: 32px; display: flex; align-items: center; }
+.trc-quote { margin: 4px 0; padding-left: 10px; border-left: 3px solid var(--line); color: var(--muted); }
+
+.trc-dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px 16px; margin: 0; }
+.trc-dl dt { font-size: 12px; color: var(--muted); }
+.trc-dl dd { margin: 0; overflow-wrap: anywhere; }
+.trc-session { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+.trc-session li.is-this { font-weight: 600; }
+
+/* R8: systems to trace; rows become cards on a phone */
+.trc-pick { width: 100%; border-collapse: collapse; font-size: 14px; }
+.trc-pick th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 600; padding: 8px; border-bottom: 1px solid var(--line); }
+.trc-pick td { padding: 8px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+.trc-pick tr.sel td { background: #eef3fa; }
+.trc-pick input[type=checkbox] { width: 20px; height: 20px; margin: 12px; accent-color: var(--navy); }
+.trc-plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.trc-dialog-foot { justify-content: space-between; flex-wrap: wrap; gap: 10px; border-top: 1px solid var(--line); padding-top: 12px; }
+.trc-dialog-foot .row { flex-wrap: wrap; }
+@media (max-width: 640px) {
+  .trc-pick thead { display: none; }
+  .trc-pick, .trc-pick tbody, .trc-pick tr, .trc-pick td { display: block; width: 100%; box-sizing: border-box; }
+  .trc-pick tr { position: relative; border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 8px; padding: 6px 6px 6px 48px; }
+  .trc-pick td { border: 0; padding: 2px 4px; }
+  .trc-pick tr.sel { background: #eef3fa; }
+  .trc-pick td:first-child { position: absolute; left: 0; top: 0; width: auto; padding: 0; }
+  .trc-pick td[data-label]:not([data-label="AI system"]):not([data-label="Why"])::before { content: attr(data-label) ': '; color: var(--muted); }
+  .trc-head .row > * { flex: 1 1 auto; }
+}
+
+.trc-request { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center; }
+.trc-request .row { flex-wrap: wrap; }

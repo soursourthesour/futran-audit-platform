@@ -32,6 +32,7 @@ import { InventoryReview } from '@/screens/client/InventoryReview';
 import { RegisterGrid } from '@/screens/register/RegisterGrid';
 import { RegisterNew, RegisterSystemPage } from '@/screens/register/RegisterSystem';
 import { CompanyRoles } from '@/screens/register/CompanyRoles';
+import { AddonsPage } from '@/screens/tracing/Addons';
 import { LawLibrary } from '@/screens/futran/reg/LawLibrary';
 import { LawRecord } from '@/screens/futran/reg/LawRecord';
 import { LawEdit } from '@/screens/futran/reg/LawEdit';
@@ -91,6 +92,8 @@ export const clientRoutes: RouteObject[] = [{ path: '/admin/email', element: <Cl
   { path: '/register/:systemId', element: <RegisterSystemPage tab="details" /> }, { path: '/register/:systemId/roles', element: <RegisterSystemPage tab="roles" /> },
   { path: '/register/:systemId/history', element: <RegisterSystemPage tab="history" /> }, { path: '/register/:systemId/tracing', element: <RegisterSystemPage tab="tracing" /> },
   { path: '/register/:systemId/evidence', element: <RegisterSystemPage tab="evidence" /> }, { path: '/register/:systemId/changes', element: <RegisterSystemPage tab="changes" /> },
+  // tracing add-on (spec §27.3): R8 requests and the Executive Sponsor's approval
+  { path: '/addons', element: <AddonsPage /> },
   { path: '/governance/roles', element: <CompanyRoles /> }];
 export const publicRoutes: RouteObject[] = [{ path: '/m/s/:token', element: <LinkLanding shared /> }, { path: '/m/:token', element: <LinkLanding /> }, { path: '/mail/test-consent', element: <TestConsent /> }, { path: '/mail/consent-result', element: <ConsentResult /> }, { path: '/welcome/mailbox', element: <MailboxPrompt /> }, { path: '/attest/:token', element: <PhoneAttestation /> }, { path: '/confirm/:token', element: <NamedUserConfirm /> }];
 /** Screens in both portals (spec §26.10: E4 and E5 are in the client and the Futran shell). */

@@ -9,7 +9,7 @@ export type Gate = { state: 'retired' | 'live_finding' | 'live_clear' | 'not_due
 export type LawLink = { id: string; regulation_id: string; short_name: string; source: string; status: 'active' | 'removal_pending'; removal_reason: string | null; removal_requested_by: string | null };
 export type SystemData = { data_categories: string[]; data_subjects: string[]; consent_basis: string | null; consent_ref: string | null; consent_evidence_id: string | null; retention_period: string | null; cross_border: string | null };
 export type Bias = { last_tested_on: string | null; next_due: string | null; overdue: boolean; result: string | null; label: string; null_compliance: boolean };
-export type Tracing = { locked: boolean; recommended: boolean; reasons: string[] };
+export type Tracing = { locked: boolean; state?: 'locked' | 'requested' | 'active'; recommended: boolean; reasons: string[] };
 export type Statement = { id: string; statement: string; period_from: string | null; signed_by: string | null; signed_at: string | null; owner: string | null; owner_id: string | null } | null;
 
 export type RegSystem = {
