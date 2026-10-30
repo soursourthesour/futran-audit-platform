@@ -1,0 +1,5 @@
+{% extends "_layout.html.j2" %}{% block body %}
+<p>Your one-time code is</p>
+<p style="font-size:28px;font-weight:600;letter-spacing:6px;margin:16px 0">{{ code }}</p>
+<p>Enter it on the page you have open to confirm your work email. It expires in {{ minutes }} minutes. If you did not ask for a code, you can ignore this email.</p>
+{% endblock %}

@@ -271,12 +271,13 @@ def _issue_link(db: Session, settings: Settings, s: MailSend, r: MailRecipient, 
     """A new personal link for this person. Any other active link of theirs for the same campaign stops working."""
     raw = secrets.token_urlsafe(32)  # 256 bits
     expires = _plus(now, s.link_days or LINK_DAYS_DEFAULT)
-    if s.campaign_type and s.campaign_id:
-        others = select(MailRecipient).join(MailSend, MailSend.id == MailRecipient.send_id).where(
-            MailSend.campaign_type == s.campaign_type, MailSend.campaign_id == s.campaign_id, MailRecipient.id != r.id,
-            func.lower(MailRecipient.email) == r.email.lower(), MailRecipient.link_token_hash.is_not(None), MailRecipient.link_revoked_at.is_(None))
-        for o in db.scalars(others):
-            o.link_revoked_at = now
+    root = s.parent_send_id or s.id
+    same = ((MailSend.campaign_type == s.campaign_type) & (MailSend.campaign_id == s.campaign_id)) if s.campaign_type and s.campaign_id else \
+        ((MailSend.id == root) | (MailSend.parent_send_id == root))
+    others = select(MailRecipient).join(MailSend, MailSend.id == MailRecipient.send_id).where(
+        same, MailRecipient.id != r.id, func.lower(MailRecipient.email) == r.email.lower(), MailRecipient.link_token_hash.is_not(None), MailRecipient.link_revoked_at.is_(None))
+    for o in db.scalars(others):
+        o.link_revoked_at = now
     r.link_token_hash, r.link_expires_at, r.link_revoked_at = token_hash(raw), expires, None
     return f"{settings.base_url}/m/{raw}", expires
 
