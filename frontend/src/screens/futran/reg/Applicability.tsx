@@ -85,7 +85,7 @@ export function Applicability() {
               {d.can_edit && (!letter || letter.status === 'sent') && <Button disabled={busy} onClick={() => act(() => api.post(`/clients/${clientId}/letters`), 'Letter drafted from the current result.')}>{letter ? 'Draft new version' : 'Draft the letter'}</Button>}
               {letter?.status === 'draft' && d.can_edit && <><Button disabled={busy} onClick={() => act(() => api.post(`/clients/${clientId}/letters`), 'Draft refreshed from the current result.')}>Refresh draft</Button><Button onClick={() => setEditing(true)}>Edit text</Button></>}
               {letter?.file_id && <a className="btn" href={fileUrl(letter.file_id)}>Download PDF</a>}
-              {letter?.status === 'draft' && d.can_approve && <Button variant="primary" disabled={busy} onClick={() => act(() => api.post(`/clients/${clientId}/letters/${letter.id}/approve`), 'Letter approved. The PDF is attached to the initiation package.')}>Approve</Button>}
+              {letter?.status === 'draft' && d.can_approve && <Button variant="primary" disabled={busy} onClick={() => act(() => api.post(`/clients/${clientId}/letters/${letter.id}/approve`), 'Letter approved. It goes with the initiation package.')}>Approve</Button>}
               {letter?.status === 'approved' && d.can_approve && <Button variant="primary" disabled={busy} onClick={() => act(() => api.post(`/clients/${clientId}/letters/${letter.id}/send`), `Letter sent to ${d.caico?.name ?? 'the Chief AI Compliance Officer'}.`)}>Send to {d.caico?.name ?? 'the client'}</Button>}
             </>}>
             {letter?.status === 'draft' && !d.can_approve && <Alert>The Chief Auditor approves and sends the letter.</Alert>}
