@@ -160,6 +160,9 @@ test('send to all employees and answer through a personal link', async ({ page }
   await page.getByRole('button', { name: 'Send to all employees' }).click();
   const dlg = page.getByRole('dialog', { name: 'Send to all employees' });
   await expect(dlg.getByRole('cell', { name: 'Will receive' })).toBeVisible();
+  // only people from the directory (an office filter), so the users with a login keep their own attestation for mobile.spec
+  await dlg.getByLabel('Only this office', { exact: true }).selectOption('New York');
+  await expect(dlg.getByRole('cell', { name: 'Not in the chosen locations' })).toBeVisible();
   await shot(page, 'tracker-send-to-all-employees');
   await dlg.getByRole('button', { name: /^Send to \d+ employees?$/ }).click();
   await expect(page.getByText(/Attestation sent to \d+ employees?, each with their own link/)).toBeVisible();
