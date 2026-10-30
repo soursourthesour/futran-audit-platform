@@ -75,3 +75,27 @@ def open_from_trigger(db: Session, org_id: str, trigger: str, trigger_ref: str |
 
 def can_send_offer(o: Opportunity) -> bool:
     return not o.needs_ca_approval or o.ca_decision == "approved"
+
+
+def open_effective_date_opportunities(db: Session, on) -> list[Opportunity]:
+    """Daily: a law the client is in scope of reaches its compliance (or effective) date within 90 days (§27.5).
+    Returns only the opportunities created today; one per client and law version."""
+    from app.laws.models import Regulation
+    from app.regmaster.models import ClientLawApplicability, LawVersion
+
+    out = []
+    for reg in db.scalars(select(Regulation).where(Regulation.current_version_id.is_not(None))):
+        v = db.get(LawVersion, reg.current_version_id)
+        d = (v.compliance_on or v.effective_on) if v else None
+        if d is None or not 0 <= (d - on).days <= 90:
+            continue
+        for row in db.scalars(select(ClientLawApplicability).where(ClientLawApplicability.regulation_id == reg.id, ClientLawApplicability.in_scope.is_(True))):
+            ref = f"date:{v.id}"
+            if db.scalar(select(Opportunity.id).where(Opportunity.organization_id == row.organization_id, Opportunity.trigger == "effective_date", Opportunity.trigger_ref == ref)):
+                continue
+            try:
+                out.append(open_from_trigger(db, row.organization_id, "effective_date", ref, service=f"{reg.short_name} readiness review"[:200], service_kind="readiness",
+                                             why_now=f"{reg.short_name} applies from {d.day} {d:%B %Y}"))
+            except IndependenceError:
+                continue
+    return out

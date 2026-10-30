@@ -293,9 +293,13 @@ _WS_D: dict[R, dict[A, S]] = {
         A.APPROVE_CLIENT_ALERTS: S.ALL,
         A.APPROVE_ADDON_ALERTS: S.ALL,
         A.MANAGE_ALERT_SETTINGS: S.ALL,
+        A.RUN_LAW_REFRESH: S.ALL,  # §25.7: the Chief Auditor runs the refresh
+        A.VIEW_REG_CHANGES: S.ALL,
     },
     R.AUDITOR: {A.VIEW_LITIGATION: S.ALL},
-    R.ADMIN: {A.MANAGE_CLIENT_ALERTS: S.ALL, A.MANAGE_ALERT_SETTINGS: S.ALL},
+    R.ADMIN: {A.MANAGE_CLIENT_ALERTS: S.ALL, A.MANAGE_ALERT_SETTINGS: S.ALL, A.VIEW_REG_CHANGES: S.ALL},
+    R.QA_REVIEWER: {A.VIEW_REG_CHANGES: S.ALL},
+    R.LEGAL_REVIEWER: {A.VIEW_REG_CHANGES: S.ALL, A.SECOND_REVIEW_REG_CHANGE: S.ALL},  # "send to legal review" ends with this reviewer
 }
 for _role, _acts in _WS_D.items():
     MATRIX.setdefault(_role, {}).update(_acts)

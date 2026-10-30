@@ -103,16 +103,14 @@ def test_refresh_without_key_409(client, db, world):
     assert r.json()["detail"] == "Add an Anthropic API key in settings to use law updates."
 
 
-def test_refresh_api_flow_with_stub(client, db, world):
+def test_earlier_runs_stay_readable_and_decidable(client, db, world):
+    """Runs made before the shared refresh pipeline (LawRefreshRun) are still listed, opened and decided."""
     admin, il, il_laws = world
-    client.app.state.settings = client.app.state.settings.model_copy(update={"anthropic_api_key": "test-key"})
-    client.app.state.claude_factory = lambda s: StubClaude(lambda p: _reply(il_laws))
+    run = run_refresh(db, admin, [il.id], StubClaude(lambda p: _reply(il_laws)))
+    db.commit()
     login_as(client, db, admin)
-    r = client.post("/api/v1/admin/laws/refresh", json={"jurisdiction_codes": ["US-IL"]})
-    assert r.status_code == 200, r.text
-    run_id = r.json()["id"]
-    detail = client.get(f"/api/v1/admin/laws/refresh/{run_id}").json()
-    assert detail["status"] == "completed"
+    detail = client.get(f"/api/v1/admin/laws/refresh/{run.id}").json()
+    assert detail["status"] == "completed" and detail["legacy"] is True
     upd = next(p for p in detail["proposals"] if p["change_type"] == "update")
     assert upd["current"]["short_name"] == il_laws[0].short_name
     out = client.post("/api/v1/admin/laws/proposals/decide", json={"accept": [upd["id"]], "reject": []})

@@ -195,6 +195,20 @@ JOBS = {
 }
 
 
+def _wsd(name: str):
+    """WS-D jobs (scheduled refresh, refresh reminders, client deadline alerts, deadline opportunities), imported lazily."""
+    def job(db, settings, now):
+        from app.refresh import schedule
+
+        return getattr(schedule, name)(db, settings, now)
+
+    return job
+
+
+JOBS |= {"refresh_schedule": _wsd("run_scheduled"), "refresh_reminders": _wsd("run_reminders"), "client_alert_dates": _wsd("client_alert_dates"),
+         "opportunity_dates": _wsd("opportunity_dates")}
+
+
 def run_daily(db: Session, settings: Settings, now) -> dict[str, int | str]:
     out: dict[str, int | str] = {}
     for name, job in JOBS.items():

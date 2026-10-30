@@ -123,3 +123,24 @@ def test_auditors_and_clients_do_not_see_opportunities(client, db, lit):
     assert client.get("/api/v1/opportunities").status_code == 403
     login_as(client, db, lit["maria"])
     assert client.get("/api/v1/opportunities").status_code in (403, 404)
+
+
+def test_effective_date_within_90_days_opens_an_opportunity_once(db, lit):
+    from datetime import date, timedelta
+
+    from app.laws.publish import current_regulations
+    from app.regmaster.models import ClientLawApplicability, LawVersion
+    from app.sales.service import open_effective_date_opportunities
+
+    reg = current_regulations(db)[0]
+    v = LawVersion(regulation_id=reg.id, version_no=9, compliance_on=date(2027, 1, 1))
+    db.add(v)
+    db.flush()
+    reg.current_version_id = v.id
+    db.add(ClientLawApplicability(organization_id=lit["abc"].id, regulation_id=reg.id, law_version_id=v.id, in_scope=True))
+    db.commit()
+    assert open_effective_date_opportunities(db, date(2027, 1, 1) - timedelta(days=91)) == []
+    made = open_effective_date_opportunities(db, date(2027, 1, 1) - timedelta(days=60))
+    assert [(o.organization_id, o.trigger) for o in made] == [(lit["abc"].id, "effective_date")]
+    assert reg.short_name in made[0].why_now
+    assert open_effective_date_opportunities(db, date(2027, 1, 1) - timedelta(days=59)) == []

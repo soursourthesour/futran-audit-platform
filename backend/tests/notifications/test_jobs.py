@@ -98,4 +98,5 @@ def test_sign_off_awaiting_sends_email_and_bell_lists_it(client, db, live, setti
 
 def test_run_daily_runs_every_job(client, db, live, settings):
     out = jobs.run_daily(db, settings, datetime(2026, 11, 16, 6, 0))
-    assert set(out) == {"invitation_warnings", "invitation_expiry", "due_soon", "escalations", "weekly_digest", "email"}
+    assert set(out) == {"invitation_warnings", "invitation_expiry", "due_soon", "escalations", "weekly_digest", "email",
+                        "refresh_schedule", "refresh_reminders", "client_alert_dates", "opportunity_dates"}  # the last four: v0.6 WS-D

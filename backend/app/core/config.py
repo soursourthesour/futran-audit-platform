@@ -23,6 +23,11 @@ class Settings(BaseSettings):
     anthropic_api_key: str | None = None
     claude_model: str = "claude-sonnet-5-5"
     claude_web_search_tool: str = "web_search_20250305"
+    refresh_client: str = "anthropic"  # anthropic | fake (demo and browser tests; never calls the network)
+    refresh_max_searches: int = 8  # web searches per jurisdiction
+    claude_input_usd_per_mtok: float = 3.0  # for the refresh cost log and cap; set to the model's current price
+    claude_output_usd_per_mtok: float = 15.0
+    claude_search_usd_each: float = 0.01
     data_region_label: str = "us-east"
     session_idle_min: int = 30
     session_max_hours: int = 12

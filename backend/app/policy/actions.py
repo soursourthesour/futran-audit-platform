@@ -103,3 +103,5 @@ class Action(StrEnum):
     VIEW_APPLICABILITY = "view_applicability"
     EDIT_APPLICABILITY = "edit_applicability"  # geographies, scope answers, overrides, draft the intro letter
     APPROVE_INTRO_LETTER = "approve_intro_letter"  # approve and send the intro letter
+    # v0.6 WS-D: M3 review queue and run history (approval uses APPROVE_REG_CHANGE and SECOND_REVIEW_REG_CHANGE above)
+    VIEW_REG_CHANGES = "view_reg_changes"

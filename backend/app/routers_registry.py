@@ -11,4 +11,4 @@ def api_routers() -> list[APIRouter]:
 
 
 # v0.6 WS-D: litigation, opportunities, refresh alerts (M6), client alerts (A1), refresh and review (M3)
-ROUTER_MODULES += ["litigation.router", "sales.router", "staffalerts.router", "clientalerts.router"]
+ROUTER_MODULES += ["litigation.router", "sales.router", "staffalerts.router", "clientalerts.router", "refresh.router"]
