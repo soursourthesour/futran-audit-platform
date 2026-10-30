@@ -35,13 +35,10 @@ async function clientUser(page: Page, email: string) {
 
 /** Set-up steps go straight to the API, as the signed-in user (the browser's session and CSRF token). */
 async function api(page: Page, method: 'GET' | 'POST', path: string, data?: unknown) {
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const me = await (await page.request.get('/api/v1/auth/me')).json();
-    const r = await page.request.fetch(`/api/v1${path}`, { method, data, headers: { 'X-CSRF-Token': me.csrf_token ?? '' } });
-    if (r.status() === 401 && attempt === 0) continue; // known: SQLite commits the session after the first response
-    expect(r.status(), `${method} ${path}: ${await r.text()}`).toBe(200);
-    return r.json();
-  }
+  const me = await (await page.request.get('/api/v1/auth/me')).json();
+  const r = await page.request.fetch(`/api/v1${path}`, { method, data, headers: { 'X-CSRF-Token': me.csrf_token } });
+  expect(r.status(), `${method} ${path}: ${await r.text()}`).toBe(200);
+  return r.json();
 }
 
 async function noSidewaysScroll(page: Page, what: string) {
