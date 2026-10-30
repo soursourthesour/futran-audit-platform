@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Company-wide roles and committee</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+.card{background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:22px;display:flex;flex-direction:column;gap:14px}
+.card h2{margin:0;font-size:18px;font-weight:600}
+.btn{box-sizing:border-box;min-height:44px;padding:0 16px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:14.5px;font-weight:600;color:#1B3A6B;display:inline-flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap}
+.btn-p{background:#1B3A6B;color:#fff;border-color:#1B3A6B}
+.lbl{display:block;font-size:13.5px;font-weight:600;margin-bottom:5px}
+.tag{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.t-red{background:#FDECEC;color:#8A1C1C}.t-amb{background:#FDF1DC;color:#6E4300}.t-grn{background:#E1F2E7;color:#1F5C38}.t-blu{background:#E3EEF9;color:#1B3A6B}.t-gry{background:#EDF0F4;color:#3E4757}
+input[type=text],input[type=date],select{box-sizing:border-box;width:100%;min-height:42px;border:1px solid #C7CFDA;border-radius:6px;padding:8px 10px;font:inherit;font-size:14px;background:#fff;color:#16233A}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{text-align:left;font-weight:600;color:#5A6577;font-size:12px;text-transform:uppercase;letter-spacing:0.4px;padding:8px 10px;border-bottom:1px solid #D9DFE7;white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid #E8ECF1;vertical-align:middle}
+.hint{font-size:12.5px;color:#5A6577;line-height:1.4}
+.kb{width:36px;height:36px;border-radius:6px;border:1px solid transparent;background:transparent;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.g3{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+</style>
+</helmet>
+<div style="min-height:100vh">
+  <header style="background:#fff;border-bottom:1px solid #D9DFE7;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#1B3A6B"></div><div style="font-weight:700;font-size:17px;color:#1B3A6B">Futran Audit</div><span style="color:#5A6577;font-size:14px">· ABC Corp</span></div>
+    <nav style="display:flex;flex-wrap:wrap;gap:4px;font-size:14px">
+      <a href="RegisterGrid.dc.html" style="padding:8px 12px;text-decoration:none">AI system register</a>
+      <a href="#" style="padding:8px 12px;text-decoration:none;font-weight:600;border-bottom:2px solid #1B3A6B">Governance roles</a>
+      <a href="Governance.dc.html" style="padding:8px 12px;text-decoration:none">Governance structure</a>
+    </nav>
+    <div style="flex:1"></div>
+    <div style="font-size:13px;color:#5A6577">[Name] · Chief AI Compliance Officer</div>
+  </header>
+
+  <main style="max-width:1400px;margin:0 auto;padding:28px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px">
+    <div>
+      <h1 style="margin:0;font-size:28px;font-weight:600">Company-wide roles and AI Governance Committee</h1>
+      <p style="margin:6px 0 0;font-size:15px;color:#3E4757">Roles set here apply to every AI system unless a system overrides them. Committee members become choices in every role dropdown.</p>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:10px">
+      <div class="card" style="padding:12px 16px;gap:2px;flex:1 1 170px"><div style="font-size:24px;font-weight:700;color:#1B3A6B">18</div><div class="hint">AI systems, 4 departments</div></div>
+      <div class="card" style="padding:12px 16px;gap:2px;flex:1 1 170px"><div style="font-size:24px;font-weight:700;color:#8A1C1C">9</div><div class="hint">Required roles with no person</div></div>
+      <div class="card" style="padding:12px 16px;gap:2px;flex:1 1 170px"><div style="font-size:24px;font-weight:700;color:#6E4300">5</div><div class="hint">Roles waiting for the committee</div></div>
+      <div class="card" style="padding:12px 16px;gap:2px;flex:1 1 170px"><div style="font-size:24px;font-weight:700;color:#8A1C1C">2</div><div class="hint">Systems blocked at go-live</div></div>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start">
+      <section class="card" style="flex:3 1 760px;min-width:0">
+        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center"><h2 style="flex:1">Company-wide roles</h2><button class="btn" type="button" style="min-height:40px">Edit selected</button></div>
+        <div style="overflow-x:auto">
+          <table style="min-width:760px">
+            <thead><tr><th>Role</th><th>Status</th><th>Person or party</th><th>Backup</th><th>Applies to</th><th><span style="position:absolute;width:1px;height:1px;overflow:hidden">Actions</span></th></tr></thead>
+            <tbody>
+              <tr><td><strong>Accountable executive</strong><div class="hint">NIST GOVERN 2.3</div></td><td><span class="tag t-grn">Assigned</span></td><td>[Name] · COO</td><td>[Name] · CFO</td><td>18 systems</td><td><button class="kb" type="button" aria-label="Actions for Accountable executive"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+              <tr><td><strong>AI Compliance Officer</strong><div class="hint">EU AI Act Art. 26 · NIST GOVERN 2</div></td><td><span class="tag t-grn">Assigned</span></td><td>[Name]</td><td>[Name] · Legal</td><td>18 systems</td><td><button class="kb" type="button" aria-label="Actions for AI Compliance Officer"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+              <tr><td><strong>Data Protection Officer</strong><div class="hint">GDPR Art. 37 · India DPDP §10</div></td><td><span class="tag t-grn">Assigned</span></td><td>[Name]</td><td>—</td><td>14 systems</td><td><button class="kb" type="button" aria-label="Actions for Data Protection Officer"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+              <tr><td><strong>Grievance officer (India)</strong><div class="hint">India DPDP §8(10)</div></td><td><span class="tag t-gry">Not applicable</span></td><td colspan="2" class="hint">No India users or data. Review when India operations start</td><td>—</td><td><button class="kb" type="button" aria-label="Actions for Grievance officer"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+              <tr><td><strong>AI Incident Response Lead</strong><div class="hint">EU AI Act Art. 73 · CO AI Act · CERT-In</div></td><td><span class="tag t-grn">Assigned</span></td><td>[Name] · Head of IT Security</td><td>[Name] · SOC Manager</td><td>18 systems</td><td><button class="kb" type="button" aria-label="Actions for Incident Response Lead"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+              <tr><td><strong>AI literacy and training owner</strong><div class="hint">EU AI Act Art. 4</div></td><td><span class="tag t-grn">Assigned</span></td><td>[Name] · L&amp;D</td><td>—</td><td>18 systems</td><td><button class="kb" type="button" aria-label="Actions for AI literacy owner"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+              <tr><td><strong>Vendor AI risk owner</strong><div class="hint">NIST GOVERN 6.1</div></td><td><span class="tag t-grn">Assigned</span></td><td>[Name] · Procurement</td><td>—</td><td>11 vendor systems</td><td><button class="kb" type="button" aria-label="Actions for Vendor AI risk owner"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+              <tr style="background:#FFF6F6"><td><strong>Records retention owner</strong><div class="hint">EU AI Act Art. 26(6) · CA ADS rules</div></td><td><span class="tag t-red">No such person</span></td><td><select aria-label="Assign Records retention owner"><option>Choose a person</option><option>[Name] · Records Manager</option><option>[Name] · Legal</option></select></td><td>—</td><td><strong style="color:#8A1C1C">Blocks go-live on 2</strong></td><td><button class="kb" type="button" aria-label="Actions for Records retention owner"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card" style="flex:2 1 460px;min-width:0">
+        <h2>Roles missing, by department</h2>
+        <table>
+          <thead><tr><th>Department</th><th>Systems</th><th>No such person</th><th>Pending</th><th>Blocked</th></tr></thead>
+          <tbody>
+            <tr><td><a href="RegisterGrid.dc.html">Human Resources</a></td><td>6</td><td style="color:#8A1C1C;font-weight:600">6</td><td>2</td><td style="color:#8A1C1C;font-weight:600">1</td></tr>
+            <tr><td><a href="#">Finance</a></td><td>4</td><td style="color:#8A1C1C;font-weight:600">2</td><td>1</td><td style="color:#8A1C1C;font-weight:600">1</td></tr>
+            <tr><td><a href="#">Sales and Marketing</a></td><td>3</td><td>1</td><td>2</td><td>0</td></tr>
+            <tr><td><a href="#">IT</a></td><td>5</td><td>0</td><td>0</td><td>0</td></tr>
+          </tbody>
+        </table>
+        <div class="hint">Includes the company-wide Records retention owner, counted once per system it blocks.</div>
+      </section>
+    </div>
+
+    <section class="card">
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+        <h2 style="flex:1">AI Governance Committee</h2>
+        <span class="tag t-amb">Not yet formed · target 15 Dec 2026</span>
+      </div>
+      <p style="margin:0;font-size:14px;line-height:1.5;color:#3E4757">Record the committee when it is formed. Saving notifies Department Heads of the 5 roles marked "Pending committee" so they can pick a member from the dropdown.</p>
+      <div class="g3">
+        <div><label class="lbl" for="c1">Date formed *</label><input type="date" id="c1" value="2026-12-10"></div>
+        <div><label class="lbl" for="c2">Charter *</label><select id="c2"><option>AI Governance Committee Charter v1 (uploaded)</option><option>Draft from Futran template</option></select></div>
+        <div><label class="lbl" for="c3">Meets</label><select id="c3"><option>Monthly</option><option>Quarterly</option></select></div>
+        <div><label class="lbl" for="c4">Approves</label><select id="c4"><option>Tier 3 systems and exceptions</option><option>All new AI systems</option></select></div>
+      </div>
+      <div style="overflow-x:auto">
+        <table style="min-width:900px">
+          <thead><tr><th>Member</th><th>Committee role</th><th>Covers governance role</th><th>Department</th><th><span style="position:absolute;width:1px;height:1px;overflow:hidden">Actions</span></th></tr></thead>
+          <tbody>
+            <tr><td><select aria-label="Member 1"><option>[Name] · COO</option></select></td><td><select aria-label="Committee role 1"><option>Chair</option></select></td><td><select aria-label="Covers role 1"><option>Accountable executive</option></select></td><td>Operations</td><td><button class="kb" type="button" aria-label="Actions for member 1"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+            <tr><td><select aria-label="Member 2"><option>[Name] · Chief AI Compliance Officer</option></select></td><td><select aria-label="Committee role 2"><option>Secretary</option></select></td><td><select aria-label="Covers role 2"><option>AI Compliance Officer</option></select></td><td>Compliance</td><td><button class="kb" type="button" aria-label="Actions for member 2"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+            <tr><td><select aria-label="Member 3"><option>[Name] · General Counsel</option></select></td><td><select aria-label="Committee role 3"><option>Legal member</option></select></td><td><select aria-label="Covers role 3"><option>Transparency and notice owner</option></select></td><td>Legal</td><td><button class="kb" type="button" aria-label="Actions for member 3"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+            <tr><td><select aria-label="Member 4"><option>[Name] · Head of Data Science</option></select></td><td><select aria-label="Committee role 4"><option>Technical member</option></select></td><td><select aria-label="Covers role 4"><option>Explainability contact</option></select></td><td>IT</td><td><button class="kb" type="button" aria-label="Actions for member 4"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+            <tr><td><select aria-label="Member 5"><option>Futran Solutions (external)</option></select></td><td><select aria-label="Committee role 5"><option>External advisor, non-voting</option></select></td><td><select aria-label="Covers role 5"><option>None (keeps audit independence)</option></select></td><td>—</td><td><button class="kb" type="button" aria-label="Actions for member 5"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+        <button class="btn" type="button">Add a member</button>
+        <div style="flex:1"></div>
+        <button class="btn" type="button">Save draft</button>
+        <button class="btn btn-p" type="button">Record committee as formed</button>
+      </div>
+    </section>
+
+    <section class="card" style="background:#F7F8FA;padding:14px 18px;font-size:13.5px;line-height:1.55;gap:4px"><div><strong>AI Compliance Officer can:</strong> set and change company-wide roles, mark a required role "Not applicable" with a reason, approve go-live, and record the committee.</div><div><strong>Client Admin can:</strong> add people to the user list and committee member list that feed every dropdown, and import systems by CSV. <span style="color:#7A1A12"><strong>Cannot:</strong> approve go-live, mark roles "Not applicable" or change which laws apply.</span></div></section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1700}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

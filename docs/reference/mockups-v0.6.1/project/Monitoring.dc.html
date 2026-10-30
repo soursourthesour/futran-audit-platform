@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Continuous monitoring</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+.card{background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:18px 20px;display:flex;flex-direction:column;gap:10px}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:600;white-space:nowrap}
+.btn{height:36px;padding:0 12px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:13.5px;font-weight:600;color:#16233A}
+.row{display:grid;grid-template-columns:110px minmax(0,1fr) auto;gap:12px;padding:12px 0;border-bottom:1px solid #E8ECF1;align-items:center;font-size:14px}
+</style>
+</helmet>
+<div style="min-height:100vh">
+  <header style="background:#fff;border-bottom:1px solid #D9DFE7;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#1B3A6B"></div><div style="font-weight:700;font-size:17px;color:#1B3A6B">Futran Audit</div><span style="color:#5A6577;font-size:14px">· ABC Corp</span></div>
+    <nav style="display:flex;flex-wrap:wrap;gap:4px;flex:1"><a href="ImpactAssess.dc.html" style="text-decoration:none;padding:8px 12px;font-size:14px;color:#3E4757">New AI projects</a><a href="#" style="text-decoration:none;padding:8px 12px;border-radius:5px;background:#E3EEF9;font-weight:600;font-size:14px">Monitoring</a><a href="Integrations.dc.html" style="text-decoration:none;padding:8px 12px;font-size:14px;color:#3E4757">Integrations</a></nav>
+    <div style="font-size:13px;color:#5A6577">[Name] · Chief AI Compliance Officer</div>
+  </header>
+  <main style="max-width:1240px;margin:0 auto;padding:24px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px">
+      <div><h1 style="margin:0;font-size:26px;font-weight:600">Continuous monitoring</h1><p style="margin:6px 0 0;color:#5A6577;font-size:14.5px">Monitor plan · checks run monthly and after each connector sync · last run [date] · sample data</p></div>
+      <span class="tag" style="background:#E3EEF9;color:#1B3A6B;padding:5px 12px;font-size:13px">Next Futran annual review: [date]</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
+      <div class="card" style="gap:2px"><div style="font-size:13px;color:#1F5C38;font-weight:600">Healthy</div><div style="font-size:28px;font-weight:600">14</div></div>
+      <div class="card" style="gap:2px"><div style="font-size:13px;color:#7A4800;font-weight:600">Attention</div><div style="font-size:28px;font-weight:600">3</div></div>
+      <div class="card" style="gap:2px;border:2px solid #B42318"><div style="font-size:13px;color:#7A1A12;font-weight:600">Failed</div><div style="font-size:28px;font-weight:600">2</div></div>
+      <div class="card" style="gap:2px"><div style="font-size:13px;color:#5A6577;font-weight:600">Not started</div><div style="font-size:28px;font-weight:600">1</div></div>
+    </div>
+    <section class="card">
+      <h2 style="margin:0;font-size:17px;font-weight:600">Checks needing action</h2>
+      <div class="row"><span class="tag" style="background:#FDECEC;color:#7A1A12">Failed</span><div><strong>LL144 bias audit older than 12 months</strong><div style="font-size:13px;color:#5A6577">SYS-001 ATS résumé screening · last audit [date]</div></div><button class="btn">Start reassessment</button></div>
+      <div class="row"><span class="tag" style="background:#FDECEC;color:#7A1A12">Failed</span><div><strong>New undeclared AI tool</strong><div style="font-size:13px;color:#5A6577">AI meeting note-taker · Operations · 11 users · from Google Workspace</div></div><button class="btn">Review</button></div>
+      <div class="row"><span class="tag" style="background:#FFF1D6;color:#7A4800">Attention</span><div><strong>Commitment due in 14 days</strong><div style="font-size:13px;color:#5A6577">Constitute bias and fairness review committee</div></div><button class="btn">Open</button></div>
+      <div class="row"><span class="tag" style="background:#FFF1D6;color:#7A4800">Attention</span><div><strong>AI literacy training below 80% target</strong><div style="font-size:13px;color:#5A6577">Sales and Marketing at 54%</div></div><button class="btn">Send reminder</button></div>
+      <div class="row" style="border-bottom:none"><span class="tag" style="background:#FFF1D6;color:#7A4800">Attention</span><div><strong>Vendor SOC 2 report expires in 30 days</strong><div style="font-size:13px;color:#5A6577">[ATS vendor]</div></div><button class="btn">Request new report</button></div>
+    </section>
+    <div style="font-size:13px;color:#5A6577">Your Futran auditor sees the same alerts. Monitoring never changes a signed report; results feed the next annual review.</div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

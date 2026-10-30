@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Add or edit a law</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+.card{background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:22px;display:flex;flex-direction:column;gap:14px}
+.card h2{margin:0;font-size:18px;font-weight:600}
+.btn{box-sizing:border-box;min-height:44px;padding:0 16px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:14.5px;font-weight:600;color:#1B3A6B;display:inline-flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap;text-decoration:none}
+.btn-p{background:#1B3A6B;color:#fff;border-color:#1B3A6B}
+.lbl{display:block;font-size:13.5px;font-weight:600;margin-bottom:5px}
+.tag{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.t-amb{background:#FDF1DC;color:#6E4300}.t-grn{background:#E1F2E7;color:#1F5C38}.t-gry{background:#EDF0F4;color:#3E4757}.t-blu{background:#E3EEF9;color:#1B3A6B}
+input[type=text],input[type=date],input[type=url],select,textarea{box-sizing:border-box;width:100%;min-height:42px;border:1px solid #C7CFDA;border-radius:6px;padding:8px 10px;font:inherit;font-size:14px;background:#fff;color:#16233A}
+input[type=checkbox],input[type=radio]{width:18px;height:18px;accent-color:#1B3A6B;margin:0;flex:none}
+.opt{display:flex;align-items:center;gap:10px;font-size:14px;min-height:34px}
+.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.hint{font-size:12.5px;color:#5A6577;line-height:1.4}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{text-align:left;font-weight:600;color:#5A6577;font-size:12px;text-transform:uppercase;letter-spacing:0.4px;padding:8px;border-bottom:1px solid #D9DFE7;white-space:nowrap;background:#F7F8FA}
+td{padding:8px;border-bottom:1px solid #E8ECF1;vertical-align:middle}
+.kb{width:36px;height:36px;border-radius:6px;border:1px solid transparent;background:transparent;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+</style>
+</helmet>
+<div style="min-height:100vh">
+  <header style="background:#1B3A6B;color:#fff;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#fff"></div><div style="font-weight:700;font-size:17px">Futran Audit</div><span style="color:#C9D6EA;font-size:13px">Futran staff</span></div>
+    <div style="flex:1"></div>
+    <div style="font-size:13px;color:#DCE6F4">[Name] · Futran Admin</div>
+  </header>
+  <main style="max-width:1400px;margin:0 auto;padding:24px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+    <div style="font-size:14px"><a href="RegMaster.dc.html">Law library</a> <span style="color:#5A6577">/ Add a law</span></div>
+    <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end">
+      <div style="flex:1 1 520px"><h1 style="margin:0;font-size:28px;font-weight:600">Add a law</h1><p style="margin:6px 0 0;font-size:15px;color:#3E4757">Saved as a proposed change. It goes live after Chief Auditor approval.</p></div>
+      <button class="btn" type="button">Save draft</button>
+      <a class="btn btn-p" href="RegRefresh.dc.html">Send for approval</a>
+    </div>
+
+    <section class="card" style="background:#EEF3FA;border-color:#C9D6EA;flex-direction:row;flex-wrap:wrap;align-items:flex-end;gap:12px">
+      <div style="flex:1 1 420px"><label class="lbl" for="dc">Draft with Claude: paste the bill number or official link</label><input type="url" id="dc" value="[official legislature link]"></div>
+      <button class="btn btn-p" type="button">Draft the record</button>
+      <div class="hint" style="flex-basis:100%">Claude fills the fields below from the official text, with a quote for each requirement. Check every field before sending for approval.</div>
+    </section>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(560px,1fr));gap:16px;align-items:start">
+      <section class="card">
+        <h2>1 · Law</h2>
+        <div class="g2">
+          <div><label class="lbl" for="a1">Region *</label><select id="a1"><option>United States, states and cities</option><option>United States, federal</option><option>European Union</option><option>India</option><option>United Kingdom</option><option>Canada</option><option>Global framework</option></select></div>
+          <div><label class="lbl" for="a2">Geography *</label><select id="a2"><option>[State]</option></select></div>
+          <div><label class="lbl" for="a3">Short name *</label><input type="text" id="a3" value="[New AI law]"></div>
+          <div><label class="lbl" for="a4">Citation *</label><input type="text" id="a4" value="[Bill number]"></div>
+          <div><label class="lbl" for="a5">Type *</label><select id="a5"><option>Statute</option><option>Regulation</option><option>Executive order</option><option>Guidance</option><option>Framework</option><option>Pending bill</option></select></div>
+          <div><label class="lbl" for="a6">Binding?</label><select id="a6"><option>Yes</option><option>No (voluntary)</option></select></div>
+        </div>
+        <fieldset style="border:none;margin:0;padding:0"><legend class="lbl" style="padding:0">Topics</legend>
+          <div class="g2" style="gap:2px 14px">
+            <label class="opt"><input type="checkbox" checked> Hiring and employment</label>
+            <label class="opt"><input type="checkbox" checked> Consumer decisions</label>
+            <label class="opt"><input type="checkbox"> Generative AI disclosure</label>
+            <label class="opt"><input type="checkbox"> Frontier models</label>
+            <label class="opt"><input type="checkbox"> Personal data</label>
+            <label class="opt"><input type="checkbox"> Health care</label>
+          </div>
+        </fieldset>
+      </section>
+
+      <section class="card">
+        <h2>2 · Status, dates and enforcement</h2>
+        <div class="g2">
+          <div><label class="lbl" for="b1">Status *</label><select id="b1"><option>Enacted, not yet in force</option><option>In force</option><option>In force, phased</option><option>Delayed or under amendment</option><option>Guidance</option><option>Repealed or lapsed</option></select></div>
+          <div><label class="lbl" for="b2">Signed</label><input type="date" id="b2"></div>
+          <div><label class="lbl" for="b3">Effective</label><input type="date" id="b3"></div>
+          <div><label class="lbl" for="b4">Compliance from *</label><input type="date" id="b4"></div>
+          <div><label class="lbl" for="b5">Enforced by</label><input type="text" id="b5" value="[State] Attorney General"></div>
+          <div><label class="lbl" for="b6">Private right of action?</label><select id="b6"><option>No</option><option>Yes</option></select></div>
+          <div><label class="lbl" for="b7">Penalty</label><input type="text" id="b7" placeholder="Amount, per violation or per day"></div>
+          <div><label class="lbl" for="b8">Cure period</label><input type="text" id="b8" placeholder="e.g. 60 days"></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>3 · Scope</h2>
+        <fieldset style="border:none;margin:0;padding:0"><legend class="lbl" style="padding:0">Applies to *</legend>
+          <div class="g2" style="gap:2px 14px">
+            <label class="opt"><input type="checkbox" checked> Deployer (uses AI)</label>
+            <label class="opt"><input type="checkbox" checked> Developer</label>
+            <label class="opt"><input type="checkbox"> Employer</label>
+            <label class="opt"><input type="checkbox"> Data fiduciary or controller</label>
+          </div>
+        </fieldset>
+        <div><label class="lbl" for="c1">Scope in plain words *</label><textarea id="c1" rows="3">[Who the law covers, which decisions, and any size or revenue threshold.]</textarea></div>
+        <div><label class="lbl" for="c2">Exemptions</label><input type="text" id="c2" placeholder="e.g. fewer than 50 employees"></div>
+      </section>
+
+      <section class="card">
+        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center"><h2 style="flex:1">4 · Sources</h2><button class="btn" type="button" style="min-height:38px">Add a source</button></div>
+        <table>
+          <thead><tr><th>Source</th><th>Kind</th><th>Last read</th><th><span style="position:absolute;width:1px;height:1px;overflow:hidden">Actions</span></th></tr></thead>
+          <tbody>
+            <tr><td><a href="#">[Legislature bill page]</a></td><td><span class="tag t-grn">Official</span></td><td>21 Oct 2026</td><td><button class="kb" type="button" aria-label="Actions for source 1"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+            <tr><td><a href="#">[Attorney General page]</a></td><td><span class="tag t-grn">Official</span></td><td>21 Oct 2026</td><td><button class="kb" type="button" aria-label="Actions for source 2"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+            <tr><td><a href="#">[Law firm alert]</a></td><td><span class="tag t-gry">Secondary</span></td><td>20 Oct 2026</td><td><button class="kb" type="button" aria-label="Actions for source 3"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+          </tbody>
+        </table>
+      </section>
+    </div>
+
+    <section class="card">
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center"><h2 style="flex:1">5 · Scope test questions</h2><button class="btn" type="button" style="min-height:38px">Add a question</button></div>
+      <p class="hint" style="margin:0">Asked in the client applicability check (M5). The rule column decides when a client is in scope.</p>
+      <div style="overflow-x:auto">
+        <table style="min-width:900px">
+          <thead><tr><th style="width:40px">#</th><th>Question</th><th>Answer type</th><th>In scope when</th><th>Pre-filled from</th><th><span style="position:absolute;width:1px;height:1px;overflow:hidden">Actions</span></th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td><input type="text" aria-label="Question 1" value="Does the client make decisions about residents of [State]?"></td><td><select aria-label="Answer type 1"><option>Yes / No</option></select></td><td><select aria-label="Rule 1"><option>Yes</option></select></td><td><select aria-label="Pre-fill 1"><option>Client geographies</option></select></td><td><button class="kb" type="button" aria-label="Actions for question 1"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+            <tr><td>2</td><td><input type="text" aria-label="Question 2" value="Does any AI system make or materially influence a consequential decision?"></td><td><select aria-label="Answer type 2"><option>Yes / No</option></select></td><td><select aria-label="Rule 2"><option>Yes</option></select></td><td><select aria-label="Pre-fill 2"><option>AI system: decision impact</option></select></td><td><button class="kb" type="button" aria-label="Actions for question 2"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+            <tr><td>3</td><td><input type="text" aria-label="Question 3" value="Is the client a developer, a deployer, or both?"></td><td><select aria-label="Answer type 3"><option>Pick one or more</option></select></td><td><select aria-label="Rule 3"><option>Any</option></select></td><td><select aria-label="Pre-fill 3"><option>AI system: built or bought</option></select></td><td><button class="kb" type="button" aria-label="Actions for question 3"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="hint" style="margin:0">Requirements and role mapping are added on the law record (M2) once the law is saved.</p>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

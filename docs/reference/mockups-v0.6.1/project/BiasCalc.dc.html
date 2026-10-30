@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bias test calculator</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+.card{background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:18px 20px;display:flex;flex-direction:column;gap:12px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-weight:600;color:#5A6577;font-size:12px;text-transform:uppercase;letter-spacing:0.4px;padding:8px 10px;border-bottom:1px solid #D9DFE7;white-space:nowrap}
+td{padding:10px;border-bottom:1px solid #E8ECF1;white-space:nowrap}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.btn{height:40px;padding:0 14px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:14px;font-weight:600;color:#16233A}
+.pri{border-color:#1B3A6B;background:#1B3A6B;color:#fff}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:600;white-space:nowrap}
+</style>
+</helmet>
+<div style="min-height:100vh">
+  <header style="background:#1B3A6B;color:#fff;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#0098D4"></div><div style="font-weight:700;font-size:17px">Futran Audit</div></div>
+    <div style="flex:1"></div>
+    <div style="font-size:13px;color:#C9D6EA">[Your name] · Auditor</div>
+  </header>
+  <main style="max-width:1240px;margin:0 auto;padding:24px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px">
+    <div style="font-size:14px"><a href="Systems.dc.html">AI systems</a> <span style="color:#5A6577">/ SYS-001 ATS résumé screening / Bias test</span></div>
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px">
+      <div><h1 style="margin:0;font-size:26px;font-weight:600">Bias test: NYC Local Law 144</h1><p style="margin:6px 0 0;color:#5A6577;font-size:14.5px">Selection-rate method · applicant_data_2025.csv · 4,812 rows validated · open-source statistics library [version] · <strong>illustrative figures</strong></p></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn">Upload new data</button><button class="btn pri">Use in public summary</button></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+      <div class="card" style="gap:2px"><div style="font-size:13px;color:#5A6577;font-weight:600">Applicants</div><div style="font-size:28px;font-weight:600">4,812</div></div>
+      <div class="card" style="gap:2px"><div style="font-size:13px;color:#5A6577;font-weight:600">Selected</div><div style="font-size:28px;font-weight:600">963</div><div style="font-size:12.5px;color:#5A6577">20.0% overall</div></div>
+      <div class="card" style="gap:2px;border:2px solid #B42318"><div style="font-size:13px;color:#7A1A12;font-weight:600">Unknown race / ethnicity</div><div style="font-size:28px;font-weight:700;color:#7A1A12">62%</div><div style="font-size:12.5px;color:#7A1A12">Null-compliance risk High (5.1a)</div></div>
+      <div class="card" style="gap:2px"><div style="font-size:13px;color:#5A6577;font-weight:600">Below 0.80 impact ratio</div><div style="font-size:28px;font-weight:600">2 groups</div></div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start">
+      <section class="card" style="flex:999 1 560px;min-width:0">
+        <h2 style="margin:0;font-size:17px;font-weight:600">Impact ratios by race / ethnicity (known only)</h2>
+        <div style="overflow-x:auto"><table>
+          <thead><tr><th>Category</th><th class="num">Applicants</th><th class="num">Selected</th><th class="num">Selection rate</th><th class="num">Impact ratio</th><th></th></tr></thead>
+          <tbody>
+            <tr><td>White</td><td class="num">812</td><td class="num">203</td><td class="num">25.0%</td><td class="num">1.00</td><td></td></tr>
+            <tr><td>Asian</td><td class="num">402</td><td class="num">92</td><td class="num">22.9%</td><td class="num">0.92</td><td></td></tr>
+            <tr><td>Hispanic or Latino</td><td class="num">298</td><td class="num">52</td><td class="num">17.4%</td><td class="num">0.70</td><td><span class="tag" style="background:#FDECEC;color:#7A1A12">Below 0.80</span></td></tr>
+            <tr><td>Black or African American</td><td class="num">275</td><td class="num">51</td><td class="num">18.5%</td><td class="num">0.74</td><td><span class="tag" style="background:#FDECEC;color:#7A1A12">Below 0.80</span></td></tr>
+            <tr><td style="color:#5A6577">Native Hawaiian / Pacific Islander</td><td class="num">31</td><td class="num">8</td><td class="num">25.8%</td><td class="num" style="color:#5A6577">excluded</td><td><span class="tag" style="background:#ECEEF2;color:#3E4757">&lt; 2% of data</span></td></tr>
+            <tr><td style="color:#5A6577">Unknown</td><td class="num">2,994</td><td class="num">557</td><td class="num">18.6%</td><td class="num" style="color:#5A6577">—</td><td></td></tr>
+          </tbody>
+        </table></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px"><span class="tag" style="background:#1B3A6B;color:#fff;padding:6px 12px">Race / ethnicity</span><span class="tag" style="background:#fff;border:1px solid #C7CFDA;color:#3E4757;padding:6px 12px">Sex</span><span class="tag" style="background:#fff;border:1px solid #C7CFDA;color:#3E4757;padding:6px 12px">Intersectional</span></div>
+      </section>
+      <aside style="flex:1 1 340px;display:flex;flex-direction:column;gap:16px">
+        <section class="card">
+          <h2 style="margin:0;font-size:16px;font-weight:600">What this run feeds</h2>
+          <ul style="margin:0;padding-left:18px;font-size:14px;line-height:1.65"><li>§6.2.06 disparate impact ratio: 0.70 (lowest)</li><li>§5.1a.03 unknown: 62% → rating High</li><li>Draft finding: adverse impact for two groups</li><li>LL144 public summary tables and unknown count</li></ul>
+          <button class="btn">Create draft findings (2)</button>
+        </section>
+        <section class="card" style="font-size:13px;color:#3E4757;line-height:1.55">Data stays in ABC Corp's tenant. Raw rows are deleted at the end of the retention period unless the client chooses to keep them. Thresholds (0.80, 2% exclusion) are configurable in the risk methodology.</section>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1150}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

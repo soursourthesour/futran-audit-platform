@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Client Admin home</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+.card{background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:18px 20px;display:flex;flex-direction:column;gap:10px}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:600;white-space:nowrap}
+.btn{height:38px;padding:0 14px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:13.5px;font-weight:600;color:#16233A}
+.row{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid #E8ECF1;font-size:14px;align-items:center}
+.lbl{display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:#3E4757}
+input[type=text]{box-sizing:border-box;width:100%;min-height:40px;border:1px solid #C7CFDA;border-radius:6px;padding:8px 10px;font:inherit;font-size:14px}
+</style>
+</helmet>
+<div style="min-height:100vh">
+  <header style="background:#fff;border-bottom:1px solid #D9DFE7;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#1B3A6B"></div><div style="font-weight:700;font-size:17px;color:#1B3A6B">Futran Audit</div><span style="color:#5A6577;font-size:14px">· ABC Corp</span></div>
+    <nav style="display:flex;flex-wrap:wrap;gap:4px;flex:1"><a href="#" style="text-decoration:none;padding:8px 12px;border-radius:5px;background:#E3EEF9;font-weight:600;font-size:14px">Admin home</a><a href="ClientUsers.dc.html" style="text-decoration:none;padding:8px 12px;font-size:14px;color:#3E4757">Users and departments</a><a href="Integrations.dc.html" style="text-decoration:none;padding:8px 12px;font-size:14px;color:#3E4757">Integrations</a><a href="#" style="text-decoration:none;padding:8px 12px;font-size:14px;color:#3E4757">Sign-in settings</a></nav>
+    <div style="font-size:13px;color:#5A6577">[Name] · Client Admin</div>
+  </header>
+  <main style="max-width:1240px;margin:0 auto;padding:24px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px">
+    <div><h1 style="margin:0;font-size:26px;font-weight:600">Client Admin home</h1><p style="margin:6px 0 0;color:#5A6577;font-size:14.5px">You manage who can sign in and how. You don't see audit content · sample data</p></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+      <div class="card" style="gap:2px"><div style="font-size:13px;color:#5A6577;font-weight:600">Active users</div><div style="font-size:28px;font-weight:600">9</div></div>
+      <div class="card" style="gap:2px"><div style="font-size:13px;color:#7A4800;font-weight:600">Invitations pending</div><div style="font-size:28px;font-weight:600">4</div><div style="font-size:12.5px;color:#5A6577">1 expires tomorrow</div></div>
+      <div class="card" style="gap:2px"><div style="font-size:13px;color:#7A4800;font-weight:600">Departments without a lead</div><div style="font-size:28px;font-weight:600">1</div><div style="font-size:12.5px;color:#5A6577">blocks stage 2</div></div>
+      <div class="card" style="gap:2px"><div style="font-size:13px;color:#5A6577;font-weight:600">Connectors</div><div style="font-size:28px;font-weight:600">2 of 4</div></div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start">
+      <section class="card" style="flex:1 1 460px">
+        <h2 style="margin:0;font-size:17px;font-weight:600">To do</h2>
+        <div class="row"><span>Assign a Department Compliance Lead for <strong>Engineering and IT</strong></span><a href="ClientUsers.dc.html">Assign</a></div>
+        <div class="row"><span>Fix 2 rows in user_list.csv</span><a href="ClientUsers.dc.html">Fix</a></div>
+        <div class="row"><span>Resend invitation to [Name], Executive Sponsor (expires tomorrow)</span><a href="#">Resend</a></div>
+        <div class="row" style="border-bottom:none"><span>Connect Microsoft 365 for AI discovery</span><a href="Integrations.dc.html">Connect</a></div>
+      </section>
+      <section class="card" style="flex:1 1 460px">
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline"><h2 style="margin:0;font-size:17px;font-weight:600">Company sign-in (SSO)</h2><span class="tag" style="background:#ECEEF2;color:#3E4757">Not set up</span></div>
+        <div><label class="lbl" for="idp">Identity provider metadata URL (SAML or OIDC)</label><input type="text" id="idp" placeholder="https://"></div>
+        <div><label class="lbl" for="dom">Email domain</label><input type="text" id="dom" value="abc.com"></div>
+        <div style="font-size:13px;color:#5A6577">MFA stays required for users who sign in with a password.</div>
+        <button class="btn" style="align-self:flex-start">Test and turn on</button>
+      </section>
+    </div>
+    <section class="card">
+      <h2 style="margin:0;font-size:17px;font-weight:600">Sign-off role changes · Futran is notified of each</h2>
+      <div class="row"><span>[Name] given <strong>Executive Sponsor</strong></span><span style="font-size:13px;color:#5A6577">by you · [date] · Futran notified</span></div>
+      <div class="row" style="border-bottom:none"><span>[Name] given <strong>Department Compliance Lead</strong>, Human Resources</span><span style="font-size:13px;color:#5A6577">by you · [date]</span></div>
+    </section>
+    <section class="card" style="background:#F7F8FA"><div style="font-size:13.5px;line-height:1.55"><strong>Client Admin can:</strong> create departments and users, assign client roles, set up SSO and connectors. <span style="color:#7A1A12"><strong>Cannot:</strong> see the inventory, attestations, findings or reports, or approve any sign-off.</span></div></section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

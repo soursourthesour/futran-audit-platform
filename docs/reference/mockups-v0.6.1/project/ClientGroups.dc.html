@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Client email groups</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+.card{background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:20px 22px;display:flex;flex-direction:column;gap:12px}
+.card h2{margin:0;font-size:18px;font-weight:600}
+.btn{box-sizing:border-box;min-height:42px;padding:0 15px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:14px;font-weight:600;color:#1B3A6B;display:inline-flex;align-items:center;gap:7px;cursor:pointer;white-space:nowrap;text-decoration:none}
+.btn-p{background:#1B3A6B;color:#fff;border-color:#1B3A6B}
+.btn-g{background:transparent;border-color:transparent;color:#DCE6F4}
+.tag{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.t-red{background:#FDECEC;color:#8A1C1C}.t-amb{background:#FDF1DC;color:#6E4300}.t-grn{background:#E1F2E7;color:#1F5C38}.t-blu{background:#E3EEF9;color:#1B3A6B}.t-gry{background:#EDF0F4;color:#3E4757}
+input[type=text],input[type=email],input[type=date],input[type=time],select,textarea{box-sizing:border-box;width:100%;min-height:42px;border:1px solid #C7CFDA;border-radius:6px;padding:8px 10px;font:inherit;font-size:14px;background:#fff;color:#16233A}
+input[type=checkbox],input[type=radio]{width:18px;height:18px;accent-color:#1B3A6B;margin:0;flex:none}
+table{border-collapse:collapse;font-size:13.5px;width:100%}
+th{text-align:left;font-weight:600;color:#5A6577;font-size:12px;text-transform:uppercase;letter-spacing:0.4px;padding:9px 10px;border-bottom:1px solid #D9DFE7;background:#F7F8FA;white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid #E8ECF1;vertical-align:top}
+tr.sel td{background:#EEF3FA}
+.sub{font-size:12.5px;color:#5A6577;line-height:1.4}
+.lbl{display:block;font-size:13.5px;font-weight:600;margin-bottom:5px}
+.opt{display:flex;align-items:flex-start;gap:10px;font-size:14px;line-height:1.4;padding:6px 0}
+.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.kb{width:36px;height:36px;border-radius:6px;border:1px solid transparent;background:transparent;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.kebab{position:relative}
+.kebab summary{list-style:none;width:36px;height:36px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid transparent}
+.kebab summary::-webkit-details-marker{display:none}
+.kebab[open] summary{border-color:#C7CFDA;background:#fff}
+.menu{position:absolute;right:0;top:40px;z-index:5;width:250px;background:#fff;border:1px solid #C7CFDA;border-radius:8px;box-shadow:0 8px 24px rgba(22,35,58,0.16);padding:6px;display:flex;flex-direction:column}
+.menu a{display:flex;align-items:center;min-height:38px;padding:0 10px;border-radius:5px;text-decoration:none;font-size:14px;color:#16233A}
+.menu a:hover{background:#EEF3FA}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;padding:5px 11px;border-radius:16px;background:#E3EEF9;color:#1B3A6B;font-weight:600}
+.bar{background:#1B3A6B;color:#fff;padding:8px 16px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+</style>
+</helmet>
+<div style="min-height:100vh">
+<header style="background:#fff;border-bottom:1px solid #D9DFE7;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#1B3A6B"></div><div style="font-weight:700;font-size:17px;color:#1B3A6B">AI Governix</div><span style="color:#5A6577;font-size:14px">· ABC Corp</span></div>
+    <nav style="display:flex;flex-wrap:wrap;gap:4px;font-size:14px"><a href="ClientAdminHome.dc.html" style="padding:8px 12px;text-decoration:none">Home</a><a href="ClientEmailSetup.dc.html" style="padding:8px 12px;text-decoration:none">Email connection</a><a href="ClientGroups.dc.html" style="padding:8px 12px;text-decoration:none;font-weight:600;border-bottom:2px solid #1B3A6B">Groups</a><a href="EmailLog.dc.html" style="padding:8px 12px;text-decoration:none">Email and admin log</a></nav>
+    <div style="flex:1"></div><div style="font-size:13px;color:#5A6577">[Name] · Client Admin</div></header>
+<main style="max-width:1400px;margin:0 auto;padding:28px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px">
+  <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end">
+    <div style="flex:1 1 560px"><h1 style="margin:0;font-size:28px;font-weight:600">Email groups</h1><p style="margin:6px 0 0;font-size:15px;color:#3E4757">Groups you send AI governance emails to. They live only in AI Governix and are expanded to people at the moment an email is sent. Your Microsoft 365 groups are not changed.</p></div>
+    <button class="btn" type="button">Import from directory</button>
+    <a class="btn btn-p" href="#"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>Add group</a>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start">
+    <section class="card" style="flex:999 1 820px;min-width:0;padding:0;gap:0">
+      <div style="padding:14px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;border-bottom:1px solid #D9DFE7">
+        <div style="flex:1 1 220px"><label class="lbl" for="q">Search</label><input type="text" id="q" placeholder="Group or person"></div>
+        <div><label class="lbl" for="f1">Source</label><select id="f1"><option>All sources</option><option>Manual list</option><option>Rule</option><option>Directory group</option></select></div>
+        <div><label class="lbl" for="f2">Used by</label><select id="f2"><option>Any</option><option>Attestation</option><option>Approvals</option><option>Alerts</option></select></div>
+      </div>
+      <div class="bar"><strong style="font-size:14px;margin-right:10px">3 selected</strong><button class="btn" type="button" style="min-height:34px">Edit selected</button><a class="btn btn-g" href="SendToGroups.dc.html">Send email to selected</a><button class="btn btn-g" type="button">Sync now</button><button class="btn btn-g" type="button">Export</button><div style="flex:1"></div><button class="btn btn-g" type="button">Clear</button></div>
+      <div style="overflow-x:auto"><table style="min-width:900px">
+        <thead><tr><th style="width:30px"><input type="checkbox" aria-label="Select all groups"></th><th>Group</th><th>Source</th><th>Members</th><th>Last synced</th><th>Used by</th><th><span style="position:absolute;width:1px;height:1px;overflow:hidden">Actions</span></th></tr></thead>
+        <tbody><tr><td><input type="checkbox" aria-label="Select AIComplianceTeam"></td><td><strong>AIComplianceTeam</strong><div class="sub">Runs the AI program</div></td><td><span class="tag t-gry">Manual list</span><div class="sub"></div></td><td>6</td><td>—</td><td>Policies, findings</td><td><button class="kb" type="button" aria-label="Actions for AIComplianceTeam"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr><td><input type="checkbox" aria-label="Select AI-NIST"></td><td><strong>AI-NIST</strong><div class="sub">NIST AI RMF working group</div></td><td><span class="tag t-gry">Manual list</span><div class="sub"></div></td><td>5</td><td>—</td><td>Framework tasks</td><td><button class="kb" type="button" aria-label="Actions for AI-NIST"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr class="sel"><td><input type="checkbox" checked aria-label="Select AI-EUAct"></td><td><strong>AI-EUAct</strong><div class="sub">EU AI Act working group</div></td><td><span class="tag t-gry">Manual list</span><div class="sub"></div></td><td>4</td><td>—</td><td>EU change alerts</td><td><button class="kb" type="button" aria-label="Actions for AI-EUAct"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr class="sel"><td><input type="checkbox" checked aria-label="Select DeptHeads"></td><td><strong>DeptHeads</strong><div class="sub">All department heads</div></td><td><span class="tag t-amb">Rule</span><div class="sub">role = Department Head</div></td><td>14</td><td>Today</td><td>Inventory approvals</td><td><button class="kb" type="button" aria-label="Actions for DeptHeads"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr><td><input type="checkbox" aria-label="Select AI Governance Committee"></td><td><strong>AI Governance Committee</strong><div class="sub">Committee members (from Company roles)</div></td><td><span class="tag t-amb">Rule</span><div class="sub">committee members</div></td><td>5</td><td>Today</td><td>Committee papers</td><td><button class="kb" type="button" aria-label="Actions for AI Governance Committee"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr class="sel"><td><input type="checkbox" checked aria-label="Select Employees · All"></td><td><strong>Employees · All</strong><div class="sub">Everyone who must attest</div></td><td><span class="tag t-blu">Directory group</span><div class="sub">All Staff</div></td><td>1,212</td><td>Today 02:00</td><td>Attestation</td><td><details class="kebab" open><summary aria-label="Actions for Employees · All"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></summary><div class="menu"><a href="#">Open and edit</a><a href="#">Preview who receives it</a><a href="#">Send email to this group</a><a href="#">Sync now</a><a href="#">Duplicate</a><a href="#">Export members</a><a href="#" style="color:#8A1C1C">Delete group</a></div></details></td></tr><tr><td><input type="checkbox" aria-label="Select Employees · HR"></td><td><strong>Employees · HR</strong><div class="sub">HR staff</div></td><td><span class="tag t-amb">Rule</span><div class="sub">department = Human Resources</div></td><td>84</td><td>Today 02:00</td><td>Attestation reminders</td><td><button class="kb" type="button" aria-label="Actions for Employees · HR"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr><td><input type="checkbox" aria-label="Select Employees · NYC recruiters"></td><td><strong>Employees · NYC recruiters</strong><div class="sub">Use AI hiring tools in NYC</div></td><td><span class="tag t-blu">Directory group</span><div class="sub">NYC-Recruiting</div></td><td>37</td><td>Today 02:00</td><td>LL144 notices</td><td><button class="kb" type="button" aria-label="Actions for Employees · NYC recruiters"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr><td><input type="checkbox" aria-label="Select Contractors"></td><td><strong>Contractors</strong><div class="sub">Non-employees with AI access</div></td><td><span class="tag t-gry">Manual list, CSV</span><div class="sub"></div></td><td>22</td><td>—</td><td>Acceptable use</td><td><button class="kb" type="button" aria-label="Actions for Contractors"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr></tbody></table></div>
+      <div style="padding:12px 16px" class="sub">Manual list: you add people. Rule: updates itself from roles or departments. Directory group: copies members from Microsoft 365 or Google at each sync.</div>
+    </section>
+
+    <aside class="card" style="flex:1 1 360px;max-width:420px;border-color:#1B3A6B">
+      <div style="display:flex;justify-content:space-between;gap:8px"><h2>Edit group: AI-EUAct</h2><button class="kb" type="button" aria-label="Actions for panel"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></div>
+      <div><label class="lbl" for="g1">Group name *</label><input type="text" id="g1" value="AI-EUAct"></div>
+      <div><label class="lbl" for="g2">Purpose</label><input type="text" id="g2" value="EU AI Act working group"></div>
+      <fieldset style="border:none;margin:0;padding:0"><legend class="lbl" style="padding:0">Members come from *</legend>
+        <label class="opt"><input type="radio" name="src" checked><span>A list I keep</span></label>
+        <label class="opt"><input type="radio" name="src"><span>A rule (role, department, location)</span></label>
+        <label class="opt"><input type="radio" name="src"><span>A directory group</span></label>
+      </fieldset>
+      <div style="display:flex;gap:8px;align-items:flex-end"><div style="flex:1"><label class="lbl" for="g3">Add a person</label><input type="text" id="g3" placeholder="Name or email"></div><button class="btn" type="button">Add</button></div>
+      <table><thead><tr><th>Member</th><th>Dept</th><th><span style="position:absolute;width:1px;height:1px;overflow:hidden">Actions</span></th></tr></thead><tbody><tr><td>[Name]<div class="sub">Chief AI Compliance Officer</div></td><td>Legal</td><td><button class="kb" type="button" aria-label="Actions for member 1"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr><td>[Name]<div class="sub">EU privacy counsel</div></td><td>Legal</td><td><button class="kb" type="button" aria-label="Actions for member 2"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr><td>[Name]<div class="sub">HR Systems Manager</div></td><td>HR</td><td><button class="kb" type="button" aria-label="Actions for member 3"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr><td>[Name]<div class="sub">Data Protection Officer</div></td><td>Privacy</td><td><button class="kb" type="button" aria-label="Actions for member 4"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr></tbody></table>
+      <label class="opt"><input type="checkbox"><span>Always exclude people on leave</span></label>
+      <div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn" type="button">Cancel</button><button class="btn btn-p" type="button">Save group</button></div>
+    </aside>
+  </div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1250}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Employee training module</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+input[type=radio]{width:22px;height:22px;accent-color:#1B3A6B;margin:0;flex:none}
+.opt{display:flex;align-items:center;gap:12px;border:1px solid #D9DFE7;border-radius:8px;padding:12px;font-size:14.5px}
+</style>
+</helmet>
+<div style="width:390px;height:844px;box-sizing:border-box;background:#fff;display:flex;flex-direction:column;overflow:hidden">
+  <div style="background:#1B3A6B;color:#fff;padding:18px 20px 16px">
+    <div style="font-size:13px;color:#C9D6EA">ABC Corp · AI training · 3 of 5</div>
+    <div style="font-size:19px;font-weight:600;margin-top:2px">Shadow AI and data leakage</div>
+    <div style="height:4px;border-radius:2px;background:rgba(255,255,255,0.3);margin-top:12px;overflow:hidden" role="img" aria-label="60% through module"><div style="width:60%;height:100%;background:#0098D4"></div></div>
+  </div>
+  <div style="flex:1;padding:18px 20px;display:flex;flex-direction:column;gap:14px">
+    <div style="background:#F4F6F9;border-radius:8px;padding:14px;font-size:14.5px;line-height:1.55">Free AI tools on personal accounts may keep what you type and use it to train their models. Anything you paste could leave ABC Corp.</div>
+    <div style="font-weight:600;font-size:15.5px">Quick check: a client sends a contract. Can you paste it into ChatGPT on your personal account to summarize it?</div>
+    <label class="opt"><input type="radio" name="q"> Yes, if I delete the chat afterwards</label>
+    <label class="opt" style="border-color:#2E75B6;background:#F7FAFD"><input type="radio" name="q" checked> No. Use Microsoft Copilot with my company account</label>
+    <label class="opt"><input type="radio" name="q"> Yes, if I remove the client's name</label>
+    <div style="font-size:13.5px;color:#1F5C38;font-weight:600">Correct. Company Copilot keeps data inside ABC Corp.</div>
+  </div>
+  <div style="padding:14px 20px 22px;border-top:1px solid #E8ECF1;display:flex;gap:10px">
+    <a href="#" style="flex:1;display:flex;align-items:center;justify-content:center;height:48px;border-radius:6px;border:1px solid #C7CFDA;color:#16233A;text-decoration:none;font-weight:600">Back</a>
+    <a href="#" style="flex:2;display:flex;align-items:center;justify-content:center;height:48px;border-radius:6px;background:#1B3A6B;color:#fff;text-decoration:none;font-weight:600">Next</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

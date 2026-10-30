@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bulk edit AI systems</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+.btn{box-sizing:border-box;min-height:44px;padding:0 16px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:14.5px;font-weight:600;color:#1B3A6B;display:inline-flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap}
+.btn-p{background:#1B3A6B;color:#fff;border-color:#1B3A6B}
+.lbl{display:block;font-size:13.5px;font-weight:600;margin-bottom:5px}
+.tag{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.t-red{background:#FDECEC;color:#8A1C1C}.t-amb{background:#FDF1DC;color:#6E4300}.t-grn{background:#E1F2E7;color:#1F5C38}.t-blu{background:#E3EEF9;color:#1B3A6B}.t-gry{background:#EDF0F4;color:#3E4757}
+input[type=text],input[type=date],select,textarea{box-sizing:border-box;width:100%;min-height:42px;border:1px solid #C7CFDA;border-radius:6px;padding:8px 10px;font:inherit;font-size:14px;background:#fff;color:#16233A}
+input[type=radio]{width:18px;height:18px;accent-color:#1B3A6B;margin:0;flex:none}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{text-align:left;font-weight:600;color:#5A6577;font-size:12px;text-transform:uppercase;letter-spacing:0.4px;padding:8px;border-bottom:1px solid #D9DFE7;white-space:nowrap}
+td{padding:8px;border-bottom:1px solid #E8ECF1;vertical-align:middle}
+.sec{display:flex;flex-direction:column;gap:12px;padding:20px 24px;border-bottom:1px solid #E8ECF1}
+.sec h3{margin:0;font-size:16px;font-weight:600}
+.hint{font-size:13px;color:#5A6577;line-height:1.45}
+</style>
+</helmet>
+<div style="min-height:100vh;background:#5B6474;display:flex;flex-direction:column">
+  <header style="background:#C9CED6;padding:0 32px;display:flex;align-items:center;gap:24px;min-height:64px;color:#3E4757">
+    <div style="font-weight:700;font-size:17px">Futran Audit · ABC Corp</div>
+    <div style="flex:1"></div>
+    <div style="font-size:13px">[Name] · Department Head, Human Resources</div>
+  </header>
+  <div style="flex:1;padding:32px 24px 48px;display:flex;justify-content:center;box-sizing:border-box">
+    <section role="dialog" aria-labelledby="bt" style="background:#fff;border-radius:10px;width:100%;max-width:1000px;box-shadow:0 20px 50px rgba(0,0,0,0.3);display:flex;flex-direction:column">
+      <div style="padding:22px 24px;border-bottom:1px solid #D9DFE7;display:flex;gap:16px;align-items:flex-start">
+        <div style="flex:1">
+          <h2 id="bt" style="margin:0;font-size:22px;font-weight:600">Edit 3 selected AI systems</h2>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">
+            <span class="tag t-gry">Résumé screening</span><span class="tag t-gry">Benefits Q&amp;A agent</span><span class="tag t-gry">Interview scheduling agent</span>
+          </div>
+          <p class="hint" style="margin:10px 0 0">Only the fields you change are applied. Anything left as "Keep current" stays as it is on each row.</p>
+        </div>
+        <a href="RegisterGrid.dc.html" class="btn" aria-label="Close" style="min-height:40px;width:40px;padding:0;justify-content:center;text-decoration:none"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2l10 10M12 2L2 12" stroke="#3E4757" stroke-width="1.8" stroke-linecap="round"/></svg></a>
+      </div>
+
+      <div class="sec">
+        <h3>1 · Details</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px">
+          <div><label class="lbl" for="b1">Department</label><select id="b1"><option>Keep current</option><option>Human Resources</option><option>Finance</option></select></div>
+          <div><label class="lbl" for="b2">Stage</label><select id="b2"><option>Keep current</option><option>Proposed</option><option>In development / procurement</option><option>Ready for go-live</option><option>Retired</option></select><div class="hint" style="margin-top:4px">"Live" needs approval for each system.</div></div>
+          <div><label class="lbl" for="b3">System owner</label><select id="b3"><option>Keep current</option><option>[Name] · HR Operations</option></select></div>
+          <div><label class="lbl" for="b4">Next bias test due</label><input type="date" id="b4" value="2026-12-15"></div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <h3>2 · Laws that apply</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px">
+          <div><label class="lbl" for="b5">Add a law to all selected</label><select id="b5"><option>California CCPA ADMT regulations</option><option>NYC Local Law 144</option><option>Colorado AI Act</option><option>EU AI Act</option><option>India DPDP Act</option></select></div>
+          <div><label class="lbl" for="b6">Remove a law from all selected</label><select id="b6"><option>None</option></select></div>
+        </div>
+        <div class="hint">Adding a law recalculates the required roles for each system. Removing a law needs the AI Compliance Officer's approval.</div>
+      </div>
+
+      <div class="sec">
+        <h3>3 · Governance roles</h3>
+        <div class="hint">Set a role on every selected system where that role applies. Company-wide roles are filled in automatically from company settings.</div>
+        <div style="overflow-x:auto">
+          <table style="min-width:820px">
+            <thead><tr><th>Role</th><th>Status</th><th>Person or party</th><th>Target date</th><th>Applies to</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><strong>Human oversight person</strong><div class="hint">EU AI Act Art. 14 · CO AI Act</div></td>
+                <td><select aria-label="Status for Human oversight person"><option selected>Assigned</option><option>External party</option><option>No such person</option><option>Pending committee</option><option>Not applicable</option></select></td>
+                <td><select aria-label="Person for Human oversight person"><option>[Name] · HR Business Partner</option></select></td>
+                <td><span class="hint">—</span></td>
+                <td>3 of 3</td>
+              </tr>
+              <tr>
+                <td><strong>Stop / disengage authority</strong><div class="hint">EU AI Act Art. 14(4)(e) · NIST MANAGE 2.4</div></td>
+                <td><select aria-label="Status for Stop authority"><option selected>Assigned</option><option>External party</option><option>No such person</option><option>Pending committee</option><option>Not applicable</option></select></td>
+                <td><select aria-label="Person for Stop authority"><option>[Name] · HR Systems Manager</option></select></td>
+                <td><span class="hint">—</span></td>
+                <td>2 of 3 <span class="hint">(agents only)</span></td>
+              </tr>
+              <tr>
+                <td><strong>Explainability contact</strong><div class="hint">EU AI Act Art. 86 · CO AI Act · CCPA ADMT</div></td>
+                <td><select aria-label="Status for Explainability contact"><option>Assigned</option><option>External party</option><option>No such person</option><option selected>Pending committee</option><option>Not applicable</option></select></td>
+                <td><select aria-label="Person for Explainability contact" disabled><option>Chosen when the committee is formed</option></select></td>
+                <td><input type="date" aria-label="Target date for Explainability contact" value="2026-12-15"></td>
+                <td>2 of 3</td>
+              </tr>
+              <tr>
+                <td><strong>AI Incident Response Lead</strong><div class="hint">EU AI Act Art. 73 · CO AI Act · CERT-In</div></td>
+                <td><select aria-label="Status for Incident Response Lead"><option selected>Use company default</option><option>Override for these systems</option></select></td>
+                <td><span>[Name] · Head of IT Security</span><div class="hint">From company settings</div></td>
+                <td><span class="hint">—</span></td>
+                <td>3 of 3</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div><button class="btn" type="button" style="min-height:40px">Add another role</button></div>
+      </div>
+
+      <div class="sec" style="background:#FFF8EC">
+        <h3>4 · Review conflicts</h3>
+        <div style="font-size:14px;line-height:1.5"><strong>Résumé screening</strong> already has a Human oversight person: [Name], Recruiting Lead.</div>
+        <div style="display:flex;flex-wrap:wrap;gap:18px;font-size:14px">
+          <label style="display:flex;align-items:center;gap:8px;min-height:36px"><input type="radio" name="cf" checked> Keep the existing person</label>
+          <label style="display:flex;align-items:center;gap:8px;min-height:36px"><input type="radio" name="cf"> Replace with [Name]</label>
+          <label style="display:flex;align-items:center;gap:8px;min-height:36px"><input type="radio" name="cf"> Add as a second oversight person</label>
+        </div>
+      </div>
+
+      <div class="sec" style="border-bottom:none">
+        <div><label class="lbl" for="rs">Reason for change *</label><textarea id="rs" rows="2">Assigning oversight and stop authority before the Benefits Q&amp;A agent go-live review.</textarea><div class="hint" style="margin-top:4px">Saved to each system's change history with your name and the time.</div></div>
+      </div>
+
+      <div style="padding:16px 24px;border-top:1px solid #D9DFE7;display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:#F7F8FA;border-radius:0 0 10px 10px">
+        <div class="hint" style="flex:1 1 300px">7 changes across 3 systems · Benefits Q&amp;A agent goes from 3 missing roles to 1 (Explainability contact pending).</div>
+        <a href="RegisterGrid.dc.html" class="btn" style="text-decoration:none">Cancel</a>
+        <a href="RegisterGrid.dc.html" class="btn btn-p" style="text-decoration:none">Apply to 3 systems</a>
+      </div>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

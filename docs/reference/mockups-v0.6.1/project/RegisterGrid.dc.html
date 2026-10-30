@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AI system register grid</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+.card{background:#fff;border:1px solid #D9DFE7;border-radius:8px}
+.btn{box-sizing:border-box;min-height:40px;padding:0 14px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:14px;font-weight:600;color:#1B3A6B;display:inline-flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap}
+.btn-p{background:#1B3A6B;color:#fff;border-color:#1B3A6B}
+.btn-g{background:transparent;border-color:transparent;color:#DCE6F4}
+.tag{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.t-red{background:#FDECEC;color:#8A1C1C}.t-amb{background:#FDF1DC;color:#6E4300}.t-grn{background:#E1F2E7;color:#1F5C38}.t-blu{background:#E3EEF9;color:#1B3A6B}.t-gry{background:#EDF0F4;color:#3E4757}
+input[type=text],select{box-sizing:border-box;min-height:40px;border:1px solid #C7CFDA;border-radius:6px;padding:8px 10px;font:inherit;font-size:14px;background:#fff;color:#16233A}
+input[type=checkbox]{width:18px;height:18px;accent-color:#1B3A6B;margin:0}
+table{border-collapse:collapse;font-size:13.5px;min-width:1340px;width:100%}
+th{text-align:left;font-weight:600;color:#5A6577;font-size:12px;text-transform:uppercase;letter-spacing:0.4px;padding:10px 10px;border-bottom:1px solid #D9DFE7;background:#F7F8FA;white-space:nowrap}
+td{padding:10px;border-bottom:1px solid #E8ECF1;vertical-align:top}
+tr.sel td{background:#EEF3FA}
+.sub{font-size:12.5px;color:#5A6577;margin-top:2px}
+.kebab{position:relative}
+.kebab summary{list-style:none;width:36px;height:36px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid transparent}
+.kebab summary::-webkit-details-marker{display:none}
+.kebab[open] summary{border-color:#C7CFDA;background:#fff}
+.menu{position:absolute;right:0;top:40px;z-index:5;width:250px;background:#fff;border:1px solid #C7CFDA;border-radius:8px;box-shadow:0 8px 24px rgba(22,35,58,0.16);padding:6px;display:flex;flex-direction:column}
+.menu a{display:flex;align-items:center;min-height:38px;padding:0 10px;border-radius:5px;text-decoration:none;font-size:14px;color:#16233A}
+.menu a:hover{background:#EEF3FA}
+.bar{height:6px;border-radius:3px;background:#E3E8EF;overflow:hidden;width:72px}
+</style>
+</helmet>
+<div style="min-height:100vh">
+  <header style="background:#fff;border-bottom:1px solid #D9DFE7;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#1B3A6B"></div><div style="font-weight:700;font-size:17px;color:#1B3A6B">Futran Audit</div><span style="color:#5A6577;font-size:14px">· ABC Corp</span></div>
+    <nav style="display:flex;flex-wrap:wrap;gap:4px;font-size:14px">
+      <a href="DeptLeadHome.dc.html" style="padding:8px 12px;text-decoration:none">Home</a>
+      <a href="#" style="padding:8px 12px;text-decoration:none;font-weight:600;border-bottom:2px solid #1B3A6B">AI system register</a>
+      <a href="#" style="padding:8px 12px;text-decoration:none">Findings</a>
+      <a href="#" style="padding:8px 12px;text-decoration:none">Training</a>
+    </nav>
+    <div style="flex:1"></div>
+    <div style="font-size:13px;color:#5A6577">[Name] · Department Head, Human Resources</div>
+  </header>
+
+  <main style="max-width:1400px;margin:0 auto;padding:28px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:16px">
+      <div style="flex:1 1 480px">
+        <h1 style="margin:0;font-size:28px;font-weight:600">AI system register</h1>
+        <p style="margin:6px 0 0;font-size:15px;color:#3E4757">Every AI app, agent, vendor tool and AI model used in Human Resources. Company-wide tools are shown read-only.</p>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <button class="btn" type="button">Import from CSV</button>
+        <button class="btn" type="button">Export</button>
+        <a class="btn btn-p" href="RegisterDetails.dc.html" style="text-decoration:none"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>Add AI system</a>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:10px">
+      <div class="card" style="padding:12px 16px;flex:1 1 150px"><div style="font-size:24px;font-weight:700;color:#1B3A6B">6</div><div class="sub">AI systems</div></div>
+      <div class="card" style="padding:12px 16px;flex:1 1 150px"><div style="font-size:24px;font-weight:700;color:#1B3A6B">2</div><div class="sub">AI agents</div></div>
+      <div class="card" style="padding:12px 16px;flex:1 1 150px"><div style="font-size:24px;font-weight:700;color:#8A1C1C">1</div><div class="sub">Go-live blocked</div></div>
+      <div class="card" style="padding:12px 16px;flex:1 1 150px"><div style="font-size:24px;font-weight:700;color:#8A1C1C">6</div><div class="sub">Required roles with no person</div></div>
+      <div class="card" style="padding:12px 16px;flex:1 1 150px"><div style="font-size:24px;font-weight:700;color:#6E4300">1</div><div class="sub">Bias test overdue</div></div>
+      <div class="card" style="padding:12px 16px;flex:1 1 150px"><div style="font-size:24px;font-weight:700;color:#6E4300">1</div><div class="sub">Consent missing</div></div>
+    </div>
+
+    <div class="card" style="display:flex;flex-direction:column">
+      <div style="padding:14px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;border-bottom:1px solid #D9DFE7">
+        <div style="flex:1 1 240px"><label for="q" style="display:block;font-size:12.5px;font-weight:600;margin-bottom:4px">Search</label><input type="text" id="q" placeholder="Name, vendor or model" style="width:100%"></div>
+        <div><label for="f1" style="display:block;font-size:12.5px;font-weight:600;margin-bottom:4px">Type</label><select id="f1"><option>All types</option><option>AI agent</option><option>Vendor app with AI</option><option>Embedded AI feature</option><option>Foundation model / API</option><option>In-house model</option></select></div>
+        <div><label for="f2" style="display:block;font-size:12.5px;font-weight:600;margin-bottom:4px">Stage</label><select id="f2"><option>All stages</option><option>Proposed</option><option>In development / procurement</option><option>Ready for go-live</option><option>Live</option><option>Retired</option></select></div>
+        <div><label for="f3" style="display:block;font-size:12.5px;font-weight:600;margin-bottom:4px">Risk tier</label><select id="f3"><option>All tiers</option><option>Tier 3 · High</option><option>Tier 2 · Medium</option><option>Tier 1 · Low</option></select></div>
+        <div><label for="f4" style="display:block;font-size:12.5px;font-weight:600;margin-bottom:4px">Law</label><select id="f4"><option>All laws</option><option>NYC Local Law 144</option><option>Colorado AI Act</option><option>Illinois HB 3773</option><option>California CCPA ADMT</option><option>EU AI Act</option><option>India DPDP Act</option></select></div>
+        <div><label for="f5" style="display:block;font-size:12.5px;font-weight:600;margin-bottom:4px">Governance roles</label><select id="f5"><option>Any status</option><option>Has a gap (no such person)</option><option>Pending committee</option><option>Complete</option></select></div>
+        <div><label for="f6" style="display:block;font-size:12.5px;font-weight:600;margin-bottom:4px">Columns</label><select id="f6"><option>Standard (13)</option><option>Roles view</option><option>Bias and data view</option><option>All columns</option></select></div>
+      </div>
+
+      <div style="background:#1B3A6B;color:#fff;padding:8px 16px;display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+        <strong style="font-size:14px;margin-right:10px">3 selected</strong>
+        <a class="btn" href="RegisterBulk.dc.html" style="text-decoration:none;min-height:36px">Edit selected</a>
+        <button class="btn btn-g" type="button">Assign a role</button>
+        <button class="btn btn-g" type="button">Change stage</button>
+        <button class="btn btn-g" type="button">Add or remove a law</button>
+        <button class="btn btn-g" type="button">Request bias test</button>
+        <button class="btn btn-g" type="button">Export selected</button>
+        <div style="flex:1"></div>
+        <button class="btn btn-g" type="button">Clear selection</button>
+      </div>
+
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr>
+            <th style="width:36px"><input type="checkbox" aria-label="Select all rows"></th>
+            <th>AI system</th><th>Type</th><th>Vendor / provider</th><th>Model or algorithm</th><th>Stage</th><th>Risk</th><th>Laws that apply</th><th>Last bias test</th><th>Data consent</th><th>Required roles</th><th>Go-live gate</th><th style="width:44px"><span style="position:absolute;width:1px;height:1px;overflow:hidden">Actions</span></th>
+          </tr></thead>
+          <tbody>
+            <tr class="sel">
+              <td><input type="checkbox" checked aria-label="Select Résumé screening"></td>
+              <td><a href="RegisterRoles.dc.html" style="font-weight:600">Résumé screening</a><div class="sub">Owner: [Name]</div></td>
+              <td>Vendor app with AI</td>
+              <td>TalentRank Inc.</td>
+              <td>Ranking model (ML)<div class="sub">Vendor-disclosed</div></td>
+              <td>Live</td>
+              <td><span class="tag t-red">Tier 3 · High</span></td>
+              <td>NYC LL144 · IL HB 3773 · CO AI Act</td>
+              <td>14 Sep 2025<div class="sub" style="color:#8A1C1C;font-weight:600">Overdue: over 12 months</div></td>
+              <td><span class="tag t-grn">Notice given</span></td>
+              <td><div style="display:flex;align-items:center;gap:8px"><div class="bar"><div style="width:84%;height:6px;background:#1B3A6B"></div></div><span>16 / 19</span></div><div class="sub" style="color:#8A1C1C;font-weight:600">3 no such person</div></td>
+              <td><span class="tag t-amb">Live · finding raised</span></td>
+              <td><details class="kebab"><summary aria-label="Actions for Résumé screening"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></summary></details></td>
+            </tr>
+            <tr class="sel">
+              <td><input type="checkbox" checked aria-label="Select Benefits Q&amp;A agent"></td>
+              <td><a href="RegisterRoles.dc.html" style="font-weight:600">Benefits Q&amp;A agent</a><div class="sub">Owner: [Name]</div></td>
+              <td><span class="tag t-blu">AI agent</span><div class="sub">Built in-house</div></td>
+              <td>Microsoft Azure OpenAI</td>
+              <td>GPT-4.1 with retrieval<div class="sub">Tools: HR policy search</div></td>
+              <td>Ready for go-live</td>
+              <td><span class="tag t-amb">Tier 2 · Medium</span></td>
+              <td>EU AI Act · CCPA</td>
+              <td><span style="color:#5A6577">Not required</span><div class="sub">No decisions about people</div></td>
+              <td><span class="tag t-grn">Lawful basis recorded</span></td>
+              <td><div style="display:flex;align-items:center;gap:8px"><div class="bar"><div style="width:79%;height:6px;background:#1B3A6B"></div></div><span>11 / 14</span></div><div class="sub" style="color:#8A1C1C;font-weight:600">2 no such person · 1 pending</div></td>
+              <td><span class="tag t-red">Blocked: 3 roles</span></td>
+              <td>
+                <details class="kebab" open>
+                  <summary aria-label="Actions for Benefits Q&amp;A agent"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></summary>
+                  <div class="menu">
+                    <a href="RegisterDetails.dc.html">Open and edit</a>
+                    <a href="RegisterRoles.dc.html">Edit governance roles</a>
+                    <a href="#">Record a bias test</a>
+                    <a href="#">Upload evidence</a>
+                    <a href="#">Submit for go-live approval</a>
+                    <a href="#">Duplicate</a>
+                    <a href="#">View change history</a>
+                    <div style="height:1px;background:#E8ECF1;margin:4px 0"></div>
+                    <a href="#" style="color:#8A1C1C">Retire this system</a>
+                  </div>
+                </details>
+              </td>
+            </tr>
+            <tr class="sel">
+              <td><input type="checkbox" checked aria-label="Select Interview scheduling agent"></td>
+              <td><a href="RegisterRoles.dc.html" style="font-weight:600">Interview scheduling agent</a><div class="sub">Owner: [Name]</div></td>
+              <td><span class="tag t-blu">AI agent</span><div class="sub">Bought from vendor</div></td>
+              <td>HireBot Co.<div class="sub">Built on Anthropic Claude</div></td>
+              <td>LLM agent with calendar and email tools</td>
+              <td>In procurement</td>
+              <td><span class="tag t-amb">Tier 2 · Medium</span></td>
+              <td>IL HB 3773 · CCPA</td>
+              <td><span style="color:#5A6577">Due before go-live</span></td>
+              <td><span class="tag t-grn">Candidate opt-in</span></td>
+              <td><div style="display:flex;align-items:center;gap:8px"><div class="bar"><div style="width:47%;height:6px;background:#1B3A6B"></div></div><span>7 / 15</span></div><div class="sub">8 not yet due</div></td>
+              <td><span class="tag t-gry">Not yet due</span></td>
+              <td><details class="kebab"><summary aria-label="Actions for Interview scheduling agent"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></summary></details></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" aria-label="Select Video interview analysis"></td>
+              <td><a href="RegisterRoles.dc.html" style="font-weight:600">Video interview analysis</a><div class="sub">Owner: [Name]</div></td>
+              <td>Vendor app with AI</td>
+              <td>[Vendor name]</td>
+              <td>Speech and facial analysis</td>
+              <td>Proposed</td>
+              <td><span class="tag t-red">Tier 3 · High</span></td>
+              <td>IL AI Video Interview Act · NYC LL144</td>
+              <td><span style="color:#5A6577">Not done</span></td>
+              <td><span class="tag t-red">Consent not obtained</span></td>
+              <td><div style="display:flex;align-items:center;gap:8px"><div class="bar"><div style="width:16%;height:6px;background:#1B3A6B"></div></div><span>3 / 19</span></div><div class="sub">16 not yet due</div></td>
+              <td><span class="tag t-gry">Not yet due</span></td>
+              <td><details class="kebab"><summary aria-label="Actions for Video interview analysis"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></summary></details></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" aria-label="Select Employee survey sentiment"></td>
+              <td><a href="RegisterRoles.dc.html" style="font-weight:600">Employee survey sentiment</a><div class="sub">Owner: [Name]</div></td>
+              <td>Embedded AI feature</td>
+              <td>[Survey vendor]</td>
+              <td>NLP sentiment model</td>
+              <td>Live</td>
+              <td><span class="tag t-grn">Tier 1 · Low</span></td>
+              <td>CCPA</td>
+              <td><span style="color:#5A6577">Not applicable</span></td>
+              <td><span class="tag t-grn">Anonymised</span></td>
+              <td><div style="display:flex;align-items:center;gap:8px"><div class="bar"><div style="width:100%;height:6px;background:#1F5C38"></div></div><span>9 / 9</span></div><div class="sub">Complete</div></td>
+              <td><span class="tag t-grn">Live · clear</span></td>
+              <td><details class="kebab"><summary aria-label="Actions for Employee survey sentiment"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></summary></details></td>
+            </tr>
+            <tr>
+              <td><svg width="16" height="16" viewBox="0 0 16 16" role="img" aria-label="Company-wide, read-only"><rect x="3" y="7" width="10" height="7" rx="1.5" fill="none" stroke="#5A6577" stroke-width="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" fill="none" stroke="#5A6577" stroke-width="1.5"/></svg></td>
+              <td><a href="RegisterRoles.dc.html" style="font-weight:600">Microsoft 365 Copilot</a><div class="sub">Company-wide · managed by AI Compliance Officer</div></td>
+              <td>Embedded AI feature</td>
+              <td>Microsoft</td>
+              <td>GPT-family LLM</td>
+              <td>Live</td>
+              <td><span class="tag t-grn">Tier 1 · Low</span></td>
+              <td>EU AI Act Art. 4 · India DPDP</td>
+              <td><span style="color:#5A6577">Not applicable</span></td>
+              <td><span class="tag t-grn">Data processing agreement</span></td>
+              <td><div style="display:flex;align-items:center;gap:8px"><div class="bar"><div style="width:100%;height:6px;background:#1F5C38"></div></div><span>8 / 8</span></div><div class="sub">Complete</div></td>
+              <td><span class="tag t-grn">Live · clear</span></td>
+              <td><details class="kebab"><summary aria-label="Actions for Microsoft 365 Copilot"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></summary></details></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="padding:12px 16px;display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;font-size:13px;color:#5A6577">
+        <span>Showing 6 of 6 · Required roles counts only the roles the selected laws and the current stage require.</span>
+        <span>Last saved [time] by [Name]</span>
+      </div>
+    </div>
+
+    <section class="card" style="background:#F7F8FA;padding:14px 18px;font-size:13.5px;line-height:1.55"><strong>Department Head can:</strong> add, edit and bulk edit their department's AI systems, fill per-system roles from the company's user list, and submit a system for go-live approval. <span style="color:#7A1A12"><strong>Cannot:</strong> edit company-wide roles or company-wide tools, mark a legally required role "Not applicable", or approve go-live.</span> The AI Compliance Officer and Client Admin see the same grid across all departments, with a Department filter.</section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

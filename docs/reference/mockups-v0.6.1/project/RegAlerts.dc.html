@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Regulatory change alerts</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+.card{background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:18px 20px}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:600;white-space:nowrap}
+.btn{height:38px;padding:0 14px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:13.5px;font-weight:600;color:#16233A}
+.pri{border-color:#1B3A6B;background:#1B3A6B;color:#fff}
+.item{display:grid;grid-template-columns:110px minmax(0,1fr) auto;gap:14px;padding:14px 0;border-bottom:1px solid #E8ECF1;align-items:start}
+</style>
+</helmet>
+<div style="min-height:100vh">
+  <header style="background:#1B3A6B;color:#fff;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#0098D4"></div><div style="font-weight:700;font-size:17px">Futran Audit</div></div>
+    <nav style="display:flex;flex-wrap:wrap;gap:4px;flex:1">
+      <a href="Dashboard.dc.html" style="color:#C9D6EA;text-decoration:none;padding:8px 12px;font-size:14px">Dashboard</a>
+      <a href="#" style="color:#fff;text-decoration:none;padding:8px 12px;border-radius:5px;background:rgba(255,255,255,0.14);font-weight:600;font-size:14px">Regulatory updates</a>
+    </nav>
+    <div style="font-size:13px;color:#C9D6EA">[Your name] · FRD Analyst</div>
+  </header>
+  <main style="max-width:1240px;margin:0 auto;padding:24px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px">
+      <div><h1 style="margin:0;font-size:26px;font-weight:600">Regulatory change alerts</h1><p style="margin:6px 0 0;color:#5A6577;font-size:14.5px">Curated by Futran Research · expert review required before any client is alerted · sample entries</p></div>
+      <button class="btn pri">Add update</button>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start">
+      <section class="card" style="flex:999 1 620px;min-width:0">
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px"><span class="tag" style="background:#1B3A6B;color:#fff;padding:6px 12px">All · 6</span><span class="tag" style="background:#fff;border:1px solid #C7CFDA;color:#3E4757;padding:6px 12px">Awaiting review · 1</span><span class="tag" style="background:#fff;border:1px solid #C7CFDA;color:#3E4757;padding:6px 12px">Published · 5</span></div>
+        <div class="item"><div><span class="tag" style="background:#E3EEF9;color:#1B3A6B">Effective date</span><div style="font-size:12.5px;color:#5A6577;margin-top:6px">Colorado</div></div><div><div style="font-weight:600">SB 26-189 obligations begin 1 Jan 2027</div><div style="font-size:13.5px;color:#3E4757;margin-top:4px">Deployers of ADMT in consequential decisions: notice before use, explanation within 30 days of adverse outcome, correction right, human review where reasonable.</div><div style="font-size:12.5px;color:#5A6577;margin-top:6px">Feature: Consequential decisions / ADMT · Reviewed by [Name] · <a href="#">source</a></div></div><div style="text-align:right"><div style="font-weight:600">3 clients</div><a href="#" style="font-size:13px">See impact</a></div></div>
+        <div class="item"><div><span class="tag" style="background:#FDECEC;color:#7A1A12">Enforcement</span><div style="font-size:12.5px;color:#5A6577;margin-top:6px">New York City</div></div><div><div style="font-weight:600">DCWP steps up LL144 enforcement</div><div style="font-size:13.5px;color:#3E4757;margin-top:4px">Following the State Comptroller audit, DCWP committed to stronger enforcement of bias-audit and notice requirements.</div><div style="font-size:12.5px;color:#5A6577;margin-top:6px">Feature: Employment and hiring AI · Reviewed by [Name] · <a href="#">source</a></div></div><div style="text-align:right"><div style="font-weight:600">2 clients</div><a href="#" style="font-size:13px">See impact</a></div></div>
+        <div class="item"><div><span class="tag" style="background:#FFF1D6;color:#7A4800">Awaiting review</span><div style="font-size:12.5px;color:#5A6577;margin-top:6px">California</div></div><div><div style="font-weight:600">SB 947 "No Robo Bosses Act": effective date to confirm</div><div style="font-size:13.5px;color:#3E4757;margin-top:4px">Employers may not rely solely on an ADS for discipline or termination.</div><div style="font-size:12.5px;color:#5A6577;margin-top:6px">Drafted by [Name] · needs second reviewer</div></div><div style="text-align:right"><button class="btn">Review</button></div></div>
+        <div class="item" style="border-bottom:none"><div><span class="tag" style="background:#ECEEF2;color:#3E4757">Pending bill</span><div style="font-size:12.5px;color:#5A6577;margin-top:6px">Federal</div></div><div><div style="font-weight:600">Great American AI Act discussion draft</div><div style="font-size:13.5px;color:#3E4757;margin-top:4px">Would preempt state laws on AI model development for 3 years. Watch item; no client action.</div></div><div style="text-align:right"><div style="font-weight:600">Watch</div></div></div>
+      </section>
+      <aside style="flex:1 1 360px;display:flex;flex-direction:column;gap:16px">
+        <section class="card" style="border:2px solid #2E75B6">
+          <div style="font-size:12.5px;color:#5A6577;font-weight:600">Impact for ABC Corp</div>
+          <h2 style="margin:4px 0 8px;font-size:17px;font-weight:600">DCWP steps up LL144 enforcement</h2>
+          <ul style="margin:0;padding-left:18px;font-size:14px;line-height:1.6"><li>Affects <a href="SystemScore.dc.html">SYS-001 ATS résumé screening</a> (High)</li><li>Open finding F-007: no bias audit within the past year</li><li>Remediation due [date]</li></ul>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn pri">Send alert to client</button><button class="btn">Create advisory opportunity</button></div>
+        </section>
+        <section class="card">
+          <h2 style="margin:0 0 10px;font-size:16px;font-weight:600">Upcoming dates for your clients</h2>
+          <ul style="list-style:none;margin:0;padding:0;font-size:14px">
+            <li style="display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid #E8ECF1"><span>Colorado SB 26-189</span><strong>1 Jan 2027</strong></li>
+            <li style="display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid #E8ECF1"><span>California CCPA ADMT rules</span><strong>1 Jan 2027</strong></li>
+            <li style="display:flex;justify-content:space-between;gap:8px;padding:8px 0"><span>Connecticut SB 5 (developer duties)</span><strong>1 Oct 2027</strong></li>
+          </ul>
+        </section>
+        <section class="card" style="font-size:13px;color:#3E4757;line-height:1.55">Approved updates create a new law-matrix version. Weekly digest goes to client CAICOs; selected items can be sent to the thought leadership pipeline.</section>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1050}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

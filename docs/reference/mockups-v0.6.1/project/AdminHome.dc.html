@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Futran Admin console</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+.card{background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:18px 20px;display:flex;flex-direction:column;gap:10px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-weight:600;color:#5A6577;font-size:12px;text-transform:uppercase;letter-spacing:0.4px;padding:8px 10px;border-bottom:1px solid #D9DFE7;white-space:nowrap}
+td{padding:10px;border-bottom:1px solid #E8ECF1;white-space:nowrap}
+.btn{height:36px;padding:0 12px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:13.5px;font-weight:600;color:#16233A}
+.pri{border-color:#1B3A6B;background:#1B3A6B;color:#fff}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:600;white-space:nowrap}
+.nav a{color:#C9D6EA;text-decoration:none;padding:8px 12px;font-size:14px}
+</style>
+</helmet>
+<div style="min-height:100vh">
+  <header style="background:#1B3A6B;color:#fff;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#0098D4"></div><div style="font-weight:700;font-size:17px">Futran Audit</div></div>
+    <nav class="nav" style="display:flex;flex-wrap:wrap;gap:4px;flex:1"><a href="#" style="color:#fff;border-radius:5px;background:rgba(255,255,255,0.14);font-weight:600">Admin home</a><a href="NewClient1.dc.html">Clients</a><a href="#">Futran users</a><a href="#">Templates</a><a href="RegAlerts.dc.html">Reference data</a><a href="#">Audit log</a></nav>
+    <div style="font-size:13px;color:#C9D6EA">[Your name] · Admin</div>
+  </header>
+  <main style="max-width:1240px;margin:0 auto;padding:24px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px">
+      <div><h1 style="margin:0;font-size:26px;font-weight:600">Admin console</h1><p style="margin:6px 0 0;color:#5A6577;font-size:14.5px">Platform setup, users, templates and reference data · sample data</p></div>
+      <a href="NewClient1.dc.html" style="display:inline-flex;align-items:center;height:42px;padding:0 18px;border-radius:6px;background:#1B3A6B;color:#fff;text-decoration:none;font-weight:600;font-size:14px">New client</a>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+      <div class="card" style="gap:2px"><div style="font-size:13px;color:#5A6577;font-weight:600">Futran users</div><div style="font-size:28px;font-weight:600">14</div><div style="font-size:12.5px;color:#5A6577">all with MFA</div></div>
+      <div class="card" style="gap:2px"><div style="font-size:13px;color:#5A6577;font-weight:600">Client organizations</div><div style="font-size:28px;font-weight:600">7</div><div style="font-size:12.5px;color:#5A6577">2 in draft</div></div>
+      <div class="card" style="gap:2px"><div style="font-size:13px;color:#5A6577;font-weight:600">Law matrix</div><div style="font-size:20px;font-weight:600;margin-top:6px">5 Oct 2026</div><div style="font-size:12.5px;color:#5A6577">27 federal · 26 states</div></div>
+      <div class="card" style="gap:2px"><div style="font-size:13px;color:#5A6577;font-weight:600">Templates</div><div style="font-size:28px;font-weight:600">12</div><div style="font-size:12.5px;color:#5A6577">Audit Template v1.0 + 5.1a</div></div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start">
+      <section class="card" style="flex:999 1 600px;min-width:0">
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline"><h2 style="margin:0;font-size:17px;font-weight:600">Reference data import: law matrix</h2><span class="tag" style="background:#FFF1D6;color:#7A4800">Preview, not published</span></div>
+        <div style="font-size:14px;color:#3E4757">Futran_US_AI_Law_Matrix_Federal_State.xlsx · status line "as of 5 October 2026" · 214 candidate laws split from State Matrix cells</div>
+        <div style="overflow-x:auto"><table>
+          <thead><tr><th>State</th><th>Feature</th><th>Extracted short name</th><th>Flags</th></tr></thead>
+          <tbody>
+            <tr><td>New York</td><td>Employment and hiring</td><td>NYC Local Law 144</td><td><span class="tag" style="background:#E3EEF9;color:#1B3A6B">City: US-NYC</span></td></tr>
+            <tr><td>California</td><td>Employment and hiring</td><td>SB 947 No Robo Bosses Act</td><td><span class="tag" style="background:#FFF1D6;color:#7A4800">Verify</span></td></tr>
+            <tr><td>Illinois</td><td>Frontier model safety</td><td>SB 315 AI Safety Measures Act</td><td><span class="tag" style="background:#ECEEF2;color:#3E4757">Developer only</span></td></tr>
+          </tbody>
+        </table></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn">Edit names</button><button class="btn pri">Publish as new version</button></div>
+      </section>
+      <aside style="flex:1 1 320px;display:flex;flex-direction:column;gap:16px">
+        <section class="card">
+          <h2 style="margin:0;font-size:16px;font-weight:600">Futran users</h2>
+          <ul style="list-style:none;margin:0;padding:0;font-size:14px">
+            <li style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #E8ECF1"><span>Chief Auditors</span><strong>2</strong></li>
+            <li style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #E8ECF1"><span>Auditors</span><strong>8</strong></li>
+            <li style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #E8ECF1"><span>QA Reviewers</span><strong>2</strong></li>
+            <li style="display:flex;justify-content:space-between;padding:7px 0"><span>Admins</span><strong>2</strong></li>
+          </ul>
+          <button class="btn">Invite Futran user</button>
+        </section>
+        <section class="card" style="background:#F7F8FA">
+          <h2 style="margin:0;font-size:15px;font-weight:600">Admin can</h2>
+          <div style="font-size:13.5px;line-height:1.55">Create clients and engagements · manage Futran and client users · templates, question bank, law matrix · platform settings · view audit log</div>
+          <h2 style="margin:6px 0 0;font-size:15px;font-weight:600">Admin cannot</h2>
+          <div style="font-size:13.5px;line-height:1.55;color:#7A1A12">Record, edit or approve findings, risk tiers, scores or sign-offs (separation of duties)</div>
+        </section>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":950}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

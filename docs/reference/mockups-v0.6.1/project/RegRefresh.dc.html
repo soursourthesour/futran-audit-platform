@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Law refresh and review</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+.card{background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:20px 22px;display:flex;flex-direction:column;gap:12px}
+.card h2{margin:0;font-size:18px;font-weight:600}
+.btn{box-sizing:border-box;min-height:40px;padding:0 14px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:14px;font-weight:600;color:#1B3A6B;display:inline-flex;align-items:center;gap:7px;cursor:pointer;white-space:nowrap;text-decoration:none}
+.btn-p{background:#1B3A6B;color:#fff;border-color:#1B3A6B}
+.btn-r{color:#8A1C1C}
+.tag{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.t-red{background:#FDECEC;color:#8A1C1C}.t-amb{background:#FDF1DC;color:#6E4300}.t-grn{background:#E1F2E7;color:#1F5C38}.t-blu{background:#E3EEF9;color:#1B3A6B}.t-gry{background:#EDF0F4;color:#3E4757}
+select{box-sizing:border-box;min-height:40px;border:1px solid #C7CFDA;border-radius:6px;padding:8px 10px;font:inherit;font-size:14px;background:#fff;color:#16233A;width:100%}
+input[type=checkbox]{width:18px;height:18px;accent-color:#1B3A6B;margin:0;flex:none}
+table{border-collapse:collapse;font-size:13.5px;width:100%;min-width:1240px}
+th{text-align:left;font-weight:600;color:#5A6577;font-size:12px;text-transform:uppercase;letter-spacing:0.4px;padding:9px 10px;border-bottom:1px solid #D9DFE7;background:#F7F8FA;white-space:nowrap}
+td{padding:10px;border-bottom:1px solid #E8ECF1;vertical-align:top}
+tr.on td{background:#EEF3FA}
+.sub{font-size:12.5px;color:#5A6577;line-height:1.4}
+.lbl{display:block;font-size:13px;font-weight:600;margin-bottom:5px}
+.opt{display:flex;align-items:center;gap:10px;font-size:14px;min-height:32px}
+.step{display:flex;gap:10px;align-items:center;font-size:14px}
+.dot{width:22px;height:22px;border-radius:11px;background:#1F5C38;flex:none;display:flex;align-items:center;justify-content:center}
+.kebab{position:relative}
+.kebab summary{list-style:none;width:36px;height:36px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid transparent}
+.kebab summary::-webkit-details-marker{display:none}
+.kebab[open] summary{border-color:#C7CFDA;background:#fff}
+.menu{position:absolute;right:0;top:40px;z-index:5;width:240px;background:#fff;border:1px solid #C7CFDA;border-radius:8px;box-shadow:0 8px 24px rgba(22,35,58,0.16);padding:6px;display:flex;flex-direction:column}
+.menu a{display:flex;align-items:center;min-height:38px;padding:0 10px;border-radius:5px;text-decoration:none;font-size:14px;color:#16233A}
+.menu a:hover{background:#EEF3FA}
+.btn-g{background:transparent;border-color:transparent;color:#DCE6F4}
+</style>
+</helmet>
+<div style="min-height:100vh">
+  <header style="background:#1B3A6B;color:#fff;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#fff"></div><div style="font-weight:700;font-size:17px">Futran Audit</div><span style="color:#C9D6EA;font-size:13px">Futran staff</span></div>
+    <div style="flex:1"></div>
+    <div style="font-size:13px;color:#DCE6F4">[Name] · Chief Auditor</div>
+  </header>
+
+  <main style="max-width:1400px;margin:0 auto;padding:24px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+    <nav style="display:flex;flex-wrap:wrap;gap:6px" aria-label="Regulatory master sections">
+      <a href="RegMaster.dc.html" class="btn" style="min-height:36px">Law library</a>
+      <a href="#" class="btn btn-p" style="min-height:36px">Refresh and review</a>
+      <a href="RegRoles.dc.html" class="btn" style="min-height:36px">Roles and committees</a>
+      <a href="RegApplicability.dc.html" class="btn" style="min-height:36px">Client applicability and intro letter</a>
+    </nav>
+    <h1 style="margin:0;font-size:28px;font-weight:600">Refresh laws and review changes</h1>
+
+    <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:stretch">
+      <section class="card" style="flex:1 1 420px">
+        <h2>Run a refresh</h2>
+        <div><label class="lbl" for="r1">Geographies</label><select id="r1"><option>All 14 geographies</option><option>Only geographies our clients operate in (9)</option><option>Choose geographies</option></select></div>
+        <div><label class="lbl" for="r2">Check for</label>
+          <label class="opt"><input type="checkbox" checked> New AI laws enacted</label>
+          <label class="opt"><input type="checkbox" checked> Amendments and effective-date changes</label>
+          <label class="opt"><input type="checkbox" checked> New regulator rules, guidance and FAQs</label>
+          <label class="opt"><input type="checkbox" checked> Enforcement actions</label>
+        </div>
+        <div><label class="lbl" for="r3">Sources</label><select id="r3"><option>Official sources only (41): legislatures, regulators, official journals</option><option>Official sources plus law-firm alerts</option></select></div>
+        <div><label class="lbl" for="r4">When finished, alert</label><select id="r4"><option>All Chief Auditors, in the app and by email (cc QA Reviewer)</option><option>Only me</option></select><div class="sub" style="margin-top:4px">Sent after every run, scheduled or manual. <a href="RefreshAlert.dc.html">Alert settings</a></div></div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+          <button class="btn btn-p" type="button" style="min-height:44px"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2.5v3h-3" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Run refresh with Claude</button>
+          <span class="sub">Scheduled every 2 weeks · <a href="#">change</a></span>
+        </div>
+      </section>
+
+      <section class="card" style="flex:1 1 420px">
+        <h2>Last run · 21 Oct 2026, 09:12</h2>
+        <div class="step"><span class="dot"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6.5l2.2 2.2 4.8-5" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Read 41 official sources across 14 geographies</div>
+        <div class="step"><span class="dot"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6.5l2.2 2.2 4.8-5" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Compared against 27 approved law records</div>
+        <div class="step"><span class="dot"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6.5l2.2 2.2 4.8-5" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Proposed 8 changes, each with a source quote</div>
+        <div class="step"><span class="dot" style="background:#C98A1A"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="2" fill="#fff"/></svg></span>Waiting for Chief Auditor review</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px"><span class="tag t-red">2 new laws</span><span class="tag t-amb">2 amendments</span><span class="tag t-blu">3 new rules or guidance</span><span class="tag t-gry">1 effective date</span></div>
+        <p class="sub" style="margin:0">Claude only proposes. Nothing changes in the law library, client letters or AI system roles until you approve it.</p>
+      </section>
+    </div>
+
+    <section class="card" style="padding:0;gap:0">
+      <div style="padding:16px 18px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;border-bottom:1px solid #D9DFE7">
+        <h2 style="flex:1">Changes waiting for review (8)</h2>
+        <select aria-label="Filter by type" style="width:auto"><option>All change types</option><option>New law</option><option>Amendment</option><option>Effective date</option><option>New rule or guidance</option><option>Role mapping</option></select>
+        <select aria-label="Filter by confidence" style="width:auto"><option>Any confidence</option><option>High</option><option>Medium</option><option>Low</option></select>
+      </div>
+      <div style="background:#1B3A6B;color:#fff;padding:8px 16px;display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+        <strong style="font-size:14px;margin-right:10px">1 selected</strong>
+        <button class="btn" type="button" style="min-height:34px">Approve selected</button>
+        <button class="btn btn-g" type="button" style="min-height:34px">Hold</button>
+        <button class="btn btn-g" type="button" style="min-height:34px">Send to legal review</button>
+        <button class="btn btn-g" type="button" style="min-height:34px">Assign reviewer</button>
+        <button class="btn btn-g" type="button" style="min-height:34px">Reject</button>
+        <div style="flex:1"></div>
+        <button class="btn btn-g" type="button" style="min-height:34px">Clear selection</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th style="width:30px"><input type="checkbox" aria-label="Select all changes"></th><th>Change</th><th>Geography and law</th><th>What changed</th><th>Source</th><th>Confidence</th><th>Impact</th><th>Decision</th><th style="width:44px"><span style="position:absolute;width:1px;height:1px;overflow:hidden">Actions</span></th></tr></thead>
+          <tbody>
+            <tr><td><input type="checkbox" aria-label="Select change 1"></td><td><span class="tag t-blu">New rule</span></td><td><a href="RegLaw.dc.html" style="font-weight:600">Colorado AI Act (SB 26-189)</a></td><td>Attorney General rules [when issued; due 1 Jan 2027]</td><td><a href="#">leg.colorado.gov</a></td><td><span class="tag t-grn">High</span></td><td>6 clients · 23 systems</td><td style="white-space:nowrap"><button class="btn" type="button" style="min-height:34px">Review</button></td><td><details class="kebab"><summary aria-label="Actions for change 1"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></summary></details></td></tr>
+            <tr class="on"><td><input type="checkbox" checked aria-label="Select change 2"></td><td><span class="tag t-gry">Effective date</span></td><td><strong>EU AI Act</strong><div class="sub">High-risk duties (Annex III)</div></td><td>2 Aug 2026 → [new date]</td><td><a href="#">eur-lex.europa.eu</a></td><td><span class="tag t-amb">Medium</span></td><td>9 clients · 31 systems</td><td style="white-space:nowrap"><span class="tag t-blu">Open below</span></td><td><details class="kebab"><summary aria-label="Actions for change 2"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></summary></details></td></tr>
+            <tr><td><input type="checkbox" aria-label="Select change 3"></td><td><span class="tag t-red">New law</span></td><td><strong>[State]</strong><div class="sub">[New AI law, 2026 session]</div></td><td>Not in library: new record drafted with 7 requirements and 4 roles</td><td><a href="#">[state legislature]</a></td><td><span class="tag t-grn">High</span></td><td>3 clients · 8 systems</td><td style="white-space:nowrap"><button class="btn" type="button" style="min-height:34px">Review</button></td><td><details class="kebab" open><summary aria-label="Actions for change 3"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></summary><div class="menu"><a href="#">Review</a><a href="#">Open source</a><a href="#">Edit before approving</a><a href="#">Assign reviewer</a><a href="#">Send to legal review</a><a href="#">Hold until adopted</a><a href="#">See affected clients</a><div style="height:1px;background:#E8ECF1;margin:4px 0"></div><a href="#" style="color:#8A1C1C">Reject</a></div></details></td></tr>
+            <tr><td><input type="checkbox" aria-label="Select change 4"></td><td><span class="tag t-blu">New rule</span></td><td><strong>Illinois HB 3773</strong></td><td>Requirement added: notice content set by regulator rules</td><td><a href="#">dhr.illinois.gov</a></td><td><span class="tag t-grn">High</span></td><td>4 clients · 9 systems</td><td style="white-space:nowrap"><button class="btn" type="button" style="min-height:34px">Review</button></td><td><details class="kebab"><summary aria-label="Actions for change 4"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></summary></details></td></tr>
+            <tr><td><input type="checkbox" aria-label="Select change 5"></td><td><span class="tag t-amb">Role mapping</span></td><td><strong>India DPDP Rules</strong></td><td>Role "Data Protection Officer": add "must be based in India" for significant data fiduciaries</td><td><a href="#">meity.gov.in</a></td><td><span class="tag t-grn">High</span></td><td>2 clients</td><td style="white-space:nowrap"><button class="btn" type="button" style="min-height:34px">Review</button></td><td><details class="kebab"><summary aria-label="Actions for change 5"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></summary></details></td></tr>
+            <tr><td><input type="checkbox" aria-label="Select change 6"></td><td><span class="tag t-blu">Guidance</span></td><td><strong>NYC Local Law 144</strong></td><td>[Updated regulator FAQ]</td><td><a href="#">nyc.gov/dcwp</a></td><td><span class="tag t-amb">Medium</span></td><td>5 clients · 7 systems</td><td style="white-space:nowrap"><button class="btn" type="button" style="min-height:34px">Review</button></td><td><details class="kebab"><summary aria-label="Actions for change 6"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></summary></details></td></tr>
+            <tr><td><input type="checkbox" aria-label="Select change 7"></td><td><span class="tag t-red">New law</span></td><td><strong>United States, federal</strong></td><td>[Federal action affecting state AI laws]</td><td><a href="#">federalregister.gov</a></td><td><span class="tag t-red">Low: needs legal review</span></td><td>All 12 clients</td><td style="white-space:nowrap"><button class="btn" type="button" style="min-height:34px">Review</button></td><td><details class="kebab"><summary aria-label="Actions for change 7"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></summary></details></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="padding:20px 22px;border-top:1px solid #D9DFE7;background:#FBFCFD;display:flex;flex-direction:column;gap:14px">
+        <h3 style="margin:0;font-size:17px;font-weight:600">Change 2 · EU AI Act: high-risk effective date</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px">
+          <div style="border:1px solid #D9DFE7;border-radius:8px;padding:14px;background:#fff"><div class="lbl">Current (version 5)</div><div style="font-size:14px;line-height:1.5">High-risk obligations for Annex III systems apply from <strong style="background:#FDECEC;padding:0 3px">2 Aug 2026</strong>.</div></div>
+          <div style="border:1px solid #D9DFE7;border-radius:8px;padding:14px;background:#fff"><div class="lbl">Proposed by Claude (version 6)</div><div style="font-size:14px;line-height:1.5">High-risk obligations for Annex III systems apply from <strong style="background:#E1F2E7;padding:0 3px">[new date]</strong>.</div></div>
+          <div style="border:1px solid #D9DFE7;border-radius:8px;padding:14px;background:#fff"><div class="lbl">Source quote</div><div style="font-size:14px;line-height:1.5;color:#3E4757">"[Exact text from the official source]"</div><div class="sub" style="margin-top:6px"><a href="#">eur-lex.europa.eu · [document reference]</a> · read 21 Oct 2026</div></div>
+        </div>
+        <div style="font-size:14px;line-height:1.5"><strong>What this affects:</strong> the "needed by" date for 6 roles in the role catalogue, the intro letters for 9 clients, and the go-live gate on 31 AI systems. <strong>Why medium confidence:</strong> the source is a proposal that may not yet be adopted.</div>
+        <label class="opt"><input type="checkbox" checked> On approval, send a regulatory change alert to the Chief AI Compliance Officer of each affected client</label>
+        <label class="opt"><input type="checkbox" checked> On approval, add this change to the next version of each affected client's intro letter</label>
+        <div style="display:flex;flex-wrap:wrap;gap:10px">
+          <button class="btn btn-p" type="button" style="min-height:44px">Approve and publish version 6</button>
+          <button class="btn" type="button" style="min-height:44px">Edit before approving</button>
+          <button class="btn" type="button" style="min-height:44px">Hold until adopted</button>
+          <button class="btn btn-r" type="button" style="min-height:44px">Reject</button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1650}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

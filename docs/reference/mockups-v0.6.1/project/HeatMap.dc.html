@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Risk heat map and lineage</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+.card{background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:18px 20px;display:flex;flex-direction:column;gap:12px}
+.cell{border-radius:6px;min-height:84px;padding:8px;box-sizing:border-box;display:flex;flex-wrap:wrap;align-content:flex-start;gap:6px}
+.chip{display:inline-block;padding:3px 8px;border-radius:12px;background:#fff;border:1px solid #16233A;font-size:12px;font-weight:600}
+.axis{font-size:12px;color:#5A6577;font-weight:600}
+.step{border:1px solid #D9DFE7;border-radius:8px;padding:10px 12px;background:#fff;font-size:13.5px}
+.step .k{font-size:11.5px;font-weight:700;letter-spacing:0.4px;text-transform:uppercase;color:#5A6577}
+.arrow{text-align:center;color:#8894A6;font-size:14px;line-height:1}
+</style>
+</helmet>
+<div style="min-height:100vh">
+  <header style="background:#1B3A6B;color:#fff;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#0098D4"></div><div style="font-weight:700;font-size:17px">Futran Audit</div></div>
+    <div style="flex:1"></div>
+    <div style="font-size:13px;color:#C9D6EA">[Your name] · Lead Auditor</div>
+  </header>
+  <main style="max-width:1240px;margin:0 auto;padding:24px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px">
+    <div style="font-size:14px"><a href="Systems.dc.html">AI systems</a> <span style="color:#5A6577">/ ABC Corp · heat map and lineage</span></div>
+    <div><h1 style="margin:0;font-size:26px;font-weight:600">Risk heat map and lineage</h1><p style="margin:6px 0 0;color:#5A6577;font-size:14.5px">Systems placed by inherent risk and control maturity · cell colour = resulting residual band · provisional scores marked *</p></div>
+    <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start">
+      <section class="card" style="flex:1 1 560px;min-width:0">
+        <h2 style="margin:0;font-size:17px;font-weight:600">AI systems</h2>
+        <div style="display:grid;grid-template-columns:90px repeat(4,minmax(0,1fr));gap:6px;align-items:stretch">
+          <div class="axis" style="align-self:center">Maturity 4–5</div>
+          <div class="cell" style="background:#E1F2E7"></div><div class="cell" style="background:#E1F2E7"></div><div class="cell" style="background:#E1F2E7"></div><div class="cell" style="background:#FFF1D6"></div>
+          <div class="axis" style="align-self:center">Maturity 3</div>
+          <div class="cell" style="background:#E1F2E7"></div><div class="cell" style="background:#E1F2E7"><span class="chip">SYS-003*</span></div><div class="cell" style="background:#FFF1D6"></div><div class="cell" style="background:#FBD9D3"></div>
+          <div class="axis" style="align-self:center">Maturity 2</div>
+          <div class="cell" style="background:#E1F2E7"></div><div class="cell" style="background:#FFF1D6"><span class="chip">SYS-002*</span><span class="chip">SYS-004*</span></div><div class="cell" style="background:#FBD9D3"></div><div class="cell" style="background:#FBD9D3"><span class="chip" style="background:#7A1A12;color:#fff;border-color:#7A1A12">SYS-001 · High</span></div>
+          <div class="axis" style="align-self:center">Maturity 1</div>
+          <div class="cell" style="background:#E1F2E7"></div><div class="cell" style="background:#FFF1D6"></div><div class="cell" style="background:#FBD9D3"></div><div class="cell" style="background:#F4B7AE"></div>
+          <div></div><div class="axis" style="text-align:center">Inherent 0–24</div><div class="axis" style="text-align:center">25–49</div><div class="axis" style="text-align:center">50–74</div><div class="axis" style="text-align:center">75–100</div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;color:#3E4757"><span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#E1F2E7;vertical-align:-1px"></span> Low</span><span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#FFF1D6;vertical-align:-1px"></span> Medium</span><span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#FBD9D3;vertical-align:-1px"></span> High</span><span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#F4B7AE;vertical-align:-1px"></span> Critical</span><span>Knock-out rules can raise a system above its cell.</span></div>
+      </section>
+      <section class="card" style="flex:1 1 420px;min-width:0">
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline"><h2 style="margin:0;font-size:17px;font-weight:600">Lineage: why is F-007 a finding?</h2><a href="#" style="font-size:13px">Reverse: what proves this control?</a></div>
+        <div class="step"><div class="k">Regulation</div>NYC Local Law 144 · bias audit within the past year</div>
+        <div class="arrow" aria-hidden="true">↓</div>
+        <div class="step"><div class="k">Obligation</div>Employer using an AEDT must have an independent bias audit and publish a summary</div>
+        <div class="arrow" aria-hidden="true">↓</div>
+        <div class="step"><div class="k">Control</div>NIST MEASURE 2.11 · EU AI Act Art. 10 · checklist 6.4 item 3</div>
+        <div class="arrow" aria-hidden="true">↓</div>
+        <div class="step"><div class="k">Response</div>6.2.01 Bias testing performed: <strong>No</strong> · [Name], Head of Talent Systems</div>
+        <div class="arrow" aria-hidden="true">↓</div>
+        <div class="step"><div class="k">Evidence</div>Bias test report: <span style="color:#7A1A12;font-weight:600">not available</span> (document register, 1 chase)</div>
+        <div class="arrow" aria-hidden="true">↓</div>
+        <div class="step" style="border-color:#B42318"><div class="k">Finding → remediation</div>F-007 High · Commission independent bias audit · owner [HR Lead] · due [date]</div>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1150}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

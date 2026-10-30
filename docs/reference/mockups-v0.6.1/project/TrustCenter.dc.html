@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ABC Corp AI Trust Center</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#FFFFFF}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+.card{border:1px solid #D9DFE7;border-radius:8px;padding:20px;display:flex;flex-direction:column;gap:8px;background:#fff}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:600;white-space:nowrap}
+</style>
+</helmet>
+<div style="min-height:100vh">
+  <header style="border-bottom:1px solid #D9DFE7;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;min-height:72px">
+    <div style="font-weight:700;font-size:20px">[ABC Corp logo] <span style="font-weight:500;color:#5A6577;font-size:16px">AI Trust Center</span></div>
+    <a href="#" style="font-size:14px;font-weight:600">Contact us about AI</a>
+  </header>
+  <main style="max-width:1100px;margin:0 auto;padding:40px 24px 56px;box-sizing:border-box;display:flex;flex-direction:column;gap:28px">
+    <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:center;justify-content:space-between">
+      <div style="max-width:620px"><h1 style="margin:0;font-size:34px;font-weight:600;line-height:1.2">How ABC Corp governs its use of AI</h1><p style="margin:12px 0 0;font-size:16px;line-height:1.6;color:#3E4757">We use AI to help our recruiting and customer support teams. These are the commitments we make and the independent reviews behind them.</p></div>
+      <div style="border:2px solid #1B3A6B;border-radius:10px;padding:16px 20px;display:flex;flex-direction:column;gap:4px;min-width:240px">
+        <div style="display:flex;align-items:center;gap:8px"><div style="width:22px;height:22px;border-radius:4px;background:#0098D4"></div><strong>Audited by Futran Solutions</strong></div>
+        <div style="font-size:13.5px;color:#3E4757">AI governance assessment · audit period [start] – [end]</div>
+        <div style="font-size:13.5px;color:#3E4757">Report signed [date] · ref FSL-AI-AUD-2026-014</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">
+      <div class="card"><div style="font-weight:600;font-size:16px">AI in hiring</div><p style="margin:0;font-size:14px;line-height:1.55;color:#3E4757">Our résumé screening tool helps recruiters; a person reviews every recommendation. Candidates for New York City roles receive notice at least 10 business days before it is used.</p><a href="#" style="font-size:14px;font-weight:600">Bias audit summary (NYC LL144) · [date]</a></div>
+      <div class="card"><div style="font-weight:600;font-size:16px">Policies</div><ul style="margin:0;padding-left:18px;font-size:14px;line-height:1.7"><li><a href="#">AI acceptable use policy</a></li><li><a href="#">Human oversight procedure</a></li><li><a href="#">AI incident response summary</a></li></ul></div>
+      <div class="card"><div style="font-weight:600;font-size:16px">Governance</div><p style="margin:0;font-size:14px;line-height:1.55;color:#3E4757">An AI governance committee chaired by our COO meets quarterly. Named owners for explainability, human oversight and AI incidents.</p></div>
+      <div class="card"><div style="font-weight:600;font-size:16px">Your rights</div><p style="margin:0;font-size:14px;line-height:1.55;color:#3E4757">Ask how an AI-assisted decision about you was made, request human review, or ask to correct your data.</p><a href="#" style="font-size:14px;font-weight:600">Make a request</a></div>
+    </div>
+    <section style="background:#F4F6F9;border-radius:8px;padding:16px 20px;font-size:13px;color:#3E4757;line-height:1.55"><strong>Design notes (not shown publicly):</strong> each item is published only after the Chief AI Compliance Officer approves it and Futran confirms it matches the signed report, so the page never claims more than the audit found. The badge shows only what the client opts in to. Optional NDA gate for detailed documents; view analytics for the client.</section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

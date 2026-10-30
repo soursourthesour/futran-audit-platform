@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Chief Auditor refresh alerts</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+.card{background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:20px 22px;display:flex;flex-direction:column;gap:12px}
+.card h2{margin:0;font-size:18px;font-weight:600}
+.btn{box-sizing:border-box;min-height:42px;padding:0 15px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:14px;font-weight:600;color:#1B3A6B;display:inline-flex;align-items:center;gap:7px;cursor:pointer;white-space:nowrap;text-decoration:none}
+.btn-p{background:#1B3A6B;color:#fff;border-color:#1B3A6B}
+.btn-g{background:transparent;border-color:transparent;color:#DCE6F4}
+.tag{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.t-red{background:#FDECEC;color:#8A1C1C}.t-amb{background:#FDF1DC;color:#6E4300}.t-grn{background:#E1F2E7;color:#1F5C38}.t-blu{background:#E3EEF9;color:#1B3A6B}.t-gry{background:#EDF0F4;color:#3E4757}
+input[type=text],input[type=email],input[type=date],input[type=time],select,textarea{box-sizing:border-box;width:100%;min-height:42px;border:1px solid #C7CFDA;border-radius:6px;padding:8px 10px;font:inherit;font-size:14px;background:#fff;color:#16233A}
+input[type=checkbox],input[type=radio]{width:18px;height:18px;accent-color:#1B3A6B;margin:0;flex:none}
+table{border-collapse:collapse;font-size:13.5px;width:100%}
+th{text-align:left;font-weight:600;color:#5A6577;font-size:12px;text-transform:uppercase;letter-spacing:0.4px;padding:9px 10px;border-bottom:1px solid #D9DFE7;background:#F7F8FA;white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid #E8ECF1;vertical-align:top}
+tr.sel td{background:#EEF3FA}
+.sub{font-size:12.5px;color:#5A6577;line-height:1.4}
+.lbl{display:block;font-size:13.5px;font-weight:600;margin-bottom:5px}
+.opt{display:flex;align-items:flex-start;gap:10px;font-size:14px;line-height:1.4;padding:6px 0}
+.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.kb{width:36px;height:36px;border-radius:6px;border:1px solid transparent;background:transparent;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.kebab{position:relative}
+.kebab summary{list-style:none;width:36px;height:36px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid transparent}
+.kebab summary::-webkit-details-marker{display:none}
+.kebab[open] summary{border-color:#C7CFDA;background:#fff}
+.menu{position:absolute;right:0;top:40px;z-index:5;width:250px;background:#fff;border:1px solid #C7CFDA;border-radius:8px;box-shadow:0 8px 24px rgba(22,35,58,0.16);padding:6px;display:flex;flex-direction:column}
+.menu a{display:flex;align-items:center;min-height:38px;padding:0 10px;border-radius:5px;text-decoration:none;font-size:14px;color:#16233A}
+.menu a:hover{background:#EEF3FA}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;padding:5px 11px;border-radius:16px;background:#E3EEF9;color:#1B3A6B;font-weight:600}
+.bar{background:#1B3A6B;color:#fff;padding:8px 16px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+</style>
+</helmet>
+<div style="min-height:100vh">
+<header style="background:#1B3A6B;color:#fff;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:20px;min-height:64px">
+  <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#fff"></div><div style="font-weight:700;font-size:17px">Futran Audit</div></div>
+  <nav style="display:flex;flex-wrap:wrap;gap:2px;font-size:14px"><a href="Dashboard.dc.html" style="padding:8px 12px;text-decoration:none;color:#DCE6F4">Dashboard</a><a href="RegMaster.dc.html" style="padding:8px 12px;text-decoration:none;color:#DCE6F4">Regulatory master</a><a href="Litigation.dc.html" style="padding:8px 12px;text-decoration:none;color:#DCE6F4">Litigation</a></nav>
+  <div style="flex:1"></div>
+  <button type="button" aria-label="Alerts, 2 unread" style="position:relative;width:44px;height:44px;border-radius:8px;border:1px solid #7FCBEA;background:#2A4C80;display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3a5 5 0 0 0-5 5v3l-1.5 3h13L15 11V8a5 5 0 0 0-5-5zM8 16a2 2 0 0 0 4 0" fill="none" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg><span style="position:absolute;top:4px;right:4px;min-width:18px;height:18px;border-radius:9px;background:#D64545;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">2</span></button>
+  <div style="font-size:13px;color:#DCE6F4">[Name] · Chief Auditor</div>
+</header>
+<main style="max-width:1400px;margin:0 auto;padding:24px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px">
+  <div><h1 style="margin:0;font-size:28px;font-weight:600">Refresh alerts for the Chief Auditor</h1><p style="margin:6px 0 0;font-size:15px;color:#3E4757">Every law or litigation refresh, scheduled or run by hand, ends with an alert to the Chief Auditor: in the app, by email, and as a reminder if changes wait too long.</p></div>
+  <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start">
+    <section class="card" style="flex:1 1 440px;max-width:500px;padding:0;gap:0;box-shadow:0 10px 30px rgba(22,35,58,0.18);border-color:#C7CFDA">
+      <div style="padding:14px 16px;border-bottom:1px solid #D9DFE7;display:flex;gap:8px;align-items:center"><h2 style="flex:1">Alerts</h2><a href="#" style="font-size:13.5px">Mark all read</a><a href="#refresh-settings" style="font-size:13.5px">Settings</a></div>
+      <ul style="margin:0;padding:0"><li style="list-style:none;padding:14px 16px;border-bottom:1px solid #E8ECF1;display:flex;gap:12px;background:#F4F8FD">
+<span style="width:8px;height:8px;border-radius:4px;margin-top:7px;flex:none;background:#2E75B6"></span>
+<div style="flex:1;display:flex;flex-direction:column;gap:4px"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><strong style="font-size:14.5px">Law refresh finished</strong><span class="tag t-red">Action needed</span><span class="sub" style="margin-left:auto">Today 09:12</span></div><div style="font-size:13.5px;line-height:1.45">8 changes to review: 2 new laws, 2 amendments, 3 new rules or guidance, 1 effective date. 1 is low confidence.</div><div class="sub">12 clients · 31 AI systems affected</div><a href="RegRefresh.dc.html" style="font-size:13.5px;font-weight:600">Review law changes</a></div></li><li style="list-style:none;padding:14px 16px;border-bottom:1px solid #E8ECF1;display:flex;gap:12px;background:#F4F8FD">
+<span style="width:8px;height:8px;border-radius:4px;margin-top:7px;flex:none;background:#2E75B6"></span>
+<div style="flex:1;display:flex;flex-direction:column;gap:4px"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><strong style="font-size:14.5px">Litigation refresh finished</strong><span class="tag t-red">Action needed</span><span class="sub" style="margin-left:auto">Today 09:14</span></div><div style="font-size:13.5px;line-height:1.45">2 case updates: Mobley v. Workday stage changed; 1 new case added (Illinois).</div><div class="sub">5 clients use similar AI</div><a href="Litigation.dc.html" style="font-size:13.5px;font-weight:600">Review case updates</a></div></li><li style="list-style:none;padding:14px 16px;border-bottom:1px solid #E8ECF1;display:flex;gap:12px;">
+<span style="width:8px;height:8px;border-radius:4px;margin-top:7px;flex:none;background:transparent"></span>
+<div style="flex:1;display:flex;flex-direction:column;gap:4px"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><strong style="font-size:14.5px">Changes waiting over 5 days</strong><span class="tag t-amb">Reminder</span><span class="sub" style="margin-left:auto">Yesterday</span></div><div style="font-size:13.5px;line-height:1.45">EU AI Act effective-date change still held. Reminder sent to you and the QA Reviewer.</div><div class="sub">9 clients</div><a href="RegRefresh.dc.html" style="font-size:13.5px;font-weight:600">Open held change</a></div></li><li style="list-style:none;padding:14px 16px;border-bottom:1px solid #E8ECF1;display:flex;gap:12px;">
+<span style="width:8px;height:8px;border-radius:4px;margin-top:7px;flex:none;background:transparent"></span>
+<div style="flex:1;display:flex;flex-direction:column;gap:4px"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><strong style="font-size:14.5px">Refresh found nothing new</strong><span class="tag t-gry">Info</span><span class="sub" style="margin-left:auto">21 Oct 2026</span></div><div style="font-size:13.5px;line-height:1.45">Scheduled law refresh: 41 sources read, no changes.</div><div class="sub">—</div><a href="RegRefresh.dc.html" style="font-size:13.5px;font-weight:600">See run</a></div></li></ul>
+      <div style="padding:12px 16px" class="sub">Opened from the bell. Unread alerts stay at the top until the changes are reviewed.</div>
+    </section>
+
+    <section style="flex:1 1 560px;min-width:0;display:flex;flex-direction:column;gap:10px">
+      <strong style="font-size:16px">Alert email to the Chief Auditor</strong>
+      <article style="background:#fff;border:1px solid #D9DFE7;border-radius:8px;box-shadow:0 2px 10px rgba(22,35,58,0.08);overflow:hidden">
+        <div style="padding:14px 18px;border-bottom:1px solid #E8ECF1;font-size:13.5px;line-height:1.7"><div><span class="sub">From</span> Futran AI Governix &lt;AiAudit@futransolutions.com&gt;</div><div><span class="sub">To</span> [Chief Auditor] · cc QA Reviewer</div><div><span class="sub">Subject</span> <strong>Refresh done: 8 law changes and 2 case updates need your review</strong></div></div>
+        <div style="padding:18px;font-size:14.5px;line-height:1.55;display:flex;flex-direction:column;gap:12px">
+          <p style="margin:0">Today's scheduled refresh read 41 law sources and 12 court sources.</p>
+          <table><thead><tr><th>Found</th><th>Count</th><th>Needs your review</th></tr></thead><tbody>
+            <tr><td>New laws</td><td>2</td><td>Yes, plus legal review</td></tr>
+            <tr><td>Amendments and dates</td><td>3</td><td>Yes</td></tr>
+            <tr><td>New rules or guidance</td><td>3</td><td>Yes</td></tr>
+            <tr><td>Case updates</td><td>2</td><td>Yes</td></tr>
+          </tbody></table>
+          <div><strong>Most affected:</strong> 12 clients and 31 AI systems. Client alerts for these changes are on hold until you approve.</div>
+          <div><strong>Low confidence:</strong> 1 change (federal action on state AI laws) is marked for legal review.</div>
+          <div style="display:flex;flex-wrap:wrap;gap:10px"><a href="RegRefresh.dc.html" style="background:#1B3A6B;color:#fff;text-decoration:none;font-weight:600;padding:11px 16px;border-radius:6px">Review law changes</a><a href="Litigation.dc.html" style="border:1px solid #1B3A6B;color:#1B3A6B;text-decoration:none;font-weight:600;padding:10px 16px;border-radius:6px">Review case updates</a></div>
+          <p class="sub" style="margin:0">No client sees any change until you approve it.</p>
+        </div>
+      </article>
+    </section>
+  </div>
+
+  <section class="card" id="refresh-settings">
+    <h2>Alert settings</h2>
+    <div class="g2">
+      <div><label class="lbl" for="n1">Alert goes to *</label><select id="n1"><option>All Chief Auditors (2)</option><option>The Chief Auditor who ran the refresh</option></select></div>
+      <div><label class="lbl" for="n2">Copy</label><select id="n2"><option>QA Reviewer</option><option>Futran Admin</option><option>No one</option></select></div>
+      <div><label class="lbl" for="n3">When</label><select id="n3"><option>Every refresh, including "nothing new"</option><option>Only when changes are found</option><option>Only high-impact or low-confidence changes</option></select></div>
+      <div><label class="lbl" for="n4">How</label><select id="n4"><option>In the app and by email</option><option>In the app only</option><option>Email only</option></select></div>
+      <div><label class="lbl" for="n5">Remind if not reviewed after</label><select id="n5"><option>3 days</option><option>5 days</option><option>7 days</option></select></div>
+      <div><label class="lbl" for="n6">Escalate after</label><select id="n6"><option>7 days, to the other Chief Auditor and Futran Admin</option><option>Never</option></select></div>
+    </div>
+    <div class="sub">Applies to law refreshes (M3) and litigation refreshes (L1). Each alert is logged in the email log (E5).</div>
+    <div style="display:flex;justify-content:flex-end;gap:10px"><button class="btn" type="button">Send a test alert</button><button class="btn btn-p" type="button">Save settings</button></div>
+  </section>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1600}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Executive Sponsor home</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+.card{background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:20px;display:flex;flex-direction:column;gap:12px}
+.btn{height:44px;padding:0 16px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:14px;font-weight:600;color:#16233A}
+.pri{border-color:#1B3A6B;background:#1B3A6B;color:#fff}
+input[type=checkbox]{width:20px;height:20px;accent-color:#1B3A6B;margin:0;flex:none}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:600;white-space:nowrap}
+</style>
+</helmet>
+<div style="min-height:100vh">
+  <header style="background:#fff;border-bottom:1px solid #D9DFE7;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#1B3A6B"></div><div style="font-weight:700;font-size:17px;color:#1B3A6B">Futran Audit</div><span style="color:#5A6577;font-size:14px">· ABC Corp</span></div>
+    <nav style="display:flex;flex-wrap:wrap;gap:4px;flex:1"><a href="#" style="text-decoration:none;padding:8px 12px;border-radius:5px;background:#E3EEF9;font-weight:600;font-size:14px">Summary</a><a href="#" style="text-decoration:none;padding:8px 12px;font-size:14px;color:#3E4757">Reports</a></nav>
+    <div style="font-size:13px;color:#5A6577">[Name] · CEO · Executive Sponsor</div>
+  </header>
+  <main style="max-width:1140px;margin:0 auto;padding:28px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:20px">
+    <div><h1 style="margin:0;font-size:28px;font-weight:600">AI governance at ABC Corp</h1><p style="margin:6px 0 0;color:#5A6577;font-size:15px">Initial AI governance assessment · Futran Solutions · stage 7 of 9 · sample data</p></div>
+    <section class="card" style="border:2px solid #1B3A6B">
+      <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px"><h2 style="margin:0;font-size:19px;font-weight:600">Waiting for your signature</h2><span class="tag" style="background:#FFF1D6;color:#7A4800">Due [date]</span></div>
+      <div style="font-size:15px;font-weight:600">Sign-off 6 · Accept the remediation plan</div>
+      <div style="font-size:14px;color:#3E4757;line-height:1.55">5 findings, each with a management response, owner and due date, reviewed by your Chief AI Compliance Officer. Accepting commits ABC Corp to the plan; Futran will verify each item.</div>
+      <label style="display:flex;gap:10px;font-size:14px"><input type="checkbox"> I have read the draft report summary and the 5 responses</label>
+      <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn pri">Accept and sign</button><button class="btn">Ask a question first</button><a href="Response.dc.html" style="display:inline-flex;align-items:center;font-size:14px;font-weight:600">See responses</a></div>
+    </section>
+    <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:stretch">
+      <section class="card" style="flex:1 1 300px;background:#FDECEC;border-color:#F0B4AC"><div style="font-size:13px;color:#7A1A12;font-weight:600">Overall rating (draft)</div><div style="font-size:34px;font-weight:700;color:#7A1A12">High</div><div style="font-size:14px;line-height:1.5">Driven by the résumé screening tool used for New York City hiring: no bias audit within the past year.</div></section>
+      <section class="card" style="flex:1 1 300px"><div style="font-size:13px;color:#5A6577;font-weight:600">Findings</div><div style="font-size:15px;line-height:1.9"><strong>2</strong> High · <strong>2</strong> Medium · <strong>1</strong> Low</div><div style="font-size:13px;color:#5A6577">4 AI systems audited · 14 use cases in inventory</div></section>
+      <section class="card" style="flex:1 1 300px"><div style="font-size:13px;color:#5A6577;font-weight:600">Strengths noted by Futran</div><div style="font-size:14px;line-height:1.55">Governance committee meets quarterly; human review is in place on all hiring decisions.</div></section>
+    </div>
+    <section class="card">
+      <h2 style="margin:0;font-size:17px;font-weight:600">Your earlier sign-offs</h2>
+      <div style="display:flex;justify-content:space-between;gap:10px;font-size:14px;padding:6px 0;border-bottom:1px solid #E8ECF1"><span>Sign-off 4 · Management representation: AI inventory complete and accurate</span><span style="color:#1F5C38;font-weight:600">Signed [date]</span></div>
+      <div style="display:flex;justify-content:space-between;gap:10px;font-size:14px;padding:6px 0"><span>Final report acknowledgment (receipt, not agreement)</span><span style="color:#5A6577">After stage 8</span></div>
+    </section>
+    <div style="font-size:13px;color:#5A6577"><strong>Executive Sponsor can:</strong> view summaries and reports, sign sign-offs 4 and 6, acknowledge the final report. <span style="color:#7A1A12">Cannot edit the inventory or findings.</span></div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>QA Reviewer queue</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+.card{background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:18px 20px;display:flex;flex-direction:column;gap:10px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-weight:600;color:#5A6577;font-size:12px;text-transform:uppercase;letter-spacing:0.4px;padding:8px 10px;border-bottom:1px solid #D9DFE7;white-space:nowrap}
+td{padding:11px 10px;border-bottom:1px solid #E8ECF1;white-space:nowrap}
+.btn{height:44px;padding:0 14px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:14px;font-weight:600;color:#16233A}
+.pri{border-color:#1B3A6B;background:#1B3A6B;color:#fff}
+.nav a{color:#C9D6EA;text-decoration:none;padding:8px 12px;font-size:14px}
+textarea{box-sizing:border-box;width:100%;border:1px solid #C7CFDA;border-radius:6px;padding:10px 12px;font:inherit;font-size:14px}
+input[type=checkbox]{width:20px;height:20px;accent-color:#1B3A6B;margin:0;flex:none}
+</style>
+</helmet>
+<div style="min-height:100vh">
+  <header style="background:#1B3A6B;color:#fff;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#0098D4"></div><div style="font-weight:700;font-size:17px">Futran Audit</div></div>
+    <nav class="nav" style="display:flex;flex-wrap:wrap;gap:4px;flex:1"><a href="#" style="color:#fff;border-radius:5px;background:rgba(255,255,255,0.14);font-weight:600">QA queue</a><a href="#">Reviewed</a></nav>
+    <div style="font-size:13px;color:#C9D6EA">[Your name] · QA Reviewer</div>
+  </header>
+  <main style="max-width:1240px;margin:0 auto;padding:24px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px">
+    <div><h1 style="margin:0;font-size:26px;font-weight:600">QA review queue</h1><p style="margin:6px 0 0;color:#5A6577;font-size:14.5px">Findings written by a Chief Auditor come to you, so no one approves their own work · sample data</p></div>
+    <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start">
+      <section class="card" style="flex:999 1 560px;min-width:0">
+        <div style="overflow-x:auto"><table>
+          <thead><tr><th>Finding</th><th>Client</th><th>Author</th><th>Severity</th><th>Waiting</th></tr></thead>
+          <tbody>
+            <tr style="background:#F7FAFD"><td style="font-weight:600;border-left:3px solid #2E75B6">Null-compliance risk: no demographic data</td><td>ABC Corp</td><td>[Chief Auditor]</td><td style="color:#9B1C1C;font-weight:600">High</td><td>1 day</td></tr>
+            <tr><td style="font-weight:600">Vendor contract silent on bias audits</td><td>BCD Inc</td><td>[Chief Auditor]</td><td style="color:#7A4800;font-weight:600">Medium</td><td>3 days</td></tr>
+            <tr><td style="font-weight:600">Final rating raised to High (override)</td><td>ABC Corp</td><td>[Chief Auditor]</td><td>Score override</td><td>today</td></tr>
+          </tbody>
+        </table></div>
+        <div style="font-size:13px;color:#5A6577">Score overrides with a rationale also come here when the Chief Auditor changed the computed rating.</div>
+      </section>
+      <aside class="card" style="flex:1 1 400px;border:2px solid #1B3A6B">
+        <div style="font-size:13px;color:#5A6577;font-weight:600">ABC Corp · SYS-001 · High</div>
+        <h2 style="margin:0;font-size:18px;font-weight:600;line-height:1.35">Null-compliance risk: no demographic data</h2>
+        <div style="font-size:14px;line-height:1.55"><strong>Control:</strong> NYC LL144; Addendum 5.1a<br><strong>Evidence:</strong> bias test run (62% unknown race / ethnicity), client quote recorded verbatim</div>
+        <label style="display:flex;gap:10px;font-size:14px"><input type="checkbox" checked> Finding is supported by linked evidence</label>
+        <label style="display:flex;gap:10px;font-size:14px"><input type="checkbox" checked> Severity matches the classification guide (§10.1)</label>
+        <label style="display:flex;gap:10px;font-size:14px"><input type="checkbox"> Written in plain English for a CEO reader</label>
+        <label for="qc" style="font-size:14px;font-weight:600">QA comment</label>
+        <textarea id="qc" rows="2" placeholder="Required when returning"></textarea>
+        <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn pri" style="flex:1">Approve</button><button class="btn" style="flex:1">Return to Chief Auditor</button></div>
+      </aside>
+    </div>
+    <section class="card" style="background:#F7F8FA">
+      <div style="font-size:13.5px;line-height:1.55"><strong>QA Reviewer can:</strong> view assigned engagements, approve or return findings and score overrides authored by a Chief Auditor. <span style="color:#7A1A12"><strong>Cannot:</strong> write findings, edit client data, sign reports, or review an engagement they worked on.</span></div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":850}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

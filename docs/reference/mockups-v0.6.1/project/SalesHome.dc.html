@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sales opportunities</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+.card{background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:20px 22px;display:flex;flex-direction:column;gap:12px}
+.card h2{margin:0;font-size:18px;font-weight:600}
+.btn{box-sizing:border-box;min-height:42px;padding:0 15px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:14px;font-weight:600;color:#1B3A6B;display:inline-flex;align-items:center;gap:7px;cursor:pointer;white-space:nowrap;text-decoration:none}
+.btn-p{background:#1B3A6B;color:#fff;border-color:#1B3A6B}
+.btn-g{background:transparent;border-color:transparent;color:#DCE6F4}
+.tag{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.t-red{background:#FDECEC;color:#8A1C1C}.t-amb{background:#FDF1DC;color:#6E4300}.t-grn{background:#E1F2E7;color:#1F5C38}.t-blu{background:#E3EEF9;color:#1B3A6B}.t-gry{background:#EDF0F4;color:#3E4757}
+input[type=text],input[type=email],input[type=date],input[type=time],select,textarea{box-sizing:border-box;width:100%;min-height:42px;border:1px solid #C7CFDA;border-radius:6px;padding:8px 10px;font:inherit;font-size:14px;background:#fff;color:#16233A}
+input[type=checkbox],input[type=radio]{width:18px;height:18px;accent-color:#1B3A6B;margin:0;flex:none}
+table{border-collapse:collapse;font-size:13.5px;width:100%}
+th{text-align:left;font-weight:600;color:#5A6577;font-size:12px;text-transform:uppercase;letter-spacing:0.4px;padding:9px 10px;border-bottom:1px solid #D9DFE7;background:#F7F8FA;white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid #E8ECF1;vertical-align:top}
+tr.sel td{background:#EEF3FA}
+.sub{font-size:12.5px;color:#5A6577;line-height:1.4}
+.lbl{display:block;font-size:13.5px;font-weight:600;margin-bottom:5px}
+.opt{display:flex;align-items:flex-start;gap:10px;font-size:14px;line-height:1.4;padding:6px 0}
+.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.kb{width:36px;height:36px;border-radius:6px;border:1px solid transparent;background:transparent;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.kebab{position:relative}
+.kebab summary{list-style:none;width:36px;height:36px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid transparent}
+.kebab summary::-webkit-details-marker{display:none}
+.kebab[open] summary{border-color:#C7CFDA;background:#fff}
+.menu{position:absolute;right:0;top:40px;z-index:5;width:250px;background:#fff;border:1px solid #C7CFDA;border-radius:8px;box-shadow:0 8px 24px rgba(22,35,58,0.16);padding:6px;display:flex;flex-direction:column}
+.menu a{display:flex;align-items:center;min-height:38px;padding:0 10px;border-radius:5px;text-decoration:none;font-size:14px;color:#16233A}
+.menu a:hover{background:#EEF3FA}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;padding:5px 11px;border-radius:16px;background:#E3EEF9;color:#1B3A6B;font-weight:600}
+.bar{background:#1B3A6B;color:#fff;padding:8px 16px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+</style>
+</helmet>
+<div style="min-height:100vh">
+<header style="background:#1B3A6B;color:#fff;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:20px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#fff"></div><div style="font-weight:700;font-size:17px">Futran Audit</div></div>
+    <nav style="display:flex;flex-wrap:wrap;gap:2px;font-size:14px"><a href="Dashboard.dc.html" style="padding:8px 12px;text-decoration:none;color:#DCE6F4">Dashboard</a><a href="ClientDetail.dc.html" style="padding:8px 12px;text-decoration:none;color:#DCE6F4">Clients</a><a href="RegMaster.dc.html" style="padding:8px 12px;text-decoration:none;color:#DCE6F4">Regulatory master</a><a href="Litigation.dc.html" style="padding:8px 12px;text-decoration:none;color:#DCE6F4">Litigation</a><a href="SalesHome.dc.html" style="padding:8px 12px;text-decoration:none;color:#fff;font-weight:600;border-bottom:2px solid #7FCBEA">Opportunities</a><a href="AutoAlerts.dc.html" style="padding:8px 12px;text-decoration:none;color:#DCE6F4">Client alerts</a></nav>
+    <div style="flex:1"></div><div style="font-size:13px;color:#DCE6F4">[Name] · Sales Team</div></header>
+<main style="max-width:1400px;margin:0 auto;padding:28px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px">
+  <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end"><div style="flex:1 1 560px"><h1 style="margin:0;font-size:28px;font-weight:600">Opportunities</h1><p style="margin:6px 0 0;font-size:15px;color:#3E4757">Created automatically when a client asks to unlock an add-on, a new rule or deadline affects them, a relevant case appears, or a high-risk system has no tracing. Shared by the Sales Team and the Chief Auditor.</p></div><a class="btn btn-p" href="#"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>Add opportunity</a></div>
+  <div style="display:flex;flex-wrap:wrap;gap:10px"><div class="card" style="padding:12px 16px;gap:2px;flex:1 1 150px"><div style="font-size:24px;font-weight:700;color:#1B3A6B">23</div><div class="sub">Open opportunities</div></div><div class="card" style="padding:12px 16px;gap:2px;flex:1 1 150px"><div style="font-size:24px;font-weight:700;color:#1B3A6B">9</div><div class="sub">Created by triggers this month</div></div><div class="card" style="padding:12px 16px;gap:2px;flex:1 1 150px"><div style="font-size:24px;font-weight:700;color:#1B3A6B">4</div><div class="sub">Waiting for Chief Auditor approval</div></div><div class="card" style="padding:12px 16px;gap:2px;flex:1 1 150px"><div style="font-size:24px;font-weight:700;color:#1B3A6B">[Value]</div><div class="sub">Pipeline value</div></div><div class="card" style="padding:12px 16px;gap:2px;flex:1 1 150px"><div style="font-size:24px;font-weight:700;color:#1B3A6B">3</div><div class="sub">Won this quarter</div></div></div>
+  <section class="card" style="padding:0;gap:0">
+    <div style="padding:14px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;border-bottom:1px solid #D9DFE7">
+      <div style="flex:1 1 220px"><label class="lbl" for="q">Search</label><input type="text" id="q" placeholder="Client or service"></div>
+      <div><label class="lbl" for="f1">Trigger</label><select id="f1"><option>All triggers</option><option>Unlock request</option><option>New rule</option><option>Effective date</option><option>Litigation</option><option>Recommended add-on</option></select></div>
+      <div><label class="lbl" for="f2">Stage</label><select id="f2"><option>All stages</option><option>New</option><option>Contacted</option><option>Proposal</option><option>Won</option><option>Lost</option></select></div>
+      <div><label class="lbl" for="f3">Owner</label><select id="f3"><option>Everyone</option><option>Me</option></select></div>
+    </div>
+    <div class="bar"><strong style="font-size:14px;margin-right:10px">1 selected</strong><button class="btn" type="button" style="min-height:34px">Edit selected</button><button class="btn btn-g" type="button">Assign owner</button><button class="btn btn-g" type="button">Change stage</button><button class="btn btn-g" type="button">Export to CRM</button><div style="flex:1"></div><button class="btn btn-g" type="button">Clear</button></div>
+    <div style="overflow-x:auto"><table style="min-width:1300px"><thead><tr><th style="width:30px"><input type="checkbox" aria-label="Select all"></th><th>Client</th><th>Trigger</th><th>Service</th><th>Why now</th><th>Value</th><th>Owner</th><th>Stage</th><th>Next step</th><th>Chief Auditor approval</th><th style="width:44px"><span style="position:absolute;width:1px;height:1px;overflow:hidden">Actions</span></th></tr></thead><tbody><tr class="sel"><td><input type="checkbox" checked aria-label="Select ABC Corp Tracing module · 4 systems"></td><td><strong>ABC Corp</strong></td><td><span class="tag t-gry">Unlock request</span></td><td>Tracing module · 4 systems</td><td>Client asked (R8)</td><td>[Value]</td><td>[Name]</td><td><span class="tag t-amb">Proposal</span></td><td>Confirm order after sponsor approval</td><td>No · add-on tool</td><td><details class="kebab" open><summary aria-label="Actions for ABC Corp Tracing module · 4 systems"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></summary><div class="menu"><a href="#">Open opportunity</a><a href="#">Log a call or email</a><a href="#">Send proposal</a><a href="#">Ask Chief Auditor to approve</a><a href="#">Mark won</a><a href="#" style="color:#8A1C1C">Mark lost</a></div></details></td></tr><tr><td><input type="checkbox" aria-label="Select ABC Corp Bias audit incl. age, hiring tools"></td><td><strong>ABC Corp</strong></td><td><span class="tag t-gry">Litigation</span></td><td>Bias audit incl. age, hiring tools</td><td>Mobley v. Workday</td><td>[Value]</td><td>[Name]</td><td><span class="tag t-blu">New</span></td><td>Chief Auditor review needed</td><td>Yes · current audit client</td><td><button class="kb" type="button" aria-label="Actions for ABC Corp Bias audit incl. age, hiring tools"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr><td><input type="checkbox" aria-label="Select [Client B] Bias audit, vendor due diligence"></td><td><strong>[Client B]</strong></td><td><span class="tag t-gry">Litigation</span></td><td>Bias audit, vendor due diligence</td><td>Mobley v. Workday</td><td>[Value]</td><td>[Name]</td><td><span class="tag t-amb">Contacted</span></td><td>Call booked 4 Nov</td><td>No</td><td><button class="kb" type="button" aria-label="Actions for [Client B] Bias audit, vendor due diligence"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr><td><input type="checkbox" aria-label="Select [Client C] Illinois notice update pack"></td><td><strong>[Client C]</strong></td><td><span class="tag t-gry">New rule</span></td><td>Illinois notice update pack</td><td>Illinois HB 3773 rules</td><td>[Value]</td><td>[Name]</td><td><span class="tag t-blu">New</span></td><td>Send client alert first</td><td>No</td><td><button class="kb" type="button" aria-label="Actions for [Client C] Illinois notice update pack"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr><td><input type="checkbox" aria-label="Select [Client D] Tracing module · 2 agents"></td><td><strong>[Client D]</strong></td><td><span class="tag t-gry">Recommended add-on</span></td><td>Tracing module · 2 agents</td><td>Tier 2 agents live, no tracing</td><td>[Value]</td><td>[Name]</td><td><span class="tag t-blu">New</span></td><td>Offer 30-day trial</td><td>No</td><td><button class="kb" type="button" aria-label="Actions for [Client D] Tracing module · 2 agents"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr><td><input type="checkbox" aria-label="Select [Client E] EU AI Act readiness review"></td><td><strong>[Client E]</strong></td><td><span class="tag t-gry">Effective date</span></td><td>EU AI Act readiness review</td><td>High-risk duties date</td><td>[Value]</td><td>[Name]</td><td><span class="tag t-grn">Won</span></td><td>Kick-off 12 Nov</td><td>No</td><td><button class="kb" type="button" aria-label="Actions for [Client E] EU AI Act readiness review"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr></tbody></table></div>
+    <div style="padding:12px 16px" class="sub">Sales sees the trigger and the system type, never audit findings or evidence. An offer to a current audit client waits for Chief Auditor approval, and Futran does not sell the fix for a finding it raised in the same engagement.</div>
+  </section>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1150}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

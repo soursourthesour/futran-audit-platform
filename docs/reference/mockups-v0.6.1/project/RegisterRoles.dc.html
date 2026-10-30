@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AI system governance roles</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+.card{background:#fff;border:1px solid #D9DFE7;border-radius:8px}
+.btn{box-sizing:border-box;min-height:44px;padding:0 16px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:14.5px;font-weight:600;color:#1B3A6B;display:inline-flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap}
+.btn-p{background:#1B3A6B;color:#fff;border-color:#1B3A6B}
+.lbl{display:block;font-size:13.5px;font-weight:600;margin-bottom:5px}
+.tag{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.t-red{background:#FDECEC;color:#8A1C1C}.t-amb{background:#FDF1DC;color:#6E4300}.t-grn{background:#E1F2E7;color:#1F5C38}.t-blu{background:#E3EEF9;color:#1B3A6B}.t-gry{background:#EDF0F4;color:#3E4757}
+input[type=text],input[type=date],select,textarea{box-sizing:border-box;width:100%;min-height:42px;border:1px solid #C7CFDA;border-radius:6px;padding:8px 10px;font:inherit;font-size:14px;background:#fff;color:#16233A}
+input[type=radio],input[type=checkbox]{width:18px;height:18px;accent-color:#1B3A6B;margin:2px 0 0;flex:none}
+table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:860px}
+th{text-align:left;font-weight:600;color:#5A6577;font-size:12px;text-transform:uppercase;letter-spacing:0.4px;padding:9px 10px;border-bottom:1px solid #D9DFE7;background:#F7F8FA;white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid #E8ECF1;vertical-align:top}
+tr.on td{background:#EEF3FA}
+.hint{font-size:12.5px;color:#5A6577;line-height:1.4}
+.grp td{background:#F7F8FA;font-weight:600;font-size:13px;color:#1B3A6B}
+.tabs{display:flex;flex-wrap:wrap;gap:2px;border-bottom:1px solid #D9DFE7}
+.tabs a{padding:10px 14px;text-decoration:none;font-size:14px;color:#3E4757;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs a.cur{color:#1B3A6B;font-weight:600;border-bottom-color:#1B3A6B}
+.kb{width:36px;height:36px;border-radius:6px;border:1px solid transparent;background:transparent;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.opt{display:flex;gap:10px;align-items:flex-start;padding:9px 10px;border:1px solid #D9DFE7;border-radius:6px;font-size:14px;line-height:1.35}
+.opt.on{border-color:#1B3A6B;background:#EEF3FA}
+</style>
+</helmet>
+<div style="min-height:100vh">
+  <header style="background:#fff;border-bottom:1px solid #D9DFE7;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#1B3A6B"></div><div style="font-weight:700;font-size:17px;color:#1B3A6B">Futran Audit</div><span style="color:#5A6577;font-size:14px">· ABC Corp</span></div>
+    <div style="flex:1"></div>
+    <div style="font-size:13px;color:#5A6577">[Name] · Department Head, Human Resources</div>
+  </header>
+
+  <main style="max-width:1400px;margin:0 auto;padding:24px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+    <div style="font-size:14px"><a href="RegisterGrid.dc.html">AI system register</a> <span style="color:#5A6577">/ Benefits Q&amp;A agent</span></div>
+    <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end">
+      <div style="flex:1 1 500px">
+        <h1 style="margin:0;font-size:28px;font-weight:600">Benefits Q&amp;A agent</h1>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"><span class="tag t-blu">AI agent · built in-house</span><span class="tag t-gry">Microsoft Azure OpenAI · GPT-4.1</span><span class="tag t-amb">Tier 2 · Medium</span><span class="tag t-gry">Stage: Ready for go-live</span><span class="tag t-gry">EU AI Act · CCPA</span></div>
+      </div>
+      <button class="btn" type="button">Save draft</button>
+      <button class="btn btn-p" type="button" disabled style="opacity:0.55;cursor:not-allowed">Submit for go-live approval</button>
+    </div>
+
+    <div style="background:#FDECEC;border:1px solid #F2C4C4;border-radius:8px;padding:12px 16px;display:flex;flex-wrap:wrap;gap:12px;align-items:center">
+      <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="9" fill="none" stroke="#8A1C1C" stroke-width="1.8"/><path d="M10 5.5v5.5M10 14v.5" stroke="#8A1C1C" stroke-width="2" stroke-linecap="round"/></svg>
+      <div style="flex:1 1 500px;font-size:14px;line-height:1.5;color:#5E1414"><strong>Go-live blocked: 3 roles required at go-live are not filled.</strong> Human oversight person (no such person), Records retention owner (no such person, company-wide), Transparency and notice owner (pending committee).</div>
+      <a href="#" style="font-size:14px;font-weight:600;color:#8A1C1C">Show only gaps</a>
+    </div>
+
+    <nav class="tabs" aria-label="AI system sections">
+      <a href="RegisterDetails.dc.html">Details</a><a href="RegisterDetails.dc.html">Vendor and model</a><a href="RegisterDetails.dc.html">Data and consent</a><a href="RegisterDetails.dc.html">Laws and risk</a><a href="RegisterDetails.dc.html">Bias testing</a><a href="#" class="cur">Governance roles <span class="tag t-red" style="margin-left:4px">3</span></a><a href="#">Evidence</a><a href="#">Change history</a>
+    </nav>
+
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px">
+      <span style="font-weight:600;margin-right:4px">Status key:</span>
+      <span class="tag t-grn">Assigned</span><span class="tag t-blu">External party</span><span class="tag t-red">No such person</span><span class="tag t-amb">Pending committee</span><span class="tag t-gry">Not applicable</span>
+      <span class="hint" style="margin-left:8px">Which roles are required, and by when, is worked out from the laws and the stage on this system.</span>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start">
+      <section class="card" style="flex:999 1 860px;min-width:0;overflow-x:auto">
+        <table>
+          <thead><tr><th>Role</th><th>Required by</th><th>Needed by</th><th>Status</th><th>Person or party</th><th>Target date or reason</th><th><span style="position:absolute;width:1px;height:1px;overflow:hidden">Actions</span></th></tr></thead>
+          <tbody>
+            <tr class="grp"><td colspan="7">Company-wide roles · set by the AI Compliance Officer, applied to every system</td></tr>
+            <tr><td><strong>Accountable executive</strong></td><td class="hint">NIST GOVERN 2.3 · ISO 42001 §5.1</td><td>Development</td><td><span class="tag t-grn">Assigned</span></td><td>[Name] · Chief Operating Officer</td><td class="hint">Inherited</td><td><button class="kb" type="button" aria-label="Actions for Accountable executive"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+            <tr><td><strong>AI Governance Committee</strong></td><td class="hint">NIST GOVERN 2.1, 3.1 · ISO 42001 §5.3 (recommended)</td><td>Recommended</td><td><span class="tag t-amb">Pending committee</span></td><td>Interim approver: AI Compliance Officer</td><td>15 Dec 2026</td><td><button class="kb" type="button" aria-label="Actions for AI Governance Committee"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+            <tr><td><strong>AI Compliance Officer</strong></td><td class="hint">EU AI Act Art. 26 · NIST GOVERN 2</td><td>Development</td><td><span class="tag t-grn">Assigned</span></td><td>[Name]</td><td class="hint">Inherited</td><td><button class="kb" type="button" aria-label="Actions for AI Compliance Officer"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+            <tr><td><strong>Data Protection Officer</strong></td><td class="hint">GDPR Art. 37 · India DPDP §10</td><td>Go-live</td><td><span class="tag t-grn">Assigned</span></td><td>[Name]</td><td class="hint">Inherited</td><td><button class="kb" type="button" aria-label="Actions for Data Protection Officer"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+            <tr><td><strong>Grievance officer (India)</strong></td><td class="hint">India DPDP §8(10) · IT Rules 2021</td><td>—</td><td><span class="tag t-gry">Not applicable</span></td><td>—</td><td class="hint">No India users or data. Set by AI Compliance Officer</td><td><button class="kb" type="button" aria-label="Actions for Grievance officer"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+            <tr><td><strong>AI Incident Response Lead</strong></td><td class="hint">EU AI Act Art. 26(5), 73 · CO AI Act · CERT-In</td><td>Go-live</td><td><span class="tag t-grn">Assigned</span></td><td>[Name] · Head of IT Security</td><td class="hint">Inherited</td><td><button class="kb" type="button" aria-label="Actions for Incident Response Lead"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+            <tr><td><strong>AI literacy and training owner</strong></td><td class="hint">EU AI Act Art. 4</td><td>Go-live</td><td><span class="tag t-grn">Assigned</span></td><td>[Name] · Learning and Development</td><td class="hint">Inherited</td><td><button class="kb" type="button" aria-label="Actions for AI literacy owner"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+            <tr><td><strong>Vendor AI risk owner</strong></td><td class="hint">NIST GOVERN 6.1 · EU AI Act Art. 25</td><td>Procurement</td><td><span class="tag t-grn">Assigned</span></td><td>[Name] · Procurement</td><td class="hint">Inherited</td><td><button class="kb" type="button" aria-label="Actions for Vendor AI risk owner"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+            <tr><td><strong>Records retention owner</strong></td><td class="hint">EU AI Act Art. 26(6) · CA ADS rules · CO AI Act</td><td><strong style="color:#8A1C1C">Go-live</strong></td><td><span class="tag t-red">No such person</span></td><td>—</td><td><a href="CompanyRoles.dc.html" style="font-size:13px">Ask AI Compliance Officer to assign</a></td><td><button class="kb" type="button" aria-label="Actions for Records retention owner"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+
+            <tr class="grp"><td colspan="7">Roles for this AI system · filled by the Department Head</td></tr>
+            <tr><td><strong>AI System Owner</strong></td><td class="hint">NIST GOVERN 2.1</td><td>Development</td><td><span class="tag t-grn">Assigned</span></td><td>[Name] · HR Operations Manager</td><td class="hint">—</td><td><button class="kb" type="button" aria-label="Actions for AI System Owner"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+            <tr><td><strong>Technical owner</strong></td><td class="hint">EU AI Act Art. 26(5)–(6) · NIST MANAGE</td><td>Go-live</td><td><span class="tag t-grn">Assigned</span></td><td>[Name] · HR Systems</td><td class="hint">—</td><td><button class="kb" type="button" aria-label="Actions for Technical owner"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+            <tr class="on"><td><strong>Human oversight person</strong><div class="hint">Editing</div></td><td class="hint">EU AI Act Art. 14, 26(2) · CO AI Act</td><td><strong style="color:#8A1C1C">Go-live</strong></td><td><span class="tag t-red">No such person</span></td><td>—</td><td class="hint">Raises a finding if still empty at go-live</td><td><button class="kb" type="button" aria-label="Actions for Human oversight person" style="border-color:#C7CFDA;background:#fff"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+            <tr><td><strong>Stop / disengage authority</strong><div class="hint">Agents</div></td><td class="hint">EU AI Act Art. 14(4)(e) · NIST MANAGE 2.4</td><td>Go-live</td><td><span class="tag t-grn">Assigned</span></td><td>[Name] · HR Systems Manager</td><td class="hint">Backup: [Name]</td><td><button class="kb" type="button" aria-label="Actions for Stop authority"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+            <tr><td><strong>Agent permissions approver</strong><div class="hint">Agents</div></td><td class="hint">NIST GOVERN 2.1 · enforced by GuardRail</td><td>Go-live</td><td><span class="tag t-grn">Assigned</span></td><td>[Name] · AI Compliance Officer</td><td class="hint">Approved: HR policy search (read only)</td><td><button class="kb" type="button" aria-label="Actions for Agent permissions approver"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+            <tr><td><strong>Explainability contact</strong></td><td class="hint">EU AI Act Art. 86 · CO AI Act · CCPA ADMT</td><td>—</td><td><span class="tag t-gry">Not applicable</span></td><td>—</td><td class="hint">Makes no decisions about people. Approved by AI Compliance Officer</td><td><button class="kb" type="button" aria-label="Actions for Explainability contact"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+            <tr><td><strong>Appeals and correction reviewer</strong></td><td class="hint">CO AI Act · CCPA ADMT</td><td>—</td><td><span class="tag t-gry">Not applicable</span></td><td>—</td><td class="hint">Makes no decisions about people</td><td><button class="kb" type="button" aria-label="Actions for Appeals reviewer"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+            <tr><td><strong>Bias testing lead / independent auditor</strong></td><td class="hint">NYC LL144 · CA ADS rules · NIST MEASURE 2.11</td><td>Recommended</td><td><span class="tag t-blu">External party</span></td><td>Futran Solutions</td><td class="hint">Annual answer-quality and fairness check</td><td><button class="kb" type="button" aria-label="Actions for Bias testing lead"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+            <tr><td><strong>Impact assessment owner</strong></td><td class="hint">EU AI Act Art. 27 · CCPA ADMT</td><td>Recommended</td><td><span class="tag t-grn">Assigned</span></td><td>[Name] · HR Operations Manager</td><td class="hint">—</td><td><button class="kb" type="button" aria-label="Actions for Impact assessment owner"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+            <tr><td><strong>Transparency and notice owner</strong></td><td class="hint">EU AI Act Art. 50(1): tell users they are talking to AI</td><td><strong style="color:#8A1C1C">Go-live</strong></td><td><span class="tag t-amb">Pending committee</span></td><td>Chosen when the committee is formed</td><td>15 Dec 2026</td><td><button class="kb" type="button" aria-label="Actions for Transparency owner"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+            <tr><td><strong>Data and consent steward</strong></td><td class="hint">CCPA · EU AI Act Art. 10 · GDPR</td><td>Development</td><td><span class="tag t-grn">Assigned</span></td><td>[Name] · HR Data</td><td class="hint">—</td><td><button class="kb" type="button" aria-label="Actions for Data steward"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+            <tr><td><strong>Worker representative contact</strong></td><td class="hint">EU AI Act Art. 26(7)</td><td>—</td><td><span class="tag t-gry">Not applicable</span></td><td>—</td><td class="hint">Not a high-risk system</td><td><button class="kb" type="button" aria-label="Actions for Worker representative contact"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <aside class="card" aria-labelledby="ep" style="flex:1 1 360px;max-width:420px;padding:20px;display:flex;flex-direction:column;gap:14px;border-color:#1B3A6B">
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">
+          <div><h2 id="ep" style="margin:0;font-size:18px;font-weight:600">Human oversight person</h2><div class="hint" style="margin-top:3px">Reviews, corrects or overrides the agent's answers. Must have the competence, training and authority to do so.</div></div>
+          <button class="kb" type="button" aria-label="Close panel"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2l10 10M12 2L2 12" stroke="#3E4757" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+        </div>
+        <fieldset style="border:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px">
+          <legend class="lbl" style="padding:0">Is there such a person? *</legend>
+          <label class="opt on"><input type="radio" name="st" checked><span><strong>Yes, assign a person</strong><br><span class="hint">Pick from the company's users</span></span></label>
+          <label class="opt"><input type="radio" name="st"><span><strong>Yes, an external party</strong><br><span class="hint">A vendor, auditor or service provider</span></span></label>
+          <label class="opt"><input type="radio" name="st"><span><strong>No such person</strong><br><span class="hint">Recorded as a gap; blocks go-live for this role</span></span></label>
+          <label class="opt"><input type="radio" name="st"><span><strong>Pending committee</strong><br><span class="hint">Pick the person once the committee is formed</span></span></label>
+          <label class="opt" style="opacity:0.55"><input type="radio" name="st" disabled><span><strong>Not applicable</strong><br><span class="hint">Only the AI Compliance Officer can choose this for a required role</span></span></label>
+        </fieldset>
+        <div><label class="lbl" for="pp">Person *</label><select id="pp"><option>[Name] · HR Business Partner</option><option>[Name] · Benefits Manager</option><option>[Name] · Committee member</option></select></div>
+        <div><label class="lbl" for="bk">Backup person</label><select id="bk"><option>[Name] · Benefits Manager</option></select></div>
+        <div><label class="lbl" for="fr">Effective from</label><input type="date" id="fr" value="2026-11-02"></div>
+        <label style="display:flex;gap:10px;font-size:14px;line-height:1.4"><input type="checkbox" checked><span>Has completed AI oversight training</span></label>
+        <label style="display:flex;gap:10px;font-size:14px;line-height:1.4"><input type="checkbox" checked><span>Has the authority to stop or override the agent's output</span></label>
+        <div><label class="lbl" for="ev">Evidence (appointment letter or RACI)</label><button class="btn" type="button" id="ev" style="width:100%;justify-content:center">Upload a file</button></div>
+        <div><label class="lbl" for="nt">Notes</label><textarea id="nt" rows="2">Reviews flagged answers weekly.</textarea></div>
+        <div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn" type="button">Cancel</button><button class="btn btn-p" type="button">Save role</button></div>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1700}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

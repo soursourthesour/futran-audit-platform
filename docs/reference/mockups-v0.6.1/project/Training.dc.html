@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AI literacy training</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+.card{background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:18px 20px;display:flex;flex-direction:column;gap:10px}
+.btn{height:38px;padding:0 14px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:13.5px;font-weight:600;color:#16233A}
+.pri{border-color:#1B3A6B;background:#1B3A6B;color:#fff}
+.bar{height:10px;border-radius:5px;background:#E8ECF1;overflow:hidden}
+.dep{display:grid;grid-template-columns:170px minmax(0,1fr) 54px;gap:12px;align-items:center;font-size:14px;padding:6px 0}
+</style>
+</helmet>
+<div style="min-height:100vh">
+  <header style="background:#fff;border-bottom:1px solid #D9DFE7;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#1B3A6B"></div><div style="font-weight:700;font-size:17px;color:#1B3A6B">Futran Audit</div><span style="color:#5A6577;font-size:14px">· ABC Corp</span></div>
+    <div style="flex:1"></div>
+    <div style="font-size:13px;color:#5A6577">[Name] · AI literacy owner</div>
+  </header>
+  <main style="max-width:1240px;margin:0 auto;padding:24px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px">
+      <div><h1 style="margin:0;font-size:26px;font-weight:600">AI literacy training</h1><p style="margin:6px 0 0;color:#5A6577;font-size:14.5px">Futran modules · supports EU AI Act Art. 4 and your AI acceptable use policy · target 80% by [date] · sample data</p></div>
+      <button class="btn pri">Assign modules</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px">
+      <div class="card"><div style="font-weight:600">AI acceptable use at ABC Corp</div><div style="font-size:13px;color:#5A6577">12 min · all staff · quiz</div><div style="font-size:14px"><strong>71%</strong> complete</div></div>
+      <div class="card"><div style="font-weight:600">Shadow AI and data leakage</div><div style="font-size:13px;color:#5A6577">10 min · all staff</div><div style="font-size:14px"><strong>64%</strong> complete</div></div>
+      <div class="card"><div style="font-weight:600">Human oversight for reviewers</div><div style="font-size:13px;color:#5A6577">20 min · named users on Tier 3 systems</div><div style="font-size:14px"><strong>1 of 2</strong> complete</div></div>
+      <div class="card"><div style="font-weight:600">Bias basics for HR</div><div style="font-size:13px;color:#5A6577">15 min · Human Resources</div><div style="font-size:14px"><strong>86%</strong> complete</div></div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start">
+      <section class="card" style="flex:999 1 560px;min-width:0">
+        <h2 style="margin:0;font-size:17px;font-weight:600">Completion by department · all assigned modules</h2>
+        <div class="dep"><span>Human Resources</span><div class="bar"><div style="width:86%;height:100%;background:#2E75B6"></div></div><span style="text-align:right">86%</span></div>
+        <div class="dep"><span>Finance</span><div class="bar"><div style="width:81%;height:100%;background:#2E75B6"></div></div><span style="text-align:right">81%</span></div>
+        <div class="dep"><span>Operations</span><div class="bar"><div style="width:70%;height:100%;background:#2E75B6"></div></div><span style="text-align:right">70%</span></div>
+        <div class="dep"><span>Engineering and IT</span><div class="bar"><div style="width:62%;height:100%;background:#2E75B6"></div></div><span style="text-align:right">62%</span></div>
+        <div class="dep"><span>Sales and Marketing</span><div class="bar"><div style="width:54%;height:100%;background:#B42318"></div></div><span style="text-align:right">54%</span></div>
+        <div style="font-size:12.5px;color:#5A6577">Target 80%; red = below target. Departments below target trigger a monitoring alert.</div>
+      </section>
+      <aside class="card" style="flex:1 1 320px">
+        <h2 style="margin:0;font-size:16px;font-weight:600">Where completions are used</h2>
+        <ul style="margin:0;padding-left:18px;font-size:14px;line-height:1.65"><li>Named users on Tier 3 systems: <em>training complete</em> field</li><li>Governance: AI literacy owner role (Art. 4)</li><li>Checklist 4.3: AI governance in onboarding</li><li>Monitoring check: training below target</li></ul>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn">Send reminders</button><button class="btn">Export SCORM</button></div>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":950}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

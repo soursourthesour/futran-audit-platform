@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Employee attestation</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+input[type=checkbox]{width:22px;height:22px;accent-color:#1B3A6B;margin:0;flex:none}
+select{box-sizing:border-box;height:40px;border:1px solid #C7CFDA;border-radius:6px;padding:0 8px;font:inherit;font-size:14px;background:#fff;color:#16233A}
+</style>
+</helmet>
+<div style="width:390px;height:844px;box-sizing:border-box;background:#fff;display:flex;flex-direction:column;overflow:hidden">
+  <div style="background:#1B3A6B;color:#fff;padding:18px 20px 16px">
+    <div style="font-size:13px;color:#C9D6EA">ABC Corp · AI use check-in</div>
+    <div style="font-size:19px;font-weight:600;margin-top:2px">Which AI tools do you use?</div>
+    <div style="display:flex;gap:6px;margin-top:12px" role="img" aria-label="Step 2 of 4"><div style="flex:1;height:4px;border-radius:2px;background:#0098D4"></div><div style="flex:1;height:4px;border-radius:2px;background:#0098D4"></div><div style="flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,0.3)"></div><div style="flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,0.3)"></div></div>
+  </div>
+  <div style="flex:1;padding:18px 20px;display:flex;flex-direction:column;gap:12px;font-size:15px">
+    <p style="margin:0;font-size:13.5px;color:#5A6577;line-height:1.5">This is not a test and nothing here is used to judge you. It helps ABC Corp set safe rules. <a href="#">How your answers are used</a></p>
+    <div style="border:1px solid #2E75B6;border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:10px;background:#F7FAFD">
+      <label style="display:flex;align-items:center;gap:10px;font-weight:600"><input type="checkbox" checked> ChatGPT</label>
+      <label style="font-size:13px;color:#3E4757;display:flex;flex-direction:column;gap:4px">Which account?<select><option>Personal, free</option><option>Personal, paid</option><option>Company account</option><option>Not sure</option></select></label>
+    </div>
+    <div style="border:1px solid #2E75B6;border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:10px;background:#F7FAFD">
+      <label style="display:flex;align-items:center;gap:10px;font-weight:600"><input type="checkbox" checked> Microsoft Copilot</label>
+      <label style="font-size:13px;color:#3E4757;display:flex;flex-direction:column;gap:4px">Which account?<select><option>Company account</option></select></label>
+    </div>
+    <label style="display:flex;align-items:center;gap:10px;border:1px solid #D9DFE7;border-radius:8px;padding:12px;font-weight:600"><input type="checkbox"> Claude</label>
+    <label style="display:flex;align-items:center;gap:10px;border:1px solid #D9DFE7;border-radius:8px;padding:12px;font-weight:600"><input type="checkbox"> Gemini</label>
+    <label style="display:flex;align-items:center;gap:10px;border:1px solid #D9DFE7;border-radius:8px;padding:12px;font-weight:600"><input type="checkbox"> AI inside another app (e.g. ATS, CRM)</label>
+    <label style="display:flex;align-items:center;gap:10px;border:1px solid #D9DFE7;border-radius:8px;padding:12px;font-weight:600"><input type="checkbox"> I don't use AI for work</label>
+  </div>
+  <div style="padding:14px 20px 22px;border-top:1px solid #E8ECF1;display:flex;gap:10px">
+    <a href="#" style="flex:1;display:flex;align-items:center;justify-content:center;height:48px;border-radius:6px;border:1px solid #C7CFDA;color:#16233A;text-decoration:none;font-weight:600">Back</a>
+    <a href="#" style="flex:2;display:flex;align-items:center;justify-content:center;height:48px;border-radius:6px;background:#1B3A6B;color:#fff;text-decoration:none;font-weight:600">Next: what you use it for</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

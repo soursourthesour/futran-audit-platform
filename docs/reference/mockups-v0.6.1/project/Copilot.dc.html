@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AI copilot on system assessment</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+.card{background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:18px 20px;display:flex;flex-direction:column;gap:10px}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:600;white-space:nowrap}
+.code{font-family:ui-monospace,monospace;font-size:12.5px;color:#5A6577}
+.btn{height:38px;padding:0 14px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:13.5px;font-weight:600;color:#16233A}
+.pri{border-color:#1B3A6B;background:#1B3A6B;color:#fff}
+.ai{border-left:4px solid #6A4FB3}
+.quote{font-size:13.5px;line-height:1.5;background:#F4F1FB;border-radius:6px;padding:10px 12px;color:#2E2450}
+</style>
+</helmet>
+<div style="min-height:100vh">
+  <header style="background:#1B3A6B;color:#fff;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#0098D4"></div><div style="font-weight:700;font-size:17px">Futran Audit</div></div>
+    <div style="flex:1"></div>
+    <div style="font-size:13px;color:#C9D6EA">[Your name] · Auditor</div>
+  </header>
+  <main style="max-width:1280px;margin:0 auto;padding:24px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px">
+    <div style="font-size:14px"><a href="Systems.dc.html">AI systems</a> <span style="color:#5A6577">/ <a href="SystemAssess.dc.html">SYS-002 Invoice anomaly model</a> / AI suggestions</span></div>
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px">
+      <div><h1 style="margin:0;font-size:26px;font-weight:600">Copilot suggestions: §6.1 Model development</h1><p style="margin:6px 0 0;color:#5A6577;font-size:14.5px">Read from 3 uploaded documents · nothing is saved until you accept · every action is logged</p></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn">Run completeness review</button><button class="btn pri">Accept all high-confidence (3)</button></div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
+      <div style="flex:999 1 640px;min-width:0;display:flex;flex-direction:column;gap:14px">
+
+        <div class="card ai">
+          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px"><span class="code">6.1.01 · Model development methodology</span><span class="tag" style="background:#E1F2E7;color:#1F5C38">High confidence</span></div>
+          <div style="font-size:15px"><strong>Suggested answer:</strong> MLOps pipeline</div>
+          <div class="quote">"All models are trained and deployed through the Azure ML pipeline with staged approval gates (dev → UAT → prod)."<br><span style="font-size:12.5px;color:#5A6577">Model_Governance_Standard_v3.pdf · page 4 · §2.1</span></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri">Accept</button><button class="btn">Edit</button><button class="btn">Reject</button></div>
+        </div>
+
+        <div class="card ai">
+          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px"><span class="code">6.1.02 · Model card exists</span><span class="tag" style="background:#FFF1D6;color:#7A4800">Medium confidence</span></div>
+          <div style="font-size:15px"><strong>Suggested answer:</strong> Yes, partial: covers purpose and features, missing limitations and performance by segment</div>
+          <div class="quote">"Section 5 Limitations: TBD."<br><span style="font-size:12.5px;color:#5A6577">Invoice_Anomaly_Model_Card.docx · page 3</span></div>
+          <div style="font-size:13.5px;color:#7A4800"><strong>Suggested draft finding (Medium):</strong> Model card incomplete; no documented limitations for a model affecting supplier payments.</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri">Accept answer</button><button class="btn">Accept answer + create draft finding</button><button class="btn">Reject</button></div>
+        </div>
+
+        <div class="card ai" style="border-left-color:#B42318">
+          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px"><span class="code">6.1.07 · Model reproducibility</span><span class="tag" style="background:#FDECEC;color:#7A1A12">Unsupported</span></div>
+          <div style="font-size:15px">No passage in the uploaded documents answers this question.</div>
+          <div style="font-size:13.5px;color:#5A6577">Ask the Technical Owner in interview, or request "Change management records for model updates" from the document register.</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn">Add to interview list</button><button class="btn">Create evidence request</button></div>
+        </div>
+      </div>
+
+      <aside style="flex:1 1 340px;display:flex;flex-direction:column;gap:16px">
+        <section class="card" style="border:2px solid #6A4FB3">
+          <div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline"><h2 style="margin:0;font-size:16px;font-weight:600">Completeness review</h2><span style="font-size:12.5px;color:#5A6577">before sign-off 5</span></div>
+          <ul style="margin:0;padding-left:18px;font-size:13.5px;line-height:1.65">
+            <li><strong>7</strong> required questions unanswered (§7.1, §8.2)</li>
+            <li><strong>2</strong> checklist ticks with no linked evidence</li>
+            <li><strong>1</strong> contradiction: interview says "monitored weekly"; monitoring report shows last run 4 months ago</li>
+            <li><strong>3</strong> answers missing source person</li>
+          </ul>
+          <button class="btn">Open each item</button>
+        </section>
+        <section class="card">
+          <h2 style="margin:0;font-size:16px;font-weight:600">Ask the copilot</h2>
+          <div style="font-size:13.5px;background:#F4F6F9;border-radius:6px;padding:10px 12px">Which evidence supports checklist 6.4 item 5 (independent validation)?</div>
+          <div class="quote">None of the 3 uploaded documents describes a validation by a party outside the data science team. The Model Governance Standard (p. 7) says validation is "performed by the model owner". That is not independent under the template's definition.</div>
+          <label for="ask" style="position:absolute;left:-9999px">Ask a question</label>
+          <input id="ask" type="text" placeholder="Ask about this system's documents" style="box-sizing:border-box;width:100%;height:40px;border:1px solid #C7CFDA;border-radius:6px;padding:0 10px;font:inherit;font-size:14px">
+        </section>
+        <section class="card" style="background:#F7F7FB">
+          <div style="font-size:12.5px;color:#3E4757;line-height:1.55"><strong>AI use on this engagement:</strong> enabled by Chief Auditor · client consented in engagement letter · enterprise model terms (no training on inputs) · <a href="#">view AI interaction log</a></div>
+        </section>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1200}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

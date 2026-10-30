@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AI system details</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+.card{background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:22px;display:flex;flex-direction:column;gap:14px}
+.card h2{margin:0;font-size:18px;font-weight:600}
+.btn{box-sizing:border-box;min-height:44px;padding:0 16px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:14.5px;font-weight:600;color:#1B3A6B;display:inline-flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap}
+.btn-p{background:#1B3A6B;color:#fff;border-color:#1B3A6B}
+.lbl{display:block;font-size:13.5px;font-weight:600;margin-bottom:5px}
+.tag{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.t-red{background:#FDECEC;color:#8A1C1C}.t-amb{background:#FDF1DC;color:#6E4300}.t-grn{background:#E1F2E7;color:#1F5C38}.t-blu{background:#E3EEF9;color:#1B3A6B}.t-gry{background:#EDF0F4;color:#3E4757}
+input[type=text],input[type=date],input[type=number],select,textarea{box-sizing:border-box;width:100%;min-height:42px;border:1px solid #C7CFDA;border-radius:6px;padding:8px 10px;font:inherit;font-size:14px;background:#fff;color:#16233A}
+input[type=radio],input[type=checkbox]{width:18px;height:18px;accent-color:#1B3A6B;margin:0;flex:none}
+.opt{display:flex;align-items:center;gap:10px;font-size:14px;min-height:34px}
+.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.hint{font-size:12.5px;color:#5A6577;line-height:1.4}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:4px 10px;border-radius:14px;background:#E3EEF9;color:#1B3A6B;font-weight:600}
+.tabs{display:flex;flex-wrap:wrap;gap:2px;border-bottom:1px solid #D9DFE7}
+.tabs a{padding:10px 14px;text-decoration:none;font-size:14px;color:#3E4757;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs a.cur{color:#1B3A6B;font-weight:600;border-bottom-color:#1B3A6B}
+</style>
+</helmet>
+<div style="min-height:100vh">
+  <header style="background:#fff;border-bottom:1px solid #D9DFE7;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#1B3A6B"></div><div style="font-weight:700;font-size:17px;color:#1B3A6B">Futran Audit</div><span style="color:#5A6577;font-size:14px">· ABC Corp</span></div>
+    <div style="flex:1"></div>
+    <div style="font-size:13px;color:#5A6577">[Name] · Department Head, Human Resources</div>
+  </header>
+
+  <main style="max-width:1400px;margin:0 auto;padding:24px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+    <div style="font-size:14px"><a href="RegisterGrid.dc.html">AI system register</a> <span style="color:#5A6577">/ Interview scheduling agent</span></div>
+    <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end">
+      <div style="flex:1 1 500px">
+        <h1 style="margin:0;font-size:28px;font-weight:600">Interview scheduling agent</h1>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"><span class="tag t-blu">AI agent · bought from vendor</span><span class="tag t-amb">Tier 2 · Medium (calculated)</span><span class="tag t-gry">Stage: In procurement</span><span class="tag t-gry">7 of 15 roles filled</span></div>
+      </div>
+      <button class="btn" type="button">Save draft</button>
+      <a class="btn btn-p" href="RegisterRoles.dc.html" style="text-decoration:none">Save and fill governance roles</a>
+    </div>
+
+    <nav class="tabs" aria-label="AI system sections">
+      <a href="#" class="cur">Details</a><a href="#">Vendor and model</a><a href="#">Data and consent</a><a href="#">Laws and risk</a><a href="#">Bias testing</a><a href="RegisterRoles.dc.html">Governance roles <span class="tag t-amb" style="margin-left:4px">8</span></a><a href="#">Evidence</a><a href="#">Change history</a>
+    </nav>
+    <p class="hint" style="margin:0;font-size:13.5px">All sections are shown together here. In the app each one is its own tab, and a new system opens as a step-by-step form.</p>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(560px,1fr));gap:16px;align-items:start">
+      <section class="card">
+        <h2>1 · What it is</h2>
+        <div><label class="lbl" for="n1">Name *</label><input type="text" id="n1" value="Interview scheduling agent"></div>
+        <div class="g2">
+          <div><label class="lbl" for="n2">Type *</label><select id="n2"><option>AI agent</option><option>Vendor app with AI</option><option>Embedded AI feature</option><option>Foundation model / API</option><option>In-house model</option><option>Generative AI chat tool</option></select></div>
+          <div><label class="lbl" for="n3">Built or bought *</label><select id="n3"><option>Bought from vendor</option><option>Built in-house</option><option>Built by contractor</option><option>Free or personal tool (shadow AI)</option></select></div>
+          <div><label class="lbl" for="n4">Department *</label><select id="n4"><option>Human Resources</option></select></div>
+          <div><label class="lbl" for="n5">Stage *</label><select id="n5"><option>In development / procurement</option><option>Proposed</option><option>Ready for go-live</option><option>Live</option><option>Retired</option></select></div>
+        </div>
+        <div><label class="lbl" for="n6">Purpose *</label><textarea id="n6" rows="2">Books interviews with shortlisted candidates by email and updates recruiter calendars.</textarea></div>
+        <div class="g2">
+          <div><label class="lbl" for="n7">Who uses it</label><select id="n7"><option>Recruiting team (role level)</option><option>Named users</option></select><div class="hint" style="margin-top:4px">Named users are required for Tier 2 and 3.</div></div>
+          <div><label class="lbl" for="n8">Number of users</label><input type="number" id="n8" value="12"></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>2 · Vendor and model</h2>
+        <div class="g2">
+          <div><label class="lbl" for="v1">Vendor name *</label><select id="v1"><option>HireBot Co.</option><option>Add a new vendor</option></select><div class="hint" style="margin-top:4px">From the company vendor register</div></div>
+          <div><label class="lbl" for="v2">Underlying AI provider *</label><select id="v2"><option>Anthropic</option><option>OpenAI</option><option>Microsoft Azure OpenAI</option><option>Google</option><option>Amazon Bedrock</option><option>Meta (open model)</option><option>In-house model</option><option>Unknown, vendor did not disclose</option></select></div>
+          <div><label class="lbl" for="v3">Model or algorithm *</label><input type="text" id="v3" value="Claude (version per vendor model card)"></div>
+          <div><label class="lbl" for="v4">Algorithm type *</label><select id="v4"><option>Large language model (LLM) agent</option><option>Ranking or scoring model</option><option>Classifier</option><option>Regression</option><option>Computer vision</option><option>Speech analysis</option><option>Rules plus machine learning</option></select></div>
+          <div><label class="lbl" for="v5">Hosting</label><select id="v5"><option>Vendor cloud (US)</option><option>Our cloud tenant</option><option>On premises</option></select></div>
+          <div><label class="lbl" for="v6">Vendor trains on our data?</label><select id="v6"><option>No, contractually excluded</option><option>Yes</option><option>Unknown</option></select></div>
+        </div>
+        <fieldset style="border:none;margin:0;padding:0"><legend class="lbl" style="padding:0">Vendor documents received</legend>
+          <div class="g2" style="gap:2px 14px">
+            <label class="opt"><input type="checkbox" checked> Contract with AI terms</label>
+            <label class="opt"><input type="checkbox" checked> Data processing agreement</label>
+            <label class="opt"><input type="checkbox"> Model card or system documentation</label>
+            <label class="opt"><input type="checkbox"> Vendor's own bias audit</label>
+            <label class="opt"><input type="checkbox"> Security report (SOC 2 or ISO 27001)</label>
+            <label class="opt"><input type="checkbox"> Incident notice clause</label>
+          </div>
+        </fieldset>
+      </section>
+
+      <section class="card">
+        <h2>3 · What the agent can do <span class="tag t-blu" style="margin-left:6px;vertical-align:middle">Agents only</span></h2>
+        <fieldset style="border:none;margin:0;padding:0"><legend class="lbl" style="padding:0">Actions and tools *</legend>
+          <div class="g2" style="gap:2px 14px">
+            <label class="opt"><input type="checkbox" checked> Read candidate records</label>
+            <label class="opt"><input type="checkbox" checked> Send email to candidates</label>
+            <label class="opt"><input type="checkbox" checked> Write to calendars</label>
+            <label class="opt"><input type="checkbox"> Change records in the applicant tracking system</label>
+            <label class="opt"><input type="checkbox"> Reject or advance candidates</label>
+            <label class="opt"><input type="checkbox"> Make payments</label>
+          </div>
+        </fieldset>
+        <fieldset style="border:none;margin:0;padding:0"><legend class="lbl" style="padding:0">How much it acts on its own *</legend>
+          <label class="opt"><input type="radio" name="au"> Suggests only; a person acts</label>
+          <label class="opt"><input type="radio" name="au" checked> Acts, but a person approves first-time or unusual actions</label>
+          <label class="opt"><input type="radio" name="au"> Acts on its own</label>
+        </fieldset>
+        <div class="g2">
+          <div><label class="lbl" for="a1">Runtime controls</label><select id="a1"><option>Futran GuardRail policy: HR-Scheduling-v1</option><option>Vendor controls only</option><option>None</option></select></div>
+          <div><label class="lbl" for="a2">Pre-release testing</label><select id="a2"><option>Futran AgentAssure: planned</option><option>Vendor testing only</option><option>None</option></select></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>4 · Data and consent</h2>
+        <fieldset style="border:none;margin:0;padding:0"><legend class="lbl" style="padding:0">Data used *</legend>
+          <div class="g2" style="gap:2px 14px">
+            <label class="opt"><input type="checkbox" checked> Personal information</label>
+            <label class="opt"><input type="checkbox"> Health information</label>
+            <label class="opt"><input type="checkbox"> Biometric data (face, voice)</label>
+            <label class="opt"><input type="checkbox"> Sensitive categories (race, sex, age)</label>
+            <label class="opt"><input type="checkbox"> Children's data</label>
+            <label class="opt"><input type="checkbox"> Company confidential</label>
+          </div>
+        </fieldset>
+        <div class="g2">
+          <div><label class="lbl" for="d1">Whose data *</label><select id="d1"><option>Job candidates</option><option>Employees</option><option>Customers</option><option>No personal data</option></select></div>
+          <div><label class="lbl" for="d2">Was consent obtained? *</label><select id="d2"><option>Yes, consent obtained</option><option>Notice given only</option><option>Other lawful basis (contract, legitimate interest)</option><option>No, not obtained</option><option>Not applicable</option></select></div>
+          <div><label class="lbl" for="d3">Consent date or version</label><input type="text" id="d3" value="Careers site opt-in, v3 · 01 Sep 2026"></div>
+          <div><label class="lbl" for="d4">Retention period</label><select id="d4"><option>4 years (California ADS rules)</option><option>3 years</option><option>1 year</option></select></div>
+          <div><label class="lbl" for="d5">Data leaves the country?</label><select id="d5"><option>No</option><option>Yes, to the EU</option><option>Yes, to India</option><option>Yes, other</option></select></div>
+          <div><label class="lbl" for="d6">Consent evidence</label><button class="btn" type="button" id="d6" style="width:100%;justify-content:center">Upload a file</button></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>5 · Laws and risk</h2>
+        <div><span class="lbl">Laws that apply *</span>
+          <div style="display:flex;flex-wrap:wrap;gap:6px"><span class="chip">Illinois HB 3773 <span aria-hidden="true">×</span></span><span class="chip">California CCPA ADMT <span aria-hidden="true">×</span></span><span class="chip" style="background:#FDF1DC;color:#6E4300">Suggested: NYC Local Law 144</span></div>
+          <div class="hint" style="margin-top:6px">Suggested from the company's locations and this system's use. Picked from the US AI law matrix.</div>
+          <div style="margin-top:8px"><label class="lbl" for="l1">Add a law</label><select id="l1"><option>Search the law matrix</option><option>Colorado AI Act</option><option>EU AI Act</option><option>India DPDP Act</option><option>Texas TRAIGA</option></select></div>
+        </div>
+        <fieldset style="border:none;margin:0;padding:0"><legend class="lbl" style="padding:0">Effect on decisions about people *</legend>
+          <label class="opt"><input type="radio" name="ef"> No effect on decisions about people</label>
+          <label class="opt"><input type="radio" name="ef" checked> Supports a decision a person makes</label>
+          <label class="opt"><input type="radio" name="ef"> Makes or substantially makes the decision</label>
+        </fieldset>
+        <div style="background:#F7F8FA;border-radius:6px;padding:10px 12px;font-size:13.5px;line-height:1.5">Risk tier is calculated: <strong>Tier 2 · Medium</strong> (personal data, candidates, acts on its own with approval). <a href="SystemScore.dc.html">See the score</a></div>
+      </section>
+
+      <section class="card">
+        <h2>6 · Bias testing</h2>
+        <div class="g2">
+          <div><label class="lbl" for="b1">Last bias test</label><input type="date" id="b1" value=""><div class="hint" style="margin-top:4px">None recorded yet</div></div>
+          <div><label class="lbl" for="b2">Next test due *</label><input type="date" id="b2" value="2026-12-01"><div class="hint" style="margin-top:4px">Before go-live, then every 12 months</div></div>
+          <div><label class="lbl" for="b3">Tested by</label><select id="b3"><option>Independent auditor: Futran Solutions</option><option>Internal team</option><option>Vendor (their own audit)</option></select></div>
+          <div><label class="lbl" for="b4">Method</label><select id="b4"><option>Impact ratio by sex and race/ethnicity (LL144)</option><option>Answer quality by group</option><option>Other</option></select></div>
+          <div><label class="lbl" for="b5">Result</label><select id="b5"><option>Not yet tested</option><option>Passed</option><option>Flagged: below 0.80 impact ratio</option></select></div>
+          <div><label class="lbl" for="b6">Share of records with unknown sex or race</label><input type="text" id="b6" placeholder="Shown after the test"></div>
+        </div>
+        <div class="hint">If more than half the records have unknown sex or race, the test is flagged as possible null compliance.</div>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2000}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

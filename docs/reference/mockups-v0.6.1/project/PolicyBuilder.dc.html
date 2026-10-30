@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Policy builder</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+.card{background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:18px 20px;display:flex;flex-direction:column;gap:12px}
+.lbl{display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:#3E4757}
+input[type=text],select{box-sizing:border-box;width:100%;min-height:40px;border:1px solid #C7CFDA;border-radius:6px;padding:8px 10px;font:inherit;font-size:14px;background:#fff;color:#16233A}
+input[type=checkbox]{width:20px;height:20px;accent-color:#1B3A6B;margin:0;flex:none}
+.opt{display:flex;align-items:center;gap:10px;font-size:14px;min-height:32px}
+.btn{height:40px;padding:0 14px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:14px;font-weight:600;color:#16233A}
+.pri{border-color:#1B3A6B;background:#1B3A6B;color:#fff}
+.doc h3{font-size:15px;margin:16px 0 6px}
+.doc p{margin:0 0 8px;font-size:14px;line-height:1.6}
+</style>
+</helmet>
+<div style="min-height:100vh">
+  <header style="background:#fff;border-bottom:1px solid #D9DFE7;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#1B3A6B"></div><div style="font-weight:700;font-size:17px;color:#1B3A6B">Futran Audit</div><span style="color:#5A6577;font-size:14px">· ABC Corp</span></div>
+    <div style="flex:1"></div>
+    <div style="font-size:13px;color:#5A6577">[Name] · Chief AI Compliance Officer</div>
+  </header>
+  <main style="max-width:1240px;margin:0 auto;padding:24px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px">
+    <div style="font-size:14px"><a href="Governance.dc.html">Governance</a> <span style="color:#5A6577">/ Commitment: create AI acceptable use policy / Policy builder</span></div>
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px">
+      <div><h1 style="margin:0;font-size:26px;font-weight:600">AI acceptable use policy</h1><p style="margin:6px 0 0;color:#5A6577;font-size:14.5px">Futran template v1.2 · step 2 of 4: answer questions → <strong>review draft</strong> → approve → staff acknowledgment</p></div>
+      <span style="padding:4px 12px;border-radius:14px;background:#FFF1D6;color:#7A4800;font-size:13px;font-weight:600">Commitment due [date]</span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
+      <section class="card" style="flex:1 1 340px;max-width:420px;box-sizing:border-box">
+        <h2 style="margin:0;font-size:17px;font-weight:600">Your choices</h2>
+        <div><label class="lbl" for="ap">Approved AI tools</label><input type="text" id="ap" value="Microsoft Copilot (company account), ATS screening"></div>
+        <fieldset style="border:none;margin:0;padding:0"><legend class="lbl" style="padding:0">Personal AI accounts for work</legend>
+          <label class="opt"><input type="radio" name="pa" style="width:20px;height:20px;accent-color:#1B3A6B;margin:0"> Allowed for public information only</label>
+          <label class="opt"><input type="radio" name="pa" checked style="width:20px;height:20px;accent-color:#1B3A6B;margin:0"> Not allowed</label></fieldset>
+        <fieldset style="border:none;margin:0;padding:0"><legend class="lbl" style="padding:0">Never enter into any AI tool</legend>
+          <label class="opt"><input type="checkbox" checked> Client or customer data</label>
+          <label class="opt"><input type="checkbox" checked> Applicant and employee personal data</label>
+          <label class="opt"><input type="checkbox" checked> Source code and credentials</label>
+          <label class="opt"><input type="checkbox"> Health information</label></fieldset>
+        <div><label class="lbl" for="own">Policy owner</label><select id="own"><option>[Name], Chief AI Compliance Officer</option></select></div>
+        <div><label class="lbl" for="rev">Review cycle</label><select id="rev"><option>Annually</option></select></div>
+        <button class="btn">Regenerate draft</button>
+      </section>
+      <section class="card doc" style="flex:999 1 560px;min-width:0">
+        <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:baseline"><h2 style="margin:0;font-size:17px;font-weight:600">Draft · editable</h2><span style="font-size:12.5px;color:#5A6577">Text from Futran template; your choices filled in</span></div>
+        <div style="border:1px solid #E8ECF1;border-radius:6px;padding:16px 20px;background:#FCFCFD">
+          <div style="font-size:18px;font-weight:600">ABC Corp AI Acceptable Use Policy</div>
+          <h3>1. Purpose and scope</h3>
+          <p>This policy sets the rules for how ABC Corp staff, contractors and temporary workers use artificial intelligence tools in their work, in all locations and departments.</p>
+          <h3>2. Approved tools</h3>
+          <p>Staff may use only: Microsoft Copilot (company account) and the ATS screening system. Use of personal or free AI accounts for ABC Corp work is not allowed.</p>
+          <h3>3. Data you must never enter</h3>
+          <p>Client or customer data; applicant and employee personal data; source code and credentials.</p>
+          <h3>4. Decisions about people</h3>
+          <p>No AI output may be the sole basis for a hiring, promotion, discipline or termination decision. A trained person reviews and can override every AI recommendation …</p>
+        </div>
+      </section>
+    </div>
+    <section class="card" style="flex-direction:row;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px">
+      <div style="font-size:13.5px;color:#3E4757;max-width:720px;line-height:1.5">On approval: the policy is published, a staff acknowledgment campaign starts, and the commitment closes with this policy as evidence. Want Futran to tailor it? Advisory customization can be quoted; the Futran team that tailors it cannot audit it later.</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn">Request Futran review</button><button class="btn pri">Send for approval</button></div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Futran dashboard</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-weight:600;color:#5A6577;font-size:12.5px;text-transform:uppercase;letter-spacing:0.4px;padding:12px 16px;border-bottom:1px solid #D9DFE7;white-space:nowrap}
+td{padding:14px 16px;border-bottom:1px solid #E8ECF1;white-space:nowrap}
+</style>
+</helmet>
+<div style="min-height:100vh">
+  <header style="background:#1B3A6B;color:#fff;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#0098D4"></div><div style="font-weight:700;font-size:17px">Futran Audit</div></div>
+    <nav style="display:flex;flex-wrap:wrap;gap:4px;flex:1">
+      <a href="Dashboard.dc.html" style="color:#fff;text-decoration:none;padding:8px 12px;border-radius:5px;background:rgba(255,255,255,0.14);font-weight:600;font-size:14px">Dashboard</a>
+      <a href="ClientDetail.dc.html" style="color:#C9D6EA;text-decoration:none;padding:8px 12px;font-size:14px">Clients</a>
+      <a href="#" style="color:#C9D6EA;text-decoration:none;padding:8px 12px;font-size:14px">Templates</a>
+      <a href="#" style="color:#C9D6EA;text-decoration:none;padding:8px 12px;font-size:14px">Reference data</a>
+      <a href="#" style="color:#C9D6EA;text-decoration:none;padding:8px 12px;font-size:14px">Users</a>
+    </nav>
+    <div style="font-size:13px;color:#C9D6EA">[Your name] · Chief Auditor</div>
+  </header>
+  <main style="max-width:1240px;margin:0 auto;padding:32px 24px;box-sizing:border-box;display:flex;flex-direction:column;gap:24px">
+    <div style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px">
+      <div>
+        <h1 style="margin:0;font-size:28px;font-weight:600">Audits</h1>
+        <p style="margin:6px 0 0;color:#5A6577;font-size:15px">All clients and engagements you can see. Auditors see only assigned clients and their own drafts.</p>
+      </div>
+      <a href="NewClient1.dc.html" style="display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 20px;border-radius:6px;background:#1B3A6B;color:#fff;text-decoration:none;font-weight:600;font-size:15px">
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>New client
+      </a>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px">
+      <div style="background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:20px"><div style="font-size:13px;color:#5A6577;font-weight:600">In progress</div><div style="font-size:36px;font-weight:600;margin-top:6px">3</div><div style="font-size:13px;color:#5A6577">engagements</div></div>
+      <div style="background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:20px"><div style="font-size:13px;color:#5A6577;font-weight:600">Completed</div><div style="font-size:36px;font-weight:600;margin-top:6px">2</div><div style="font-size:13px;color:#5A6577">final report signed</div></div>
+      <div style="background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:20px"><div style="font-size:13px;color:#5A6577;font-weight:600">Awaiting your approval</div><div style="font-size:36px;font-weight:600;margin-top:6px">1</div><div style="font-size:13px;color:#5A6577">draft ready to send</div></div>
+      <div style="background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:20px"><div style="font-size:13px;color:#5A6577;font-weight:600">Awaiting client</div><div style="font-size:36px;font-weight:600;margin-top:6px">1</div><div style="font-size:13px;color:#5A6577">initiation not acknowledged</div></div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
+      <section style="flex:999 1 640px;min-width:0;background:#fff;border:1px solid #D9DFE7;border-radius:8px">
+        <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:16px">
+          <div style="display:flex;flex-wrap:wrap;gap:6px" role="tablist">
+            <button style="height:36px;padding:0 14px;border-radius:18px;border:1px solid #1B3A6B;background:#1B3A6B;color:#fff;font:inherit;font-size:14px;font-weight:600">All · 7</button>
+            <button style="height:36px;padding:0 14px;border-radius:18px;border:1px solid #C7CFDA;background:#fff;color:#16233A;font:inherit;font-size:14px">In progress · 3</button>
+            <button style="height:36px;padding:0 14px;border-radius:18px;border:1px solid #C7CFDA;background:#fff;color:#16233A;font:inherit;font-size:14px">Completed · 2</button>
+            <button style="height:36px;padding:0 14px;border-radius:18px;border:1px solid #C7CFDA;background:#fff;color:#16233A;font:inherit;font-size:14px">Drafts · 2</button>
+          </div>
+          <label style="display:flex;align-items:center;gap:8px;font-size:14px"><span style="position:absolute;left:-9999px">Search clients</span><input type="search" placeholder="Search clients" style="height:36px;border:1px solid #C7CFDA;border-radius:6px;padding:0 12px;font:inherit;font-size:14px;width:220px"></label>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>Client</th><th>Engagement</th><th>Stage</th><th>Chief Auditor</th><th>Target date</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td><a href="ClientDetail.dc.html" style="font-weight:600">ABC Corp</a></td><td>Initial AI governance assessment</td><td>1 · Onboarding</td><td>[Name]</td><td>[Date]</td><td><span style="display:inline-block;padding:3px 10px;border-radius:12px;background:#E3EEF9;color:#1B3A6B;font-size:12.5px;font-weight:600">Initiation sent</span></td></tr>
+              <tr><td><a href="#" style="font-weight:600">BCD Inc</a></td><td>LL144 bias audit</td><td>5 · Fieldwork</td><td>[Name]</td><td>[Date]</td><td><span style="display:inline-block;padding:3px 10px;border-radius:12px;background:#E3EEF9;color:#1B3A6B;font-size:12.5px;font-weight:600">In progress</span></td></tr>
+              <tr><td><a href="#" style="font-weight:600">CDF LLC</a></td><td>Annual review</td><td>3 · Discovery</td><td>[Name]</td><td>[Date]</td><td><span style="display:inline-block;padding:3px 10px;border-radius:12px;background:#E3EEF9;color:#1B3A6B;font-size:12.5px;font-weight:600">In progress</span></td></tr>
+              <tr><td><a href="#" style="font-weight:600">[Client D]</a></td><td>Initial AI governance assessment</td><td>Draft</td><td>[Name]</td><td>[Date]</td><td><span style="display:inline-block;padding:3px 10px;border-radius:12px;background:#FFF1D6;color:#7A4800;font-size:12.5px;font-weight:600">Awaiting approval</span></td></tr>
+              <tr><td><a href="#" style="font-weight:600">[Client E]</a></td><td>LL144 bias audit</td><td>Draft</td><td>[Name]</td><td>—</td><td><span style="display:inline-block;padding:3px 10px;border-radius:12px;background:#ECEEF2;color:#3E4757;font-size:12.5px;font-weight:600">Draft</span></td></tr>
+              <tr><td><a href="#" style="font-weight:600">[Client F]</a></td><td>LL144 bias audit</td><td>9 · Closed</td><td>[Name]</td><td>[Date]</td><td><span style="display:inline-block;padding:3px 10px;border-radius:12px;background:#E1F2E7;color:#1F5C38;font-size:12.5px;font-weight:600">Completed</span></td></tr>
+              <tr><td><a href="#" style="font-weight:600">[Client G]</a></td><td>Initial AI governance assessment</td><td>9 · Closed</td><td>[Name]</td><td>[Date]</td><td><span style="display:inline-block;padding:3px 10px;border-radius:12px;background:#E1F2E7;color:#1F5C38;font-size:12.5px;font-weight:600">Completed</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <aside style="flex:1 1 300px;background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:20px;box-sizing:border-box">
+        <h2 style="margin:0 0 16px;font-size:17px;font-weight:600">Recent activity</h2>
+        <ol style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:16px;font-size:14px;line-height:1.45">
+          <li style="display:flex;gap:12px"><div style="width:8px;height:8px;border-radius:4px;background:#2E75B6;margin-top:7px;flex:none"></div><div><strong>ABC Corp</strong> initiation package sent to Chief AI Compliance Officer<div style="color:#5A6577;font-size:12.5px">Chief Auditor · today</div></div></li>
+          <li style="display:flex;gap:12px"><div style="width:8px;height:8px;border-radius:4px;background:#2E75B6;margin-top:7px;flex:none"></div><div><strong>[Client D]</strong> draft submitted for approval<div style="color:#5A6577;font-size:12.5px">Auditor · today</div></div></li>
+          <li style="display:flex;gap:12px"><div style="width:8px;height:8px;border-radius:4px;background:#2E75B6;margin-top:7px;flex:none"></div><div><strong>BCD Inc</strong> 4 evidence files uploaded<div style="color:#5A6577;font-size:12.5px">Client · yesterday</div></div></li>
+          <li style="display:flex;gap:12px"><div style="width:8px;height:8px;border-radius:4px;background:#2E75B6;margin-top:7px;flex:none"></div><div><strong>CDF LLC</strong> attestation campaign launched<div style="color:#5A6577;font-size:12.5px">Client · yesterday</div></div></li>
+        </ol>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

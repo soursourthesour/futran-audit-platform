@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Send email to groups</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+.card{background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:20px 22px;display:flex;flex-direction:column;gap:12px}
+.card h2{margin:0;font-size:18px;font-weight:600}
+.btn{box-sizing:border-box;min-height:42px;padding:0 15px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:14px;font-weight:600;color:#1B3A6B;display:inline-flex;align-items:center;gap:7px;cursor:pointer;white-space:nowrap;text-decoration:none}
+.btn-p{background:#1B3A6B;color:#fff;border-color:#1B3A6B}
+.btn-g{background:transparent;border-color:transparent;color:#DCE6F4}
+.tag{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.t-red{background:#FDECEC;color:#8A1C1C}.t-amb{background:#FDF1DC;color:#6E4300}.t-grn{background:#E1F2E7;color:#1F5C38}.t-blu{background:#E3EEF9;color:#1B3A6B}.t-gry{background:#EDF0F4;color:#3E4757}
+input[type=text],input[type=email],input[type=date],input[type=time],select,textarea{box-sizing:border-box;width:100%;min-height:42px;border:1px solid #C7CFDA;border-radius:6px;padding:8px 10px;font:inherit;font-size:14px;background:#fff;color:#16233A}
+input[type=checkbox],input[type=radio]{width:18px;height:18px;accent-color:#1B3A6B;margin:0;flex:none}
+table{border-collapse:collapse;font-size:13.5px;width:100%}
+th{text-align:left;font-weight:600;color:#5A6577;font-size:12px;text-transform:uppercase;letter-spacing:0.4px;padding:9px 10px;border-bottom:1px solid #D9DFE7;background:#F7F8FA;white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid #E8ECF1;vertical-align:top}
+tr.sel td{background:#EEF3FA}
+.sub{font-size:12.5px;color:#5A6577;line-height:1.4}
+.lbl{display:block;font-size:13.5px;font-weight:600;margin-bottom:5px}
+.opt{display:flex;align-items:flex-start;gap:10px;font-size:14px;line-height:1.4;padding:6px 0}
+.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.kb{width:36px;height:36px;border-radius:6px;border:1px solid transparent;background:transparent;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.kebab{position:relative}
+.kebab summary{list-style:none;width:36px;height:36px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid transparent}
+.kebab summary::-webkit-details-marker{display:none}
+.kebab[open] summary{border-color:#C7CFDA;background:#fff}
+.menu{position:absolute;right:0;top:40px;z-index:5;width:250px;background:#fff;border:1px solid #C7CFDA;border-radius:8px;box-shadow:0 8px 24px rgba(22,35,58,0.16);padding:6px;display:flex;flex-direction:column}
+.menu a{display:flex;align-items:center;min-height:38px;padding:0 10px;border-radius:5px;text-decoration:none;font-size:14px;color:#16233A}
+.menu a:hover{background:#EEF3FA}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;padding:5px 11px;border-radius:16px;background:#E3EEF9;color:#1B3A6B;font-weight:600}
+.bar{background:#1B3A6B;color:#fff;padding:8px 16px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+</style>
+</helmet>
+<div style="min-height:100vh">
+<header style="background:#fff;border-bottom:1px solid #D9DFE7;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#1B3A6B"></div><div style="font-weight:700;font-size:17px;color:#1B3A6B">AI Governix</div><span style="color:#5A6577;font-size:14px">· ABC Corp</span></div>
+    <nav style="display:flex;flex-wrap:wrap;gap:4px;font-size:14px"><a href="ClientAdminHome.dc.html" style="padding:8px 12px;text-decoration:none">Home</a><a href="ClientEmailSetup.dc.html" style="padding:8px 12px;text-decoration:none">Email connection</a><a href="ClientGroups.dc.html" style="padding:8px 12px;text-decoration:none">Groups</a><a href="EmailLog.dc.html" style="padding:8px 12px;text-decoration:none">Email and admin log</a></nav>
+    <div style="flex:1"></div><div style="font-size:13px;color:#5A6577">[Name] · Chief AI Compliance Officer</div></header>
+<main style="max-width:1400px;margin:0 auto;padding:24px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+  <div style="font-size:14px"><a href="Campaign.dc.html">Attestation campaign</a> <span style="color:#5A6577">/ Send email</span></div>
+  <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end">
+    <div style="flex:1 1 560px"><h1 style="margin:0;font-size:28px;font-weight:600">Send an email to groups</h1><p style="margin:6px 0 0;font-size:15px;color:#3E4757">Pick groups, not people. AI Governix expands them when you press Send, so the list is always current. Nobody sees anyone else's address.</p></div>
+    <button class="btn" type="button">Send a test to me</button>
+    <button class="btn" type="button">Schedule</button>
+    <button class="btn btn-p" type="button">Send to 1,206 people</button>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start">
+    <div style="flex:1 1 600px;min-width:0;display:flex;flex-direction:column;gap:16px">
+      <section class="card">
+        <h2>1 · What to send</h2>
+        <div class="g2">
+          <div><label class="lbl" for="t1">Template *</label><select id="t1"><option>Attestation: tell us which AI tools you use</option><option>Department head: approve your department's AI inventory</option><option>Notice: AI use in hiring (NYC LL144)</option><option>Training: AI literacy module</option><option>Regulatory change alert</option></select></div>
+          <div><label class="lbl" for="t2">Send from</label><select id="t2"><option>ABC Corp AI Governance · ai-governance@abccorp.com</option><option>Futran AI Governix · AiAudit@futransolutions.com</option></select></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>2 · Who gets it</h2>
+        <div><span class="lbl">Send to groups *</span><div style="display:flex;flex-wrap:wrap;gap:8px"><span class="chip">Employees · All <span aria-hidden="true">×</span></span><span class="chip">Contractors <span aria-hidden="true">×</span></span><button class="btn" type="button" style="min-height:34px">Add a group</button></div></div>
+        <div><span class="lbl">Leave out</span><div style="display:flex;flex-wrap:wrap;gap:8px"><span class="chip" style="background:#EDF0F4;color:#3E4757">People who already responded <span aria-hidden="true">×</span></span><span class="chip" style="background:#EDF0F4;color:#3E4757">AIComplianceTeam <span aria-hidden="true">×</span></span></div></div>
+        <div style="border:1px solid #D9DFE7;border-radius:8px;overflow:hidden">
+          <div style="background:#F7F8FA;padding:10px 14px;font-weight:600;font-size:14px">Group expansion preview (updated at send time)</div>
+          <table>
+            <tbody>
+              <tr><td>Employees · All</td><td style="text-align:right">1,212</td></tr>
+              <tr><td>Contractors</td><td style="text-align:right">+ 22</td></tr>
+              <tr><td>In both groups (counted once)</td><td style="text-align:right">− 12</td></tr>
+              <tr><td>Already responded</td><td style="text-align:right">− 10</td></tr>
+              <tr><td>Left the company or on leave</td><td style="text-align:right">− 6</td></tr>
+              <tr><td><strong>Will receive</strong></td><td style="text-align:right"><strong>1,206</strong></td></tr>
+            </tbody>
+          </table>
+          <div style="padding:10px 14px"><a href="#">See all 1,206 people</a> · <a href="#">Download list</a></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>3 · How it is delivered</h2>
+        <label class="opt" style="border:2px solid #1B3A6B;border-radius:8px;padding:12px 14px;background:#EEF3FA"><input type="radio" name="md" checked><span><strong>Personal link for each person (recommended for attestation)</strong><br><span class="sub">One message per person, each with their own link. No login. Lets you see who has and hasn't responded and send reminders only to them.</span></span></label>
+        <label class="opt" style="border:1px solid #D9DFE7;border-radius:8px;padding:12px 14px"><input type="radio" name="md"><span><strong>One message, everyone in BCC</strong><br><span class="sub">Sent in batches of up to [450] people in BCC. Everyone gets the same link and confirms their work email with a one-time code before filling in. Good for notices.</span></span></label>
+        <div class="g2">
+          <div><label class="lbl" for="r1">Send at</label><select id="r1"><option>Now</option><option>Tomorrow 9:00 am, each person's time zone</option></select></div>
+          <div><label class="lbl" for="r2">Reminders to people who haven't responded</label><select id="r2"><option>After 3 and 7 days</option><option>After 5 days</option><option>None</option></select></div>
+          <div><label class="lbl" for="r3">Link expires</label><select id="r3"><option>After 14 days</option><option>After 30 days</option></select></div>
+          <div><label class="lbl" for="r4">Copy department heads on reminders?</label><select id="r4"><option>No</option><option>Yes, summary only</option></select></div>
+        </div>
+        <div class="sub">Sending is paced to stay inside Microsoft 365 limits. Large sends are spread over several minutes.</div>
+      </section>
+    </div>
+
+    <section style="flex:1 1 460px;max-width:560px;display:flex;flex-direction:column;gap:10px">
+      <strong style="font-size:16px">Preview: what an employee sees</strong>
+      <article style="background:#fff;border:1px solid #D9DFE7;border-radius:8px;box-shadow:0 2px 10px rgba(22,35,58,0.08);overflow:hidden">
+        <div style="padding:14px 18px;border-bottom:1px solid #E8ECF1;font-size:13.5px;line-height:1.7"><div><span class="sub">From</span> ABC Corp AI Governance &lt;ai-governance@abccorp.com&gt;</div><div><span class="sub">To</span> [Employee name]</div><div><span class="sub">Subject</span> <strong>2 minutes: which AI tools do you use at work? [GVX-1042]</strong></div></div>
+        <div style="padding:20px 18px;font-size:14.5px;line-height:1.6;display:flex;flex-direction:column;gap:12px">
+          <p style="margin:0">Hi [First name],</p>
+          <p style="margin:0">ABC Corp is reviewing how AI is used across the company, with our independent auditor Futran Solutions. Please tell us which AI tools you use for work, including free ones like ChatGPT.</p>
+          <p style="margin:0">It takes about 2 minutes. You don't need to log in, and there are no wrong answers.</p>
+          <a href="Attestation.dc.html" style="align-self:flex-start;background:#1B3A6B;color:#fff;text-decoration:none;font-weight:600;padding:12px 18px;border-radius:6px">Fill in my AI tools</a>
+          <p style="margin:0" class="sub">This link is just for you and expires on [date]. Questions? Reply to this email.</p>
+          <p style="margin:0">[CAICO name]<br>Chief AI Compliance Officer, ABC Corp</p>
+        </div>
+      </article>
+      <div class="sub">The link opens screen 13 (employee attestation, phone friendly). Answers go straight into the AI inventory as drafts.</div>
+    </section>
+  </div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1650}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

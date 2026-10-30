@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Regulatory master: law library</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+.card{background:#fff;border:1px solid #D9DFE7;border-radius:8px}
+.btn{box-sizing:border-box;min-height:42px;padding:0 15px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:14px;font-weight:600;color:#1B3A6B;display:inline-flex;align-items:center;gap:7px;cursor:pointer;white-space:nowrap;text-decoration:none}
+.btn-p{background:#1B3A6B;color:#fff;border-color:#1B3A6B}
+.tag{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.t-red{background:#FDECEC;color:#8A1C1C}.t-amb{background:#FDF1DC;color:#6E4300}.t-grn{background:#E1F2E7;color:#1F5C38}.t-blu{background:#E3EEF9;color:#1B3A6B}.t-gry{background:#EDF0F4;color:#3E4757}
+input[type=text],select{box-sizing:border-box;min-height:40px;border:1px solid #C7CFDA;border-radius:6px;padding:8px 10px;font:inherit;font-size:14px;background:#fff;color:#16233A}
+table{border-collapse:collapse;font-size:13.5px;width:100%;min-width:1240px}
+th{text-align:left;font-weight:600;color:#5A6577;font-size:12px;text-transform:uppercase;letter-spacing:0.4px;padding:10px;border-bottom:1px solid #D9DFE7;background:#F7F8FA;white-space:nowrap}
+td{padding:10px;border-bottom:1px solid #E8ECF1;vertical-align:top}
+.grp td{background:#F7F8FA;font-weight:600;color:#1B3A6B;font-size:13px}
+.sub{font-size:12.5px;color:#5A6577;margin-top:2px;line-height:1.4}
+.lbl{display:block;font-size:12.5px;font-weight:600;margin-bottom:4px}
+.kebab{position:relative}
+.kebab summary{list-style:none;width:36px;height:36px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid transparent}
+.kebab summary::-webkit-details-marker{display:none}
+.kebab[open] summary{border-color:#C7CFDA;background:#fff}
+.menu{position:absolute;right:0;top:40px;z-index:5;width:250px;background:#fff;border:1px solid #C7CFDA;border-radius:8px;box-shadow:0 8px 24px rgba(22,35,58,0.16);padding:6px;display:flex;flex-direction:column}
+.menu a{display:flex;align-items:center;min-height:38px;padding:0 10px;border-radius:5px;text-decoration:none;font-size:14px;color:#16233A}
+.menu a:hover{background:#EEF3FA}
+input[type=checkbox]{width:18px;height:18px;accent-color:#1B3A6B;margin:0}
+tr.sel td{background:#EEF3FA}
+.btn-g{background:transparent;border-color:transparent;color:#DCE6F4}
+</style>
+</helmet>
+<div style="min-height:100vh">
+  <header style="background:#1B3A6B;color:#fff;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#fff"></div><div style="font-weight:700;font-size:17px">Futran Audit</div><span style="color:#C9D6EA;font-size:13px">Futran staff</span></div>
+    <nav style="display:flex;flex-wrap:wrap;gap:4px;font-size:14px">
+      <a href="Dashboard.dc.html" style="padding:8px 12px;text-decoration:none;color:#DCE6F4">Dashboard</a>
+      <a href="ClientDetail.dc.html" style="padding:8px 12px;text-decoration:none;color:#DCE6F4">Clients</a>
+      <a href="#" style="padding:8px 12px;text-decoration:none;color:#fff;font-weight:600;border-bottom:2px solid #7FCBEA">Regulatory master</a>
+      <a href="AdminHome.dc.html" style="padding:8px 12px;text-decoration:none;color:#DCE6F4">Templates</a>
+    </nav>
+    <div style="flex:1"></div>
+    <div style="font-size:13px;color:#DCE6F4">[Name] · Chief Auditor</div>
+  </header>
+
+  <main style="max-width:1400px;margin:0 auto;padding:28px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px">
+    <nav style="display:flex;flex-wrap:wrap;gap:6px;font-size:14px" aria-label="Regulatory master sections">
+      <a href="#" class="btn btn-p" style="min-height:36px">Law library</a>
+      <a href="RegRefresh.dc.html" class="btn" style="min-height:36px">Refresh and review <span class="tag t-red">8</span></a>
+      <a href="RegRoles.dc.html" class="btn" style="min-height:36px">Roles and committees</a>
+      <a href="RegApplicability.dc.html" class="btn" style="min-height:36px">Client applicability and intro letter</a>
+    </nav>
+
+    <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end">
+      <div style="flex:1 1 520px">
+        <h1 style="margin:0;font-size:28px;font-weight:600">Law library</h1>
+        <p style="margin:6px 0 0;font-size:15px;color:#3E4757">Every geography with AI rules in force or enacted. For each: its scope, statutory requirements, the roles and committees it requires, and its penalties. Feeds client set-up, the intro letter and every AI system's required roles.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+        <a class="btn btn-p" href="RegRefresh.dc.html"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2.5v3h-3" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Refresh laws with Claude</a>
+        <span class="sub">Last refresh: 21 Oct 2026, 09:12 · next scheduled: 4 Nov 2026</span>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:10px">
+      <div class="card" style="padding:12px 16px;flex:1 1 150px"><div style="font-size:24px;font-weight:700;color:#1B3A6B">14</div><div class="sub">Geographies tracked</div></div>
+      <div class="card" style="padding:12px 16px;flex:1 1 150px"><div style="font-size:24px;font-weight:700;color:#1B3A6B">27</div><div class="sub">Laws and rules</div></div>
+      <div class="card" style="padding:12px 16px;flex:1 1 150px"><div style="font-size:24px;font-weight:700;color:#1B3A6B">186</div><div class="sub">Statutory requirements</div></div>
+      <div class="card" style="padding:12px 16px;flex:1 1 150px"><div style="font-size:24px;font-weight:700;color:#8A1C1C">8</div><div class="sub">Changes waiting for review</div></div>
+      <div class="card" style="padding:12px 16px;flex:1 1 150px"><div style="font-size:24px;font-weight:700;color:#6E4300">3</div><div class="sub">Effective dates in next 90 days</div></div>
+    </div>
+
+    <section class="card" style="display:flex;flex-direction:column">
+      <div style="padding:14px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;border-bottom:1px solid #D9DFE7">
+        <div style="flex:1 1 240px"><label class="lbl" for="q">Search</label><input type="text" id="q" placeholder="Law, citation or requirement" style="width:100%"></div>
+        <div><label class="lbl" for="f1">Region</label><select id="f1"><option>All regions</option><option>United States, federal</option><option>United States, states and cities</option><option>European Union</option><option>India</option><option>United Kingdom</option><option>Canada</option></select></div>
+        <div><label class="lbl" for="f2">Status</label><select id="f2"><option>All statuses</option><option>In force</option><option>Enacted, not yet in force</option><option>Delayed or under amendment</option><option>Guidance (not binding)</option><option>Repealed or lapsed</option></select></div>
+        <div><label class="lbl" for="f3">Applies to</label><select id="f3"><option>Any role</option><option>Deployer (uses AI)</option><option>Developer or provider</option><option>Employer</option><option>Data fiduciary</option></select></div>
+        <div><label class="lbl" for="f4">Topic</label><select id="f4"><option>All topics</option><option>Hiring and employment</option><option>Consumer decisions</option><option>Generative AI disclosure</option><option>Frontier models</option><option>Personal data</option></select></div>
+        <button class="btn" type="button">Export</button>
+        <a class="btn btn-p" href="RegLawEdit.dc.html"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>Add a law</a>
+      </div>
+      <div style="background:#1B3A6B;color:#fff;padding:8px 16px;display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+        <strong style="font-size:14px;margin-right:10px">3 selected</strong>
+        <a class="btn" href="RegLawBulk.dc.html" style="min-height:36px">Edit selected</a>
+        <button class="btn btn-g" type="button">Refresh selected with Claude</button>
+        <button class="btn btn-g" type="button">Set next review date</button>
+        <button class="btn btn-g" type="button">Assign reviewer</button>
+        <button class="btn btn-g" type="button">Export selected</button>
+        <div style="flex:1"></div>
+        <button class="btn btn-g" type="button">Clear selection</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th style="width:30px"><input type="checkbox" aria-label="Select all laws"></th><th>Geography</th><th>Law or rule</th><th>Status</th><th>Effective</th><th>Scope: who it applies to</th><th>Requirements</th><th>Roles required</th><th>Committee or program</th><th>Penalty</th><th>Last change</th><th style="width:44px"><span style="position:absolute;width:1px;height:1px;overflow:hidden">Actions</span></th></tr></thead>
+          <tbody>
+            <tr class="grp"><td colspan="12">European Union</td></tr>
+            <tr class="sel"><td><input type="checkbox" checked aria-label="Select EU AI Act"></td><td>European Union</td><td><a href="RegLaw.dc.html" style="font-weight:600">EU AI Act</a><div class="sub">Regulation (EU) 2024/1689</div></td><td><span class="tag t-grn">In force, phased</span></td><td>Aug 2024 – Aug 2027<div class="sub">High-risk duties: see change queue</div></td><td>Providers and deployers of AI placed on or used in the EU market, wherever based</td><td>38</td><td>11</td><td>Quality management system (providers); AI literacy (all)</td><td>Up to €35M or 7% of turnover</td><td><span class="tag t-red">Change proposed</span></td><td><details class="kebab"><summary aria-label="Actions for EU AI Act"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></summary></details></td></tr>
+            <tr class="grp"><td colspan="12">United States, states and cities</td></tr>
+            <tr class="sel"><td><input type="checkbox" checked aria-label="Select Colorado AI Act"></td><td>Colorado</td><td><a href="RegLaw.dc.html" style="font-weight:600">Colorado AI Act</a><div class="sub">SB 26-189, replaces SB 24-205</div></td><td><span class="tag t-amb">Enacted, not yet in force</span></td><td>1 Jan 2027</td><td>Developers and deployers of ADMT that materially influences consequential decisions about Colorado residents</td><td>7</td><td>5</td><td>— (program and impact assessments removed)</td><td>AG only; 60-day cure until 2030</td><td><span class="tag t-red">AG rules due</span></td><td><details class="kebab" open><summary aria-label="Actions for Colorado AI Act"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></summary><div class="menu">
+<a href="RegLaw.dc.html">Open law record</a>
+<a href="RegLawEdit.dc.html">Edit details</a>
+<a href="RegLaw.dc.html">Edit requirements and roles</a>
+<a href="RegRefresh.dc.html">Refresh this law with Claude</a>
+<a href="#">Add a source</a>
+<a href="#">See clients using this law</a>
+<a href="#">View version history</a>
+<div style="height:1px;background:#E8ECF1;margin:4px 0"></div>
+<a href="#" style="color:#8A1C1C">Mark repealed or lapsed</a>
+</div></details></td></tr>
+            <tr class="sel"><td><input type="checkbox" checked aria-label="Select Local Law 144"></td><td>New York City</td><td><a href="RegLaw.dc.html" style="font-weight:600">Local Law 144</a><div class="sub">AEDT bias audit law</div></td><td><span class="tag t-grn">In force</span></td><td>5 Jul 2023</td><td>Employers and employment agencies using automated tools for NYC hiring or promotion</td><td>6</td><td>3</td><td>—</td><td>$500–$1,500 per violation, per day</td><td><span class="tag t-gry">No change</span></td><td><details class="kebab"><summary aria-label="Actions for Local Law 144"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></summary></details></td></tr>
+            <tr><td><input type="checkbox" aria-label="Select HB 3773 (Human Rights Act)"></td><td>Illinois</td><td><a href="RegLaw.dc.html" style="font-weight:600">HB 3773 (Human Rights Act)</a><div class="sub">AI in employment decisions</div></td><td><span class="tag t-grn">In force</span></td><td>1 Jan 2026</td><td>Employers using AI for hiring, promotion, discipline or discharge</td><td>4</td><td>2</td><td>—</td><td>Human Rights Act remedies</td><td><span class="tag t-blu">Rules issued</span></td><td><details class="kebab"><summary aria-label="Actions for HB 3773 (Human Rights Act)"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></summary></details></td></tr>
+            <tr><td><input type="checkbox" aria-label="Select AI Video Interview Act"></td><td>Illinois</td><td><a href="RegLaw.dc.html" style="font-weight:600">AI Video Interview Act</a></td><td><span class="tag t-grn">In force</span></td><td>1 Jan 2020</td><td>Employers using AI to analyse video interviews</td><td>5</td><td>2</td><td>—</td><td>Private action</td><td><span class="tag t-gry">No change</span></td><td><details class="kebab"><summary aria-label="Actions for AI Video Interview Act"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></summary></details></td></tr>
+            <tr><td><input type="checkbox" aria-label="Select CCPA ADMT regulations"></td><td>California</td><td><a href="RegLaw.dc.html" style="font-weight:600">CCPA ADMT regulations</a><div class="sub">California Privacy Protection Agency</div></td><td><span class="tag t-amb">Enacted, phased</span></td><td>1 Jan 2027 (ADMT)</td><td>Businesses under CCPA using automated decision-making for significant decisions</td><td>14</td><td>5</td><td>Risk assessment program</td><td>Per-violation fines</td><td><span class="tag t-gry">No change</span></td><td><details class="kebab"><summary aria-label="Actions for CCPA ADMT regulations"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></summary></details></td></tr>
+            <tr><td><input type="checkbox" aria-label="Select Civil Rights Council ADS rules"></td><td>California</td><td><a href="RegLaw.dc.html" style="font-weight:600">Civil Rights Council ADS rules</a></td><td><span class="tag t-grn">In force</span></td><td>1 Oct 2025</td><td>Employers using automated decision systems</td><td>6</td><td>3</td><td>—</td><td>FEHA remedies</td><td><span class="tag t-gry">No change</span></td><td><details class="kebab"><summary aria-label="Actions for Civil Rights Council ADS rules"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></summary></details></td></tr>
+            <tr><td><input type="checkbox" aria-label="Select TRAIGA"></td><td>Texas</td><td><a href="RegLaw.dc.html" style="font-weight:600">TRAIGA</a><div class="sub">HB 149</div></td><td><span class="tag t-grn">In force</span></td><td>1 Jan 2026</td><td>Developers and deployers in Texas; extra duties for state agencies</td><td>7</td><td>2</td><td>—</td><td>AG civil penalties</td><td><span class="tag t-gry">No change</span></td><td><details class="kebab"><summary aria-label="Actions for TRAIGA"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></summary></details></td></tr>
+            <tr class="grp"><td colspan="12">United States, federal</td></tr>
+            <tr><td><input type="checkbox" aria-label="Select Federal AI executive orders and FTC Act §5"></td><td>United States</td><td><a href="RegLaw.dc.html" style="font-weight:600">Federal AI executive orders and FTC Act §5</a></td><td><span class="tag t-blu">Policy and enforcement</span></td><td>Various</td><td>All businesses (unfair or deceptive AI claims); federal policy on state AI laws</td><td>5</td><td>1</td><td>—</td><td>FTC orders and penalties</td><td><span class="tag t-red">Change proposed</span></td><td><details class="kebab"><summary aria-label="Actions for Federal AI executive orders and FTC Act §5"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></summary></details></td></tr>
+            <tr class="grp"><td colspan="12">India</td></tr>
+            <tr><td><input type="checkbox" aria-label="Select Digital Personal Data Protection Act and Rules"></td><td>India</td><td><a href="RegLaw.dc.html" style="font-weight:600">Digital Personal Data Protection Act and Rules</a></td><td><span class="tag t-amb">Enacted, phased</span></td><td>Phased to 2027</td><td>Data fiduciaries processing digital personal data in India or offering services to people in India</td><td>21</td><td>4</td><td>DPO and independent data auditor (significant data fiduciaries)</td><td>Up to ₹250 crore</td><td><span class="tag t-blu">Rules issued</span></td><td><details class="kebab"><summary aria-label="Actions for Digital Personal Data Protection Act and Rules"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></summary></details></td></tr>
+            <tr><td><input type="checkbox" aria-label="Select CERT-In Directions (2022)"></td><td>India</td><td><a href="RegLaw.dc.html" style="font-weight:600">CERT-In Directions (2022)</a></td><td><span class="tag t-grn">In force</span></td><td>28 Jun 2022</td><td>Service providers, intermediaries, data centres and corporate bodies</td><td>4</td><td>1</td><td>—</td><td>IT Act penalties</td><td><span class="tag t-gry">No change</span></td><td><details class="kebab"><summary aria-label="Actions for CERT-In Directions (2022)"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></summary></details></td></tr>
+            <tr><td><input type="checkbox" aria-label="Select India AI Governance Guidelines"></td><td>India</td><td><a href="RegLaw.dc.html" style="font-weight:600">India AI Governance Guidelines</a><div class="sub">MeitY</div></td><td><span class="tag t-gry">Guidance</span></td><td>Nov 2025</td><td>Voluntary for organisations building or using AI in India</td><td>9</td><td>3</td><td>Recommends governance group and grievance redress</td><td>None (voluntary)</td><td><span class="tag t-gry">No change</span></td><td><details class="kebab"><summary aria-label="Actions for India AI Governance Guidelines"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></summary></details></td></tr>
+            <tr class="grp"><td colspan="12">Frameworks (voluntary, used as the baseline)</td></tr>
+            <tr><td><input type="checkbox" aria-label="Select NIST AI RMF 1.0 and ISO/IEC 42001"></td><td>Global</td><td><a href="RegLaw.dc.html" style="font-weight:600">NIST AI RMF 1.0 and ISO/IEC 42001</a></td><td><span class="tag t-gry">Framework</span></td><td>2023</td><td>Any organisation; cited as a safe harbour or defence in some state laws</td><td>72</td><td>12</td><td>AI governance committee (recommended)</td><td>—</td><td><span class="tag t-gry">No change</span></td><td><details class="kebab"><summary aria-label="Actions for NIST AI RMF 1.0 and ISO/IEC 42001"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></summary></details></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="padding:12px 16px;font-size:13px;color:#5A6577">Showing 13 of 27 · Sample rows. Each status, date and count comes from the last approved refresh; confirm with counsel before relying on it.</div>
+    </section>
+
+    <section class="card" style="background:#F7F8FA;padding:14px 18px;font-size:13.5px;line-height:1.55"><strong>Chief Auditor</strong> runs a refresh and approves changes. <strong>Futran Admin</strong> can edit any record and manage the source list, but changes still need Chief Auditor approval. <strong>Auditors</strong> read only. Nothing Claude finds goes live until a person approves it.</section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

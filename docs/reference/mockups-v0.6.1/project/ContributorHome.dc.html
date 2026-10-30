@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Contributor home</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+.card{background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:18px 20px;display:flex;flex-direction:column;gap:10px}
+.row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:12px 0;border-bottom:1px solid #E8ECF1;align-items:center;font-size:14px}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:600;white-space:nowrap}
+.btn{height:38px;padding:0 14px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:13.5px;font-weight:600;color:#16233A}
+</style>
+</helmet>
+<div style="min-height:100vh">
+  <header style="background:#fff;border-bottom:1px solid #D9DFE7;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#1B3A6B"></div><div style="font-weight:700;font-size:17px;color:#1B3A6B">Futran Audit</div><span style="color:#5A6577;font-size:14px">· ABC Corp</span></div>
+    <nav style="display:flex;flex-wrap:wrap;gap:4px;flex:1"><a href="#" style="text-decoration:none;padding:8px 12px;border-radius:5px;background:#E3EEF9;font-weight:600;font-size:14px">My tasks</a><a href="InventoryUseCase.dc.html" style="text-decoration:none;padding:8px 12px;font-size:14px;color:#3E4757">My entries</a></nav>
+    <div style="font-size:13px;color:#5A6577">[Name] · Contributor, Human Resources</div>
+  </header>
+  <main style="max-width:1100px;margin:0 auto;padding:24px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px">
+      <div><h1 style="margin:0;font-size:26px;font-weight:600">My tasks</h1><p style="margin:6px 0 0;color:#5A6577;font-size:14.5px">Help your department describe how it uses AI · sample data</p></div>
+      <a href="InventoryUseCase.dc.html" style="display:inline-flex;align-items:center;height:42px;padding:0 18px;border-radius:6px;background:#1B3A6B;color:#fff;text-decoration:none;font-weight:600;font-size:14px">Add a use case</a>
+    </div>
+    <section class="card">
+      <h2 style="margin:0;font-size:17px;font-weight:600">Needs your attention · 3</h2>
+      <div class="row"><div><strong>Returned by your Department Lead</strong><div style="font-size:13px;color:#5A6577">Interview question drafting · "Which account do recruiters use? Add the named users."</div></div><a href="InventoryUseCase.dc.html">Fix</a></div>
+      <div class="row"><div><strong>Evidence requested by Futran</strong><div style="font-size:13px;color:#5A6577">Screenshots of ATS ranking settings · due [date]</div></div><button class="btn">Upload</button></div>
+      <div class="row" style="border-bottom:none"><div><strong>Draft from attestation</strong><div style="font-size:13px;color:#5A6577">"Candidate FAQ chatbot" · 3 employees mentioned it · please complete</div></div><a href="InventoryUseCase.dc.html">Complete</a></div>
+    </section>
+    <section class="card">
+      <h2 style="margin:0;font-size:17px;font-weight:600">My entries</h2>
+      <div class="row"><span>Résumé screening, NYC roles</span><span class="tag" style="background:#E1F2E7;color:#1F5C38">Approved</span></div>
+      <div class="row"><span>Interview question drafting</span><span class="tag" style="background:#FFF1D6;color:#7A4800">Returned</span></div>
+      <div class="row" style="border-bottom:none"><span>Job ad drafting with Copilot</span><span class="tag" style="background:#E3EEF9;color:#1B3A6B">Submitted</span></div>
+    </section>
+    <section class="card" style="background:#F7F8FA"><div style="font-size:13.5px;line-height:1.55"><strong>Contributor can:</strong> add and edit tools and use cases for their department, upload evidence, see what they submitted. <span style="color:#7A1A12"><strong>Cannot:</strong> approve anything, see attestations, findings or reports.</span> Not sure what a question means? Each one has a plain-language help note.</div></section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

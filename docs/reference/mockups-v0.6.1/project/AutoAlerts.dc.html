@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Automatic client alerts</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+.card{background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:20px 22px;display:flex;flex-direction:column;gap:12px}
+.card h2{margin:0;font-size:18px;font-weight:600}
+.btn{box-sizing:border-box;min-height:42px;padding:0 15px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:14px;font-weight:600;color:#1B3A6B;display:inline-flex;align-items:center;gap:7px;cursor:pointer;white-space:nowrap;text-decoration:none}
+.btn-p{background:#1B3A6B;color:#fff;border-color:#1B3A6B}
+.btn-g{background:transparent;border-color:transparent;color:#DCE6F4}
+.tag{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.t-red{background:#FDECEC;color:#8A1C1C}.t-amb{background:#FDF1DC;color:#6E4300}.t-grn{background:#E1F2E7;color:#1F5C38}.t-blu{background:#E3EEF9;color:#1B3A6B}.t-gry{background:#EDF0F4;color:#3E4757}
+input[type=text],input[type=email],input[type=date],input[type=time],select,textarea{box-sizing:border-box;width:100%;min-height:42px;border:1px solid #C7CFDA;border-radius:6px;padding:8px 10px;font:inherit;font-size:14px;background:#fff;color:#16233A}
+input[type=checkbox],input[type=radio]{width:18px;height:18px;accent-color:#1B3A6B;margin:0;flex:none}
+table{border-collapse:collapse;font-size:13.5px;width:100%}
+th{text-align:left;font-weight:600;color:#5A6577;font-size:12px;text-transform:uppercase;letter-spacing:0.4px;padding:9px 10px;border-bottom:1px solid #D9DFE7;background:#F7F8FA;white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid #E8ECF1;vertical-align:top}
+tr.sel td{background:#EEF3FA}
+.sub{font-size:12.5px;color:#5A6577;line-height:1.4}
+.lbl{display:block;font-size:13.5px;font-weight:600;margin-bottom:5px}
+.opt{display:flex;align-items:flex-start;gap:10px;font-size:14px;line-height:1.4;padding:6px 0}
+.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.kb{width:36px;height:36px;border-radius:6px;border:1px solid transparent;background:transparent;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.kebab{position:relative}
+.kebab summary{list-style:none;width:36px;height:36px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid transparent}
+.kebab summary::-webkit-details-marker{display:none}
+.kebab[open] summary{border-color:#C7CFDA;background:#fff}
+.menu{position:absolute;right:0;top:40px;z-index:5;width:250px;background:#fff;border:1px solid #C7CFDA;border-radius:8px;box-shadow:0 8px 24px rgba(22,35,58,0.16);padding:6px;display:flex;flex-direction:column}
+.menu a{display:flex;align-items:center;min-height:38px;padding:0 10px;border-radius:5px;text-decoration:none;font-size:14px;color:#16233A}
+.menu a:hover{background:#EEF3FA}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;padding:5px 11px;border-radius:16px;background:#E3EEF9;color:#1B3A6B;font-weight:600}
+.bar{background:#1B3A6B;color:#fff;padding:8px 16px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+</style>
+</helmet>
+<div style="min-height:100vh">
+<header style="background:#1B3A6B;color:#fff;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:20px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#fff"></div><div style="font-weight:700;font-size:17px">Futran Audit</div></div>
+    <nav style="display:flex;flex-wrap:wrap;gap:2px;font-size:14px"><a href="Dashboard.dc.html" style="padding:8px 12px;text-decoration:none;color:#DCE6F4">Dashboard</a><a href="ClientDetail.dc.html" style="padding:8px 12px;text-decoration:none;color:#DCE6F4">Clients</a><a href="RegMaster.dc.html" style="padding:8px 12px;text-decoration:none;color:#DCE6F4">Regulatory master</a><a href="Litigation.dc.html" style="padding:8px 12px;text-decoration:none;color:#DCE6F4">Litigation</a><a href="SalesHome.dc.html" style="padding:8px 12px;text-decoration:none;color:#DCE6F4">Opportunities</a><a href="AutoAlerts.dc.html" style="padding:8px 12px;text-decoration:none;color:#fff;font-weight:600;border-bottom:2px solid #7FCBEA">Client alerts</a></nav>
+    <div style="flex:1"></div><div style="font-size:13px;color:#DCE6F4">[Name] · Chief Auditor</div></header>
+<main style="max-width:1400px;margin:0 auto;padding:28px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px">
+  <div><h1 style="margin:0;font-size:28px;font-weight:600">Automatic client alerts</h1><p style="margin:6px 0 0;font-size:15px;color:#3E4757">When a rule changes, a deadline nears or a relevant case appears, AI Governix emails each affected client with what changed and what to do. Sent from the client's own mailbox where connected (E2), to client groups (E3).</p></div>
+  <section class="card" style="padding:0;gap:0">
+    <div style="padding:14px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;border-bottom:1px solid #D9DFE7"><h2 style="flex:1">Alert rules</h2><a class="btn btn-p" href="#"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>Add rule</a></div>
+    <div class="bar"><strong style="font-size:14px;margin-right:10px">1 selected</strong><button class="btn" type="button" style="min-height:34px">Edit selected</button><button class="btn btn-g" type="button">Pause</button><button class="btn btn-g" type="button">Turn on</button><button class="btn btn-g" type="button">Export</button><div style="flex:1"></div><button class="btn btn-g" type="button">Clear</button></div>
+    <div style="overflow-x:auto"><table style="min-width:1150px"><thead><tr><th style="width:30px"><input type="checkbox" aria-label="Select all"></th><th>When this happens</th><th>Who gets it</th><th>Client group</th><th>Email</th><th>Approval</th><th>Status</th><th>Last sent</th><th style="width:44px"><span style="position:absolute;width:1px;height:1px;overflow:hidden">Actions</span></th></tr></thead><tbody><tr class="sel"><td><input type="checkbox" checked aria-label="Select Law change approved"></td><td><strong>Law change approved</strong></td><td>Every client where the law applies</td><td>AIComplianceTeam</td><td>New or changed rule: what to do</td><td>Chief Auditor approves each send</td><td><span class="tag t-grn">On</span></td><td>21 Oct 2026 · 9 clients</td><td><details class="kebab" open><summary aria-label="Actions for Law change approved"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></summary><div class="menu"><a href="#">Edit rule</a><a href="#">Preview email</a><a href="#">See who would receive it</a><a href="#">Pause</a><a href="#">Send history</a></div></details></td></tr><tr><td><input type="checkbox" aria-label="Select New law in a client's geography"></td><td><strong>New law in a client's geography</strong></td><td>Clients in that geography</td><td>AIComplianceTeam</td><td>New AI law: does it apply to you?</td><td>Chief Auditor approves each send</td><td><span class="tag t-grn">On</span></td><td>—</td><td><button class="kb" type="button" aria-label="Actions for New law in a client's geography"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr><td><input type="checkbox" aria-label="Select Effective date in 90 and 30 days"></td><td><strong>Effective date in 90 and 30 days</strong></td><td>Clients the law applies to</td><td>AIComplianceTeam, DeptHeads</td><td>Deadline reminder with to-do list</td><td>Automatic</td><td><span class="tag t-grn">On</span></td><td>14 Oct 2026 · 4 clients</td><td><button class="kb" type="button" aria-label="Actions for Effective date in 90 and 30 days"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr><td><input type="checkbox" aria-label="Select Relevant case added or updated"></td><td><strong>Relevant case added or updated</strong></td><td>Clients using similar AI</td><td>AIComplianceTeam</td><td>Case briefing: what it means for you</td><td>Chief Auditor approves each send</td><td><span class="tag t-grn">On</span></td><td>—</td><td><button class="kb" type="button" aria-label="Actions for Relevant case added or updated"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr><td><input type="checkbox" aria-label="Select Tracing add-on recommended"></td><td><strong>Tracing add-on recommended</strong></td><td>Clients with Tier 3 or agent systems untraced</td><td>Chief AI Compliance Officer</td><td>Recommended add-on</td><td>Sales Team owner approves</td><td><span class="tag t-gry">Off</span></td><td>—</td><td><button class="kb" type="button" aria-label="Actions for Tracing add-on recommended"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr></tbody></table></div>
+  </section>
+  <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start">
+    <section class="card" style="flex:1 1 560px;min-width:0;padding:0;gap:0">
+      <div style="padding:14px 16px;border-bottom:1px solid #D9DFE7"><h2>Waiting to send · Illinois HB 3773 notice rules (3 clients)</h2></div>
+      <div class="bar"><strong style="font-size:14px;margin-right:10px">3 selected</strong><button class="btn" type="button" style="min-height:34px">Approve and send</button><button class="btn btn-g" type="button">Edit email</button><button class="btn btn-g" type="button">Hold</button><div style="flex:1"></div><button class="btn btn-g" type="button">Clear</button></div>
+      <div style="overflow-x:auto"><table style="min-width:640px"><thead><tr><th style="width:30px"><input type="checkbox" aria-label="Select all"></th><th>Client</th><th>Affected AI systems</th><th>Sent from</th><th>Status</th><th style="width:44px"><span style="position:absolute;width:1px;height:1px;overflow:hidden">Actions</span></th></tr></thead><tbody><tr class="sel"><td><input type="checkbox" checked aria-label="Select ABC Corp"></td><td><strong>ABC Corp</strong></td><td>Résumé screening, Interview scheduling agent</td><td>ai-governance@abccorp.com</td><td><span class="tag t-blu">Ready</span></td><td><button class="kb" type="button" aria-label="Actions for ABC Corp"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr class="sel"><td><input type="checkbox" checked aria-label="Select [Client C]"></td><td><strong>[Client C]</strong></td><td>Video interview scoring</td><td>compliance@clientc.com</td><td><span class="tag t-blu">Ready</span></td><td><button class="kb" type="button" aria-label="Actions for [Client C]"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr class="sel"><td><input type="checkbox" checked aria-label="Select [Client F]"></td><td><strong>[Client F]</strong></td><td>Hiring chatbot</td><td>Futran on behalf (no client mailbox)</td><td><span class="tag t-blu">Ready</span></td><td><button class="kb" type="button" aria-label="Actions for [Client F]"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr></tbody></table></div>
+      <div style="padding:12px 16px" class="sub">Created when the change was approved in M3. Each client's email lists only its own affected systems and the to-dos from the requirement records.</div>
+    </section>
+    <section style="flex:1 1 480px;max-width:560px;display:flex;flex-direction:column;gap:10px">
+      <strong style="font-size:16px">Preview: ABC Corp</strong>
+      <article style="background:#fff;border:1px solid #D9DFE7;border-radius:8px;box-shadow:0 2px 10px rgba(22,35,58,0.08);overflow:hidden">
+        <div style="padding:14px 18px;border-bottom:1px solid #E8ECF1;font-size:13.5px;line-height:1.7"><div><span class="sub">From</span> ABC Corp AI Governance &lt;ai-governance@abccorp.com&gt;</div><div><span class="sub">To</span> AIComplianceTeam (6 people, BCC)</div><div><span class="sub">Subject</span> <strong>New rule: Illinois AI notice content · 2 systems affected [GVX-1042]</strong></div></div>
+        <div style="padding:18px;font-size:14.5px;line-height:1.6;display:flex;flex-direction:column;gap:10px">
+          <p style="margin:0">Illinois has issued rules on what the employee notice for AI in employment decisions must say.</p>
+          <div><strong>Affects:</strong> Résumé screening, Interview scheduling agent</div>
+          <div><strong>What to do</strong><ol style="margin:6px 0 0;padding-left:20px"><li>Update your employee AI notice to the new content.</li><li>Name a Transparency and notice owner for both systems.</li><li>Upload the new notice as evidence in AI Governix.</li></ol></div>
+          <div><strong>By:</strong> [date]</div>
+          <a href="SystemHistory.dc.html" style="align-self:flex-start;background:#1B3A6B;color:#fff;text-decoration:none;font-weight:600;padding:11px 16px;border-radius:6px">Open the to-dos in AI Governix</a>
+          <p class="sub" style="margin:0">From Futran Solutions, your independent AI governance auditor. General information, not legal advice.</p>
+        </div>
+      </article>
+    </section>
+  </div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>New client: locations and laws</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+label{font-size:14px}
+.lbl{display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:#3E4757}
+select,input[type=search]{box-sizing:border-box;width:100%;min-height:42px;border:1px solid #C7CFDA;border-radius:6px;padding:8px 10px;font:inherit;font-size:14.5px;background:#fff;color:#16233A}
+textarea{box-sizing:border-box;width:100%;border:1px solid #C7CFDA;border-radius:6px;padding:10px 12px;font:inherit;font-size:15px;background:#fff;color:#16233A}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-weight:600;color:#5A6577;font-size:12.5px;text-transform:uppercase;letter-spacing:0.4px;padding:10px 12px;border-bottom:1px solid #D9DFE7;white-space:nowrap}
+td{padding:12px;border-bottom:1px solid #E8ECF1;vertical-align:top}
+input[type=checkbox]{width:20px;height:20px;accent-color:#1B3A6B;margin:0;flex:none}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:600;white-space:nowrap}
+.pick{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:12px;align-items:start;padding:12px 16px;border-bottom:1px solid #E8ECF1}
+.grp{padding:10px 16px;background:#F4F6F9;font-size:12.5px;font-weight:700;letter-spacing:0.4px;text-transform:uppercase;color:#3E4757;border-bottom:1px solid #E8ECF1}
+</style>
+</helmet>
+<div style="min-height:100vh">
+  <header style="background:#1B3A6B;color:#fff;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#0098D4"></div><div style="font-weight:700;font-size:17px">Futran Audit</div></div>
+    <div style="flex:1"></div>
+    <div style="font-size:13px;color:#C9D6EA">[Your name] · Admin</div>
+  </header>
+  <main style="max-width:1040px;margin:0 auto;padding:28px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:22px">
+    <div style="font-size:14px"><a href="Dashboard.dc.html">Audits</a> <span style="color:#5A6577">/ New client / ABC Corp</span></div>
+    <h1 style="margin:0;font-size:28px;font-weight:600">New client: ABC Corp</h1>
+    <ol aria-label="Wizard steps" style="list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;font-size:13.5px">
+      <li style="padding:10px 12px;border-radius:6px;background:#E3EEF9;color:#1B3A6B;font-weight:600">1 · Company ✓</li>
+      <li style="padding:10px 12px;border-radius:6px;background:#1B3A6B;color:#fff;font-weight:600">2 · Locations and laws</li>
+      <li style="padding:10px 12px;border-radius:6px;background:#fff;border:1px solid #D9DFE7;color:#3E4757">3 · Scope and team</li>
+      <li style="padding:10px 12px;border-radius:6px;background:#fff;border:1px solid #D9DFE7;color:#3E4757">4 · Client contacts</li>
+      <li style="padding:10px 12px;border-radius:6px;background:#fff;border:1px solid #D9DFE7;color:#3E4757">5 · Initiation package</li>
+    </ol>
+
+    <section style="background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:24px;display:flex;flex-direction:column;gap:16px">
+      <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px">
+        <div><h2 style="margin:0;font-size:19px;font-weight:600">Locations</h2><p style="margin:4px 0 0;font-size:14px;color:#5A6577">Sites where staff work or where candidates are hired. Each state in scope pulls its laws from the matrix below.</p></div>
+        <button style="height:40px;padding:0 16px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:14px;font-weight:600;color:#16233A">Add location</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Site</th><th>Address</th><th>Matrix state</th><th>In scope</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:600">Headquarters</td><td>[Street], New York, NY, US</td><td>New York (incl. NYC)</td><td><input type="checkbox" checked aria-label="Headquarters in scope"></td></tr>
+            <tr><td style="font-weight:600">Chicago office</td><td>[Street], Chicago, IL, US</td><td>Illinois</td><td><input type="checkbox" checked aria-label="Chicago office in scope"></td></tr>
+            <tr><td style="font-weight:600">Remote staff</td><td>Various, US</td><td>Choose states</td><td><input type="checkbox" aria-label="Remote staff in scope"></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section style="background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:24px;display:flex;flex-direction:column;gap:16px">
+      <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:12px">
+        <div><h2 style="margin:0;font-size:19px;font-weight:600">Laws and frameworks in scope · 6</h2><p style="margin:4px 0 0;font-size:14px;color:#5A6577">Suggested from the sites, the industry and how the client uses AI. The auditor confirms each one.</p></div>
+        <span style="font-size:12.5px;color:#5A6577;text-align:right">Source: Futran US AI Law Matrix<br>status as of 5 Oct 2026</span>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Include</th><th>Law</th><th>Geography · feature</th><th>Why suggested</th></tr></thead>
+          <tbody>
+            <tr><td><input type="checkbox" checked aria-label="Include NYC Local Law 144"></td><td style="font-weight:600">NYC Local Law 144</td><td>New York · Employment and hiring AI</td><td>NYC site; AI screening for NYC roles</td></tr>
+            <tr><td><input type="checkbox" checked aria-label="Include Illinois HB 3773"></td><td style="font-weight:600">Illinois HB 3773 (Human Rights Act)</td><td>Illinois · Employment and hiring AI</td><td>Chicago site; AI in employment decisions; employee notice</td></tr>
+            <tr><td><input type="checkbox" checked aria-label="Include Title VII"></td><td style="font-weight:600">Title VII, Civil Rights Act of 1964</td><td>Federal · Employment</td><td>AI screening or ranking of candidates</td></tr>
+            <tr><td><input type="checkbox" checked aria-label="Include ADEA"></td><td style="font-weight:600">Age Discrimination in Employment Act</td><td>Federal · Employment</td><td>AI screening of candidates</td></tr>
+            <tr><td><input type="checkbox" checked aria-label="Include NY Civil Rights Law 52-c"></td><td style="font-weight:600">NY Civil Rights Law §52-c</td><td>New York · Futran addition</td><td>Employee monitoring notice for attestation</td></tr>
+            <tr><td><input type="checkbox" checked aria-label="Include NIST AI RMF"></td><td style="font-weight:600">NIST AI RMF 1.0</td><td>Federal · Voluntary standard</td><td>Futran default assessment framework</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="border:2px solid #2E75B6;border-radius:8px;overflow:hidden;box-shadow:0 8px 24px rgba(22,35,58,0.12)">
+        <div style="padding:16px;background:#F7FAFD;border-bottom:1px solid #D9DFE7;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div style="font-weight:600;font-size:15.5px">Add from Futran US AI Law Matrix</div><button aria-label="Close" style="width:36px;height:36px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:18px;color:#3E4757">×</button></div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+            <div><label class="lbl" for="geo">Geography</label><select id="geo"><option>Client states (New York, Illinois) + Federal</option><option>Federal</option><option>California</option><option>Colorado</option><option>Connecticut</option><option>Illinois</option><option>New York (incl. NYC)</option><option>Texas</option><option>Utah</option><option>Maryland</option><option>New Jersey</option><option>Virginia</option><option>Washington</option><option>Tennessee</option><option>Minnesota</option><option>Oregon</option><option>Georgia</option><option>Iowa</option><option>Alabama</option><option>Nebraska</option><option>Rhode Island</option><option>Idaho</option><option>Hawaii</option><option>Oklahoma</option><option>Vermont</option><option>Montana</option><option>Florida</option><option>Massachusetts</option></select></div>
+            <div><label class="lbl" for="feat">AI feature</label><select id="feat"><option>All features</option><option>Consequential decisions / ADMT</option><option>Employment and hiring AI</option><option>Privacy: profiling and automated decisions</option><option>Health care and insurance AI</option><option>Chatbots, companions and minors</option><option>Synthetic content, deepfakes and likeness</option><option>Frontier model safety</option><option>Biometrics, neural data and algorithmic pricing</option><option>Government use and other</option></select></div>
+            <div><label class="lbl" for="q">Search</label><input type="search" id="q" placeholder="Law name or bill number"></div>
+          </div>
+        </div>
+        <div style="max-height:none">
+          <div class="grp">Illinois · 4 more</div>
+          <div class="pick"><input type="checkbox" aria-label="Add AI Video Interview Act"><div><div style="font-weight:600">AI Video Interview Act (2020)</div><div style="font-size:13px;color:#5A6577">Notice, explanation and consent before AI analysis of video interviews; deletion on request</div></div><span class="tag" style="background:#E3EEF9;color:#1B3A6B">Employment</span></div>
+          <div class="pick"><input type="checkbox" aria-label="Add BIPA"><div><div style="font-weight:600">Biometric Information Privacy Act (BIPA)</div><div style="font-size:13px;color:#5A6577">Written notice and consent before collecting face, voice or fingerprint data; private right of action</div></div><span class="tag" style="background:#ECEEF2;color:#3E4757">Biometrics</span></div>
+          <div class="pick"><input type="checkbox" aria-label="Add WOPR Act"><div><div style="font-weight:600">WOPR Act, HB 1806 (Aug 2025)</div><div style="font-size:13px;color:#5A6577">AI may not provide therapy or make therapeutic decisions</div></div><span class="tag" style="background:#ECEEF2;color:#3E4757">Health</span></div>
+          <div class="pick"><input type="checkbox" aria-label="Add SB 315" disabled><div><div style="font-weight:600;color:#5A6577">SB 315 AI Safety Measures Act</div><div style="font-size:13px;color:#5A6577">Frontier developers only; not relevant to a deployer like this client</div></div><span class="tag" style="background:#ECEEF2;color:#3E4757">Frontier</span></div>
+          <div class="grp">New York (incl. NYC) · 3 more</div>
+          <div class="pick"><input type="checkbox" aria-label="Add Algorithmic Pricing Disclosure Act"><div><div style="font-weight:600">Algorithmic Pricing Disclosure Act (eff. Nov 2025)</div><div style="font-size:13px;color:#5A6577">Prices set by an algorithm using personal data must carry a disclosure</div></div><span class="tag" style="background:#ECEEF2;color:#3E4757">Pricing</span></div>
+          <div class="pick"><input type="checkbox" aria-label="Add GBL Article 47"><div><div style="font-weight:600">General Business Law Art. 47 (eff. 5 Nov 2025)</div><div style="font-size:13px;color:#5A6577">Companion chatbots must disclose they are AI and run crisis protocols</div></div><span class="tag" style="background:#ECEEF2;color:#3E4757">Chatbots</span></div>
+          <div class="pick"><input type="checkbox" aria-label="Add NYC biometric identifier law"><div><div style="font-weight:600">NYC biometric identifier law (2021)</div><div style="font-size:13px;color:#5A6577">Commercial establishments must post signs and may not sell biometric data</div></div><span class="tag" style="background:#ECEEF2;color:#3E4757">Biometrics</span></div>
+          <div class="grp">Federal · Employment · 2 more</div>
+          <div class="pick"><input type="checkbox" checked aria-label="Add ADA"><div><div style="font-weight:600">Americans with Disabilities Act (ADA)</div><div style="font-size:13px;color:#5A6577">Accommodations and alternative assessments where AI may screen out people with disabilities</div></div><span class="tag" style="background:#E3EEF9;color:#1B3A6B">Employment</span></div>
+          <div class="pick"><input type="checkbox" checked aria-label="Add FCRA"><div><div style="font-weight:600">Fair Credit Reporting Act (FCRA)</div><div style="font-size:13px;color:#5A6577">If an AI vendor assembles or scores third-party data on candidates</div></div><span class="tag" style="background:#E3EEF9;color:#1B3A6B">Employment / Credit</span></div>
+        </div>
+        <div style="padding:14px 16px;background:#F7FAFD;border-top:1px solid #D9DFE7;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px">
+          <span style="font-size:13px;color:#5A6577">Reference data maintained by Futran Admin; re-imported when the matrix is updated.</span>
+          <button style="height:40px;padding:0 16px;border-radius:6px;border:1px solid #1B3A6B;background:#1B3A6B;font:inherit;font-size:14px;font-weight:600;color:#fff">Add 2 laws</button>
+        </div>
+      </div>
+
+      <div>
+        <label for="spec" style="display:block;font-weight:600;margin-bottom:6px">Client-specific requirements</label>
+        <textarea id="spec" rows="3" placeholder="e.g. Client's own AI policy, contract clauses with a customer, a regulator's request, EU or India operations"></textarea>
+        <div style="font-size:12.5px;color:#5A6577;margin-top:4px">Each line becomes a Client Requirement marked Manual.</div>
+      </div>
+    </section>
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px">
+      <a href="NewClient1.dc.html" style="display:inline-flex;align-items:center;height:44px;padding:0 18px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;color:#16233A;text-decoration:none;font-weight:600;font-size:15px">Back</a>
+      <div style="display:flex;flex-wrap:wrap;gap:12px">
+        <button style="height:44px;padding:0 18px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:15px;font-weight:600;color:#16233A">Save draft and exit</button>
+        <a href="NewClient3.dc.html" style="display:inline-flex;align-items:center;height:44px;padding:0 22px;border-radius:6px;background:#1B3A6B;color:#fff;text-decoration:none;font-weight:600;font-size:15px">Next: scope and team</a>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1600}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

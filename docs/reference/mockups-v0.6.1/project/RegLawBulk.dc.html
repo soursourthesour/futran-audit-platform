@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bulk edit laws</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+.btn{box-sizing:border-box;min-height:44px;padding:0 16px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:14.5px;font-weight:600;color:#1B3A6B;display:inline-flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap;text-decoration:none}
+.btn-p{background:#1B3A6B;color:#fff;border-color:#1B3A6B}
+.lbl{display:block;font-size:13.5px;font-weight:600;margin-bottom:5px}
+.tag{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.t-gry{background:#EDF0F4;color:#3E4757}.t-amb{background:#FDF1DC;color:#6E4300}
+input[type=text],input[type=date],select,textarea{box-sizing:border-box;width:100%;min-height:42px;border:1px solid #C7CFDA;border-radius:6px;padding:8px 10px;font:inherit;font-size:14px;background:#fff;color:#16233A}
+input[type=radio],input[type=checkbox]{width:18px;height:18px;accent-color:#1B3A6B;margin:0;flex:none}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{text-align:left;font-weight:600;color:#5A6577;font-size:12px;text-transform:uppercase;letter-spacing:0.4px;padding:8px;border-bottom:1px solid #D9DFE7;white-space:nowrap}
+td{padding:8px;border-bottom:1px solid #E8ECF1;vertical-align:middle}
+.sec{display:flex;flex-direction:column;gap:12px;padding:20px 24px;border-bottom:1px solid #E8ECF1}
+.sec h3{margin:0;font-size:16px;font-weight:600}
+.hint{font-size:13px;color:#5A6577;line-height:1.45}
+.opt{display:flex;align-items:center;gap:8px;font-size:14px;min-height:34px}
+</style>
+</helmet>
+<div style="min-height:100vh;background:#5B6474;display:flex;flex-direction:column">
+  <header style="background:#2C3E5C;padding:0 32px;display:flex;align-items:center;gap:24px;min-height:64px;color:#C9D6EA">
+    <div style="font-weight:700;font-size:17px">Futran Audit · Regulatory master</div>
+    <div style="flex:1"></div>
+    <div style="font-size:13px">[Name] · Chief Auditor</div>
+  </header>
+  <div style="flex:1;padding:32px 24px 48px;display:flex;justify-content:center;box-sizing:border-box">
+    <section role="dialog" aria-labelledby="bt" style="background:#fff;border-radius:10px;width:100%;max-width:1000px;box-shadow:0 20px 50px rgba(0,0,0,0.3);display:flex;flex-direction:column">
+      <div style="padding:22px 24px;border-bottom:1px solid #D9DFE7;display:flex;gap:16px;align-items:flex-start">
+        <div style="flex:1">
+          <h2 id="bt" style="margin:0;font-size:22px;font-weight:600">Edit 3 selected laws</h2>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px"><span class="tag t-gry">EU AI Act</span><span class="tag t-gry">Colorado AI Act (SB 26-189)</span><span class="tag t-gry">NYC Local Law 144</span></div>
+          <p class="hint" style="margin:10px 0 0">Only the fields you change are applied. Changes to law content become a proposed change, so they still need Chief Auditor approval.</p>
+        </div>
+        <a href="RegMaster.dc.html" class="btn" aria-label="Close" style="min-height:40px;width:40px;padding:0;justify-content:center"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2l10 10M12 2L2 12" stroke="#3E4757" stroke-width="1.8" stroke-linecap="round"/></svg></a>
+      </div>
+
+      <div class="sec">
+        <h3>1 · Tracking</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px">
+          <div><label class="lbl" for="b1">Reviewer</label><select id="b1"><option>Keep current</option><option>[Name] · Auditor</option><option>[Name] · Futran Research</option></select></div>
+          <div><label class="lbl" for="b2">Next review date</label><input type="date" id="b2" value="2026-11-15"></div>
+          <div><label class="lbl" for="b3">Refresh frequency</label><select id="b3"><option>Keep current</option><option>Every 2 weeks</option><option>Weekly (legislature in session)</option><option>Monthly</option></select></div>
+          <div><label class="lbl" for="b4">Watch list</label><select id="b4"><option>Keep current</option><option>Add to watch list</option><option>Remove from watch list</option></select></div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <h3>2 · Classification</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px">
+          <div><label class="lbl" for="c1">Add a topic</label><select id="c1"><option>Hiring and employment</option><option>Consumer decisions</option><option>Generative AI disclosure</option><option>Personal data</option></select></div>
+          <div><label class="lbl" for="c2">Applies to (add)</label><select id="c2"><option>No change</option><option>Deployer</option><option>Developer</option><option>Employer</option></select></div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <h3>3 · Role mapping</h3>
+        <div class="hint">Set one role's level on all selected laws. This updates the role catalogue matrix (M4) once approved.</div>
+        <table>
+          <thead><tr><th>Role</th><th>Set level</th><th>Needed by</th><th>Currently</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Human oversight person</strong></td><td><select aria-label="Level for Human oversight person"><option>Required</option><option>Recommended</option><option>Not required</option><option>Keep current</option></select></td><td><select aria-label="Stage for Human oversight person"><option>Go-live</option><option>Development</option></select></td><td class="hint">Required on 2 of 3 · not set on NYC LL144</td></tr>
+            <tr><td><strong>Records retention owner</strong></td><td><select aria-label="Level for Records retention owner"><option>Keep current</option><option>Required</option><option>Recommended</option></select></td><td><select aria-label="Stage for Records retention owner"><option>Ongoing</option></select></td><td class="hint">Required on 2 of 3</td></tr>
+          </tbody>
+        </table>
+        <div><button class="btn" type="button" style="min-height:40px">Add another role</button></div>
+      </div>
+
+      <div class="sec" style="background:#FFF8EC">
+        <h3>4 · Check before saving</h3>
+        <div style="font-size:14px;line-height:1.5"><strong>NYC Local Law 144</strong> does not require human oversight. Setting it to "Required" would add the role to 7 AI systems at 5 clients.</div>
+        <div style="display:flex;flex-wrap:wrap;gap:18px">
+          <label class="opt"><input type="radio" name="cf" checked> Skip NYC Local Law 144 for this role</label>
+          <label class="opt"><input type="radio" name="cf"> Apply to all 3 anyway</label>
+        </div>
+      </div>
+
+      <div class="sec" style="border-bottom:none">
+        <div><label class="lbl" for="rs">Reason for change *</label><textarea id="rs" rows="2">Aligning human review across consequential-decision laws.</textarea><div class="hint" style="margin-top:4px">Saved to each law's version history with your name and the time.</div></div>
+      </div>
+
+      <div style="padding:16px 24px;border-top:1px solid #D9DFE7;display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:#F7F8FA;border-radius:0 0 10px 10px">
+        <div class="hint" style="flex:1 1 300px">5 changes across 3 laws · 2 are content changes and go to the review queue as proposed changes</div>
+        <a href="RegMaster.dc.html" class="btn">Cancel</a>
+        <a href="RegRefresh.dc.html" class="btn btn-p">Apply and send for approval</a>
+      </div>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1400}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

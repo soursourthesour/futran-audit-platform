@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>System history and requirements</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+.card{background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:20px 22px;display:flex;flex-direction:column;gap:12px}
+.card h2{margin:0;font-size:18px;font-weight:600}
+.btn{box-sizing:border-box;min-height:42px;padding:0 15px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:14px;font-weight:600;color:#1B3A6B;display:inline-flex;align-items:center;gap:7px;cursor:pointer;white-space:nowrap;text-decoration:none}
+.btn-p{background:#1B3A6B;color:#fff;border-color:#1B3A6B}
+.btn-g{background:transparent;border-color:transparent;color:#DCE6F4}
+.tag{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.t-red{background:#FDECEC;color:#8A1C1C}.t-amb{background:#FDF1DC;color:#6E4300}.t-grn{background:#E1F2E7;color:#1F5C38}.t-blu{background:#E3EEF9;color:#1B3A6B}.t-gry{background:#EDF0F4;color:#3E4757}
+input[type=text],input[type=email],input[type=date],input[type=time],select,textarea{box-sizing:border-box;width:100%;min-height:42px;border:1px solid #C7CFDA;border-radius:6px;padding:8px 10px;font:inherit;font-size:14px;background:#fff;color:#16233A}
+input[type=checkbox],input[type=radio]{width:18px;height:18px;accent-color:#1B3A6B;margin:0;flex:none}
+table{border-collapse:collapse;font-size:13.5px;width:100%}
+th{text-align:left;font-weight:600;color:#5A6577;font-size:12px;text-transform:uppercase;letter-spacing:0.4px;padding:9px 10px;border-bottom:1px solid #D9DFE7;background:#F7F8FA;white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid #E8ECF1;vertical-align:top}
+tr.sel td{background:#EEF3FA}
+.sub{font-size:12.5px;color:#5A6577;line-height:1.4}
+.lbl{display:block;font-size:13.5px;font-weight:600;margin-bottom:5px}
+.opt{display:flex;align-items:flex-start;gap:10px;font-size:14px;line-height:1.4;padding:6px 0}
+.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.kb{width:36px;height:36px;border-radius:6px;border:1px solid transparent;background:transparent;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.kebab{position:relative}
+.kebab summary{list-style:none;width:36px;height:36px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid transparent}
+.kebab summary::-webkit-details-marker{display:none}
+.kebab[open] summary{border-color:#C7CFDA;background:#fff}
+.menu{position:absolute;right:0;top:40px;z-index:5;width:250px;background:#fff;border:1px solid #C7CFDA;border-radius:8px;box-shadow:0 8px 24px rgba(22,35,58,0.16);padding:6px;display:flex;flex-direction:column}
+.menu a{display:flex;align-items:center;min-height:38px;padding:0 10px;border-radius:5px;text-decoration:none;font-size:14px;color:#16233A}
+.menu a:hover{background:#EEF3FA}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;padding:5px 11px;border-radius:16px;background:#E3EEF9;color:#1B3A6B;font-weight:600}
+.bar{background:#1B3A6B;color:#fff;padding:8px 16px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+</style>
+</helmet>
+<div style="min-height:100vh">
+<header style="background:#fff;border-bottom:1px solid #D9DFE7;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#1B3A6B"></div><div style="font-weight:700;font-size:17px;color:#1B3A6B">AI Governix</div><span style="color:#5A6577;font-size:14px">· ABC Corp</span></div>
+    <nav style="display:flex;flex-wrap:wrap;gap:4px;font-size:14px"><a href="RegisterGrid.dc.html" style="padding:8px 12px;text-decoration:none;font-weight:600;border-bottom:2px solid #1B3A6B">AI system register</a><a href="#" style="padding:8px 12px;text-decoration:none">Findings</a><a href="#" style="padding:8px 12px;text-decoration:none">Add-ons</a></nav>
+    <div style="flex:1"></div><div style="font-size:13px;color:#5A6577">[Name] · Chief AI Compliance Officer</div></header>
+<main style="max-width:1400px;margin:0 auto;padding:24px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+  <div style="font-size:14px"><a href="RegisterGrid.dc.html">AI system register</a> <span style="color:#5A6577">/ Résumé screening</span></div>
+  <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end"><div style="flex:1 1 520px"><h1 style="margin:0;font-size:28px;font-weight:600">Résumé screening · history and requirements</h1><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"><span class="tag t-gry">Vendor app · TalentRank Inc.</span><span class="tag t-red">Tier 3 · High</span><span class="tag t-gry">Live since 1 Mar 2024</span><span class="tag t-red">4 of 8 requirements met</span></div></div></div>
+  <nav style="display:flex;flex-wrap:wrap;gap:2px;border-bottom:1px solid #D9DFE7;font-size:14px"><a href="RegisterDetails.dc.html" style="padding:10px 14px;text-decoration:none;color:#3E4757">Details</a><a href="RegisterRoles.dc.html" style="padding:10px 14px;text-decoration:none;color:#3E4757">Governance roles</a><a href="#" style="padding:10px 14px;text-decoration:none;font-weight:600;border-bottom:2px solid #1B3A6B;margin-bottom:-1px">History and requirements</a><a href="TracingModule.dc.html" style="padding:10px 14px;text-decoration:none;color:#3E4757;display:inline-flex;gap:6px;align-items:center"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><rect x="3.5" y="8" width="11" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M6 8V5.5a3 3 0 0 1 6 0V8" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>Tracing</a></nav>
+
+  <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start">
+    <div style="flex:999 1 820px;min-width:0;display:flex;flex-direction:column;gap:16px">
+      <section class="card" style="background:#FFF8EC;border-color:#F0D29A">
+        <h2>Asked when this system was first entered</h2>
+        <div style="font-size:14.5px">Since this system went live on 1 Mar 2024, have there been any incidents, complaints or errors?</div>
+        <div style="display:flex;flex-wrap:wrap;gap:18px"><label class="opt"><input type="radio" name="inc" checked><span>Yes. They are added to the log below.</span></label><label class="opt"><input type="radio" name="inc"><span>No, none known. The system owner signs a statement.</span></label></div>
+        <div class="sub">Also asked: bias tests done, tests before release, approvals, notices and consents. Each answer becomes a log entry with evidence.</div>
+      </section>
+
+      <section class="card" style="padding:0;gap:0">
+        <div style="padding:14px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;border-bottom:1px solid #D9DFE7"><h2 style="flex:1">History log (6)</h2><select aria-label="Filter by type" style="width:auto"><option>All types</option><option>Incident</option><option>Bias test</option><option>Deployment test</option><option>Impact assessment</option><option>Notice or consent</option><option>Model change</option><option>Approval</option><option>Training</option><option>Vendor audit</option></select><a class="btn btn-p" href="#"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>Add entry</a></div>
+        <div class="bar"><strong style="font-size:14px;margin-right:10px">1 selected</strong><button class="btn" type="button" style="min-height:34px">Edit selected</button><button class="btn btn-g" type="button">Link to a requirement</button><button class="btn btn-g" type="button">Export</button><div style="flex:1"></div><button class="btn btn-g" type="button">Clear</button></div>
+        <div style="overflow-x:auto"><table style="min-width:1100px"><thead><tr><th style="width:30px"><input type="checkbox" aria-label="Select all"></th><th>Date</th><th>Type</th><th>What happened</th><th>Result or resolution</th><th>Requirement</th><th>Evidence</th><th>Recorded by</th><th style="width:44px"><span style="position:absolute;width:1px;height:1px;overflow:hidden">Actions</span></th></tr></thead><tbody><tr><td><input type="checkbox" aria-label="Select Vendor moved to model v4.2"></td><td>15 Jan 2026</td><td><span class="tag t-amb">Model change</span></td><td><strong>Vendor moved to model v4.2</strong></td><td>Re-assessment due; bias re-test not yet done</td><td>LL144-01</td><td><a href="#">Vendor release note</a></td><td>[Name]</td><td><button class="kb" type="button" aria-label="Actions for Vendor moved to model v4.2"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr><td><input type="checkbox" aria-label="Select Independent audit by [Audit fi"></td><td>14 Sep 2025</td><td><span class="tag t-blu">Bias test</span></td><td><strong>Independent audit by [Audit firm]; impact ratios by sex and race/ethnicity</strong></td><td>All ≥ 0.80 except one group at 0.76; threshold re-weighted</td><td>LL144-01, LL144-02</td><td><a href="#">Audit report</a></td><td>[Name]</td><td><button class="kb" type="button" aria-label="Actions for Independent audit by [Audit fi"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr class="sel"><td><input type="checkbox" checked aria-label="Select Recruiter reported candidates "></td><td>02 Jun 2025</td><td><span class="tag t-red">Incident</span></td><td><strong>Recruiter reported candidates with career gaps ranked lower</strong></td><td>Medium · vendor removed the feature 20 Jun 2025; re-tested; not reportable</td><td>NIST MANAGE 4.1</td><td><a href="#">Incident note, vendor fix</a></td><td>[Name]</td><td><details class="kebab" open><summary aria-label="Actions for Recruiter reported candidates "><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></summary><div class="menu"><a href="#">Open entry</a><a href="#">Edit</a><a href="#">Attach evidence</a><a href="#">Link to a requirement</a><a href="#">Raise a finding</a><a href="#" style="color:#8A1C1C">Delete entry</a></div></details></td></tr><tr><td><input type="checkbox" aria-label="Select User acceptance test on 200 ré"></td><td>10 Mar 2024</td><td><span class="tag t-grn">Deployment test</span></td><td><strong>User acceptance test on 200 résumés against recruiter shortlists</strong></td><td>87% agreement · passed</td><td>NIST MEASURE 2.3</td><td><a href="#">Test log</a></td><td>[Name]</td><td><button class="kb" type="button" aria-label="Actions for User acceptance test on 200 ré"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr><td><input type="checkbox" aria-label="Select HR Director approved go-live"></td><td>01 Mar 2024</td><td><span class="tag t-gry">Approval</span></td><td><strong>HR Director approved go-live</strong></td><td>Approved</td><td>Company AI policy</td><td><a href="#">Sign-off</a></td><td>[Name]</td><td><button class="kb" type="button" aria-label="Actions for HR Director approved go-live"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr><td><input type="checkbox" aria-label="Select Candidate notice and audit sum"></td><td>20 Feb 2024</td><td><span class="tag t-gry">Notice</span></td><td><strong>Candidate notice and audit summary published on careers site</strong></td><td>Published 10 business days before use</td><td>LL144-03</td><td><a href="#">Page capture</a></td><td>[Name]</td><td><button class="kb" type="button" aria-label="Actions for Candidate notice and audit sum"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr></tbody></table></div>
+      </section>
+
+      <section class="card" style="padding:0;gap:0">
+        <div style="padding:14px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;border-bottom:1px solid #D9DFE7"><h2 style="flex:1">Requirements checklist · 4 of 8 met</h2><span class="sub">From the laws on this system (regulatory master)</span></div>
+        <div style="overflow-x:auto"><table style="min-width:960px"><thead><tr><th style="width:30px"><input type="checkbox" aria-label="Select all"></th><th>ID</th><th>Requirement</th><th>Law</th><th>Status</th><th>Evidence</th><th>Needed by</th><th style="width:44px"><span style="position:absolute;width:1px;height:1px;overflow:hidden">Actions</span></th></tr></thead><tbody><tr><td><input type="checkbox" aria-label="Select LL144-01"></td><td>LL144-01</td><td><strong>Bias audit within the past 12 months</strong></td><td>NYC LL144</td><td><span class="tag t-red">Not met</span></td><td>Last audit 14 Sep 2025</td><td>Before use</td><td><button class="kb" type="button" aria-label="Actions for LL144-01"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr><td><input type="checkbox" aria-label="Select LL144-02"></td><td>LL144-02</td><td><strong>Publish audit summary and date</strong></td><td>NYC LL144</td><td><span class="tag t-red">Not met</span></td><td>Summary out of date</td><td>Before use</td><td><button class="kb" type="button" aria-label="Actions for LL144-02"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr><td><input type="checkbox" aria-label="Select LL144-03"></td><td>LL144-03</td><td><strong>10 business days' notice to candidates</strong></td><td>NYC LL144</td><td><span class="tag t-grn">Met</span></td><td>Notice, 20 Feb 2024</td><td>Before use</td><td><button class="kb" type="button" aria-label="Actions for LL144-03"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr><td><input type="checkbox" aria-label="Select IL-01"></td><td>IL-01</td><td><strong>Notify employees of AI use (new content rules)</strong></td><td>Illinois HB 3773</td><td><span class="tag t-red">Not met</span></td><td>Notice predates rules</td><td>Now</td><td><button class="kb" type="button" aria-label="Actions for IL-01"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr><td><input type="checkbox" aria-label="Select NIST-M2.11"></td><td>NIST-M2.11</td><td><strong>Fairness evaluated and documented</strong></td><td>NIST AI RMF</td><td><span class="tag t-amb">Partly met</span></td><td>Bias test 2025</td><td>Yearly</td><td><button class="kb" type="button" aria-label="Actions for NIST-M2.11"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr><td><input type="checkbox" aria-label="Select NIST-G2.1"></td><td>NIST-G2.1</td><td><strong>Human oversight person named</strong></td><td>NIST AI RMF</td><td><span class="tag t-red">Not met</span></td><td>Role: no such person</td><td>Go-live</td><td><button class="kb" type="button" aria-label="Actions for NIST-G2.1"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr><td><input type="checkbox" aria-label="Select NIST-M4.1"></td><td>NIST-M4.1</td><td><strong>Incidents logged and resolved</strong></td><td>NIST AI RMF</td><td><span class="tag t-grn">Met</span></td><td>Incident 02 Jun 2025</td><td>Ongoing</td><td><button class="kb" type="button" aria-label="Actions for NIST-M4.1"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr><td><input type="checkbox" aria-label="Select CO-POL"></td><td>CO-POL</td><td><strong>Approved before go-live</strong></td><td>Company AI policy</td><td><span class="tag t-grn">Met</span></td><td>Sign-off 01 Mar 2024</td><td>Go-live</td><td><button class="kb" type="button" aria-label="Actions for CO-POL"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr></tbody></table></div>
+        <div style="padding:12px 16px" class="sub">A requirement needed before use or go-live that is Not met counts toward the go-live gate, like a missing role.</div>
+      </section>
+    </div>
+
+    <aside class="card" style="flex:1 1 340px;max-width:400px;border:2px solid #1B3A6B;gap:14px">
+      <div style="display:flex;gap:10px;align-items:center;color:#1B3A6B"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><rect x="3.5" y="8" width="11" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M6 8V5.5a3 3 0 0 1 6 0V8" fill="none" stroke="currentColor" stroke-width="1.6"/></svg><h2>Tracing and incident module</h2></div>
+      <div><span class="tag t-amb">Add-on · locked</span> <span class="tag t-blu">Recommended for this system</span></div>
+      <p style="margin:0;font-size:14px;line-height:1.5">Why: Tier 3, live for 2 years, 1 past incident, and used for hiring decisions under NYC and Illinois law.</p>
+      <ul style="margin:0;padding-left:18px;font-size:14px;line-height:1.6">
+        <li>Every action and decision traced, with who approved it</li>
+        <li>Incident reporting with regulator deadline timers</li>
+        <li>Drift and bias alerts between audits</li>
+        <li>Audit-ready export for regulators and Futran</li>
+      </ul>
+      <div style="background:#F7F8FA;border-radius:6px;padding:10px 12px;font-size:14px"><strong>[Price]</strong> per system per month · first 30 days free</div>
+      <a class="btn btn-p" href="UnlockModule.dc.html" style="justify-content:center">Unlock for this system</a>
+      <button class="btn" type="button" style="justify-content:center">See a demo</button>
+      <div class="sub">Your Executive Sponsor approves the purchase. Futran's sales team is told when you ask.</div>
+    </aside>
+  </div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1750}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

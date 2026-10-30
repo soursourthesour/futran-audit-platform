@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Client applicability and intro letter</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+.card{background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:20px 22px;display:flex;flex-direction:column;gap:12px}
+.card h2{margin:0;font-size:18px;font-weight:600}
+.btn{box-sizing:border-box;min-height:42px;padding:0 15px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:14px;font-weight:600;color:#1B3A6B;display:inline-flex;align-items:center;gap:7px;cursor:pointer;white-space:nowrap;text-decoration:none}
+.btn-p{background:#1B3A6B;color:#fff;border-color:#1B3A6B}
+.tag{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.t-red{background:#FDECEC;color:#8A1C1C}.t-amb{background:#FDF1DC;color:#6E4300}.t-grn{background:#E1F2E7;color:#1F5C38}.t-blu{background:#E3EEF9;color:#1B3A6B}.t-gry{background:#EDF0F4;color:#3E4757}
+select{box-sizing:border-box;min-height:42px;border:1px solid #C7CFDA;border-radius:6px;padding:8px 10px;font:inherit;font-size:14px;background:#fff;color:#16233A;width:100%}
+table{border-collapse:collapse;font-size:13.5px;width:100%}
+th{text-align:left;font-weight:600;color:#5A6577;font-size:12px;text-transform:uppercase;letter-spacing:0.4px;padding:8px;border-bottom:1px solid #D9DFE7}
+td{padding:8px;border-bottom:1px solid #E8ECF1;vertical-align:top}
+.sub{font-size:12.5px;color:#5A6577;line-height:1.4}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;padding:5px 11px;border-radius:16px;background:#E3EEF9;color:#1B3A6B;font-weight:600}
+.law{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid #E8ECF1;font-size:14px}
+.paper{background:#fff;border:1px solid #D9DFE7;border-radius:4px;box-shadow:0 2px 10px rgba(22,35,58,0.08);padding:40px 48px;display:flex;flex-direction:column;gap:18px;font-size:14px;line-height:1.55}
+.paper h3{margin:0;font-size:16px;font-weight:700;color:#1B3A6B}
+.rule{border:1px solid #D9DFE7;border-radius:6px;padding:12px 14px}
+.rule ul{margin:6px 0 0;padding-left:18px}
+</style>
+</helmet>
+<div style="min-height:100vh">
+  <header style="background:#1B3A6B;color:#fff;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#fff"></div><div style="font-weight:700;font-size:17px">Futran Audit</div><span style="color:#C9D6EA;font-size:13px">Futran staff</span></div>
+    <div style="flex:1"></div>
+    <div style="font-size:13px;color:#DCE6F4">[Name] · Chief Auditor</div>
+  </header>
+  <main style="max-width:1400px;margin:0 auto;padding:24px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+    <nav style="display:flex;flex-wrap:wrap;gap:6px" aria-label="Regulatory master sections">
+      <a href="RegMaster.dc.html" class="btn" style="min-height:36px">Law library</a>
+      <a href="RegRefresh.dc.html" class="btn" style="min-height:36px">Refresh and review</a>
+      <a href="RegRoles.dc.html" class="btn" style="min-height:36px">Roles and committees</a>
+      <a href="#" class="btn btn-p" style="min-height:36px">Client applicability and intro letter</a>
+    </nav>
+    <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end">
+      <div style="flex:1 1 520px"><h1 style="margin:0;font-size:28px;font-weight:600">Client applicability and intro letter</h1><p style="margin:6px 0 0;font-size:15px;color:#3E4757">Pick the client's geographies. The system works out the laws, committees, roles and rules from the law library, and drafts the intro letter for the Chief AI Compliance Officer.</p></div>
+      <div style="min-width:260px"><label for="cl" style="display:block;font-size:12.5px;font-weight:600;margin-bottom:4px">Client</label><select id="cl"><option>ABC Corp</option></select></div>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start">
+      <div style="flex:1 1 420px;max-width:480px;display:flex;flex-direction:column;gap:16px">
+        <section class="card">
+          <h2>1 · Where the client operates</h2>
+          <div style="display:flex;flex-wrap:wrap;gap:8px"><span class="chip">United States · New York City</span><span class="chip">United States · Illinois</span><span class="chip">European Union · Germany</span></div>
+          <button class="btn" type="button" style="align-self:flex-start">Add a geography</button>
+          <p class="sub" style="margin:0">Taken from client set-up (screen 4). Includes where employees, candidates and customers are, not only offices.</p>
+        </section>
+        <section class="card">
+          <h2>2 · Laws that apply (6)</h2>
+          <div class="law"><span class="tag t-red">Binding</span><span><strong>NYC Local Law 144</strong><br><span class="sub">Uses AI to screen NYC candidates</span></span></div>
+          <div class="law"><span class="tag t-red">Binding</span><span><strong>Illinois HB 3773</strong><br><span class="sub">AI in employment decisions about Illinois staff</span></span></div>
+          <div class="law"><span class="tag t-red">Binding</span><span><strong>Illinois AI Video Interview Act</strong><br><span class="sub">Video interview analysis is proposed</span></span></div>
+          <div class="law"><span class="tag t-red">Binding</span><span><strong>EU AI Act</strong><br><span class="sub">Deployer in Germany; AI literacy applies to all staff</span></span></div>
+          <div class="law"><span class="tag t-blu">Enforcement</span><span><strong>FTC Act §5</strong><br><span class="sub">All US businesses</span></span></div>
+          <div class="law" style="border-bottom:none"><span class="tag t-gry">Baseline</span><span><strong>NIST AI RMF and ISO/IEC 42001</strong><br><span class="sub">Futran's audit baseline</span></span></div>
+          <details><summary style="cursor:pointer;font-size:14px;font-weight:600;color:#1B3A6B">Not in scope (3) and why</summary><div class="sub" style="margin-top:8px;line-height:1.6">Colorado AI Act: no Colorado operations or residents · CCPA ADMT: not a California business · India DPDP: no Indian data</div></details>
+        </section>
+        <section class="card" style="background:#FFF8EC;border-color:#F0D29A">
+          <h2>Changes since letter v1 (sent 2 Sep 2026)</h2>
+          <div style="font-size:14px;line-height:1.5">2 approved law changes affect this client:</div>
+          <ul style="margin:0;padding-left:18px;font-size:14px;line-height:1.5"><li>Illinois HB 3773: new notice content rules</li><li>EU AI Act: high-risk effective date [pending approval]</li></ul>
+          <button class="btn" type="button" style="align-self:flex-start">Draft update letter (v2)</button>
+        </section>
+      </div>
+
+      <section style="flex:999 1 640px;min-width:0;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center"><strong style="font-size:16px;flex:1">3 · Intro letter preview</strong><span class="tag t-amb">Draft v1 · not sent</span><button class="btn" type="button">Edit text</button><button class="btn" type="button">Download PDF</button><button class="btn btn-p" type="button">Approve and send</button></div>
+        <article class="paper">
+          <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap"><strong style="font-size:18px;color:#1B3A6B">Futran Solutions</strong><span class="sub">Edison, New Jersey · AiAudit@futransolutions.com · [Date]</span></div>
+          <div>To: [Name], Chief AI Compliance Officer, ABC Corp<br><strong>AI governance requirements for your operations</strong></div>
+          <p style="margin:0">ABC Corp uses AI in New York City, Illinois and the European Union. This letter sets out the laws that apply, the committee to form, the roles to fill, and the rules for each type of AI you use. Your AI system register on the Futran platform has been set up to match.</p>
+
+          <h3>1. Laws that apply</h3>
+          <table>
+            <thead><tr><th>Geography</th><th>Law</th><th>Status</th><th>Main duty</th></tr></thead>
+            <tbody>
+              <tr><td>New York City</td><td>Local Law 144</td><td>In force</td><td>Yearly independent bias audit; publish results; 10 business days' notice</td></tr>
+              <tr><td>Illinois</td><td>HB 3773; AI Video Interview Act</td><td>In force</td><td>Notify employees of AI use; consent before video analysis</td></tr>
+              <tr><td>European Union</td><td>EU AI Act</td><td>In force, phased</td><td>AI literacy; human oversight, logs and notices for high-risk use</td></tr>
+              <tr><td>United States</td><td>FTC Act §5</td><td>Enforcement</td><td>No unfair or deceptive AI claims</td></tr>
+            </tbody>
+          </table>
+
+          <h3>2. Committee to form</h3>
+          <p style="margin:0"><strong>AI Governance Committee</strong>, by [date]. Chair: your accountable executive. Members: Chief AI Compliance Officer, Legal, Data Protection Officer, a technical lead and an HR lead. Approves high-risk systems and exceptions; meets at least quarterly. Not legally required in your geographies, but recommended by NIST and ISO/IEC 42001.</p>
+
+          <h3>3. Roles and responsibilities (15)</h3>
+          <table>
+            <thead><tr><th>Role</th><th>Responsibility</th><th>Required by</th><th>Needed by</th></tr></thead>
+            <tbody>
+              <tr><td>AI Compliance Officer</td><td>Runs the AI program and the register</td><td>NIST · ISO</td><td>Now</td></tr>
+              <tr><td>AI Incident Response Lead</td><td>Logs incidents; reports on time</td><td>EU AI Act</td><td>Before go-live</td></tr>
+              <tr><td>AI literacy and training owner</td><td>Trains all AI users</td><td>EU AI Act Art. 4</td><td>Now</td></tr>
+              <tr><td>Bias testing lead / independent auditor</td><td>Yearly bias audit of hiring tools</td><td>NYC LL144</td><td>Before use</td></tr>
+              <tr><td>Transparency and notice owner</td><td>Candidate and employee notices</td><td>NYC LL144 · IL HB 3773 · EU AI Act</td><td>Before use</td></tr>
+              <tr><td>Human oversight person (per system)</td><td>Reviews or overrides AI outputs</td><td>EU AI Act Art. 14, 26</td><td>Before go-live</td></tr>
+              <tr><td>Stop authority (per agent)</td><td>Can halt an agent</td><td>EU AI Act Art. 14</td><td>Before go-live</td></tr>
+              <tr><td colspan="4" class="sub">+ 8 more roles in Appendix A, with the person to name for each.</td></tr>
+            </tbody>
+          </table>
+
+          <h3>4. Rules for each type of AI you use</h3>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px">
+            <div class="rule"><strong>AI agents</strong> (2)<ul><li>Name a stop authority and a permissions approver</li><li>Approve the tools and data each agent may use</li><li>Test before release; log every action</li></ul></div>
+            <div class="rule"><strong>AI or ML software deciding about people</strong> (2)<ul><li>Bias audit within the past 12 months (NYC)</li><li>Notice to candidates and employees (NYC, Illinois)</li><li>Consent before AI video analysis (Illinois)</li></ul></div>
+            <div class="rule"><strong>Embedded AI features</strong> (2)<ul><li>Record the vendor and data terms</li><li>Train users (EU AI Act Art. 4)</li><li>No confidential data unless contract allows</li></ul></div>
+            <div class="rule"><strong>Generative AI tools and chatbots</strong><ul><li>Tell users they are talking to AI (EU AI Act Art. 50)</li><li>Approved tools list; no personal tools for company data</li></ul></div>
+          </div>
+
+          <h3>5. How we keep this current</h3>
+          <p style="margin:0">Futran reviews these laws every two weeks. When a change affects you, you get an alert on the platform and an updated letter. Rule versions used in this letter: EU AI Act v5, NYC LL144 v2, Illinois HB 3773 v3, Illinois AI Video Interview Act v1.</p>
+          <p class="sub" style="margin:0">General information, not legal advice. Confirm obligations with your counsel.</p>
+        </article>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2200}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

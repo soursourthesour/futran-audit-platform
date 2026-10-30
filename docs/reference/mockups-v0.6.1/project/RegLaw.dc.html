@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Law master record</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+.card{background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:20px 22px;display:flex;flex-direction:column;gap:12px}
+.card h2{margin:0;font-size:18px;font-weight:600}
+.btn{box-sizing:border-box;min-height:42px;padding:0 15px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:14px;font-weight:600;color:#1B3A6B;display:inline-flex;align-items:center;gap:7px;cursor:pointer;white-space:nowrap;text-decoration:none}
+.btn-p{background:#1B3A6B;color:#fff;border-color:#1B3A6B}
+.tag{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.t-red{background:#FDECEC;color:#8A1C1C}.t-amb{background:#FDF1DC;color:#6E4300}.t-grn{background:#E1F2E7;color:#1F5C38}.t-blu{background:#E3EEF9;color:#1B3A6B}.t-gry{background:#EDF0F4;color:#3E4757}
+table{border-collapse:collapse;font-size:13.5px;width:100%}
+th{text-align:left;font-weight:600;color:#5A6577;font-size:12px;text-transform:uppercase;letter-spacing:0.4px;padding:8px 10px;border-bottom:1px solid #D9DFE7;white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid #E8ECF1;vertical-align:top}
+.sub{font-size:12.5px;color:#5A6577;line-height:1.4}
+dl{margin:0;display:grid;grid-template-columns:170px 1fr;gap:8px 14px;font-size:14px}
+dt{color:#5A6577;font-weight:600;font-size:13px}
+dd{margin:0}
+.q{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.45;padding:8px 0;border-bottom:1px solid #E8ECF1}
+.num{flex:none;width:24px;height:24px;border-radius:12px;background:#E3EEF9;color:#1B3A6B;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
+input[type=checkbox]{width:18px;height:18px;accent-color:#1B3A6B;margin:0}
+tr.sel td{background:#EEF3FA}
+.btn-g{background:transparent;border-color:transparent;color:#DCE6F4}
+.kb{width:36px;height:36px;border-radius:6px;border:1px solid transparent;background:transparent;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.lbl{display:block;font-size:13.5px;font-weight:600;margin-bottom:5px}
+.f input[type=text],.f select,.f textarea{box-sizing:border-box;width:100%;min-height:42px;border:1px solid #C7CFDA;border-radius:6px;padding:8px 10px;font:inherit;font-size:14px;background:#fff;color:#16233A}
+</style>
+</helmet>
+<div style="min-height:100vh">
+  <header style="background:#1B3A6B;color:#fff;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#fff"></div><div style="font-weight:700;font-size:17px">Futran Audit</div><span style="color:#C9D6EA;font-size:13px">Futran staff</span></div>
+    <div style="flex:1"></div>
+    <div style="font-size:13px;color:#DCE6F4">[Name] · Chief Auditor</div>
+  </header>
+
+  <main style="max-width:1400px;margin:0 auto;padding:24px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+    <div style="font-size:14px"><a href="RegMaster.dc.html">Law library</a> <span style="color:#5A6577">/ United States / Colorado / Colorado AI Act</span></div>
+    <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end">
+      <div style="flex:1 1 560px">
+        <h1 style="margin:0;font-size:28px;font-weight:600">Colorado AI Act</h1>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"><span class="tag t-amb">Enacted, compliance 1 Jan 2027</span><span class="tag t-gry">SB 26-189 · repeals and replaces SB 24-205</span><span class="tag t-gry">Version 3, approved [date] by [Name]</span><span class="tag t-blu">Used by 6 clients · 23 AI systems</span></div>
+      </div>
+      <button class="btn" type="button">Edit record</button>
+      <a class="btn" href="RegRefresh.dc.html">Refresh this law only</a>
+    </div>
+
+    <div style="background:#FDF1DC;border:1px solid #F0D29A;border-radius:8px;padding:12px 16px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;font-size:14px;line-height:1.5">
+      <strong style="color:#6E4300">Watch item found by Claude on 21 Oct 2026:</strong><span style="flex:1 1 400px">Attorney General rules are due by 1 Jan 2027. When published, Claude will propose requirement changes here. Not live until approved.</span>
+      <a class="btn btn-p" href="RegRefresh.dc.html" style="min-height:38px">Review change</a>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(560px,1fr));gap:16px;align-items:start">
+      <section class="card">
+        <h2>Overview</h2>
+        <dl>
+          <dt>Geography</dt><dd>United States · Colorado</dd>
+          <dt>Type</dt><dd>State statute, binding</dd>
+          <dt>Signed</dt><dd>14 May 2026</dd>
+          <dt>Compliance from</dt><dd>1 Jan 2027</dd>
+          <dt>Enforced by</dt><dd>Colorado Attorney General only. No private right of action</dd>
+          <dt>Applies to</dt><dd>Developers and deployers of automated decision-making technology (ADMT) that materially influences consequential decisions</dd>
+          <dt>Cure period</dt><dd>60 days to fix a violation, until 2030</dd>
+          <dt>Removed from SB 24-205</dt><dd>Risk management program, impact assessments, duty of reasonable care</dd>
+          <dt>Litigation</dt><dd>xAI v. Weiser challenge, stayed</dd>
+          <dt>Official sources</dt><dd><a href="#">leg.colorado.gov · SB 26-189</a><br><a href="#">Colorado AG rulemaking page</a></dd>
+        </dl>
+      </section>
+
+      <section class="card">
+        <h2>Scope tests used at client set-up</h2>
+        <p class="sub" style="margin:0">The client applicability check asks these. A "yes" on 1 and 2 puts the client in scope.</p>
+        <div class="q"><span class="num">1</span><span>Does the client make decisions about Colorado residents?</span></div>
+        <div class="q"><span class="num">2</span><span>Does any AI system materially influence a consequential decision: employment, housing, credit, insurance, health care, education or government services?</span></div>
+        <div class="q" style="border-bottom:none"><span class="num">3</span><span>Is the client the developer, the deployer, or both? (Developer duties: documentation and 3-year retention. Deployer duties: notice, explanation, correction, human review.)</span></div>
+      </section>
+    </div>
+
+    <section class="card">
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center"><h2 style="flex:1">Statutory requirements (7)</h2><button class="btn" type="button" style="min-height:38px">Import from bill text</button><button class="btn btn-p" type="button" style="min-height:38px">Add a requirement</button></div>
+      <div style="background:#1B3A6B;color:#fff;padding:8px 14px;border-radius:6px;display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+        <strong style="font-size:14px;margin-right:10px">2 selected</strong>
+        <button class="btn" type="button" style="min-height:34px">Edit selected</button>
+        <button class="btn btn-g" type="button" style="min-height:34px">Set role responsible</button>
+        <button class="btn btn-g" type="button" style="min-height:34px">Set needed by</button>
+        <button class="btn btn-g" type="button" style="min-height:34px">Set applies to</button>
+        <div style="flex:1"></div>
+        <button class="btn btn-g" type="button" style="min-height:34px">Clear</button>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start">
+        <div style="flex:999 1 760px;min-width:0;overflow-x:auto">
+          <table style="min-width:980px">
+            <thead><tr><th style="width:30px"><input type="checkbox" aria-label="Select all requirements"></th><th>ID</th><th>Requirement</th><th>Applies to</th><th>Needed by</th><th>Evidence the auditor checks</th><th>Role responsible</th><th>Citation</th><th><span style="position:absolute;width:1px;height:1px;overflow:hidden">Actions</span></th></tr></thead>
+            <tbody>
+            <tr><td><input type="checkbox" aria-label="Select CO-01"></td><td>CO-01</td><td>Give deployers documentation: intended uses, known risks, data categories</td><td>Developer</td><td>Before sale</td><td>Documentation pack</td><td>Vendor AI risk owner (receives it)</td><td>SB 26-189</td><td><button class="kb" type="button" aria-label="Actions for CO-01"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr><td><input type="checkbox" aria-label="Select CO-02"></td><td>CO-02</td><td>Keep documentation and records for 3 years</td><td>Developer</td><td>Ongoing</td><td>Retention schedule</td><td>Records retention owner</td><td>SB 26-189</td><td><button class="kb" type="button" aria-label="Actions for CO-02"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr class="sel"><td><input type="checkbox" checked aria-label="Select CO-03"></td><td>CO-03</td><td>Tell the person before ADMT is used in a consequential decision</td><td>Deployer</td><td>Go-live</td><td>Notice text, delivery log</td><td>Transparency and notice owner</td><td>SB 26-189</td><td><button class="kb" type="button" aria-label="Actions for CO-03"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr class="sel"><td><input type="checkbox" checked aria-label="Select CO-04"></td><td>CO-04</td><td>Give a plain-language explanation within 30 days of an adverse outcome</td><td>Deployer</td><td>Go-live</td><td>Explanation template, response log</td><td>Explainability contact</td><td>SB 26-189</td><td><button class="kb" type="button" aria-label="Actions for CO-04" style="border-color:#C7CFDA;background:#fff"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr><td><input type="checkbox" aria-label="Select CO-05"></td><td>CO-05</td><td>Let the person correct inaccurate personal data</td><td>Deployer</td><td>Go-live</td><td>Correction process, log</td><td>Appeals and correction reviewer</td><td>SB 26-189</td><td><button class="kb" type="button" aria-label="Actions for CO-05"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr><td><input type="checkbox" aria-label="Select CO-06"></td><td>CO-06</td><td>Offer human review or reconsideration where commercially reasonable</td><td>Deployer</td><td>Go-live</td><td>Review procedure, case log</td><td>Human oversight person</td><td>SB 26-189</td><td><button class="kb" type="button" aria-label="Actions for CO-06"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr><td><input type="checkbox" aria-label="Select CO-07"></td><td>CO-07</td><td>Follow Attorney General rules once issued</td><td>Developer, deployer</td><td>1 Jan 2027</td><td>[Set when rules are published]</td><td>AI Compliance Officer</td><td>AG rules (pending)</td><td><button class="kb" type="button" aria-label="Actions for CO-07"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr>
+            </tbody>
+          </table>
+          <p class="sub" style="margin:10px 0 0">Section numbers are added once codified. Citations are drafted by Claude and approved by the Chief Auditor; verify against the official text.</p>
+        </div>
+        <aside class="f" aria-labelledby="rq" style="flex:1 1 340px;max-width:400px;border:1px solid #1B3A6B;border-radius:8px;padding:18px;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;justify-content:space-between;gap:8px"><h3 id="rq" style="margin:0;font-size:16px;font-weight:600">Edit requirement CO-04</h3><button class="kb" type="button" aria-label="Close panel"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2l10 10M12 2L2 12" stroke="#3E4757" stroke-width="1.8" stroke-linecap="round"/></svg></button></div>
+          <div><label class="lbl" for="q1">Requirement *</label><textarea id="q1" rows="3">Give a plain-language explanation within 30 days of an adverse outcome</textarea></div>
+          <div><label class="lbl" for="q2">Applies to *</label><select id="q2"><option>Deployer</option><option>Developer</option><option>Both</option></select></div>
+          <div><label class="lbl" for="q3">Needed by *</label><select id="q3"><option>Go-live</option><option>Development</option><option>Procurement</option><option>Ongoing</option><option>Yearly</option></select></div>
+          <div><label class="lbl" for="q4">Role responsible *</label><select id="q4"><option>Explainability contact</option><option>Appeals and correction reviewer</option><option>Human oversight person</option><option>Transparency and notice owner</option></select></div>
+          <div><label class="lbl" for="q5">AI types it applies to</label><select id="q5"><option>AI or ML software deciding about people</option><option>All AI systems</option><option>AI agents only</option></select></div>
+          <div><label class="lbl" for="q6">Evidence the auditor checks</label><input type="text" id="q6" value="Explanation template, response log"></div>
+          <div><label class="lbl" for="q7">Citation</label><input type="text" id="q7" value="SB 26-189"></div>
+          <div><label class="lbl" for="q8">Source quote</label><textarea id="q8" rows="2">"[Exact text from the bill]"</textarea></div>
+          <div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn" type="button">Cancel</button><button class="btn btn-p" type="button">Save as proposed change</button></div>
+        </aside>
+      </div>
+    </section>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(560px,1fr));gap:16px;align-items:start">
+      <section class="card">
+        <h2>Roles and committees this law requires</h2>
+        <table>
+          <thead><tr><th>Role (from the role catalogue)</th><th>Level</th><th>Needed by</th></tr></thead>
+          <tbody>
+            <tr><td>Transparency and notice owner</td><td><span class="tag t-red">Required</span></td><td>Go-live</td></tr>
+            <tr><td>Explainability contact</td><td><span class="tag t-red">Required</span></td><td>Go-live</td></tr>
+            <tr><td>Appeals and correction reviewer</td><td><span class="tag t-red">Required</span></td><td>Go-live</td></tr>
+            <tr><td>Human oversight person</td><td><span class="tag t-red">Required</span></td><td>Go-live</td></tr>
+            <tr><td>Records retention owner</td><td><span class="tag t-red">Required</span> <span class="sub">developers</span></td><td>Ongoing</td></tr>
+            <tr><td>AI Compliance Officer</td><td><span class="tag t-amb">Recommended</span></td><td>Development</td></tr>
+            <tr><td>Impact assessment owner</td><td><span class="tag t-gry">No longer required</span></td><td>—</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="card">
+        <h2>Version history</h2>
+        <table>
+          <thead><tr><th>Version</th><th>Change</th><th>By</th><th>Date</th></tr></thead>
+          <tbody>
+            <tr><td>3</td><td>SB 26-189 replaces SB 24-205: program and impact assessments removed; notice, explanation, correction and human review kept; compliance 1 Jan 2027</td><td>Approved by [Name]</td><td>[date]</td></tr>
+            <tr><td>2</td><td>SB 24-205 effective date moved to 30 Jun 2026</td><td>Approved by [Name]</td><td>[date]</td></tr>
+            <tr><td>1</td><td>First record (SB 24-205)</td><td>Futran Admin</td><td>[date]</td></tr>
+          </tbody>
+        </table>
+        <p class="sub" style="margin:0">Client letters and audits record the version they used, so earlier reports still show the rules that applied at the time.</p>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

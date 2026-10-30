@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>New AI project impact assessment</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+.card{background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:18px 20px;display:flex;flex-direction:column;gap:12px}
+.lbl{display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:#3E4757}
+input[type=text],select,textarea{box-sizing:border-box;width:100%;min-height:40px;border:1px solid #C7CFDA;border-radius:6px;padding:8px 10px;font:inherit;font-size:14px;background:#fff;color:#16233A}
+input[type=checkbox],input[type=radio]{width:20px;height:20px;accent-color:#1B3A6B;margin:0;flex:none}
+.opt{display:flex;align-items:center;gap:10px;font-size:14px;min-height:32px}
+.btn{height:40px;padding:0 14px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:14px;font-weight:600;color:#16233A}
+.pri{border-color:#1B3A6B;background:#1B3A6B;color:#fff}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:600;white-space:nowrap}
+</style>
+</helmet>
+<div style="min-height:100vh">
+  <header style="background:#fff;border-bottom:1px solid #D9DFE7;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#1B3A6B"></div><div style="font-weight:700;font-size:17px;color:#1B3A6B">Futran Audit</div><span style="color:#5A6577;font-size:14px">· ABC Corp</span></div>
+    <nav style="display:flex;flex-wrap:wrap;gap:4px;flex:1"><a href="#" style="text-decoration:none;padding:8px 12px;border-radius:5px;background:#E3EEF9;font-weight:600;font-size:14px">New AI projects</a><a href="Monitoring.dc.html" style="text-decoration:none;padding:8px 12px;font-size:14px;color:#3E4757">Monitoring</a></nav>
+    <div style="font-size:13px;color:#5A6577">[Name] · Department Compliance Lead, Customer Support</div>
+  </header>
+  <main style="max-width:1240px;margin:0 auto;padding:24px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px">
+    <div><h1 style="margin:0;font-size:26px;font-weight:600">New AI project: assess before go-live</h1><p style="margin:6px 0 0;color:#5A6577;font-size:14.5px">Submit before buying or deploying any AI tool. The tier and laws update as you answer.</p></div>
+    <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
+      <form class="card" style="flex:999 1 600px;min-width:0">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px">
+          <div><label class="lbl" for="pn">Project name *</label><input type="text" id="pn" value="Customer support chatbot"></div>
+          <div><label class="lbl" for="tool">Tool or vendor *</label><input type="text" id="tool" value="[Chatbot vendor], GenAI"></div>
+          <div><label class="lbl" for="go">Planned go-live</label><input type="text" id="go" value="[date]"></div>
+          <div><label class="lbl" for="jur">Users located in</label><input type="text" id="jur" value="New York, Illinois, California"></div>
+        </div>
+        <div><label class="lbl" for="pur">Purpose *</label><textarea id="pur" rows="2">Answer customer questions about orders and refunds; hand off to an agent on request.</textarea></div>
+        <fieldset style="border:none;margin:0;padding:0"><legend class="lbl" style="padding:0">Data it will use *</legend><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 14px"><label class="opt"><input type="checkbox" checked> Customer personal information</label><label class="opt"><input type="checkbox"> Health information</label><label class="opt"><input type="checkbox"> Payment data</label><label class="opt"><input type="checkbox"> None of these</label></div></fieldset>
+        <fieldset style="border:none;margin:0;padding:0"><legend class="lbl" style="padding:0">Decisions about people *</legend><label class="opt"><input type="radio" name="d"> Makes or substantially assists consequential decisions</label><label class="opt"><input type="radio" name="d" checked> Informs people; a person can always take over</label><label class="opt"><input type="radio" name="d"> No decisions about people</label></fieldset>
+        <fieldset style="border:none;margin:0;padding:0"><legend class="lbl" style="padding:0">Will it talk directly to the public?</legend><label class="opt"><input type="radio" name="p" checked> Yes, users chat with it</label><label class="opt"><input type="radio" name="p"> No</label></fieldset>
+      </form>
+      <aside style="flex:1 1 360px;display:flex;flex-direction:column;gap:16px">
+        <section class="card" style="border:2px solid #D9922B;background:#FFFAF0">
+          <div style="font-size:13px;color:#7A4800;font-weight:600">Proposed tier</div>
+          <div style="font-size:24px;font-weight:700;color:#7A4800">Tier 2 · Elevated</div>
+          <div style="font-size:13.5px;line-height:1.5">Customer personal information; public-facing GenAI. Requires a light assessment (§3, §5, §7.2, §9) and GenAI security questions (§8.1.05).</div>
+        </section>
+        <section class="card">
+          <h2 style="margin:0;font-size:16px;font-weight:600">Laws matched from the law matrix</h2>
+          <ul style="margin:0;padding-left:18px;font-size:14px;line-height:1.6"><li>FTC Act §5 (AI claims, deceptive practices)</li><li>California CCPA / CPRA (ADMT notice)</li><li>Utah AI Policy Act: <span style="color:#5A6577">not matched, no Utah users</span></li></ul>
+        </section>
+        <section class="card">
+          <h2 style="margin:0;font-size:16px;font-weight:600">Reviewers</h2>
+          <ol style="margin:0;padding-left:18px;font-size:14px;line-height:1.7"><li>Department Compliance Lead · you</li><li>Data Protection Officer · [Name]</li><li>Chief AI Compliance Officer · decision</li></ol>
+          <div style="font-size:12.5px;color:#5A6577">Outcome: approved, approved with conditions, or rejected. Conditions are tracked like commitments.</div>
+          <button class="btn pri">Submit for review</button>
+          <button class="btn">Ask Futran for an independent opinion</button>
+        </section>
+        <section class="card" style="font-size:13px;color:#3E4757;line-height:1.55"><strong>Reassessment triggers after go-live:</strong> new version, new data type, new jurisdiction or population, vendor change, failed monitoring check, regulatory update, 12 months elapsed.</section>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1150}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Data Protection Officer home</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+.card{background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:18px 20px;display:flex;flex-direction:column;gap:10px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-weight:600;color:#5A6577;font-size:12px;text-transform:uppercase;letter-spacing:0.4px;padding:8px 10px;border-bottom:1px solid #D9DFE7;white-space:nowrap}
+td{padding:11px 10px;border-bottom:1px solid #E8ECF1;white-space:nowrap}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:600;white-space:nowrap}
+.btn{height:40px;padding:0 14px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:14px;font-weight:600;color:#16233A}
+.pri{border-color:#1B3A6B;background:#1B3A6B;color:#fff}
+</style>
+</helmet>
+<div style="min-height:100vh">
+  <header style="background:#fff;border-bottom:1px solid #D9DFE7;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#1B3A6B"></div><div style="font-weight:700;font-size:17px;color:#1B3A6B">Futran Audit</div><span style="color:#5A6577;font-size:14px">· ABC Corp</span></div>
+    <nav style="display:flex;flex-wrap:wrap;gap:4px;flex:1"><a href="#" style="text-decoration:none;padding:8px 12px;border-radius:5px;background:#E3EEF9;font-weight:600;font-size:14px">Data review</a><a href="Campaign.dc.html" style="text-decoration:none;padding:8px 12px;font-size:14px;color:#3E4757">Attestation</a><a href="ImpactAssess.dc.html" style="text-decoration:none;padding:8px 12px;font-size:14px;color:#3E4757">New AI projects</a></nav>
+    <div style="font-size:13px;color:#5A6577">[Name] · Data Protection Officer</div>
+  </header>
+  <main style="max-width:1240px;margin:0 auto;padding:24px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px">
+    <div><h1 style="margin:0;font-size:26px;font-weight:600">Data review</h1><p style="margin:6px 0 0;color:#5A6577;font-size:14.5px">Sign-off 3: data categories for Tier 2 and Tier 3 use cases · sample data</p></div>
+    <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start">
+      <section class="card" style="flex:999 1 640px;min-width:0">
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline"><h2 style="margin:0;font-size:17px;font-weight:600">Use cases to review · 7</h2><span style="font-size:13px;color:#5A6577">4 reviewed</span></div>
+        <div style="overflow-x:auto"><table>
+          <thead><tr><th>Use case</th><th>Tier</th><th>Data</th><th>Account</th><th>DPIA</th><th>Your review</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:600">Résumé screening, NYC roles</td><td><span class="tag" style="background:#FDECEC;color:#7A1A12">3</span></td><td>Applicant PII</td><td>Company</td><td><span style="color:#7A4800;font-weight:600">Pending</span></td><td><a href="#">Review</a></td></tr>
+            <tr><td style="font-weight:600">Client proposal drafting</td><td><span class="tag" style="background:#FFF1D6;color:#7A4800">2</span></td><td>Client confidential</td><td style="color:#7A1A12;font-weight:600">Personal free</td><td>N/A</td><td><span style="color:#7A1A12;font-weight:600">Returned: data should not enter a personal account</span></td></tr>
+            <tr><td style="font-weight:600">Interview question drafting</td><td><span class="tag" style="background:#FFF1D6;color:#7A4800">2</span></td><td>Applicant PII</td><td style="color:#7A1A12;font-weight:600">Personal free</td><td>N/A</td><td><a href="#">Review</a></td></tr>
+            <tr><td style="font-weight:600">Invoice anomaly checks</td><td><span class="tag" style="background:#FFF1D6;color:#7A4800">2</span></td><td>Supplier financial</td><td>Company</td><td><span style="color:#1F5C38;font-weight:600">Done</span></td><td><span style="color:#1F5C38;font-weight:600">Approved</span></td></tr>
+          </tbody>
+        </table></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn pri">Approve reviewed items and send to CAICO</button></div>
+      </section>
+      <aside style="flex:1 1 320px;display:flex;flex-direction:column;gap:16px">
+        <section class="card">
+          <h2 style="margin:0;font-size:16px;font-weight:600">Attestation privacy</h2>
+          <div style="font-size:14px;line-height:1.6">Department leads see totals only · minimum group size before a count is shown: <strong>3</strong> · individual responses visible to: you, CAICO, assigned Futran auditors</div>
+          <div style="font-size:14px">Employee data notice: <span style="color:#1F5C38;font-weight:600">acknowledged [date]</span> (NY §52-c)</div>
+        </section>
+        <section class="card" style="background:#F7F8FA"><div style="font-size:13.5px;line-height:1.55"><strong>DPO can:</strong> review data categories, approve or return them (sign-off 3), review new AI projects, view attestations. <span style="color:#7A1A12"><strong>Cannot:</strong> sign the management representation or edit findings.</span> If no DPO is appointed, the CAICO does this.</div></section>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Auditor home</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+.card{background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:18px 20px;display:flex;flex-direction:column;gap:10px}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:600;white-space:nowrap}
+.nav a{color:#C9D6EA;text-decoration:none;padding:8px 12px;font-size:14px}
+.task{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:12px 0;border-bottom:1px solid #E8ECF1;align-items:center;font-size:14px}
+.bar{height:8px;border-radius:4px;background:#E8ECF1;overflow:hidden;margin-top:6px}
+</style>
+</helmet>
+<div style="min-height:100vh">
+  <header style="background:#1B3A6B;color:#fff;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#0098D4"></div><div style="font-weight:700;font-size:17px">Futran Audit</div></div>
+    <nav class="nav" style="display:flex;flex-wrap:wrap;gap:4px;flex:1"><a href="#" style="color:#fff;border-radius:5px;background:rgba(255,255,255,0.14);font-weight:600">My work</a><a href="Systems.dc.html">My engagements</a><a href="Documents.dc.html">Evidence</a><a href="Remediation.dc.html">Remediation</a></nav>
+    <div style="font-size:13px;color:#C9D6EA">[Your name] · Auditor</div>
+  </header>
+  <main style="max-width:1240px;margin:0 auto;padding:24px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px">
+      <div><h1 style="margin:0;font-size:26px;font-weight:600">My work</h1><p style="margin:6px 0 0;color:#5A6577;font-size:14.5px">You see only engagements you are assigned to or drafted · sample data</p></div>
+      <a href="NewClient1.dc.html" style="display:inline-flex;align-items:center;height:42px;padding:0 16px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;color:#16233A;text-decoration:none;font-weight:600;font-size:14px">Draft a new client</a>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px">
+      <a href="Systems.dc.html" class="card" style="text-decoration:none;color:inherit"><div style="display:flex;justify-content:space-between;gap:8px"><strong>ABC Corp</strong><span class="tag" style="background:#E3EEF9;color:#1B3A6B">Stage 5 · Fieldwork</span></div><div style="font-size:13px;color:#5A6577">4 systems · 59% assessed</div><div class="bar"><div style="width:59%;height:100%;background:#2E75B6"></div></div></a>
+      <a href="#" class="card" style="text-decoration:none;color:inherit"><div style="display:flex;justify-content:space-between;gap:8px"><strong>BCD Inc</strong><span class="tag" style="background:#E3EEF9;color:#1B3A6B">Stage 5 · Fieldwork</span></div><div style="font-size:13px;color:#5A6577">LL144 bias audit · 1 system · 80%</div><div class="bar"><div style="width:80%;height:100%;background:#2E75B6"></div></div></a>
+      <a href="#" class="card" style="text-decoration:none;color:inherit"><div style="display:flex;justify-content:space-between;gap:8px"><strong>CDF LLC</strong><span class="tag" style="background:#ECEEF2;color:#3E4757">Stage 3 · Discovery</span></div><div style="font-size:13px;color:#5A6577">Attestation 41% responded</div><div class="bar"><div style="width:41%;height:100%;background:#2E75B6"></div></div></a>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start">
+      <section class="card" style="flex:999 1 620px;min-width:0">
+        <h2 style="margin:0;font-size:17px;font-weight:600">Today · 6 tasks</h2>
+        <div class="task"><div><strong>Finding F-004 returned by Chief Auditor</strong><div style="font-size:13px;color:#5A6577">ABC Corp · "Add the regulatory reference and owner"</div></div><a href="Fieldwork.dc.html">Open</a></div>
+        <div class="task"><div><strong>2 evidence requests past escalation</strong><div style="font-size:13px;color:#5A6577">ABC Corp · model card, DPIA for SYS-001</div></div><a href="Documents.dc.html">Chase</a></div>
+        <div class="task"><div><strong>Copilot suggestions ready: 11</strong><div style="font-size:13px;color:#5A6577">ABC Corp · SYS-002 · §6.1 and §8.2</div></div><a href="Copilot.dc.html">Review</a></div>
+        <div class="task"><div><strong>Run bias test</strong><div style="font-size:13px;color:#5A6577">BCD Inc · applicant data uploaded by client</div></div><a href="BiasCalc.dc.html">Open calculator</a></div>
+        <div class="task"><div><strong>Interview: Technical Owner, SYS-002</strong><div style="font-size:13px;color:#5A6577">ABC Corp · 2:00 pm · 7 open questions</div></div><a href="SystemAssess.dc.html">Prepare</a></div>
+        <div class="task" style="border-bottom:none"><div><strong>Remediation item awaiting verification</strong><div style="font-size:13px;color:#5A6577">ABC Corp · move proposal drafting to company Copilot</div></div><a href="Remediation.dc.html">Verify</a></div>
+      </section>
+      <aside class="card" style="flex:1 1 320px;background:#F7F8FA">
+        <h2 style="margin:0;font-size:15px;font-weight:600">Auditor can</h2>
+        <div style="font-size:13.5px;line-height:1.55">Draft clients · assess systems · set final tiers · request evidence · write findings · run bias tests · use the copilot · verify remediation</div>
+        <h2 style="margin:6px 0 0;font-size:15px;font-weight:600">Auditor cannot</h2>
+        <div style="font-size:13.5px;line-height:1.55;color:#7A1A12">Approve findings, sign reports, close remediation, send initiation packages, or see engagements they are not assigned to</div>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":950}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

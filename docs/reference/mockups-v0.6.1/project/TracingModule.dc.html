@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tracing and incidents</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#16233A;background:#F4F6F9}
+a{color:#1B3A6B}a:hover{color:#2E75B6}
+.card{background:#fff;border:1px solid #D9DFE7;border-radius:8px;padding:20px 22px;display:flex;flex-direction:column;gap:12px}
+.card h2{margin:0;font-size:18px;font-weight:600}
+.btn{box-sizing:border-box;min-height:42px;padding:0 15px;border-radius:6px;border:1px solid #C7CFDA;background:#fff;font:inherit;font-size:14px;font-weight:600;color:#1B3A6B;display:inline-flex;align-items:center;gap:7px;cursor:pointer;white-space:nowrap;text-decoration:none}
+.btn-p{background:#1B3A6B;color:#fff;border-color:#1B3A6B}
+.btn-g{background:transparent;border-color:transparent;color:#DCE6F4}
+.tag{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.t-red{background:#FDECEC;color:#8A1C1C}.t-amb{background:#FDF1DC;color:#6E4300}.t-grn{background:#E1F2E7;color:#1F5C38}.t-blu{background:#E3EEF9;color:#1B3A6B}.t-gry{background:#EDF0F4;color:#3E4757}
+input[type=text],input[type=email],input[type=date],input[type=time],select,textarea{box-sizing:border-box;width:100%;min-height:42px;border:1px solid #C7CFDA;border-radius:6px;padding:8px 10px;font:inherit;font-size:14px;background:#fff;color:#16233A}
+input[type=checkbox],input[type=radio]{width:18px;height:18px;accent-color:#1B3A6B;margin:0;flex:none}
+table{border-collapse:collapse;font-size:13.5px;width:100%}
+th{text-align:left;font-weight:600;color:#5A6577;font-size:12px;text-transform:uppercase;letter-spacing:0.4px;padding:9px 10px;border-bottom:1px solid #D9DFE7;background:#F7F8FA;white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid #E8ECF1;vertical-align:top}
+tr.sel td{background:#EEF3FA}
+.sub{font-size:12.5px;color:#5A6577;line-height:1.4}
+.lbl{display:block;font-size:13.5px;font-weight:600;margin-bottom:5px}
+.opt{display:flex;align-items:flex-start;gap:10px;font-size:14px;line-height:1.4;padding:6px 0}
+.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.kb{width:36px;height:36px;border-radius:6px;border:1px solid transparent;background:transparent;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.kebab{position:relative}
+.kebab summary{list-style:none;width:36px;height:36px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid transparent}
+.kebab summary::-webkit-details-marker{display:none}
+.kebab[open] summary{border-color:#C7CFDA;background:#fff}
+.menu{position:absolute;right:0;top:40px;z-index:5;width:250px;background:#fff;border:1px solid #C7CFDA;border-radius:8px;box-shadow:0 8px 24px rgba(22,35,58,0.16);padding:6px;display:flex;flex-direction:column}
+.menu a{display:flex;align-items:center;min-height:38px;padding:0 10px;border-radius:5px;text-decoration:none;font-size:14px;color:#16233A}
+.menu a:hover{background:#EEF3FA}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;padding:5px 11px;border-radius:16px;background:#E3EEF9;color:#1B3A6B;font-weight:600}
+.bar{background:#1B3A6B;color:#fff;padding:8px 16px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+</style>
+</helmet>
+<div style="min-height:100vh">
+<header style="background:#fff;border-bottom:1px solid #D9DFE7;padding:0 32px;display:flex;flex-wrap:wrap;align-items:center;gap:24px;min-height:64px">
+    <div style="display:flex;align-items:center;gap:10px"><div style="width:28px;height:28px;border-radius:5px;background:#1B3A6B"></div><div style="font-weight:700;font-size:17px;color:#1B3A6B">AI Governix</div><span style="color:#5A6577;font-size:14px">· ABC Corp</span></div>
+    <nav style="display:flex;flex-wrap:wrap;gap:4px;font-size:14px"><a href="RegisterGrid.dc.html" style="padding:8px 12px;text-decoration:none;font-weight:600;border-bottom:2px solid #1B3A6B">AI system register</a><a href="#" style="padding:8px 12px;text-decoration:none">Findings</a><a href="#" style="padding:8px 12px;text-decoration:none">Add-ons</a></nav>
+    <div style="flex:1"></div><div style="font-size:13px;color:#5A6577">[Name] · Chief AI Compliance Officer</div></header>
+<main style="max-width:1400px;margin:0 auto;padding:24px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+  <div style="font-size:14px"><a href="RegisterGrid.dc.html">AI system register</a> <span style="color:#5A6577">/ Website chatbot / Tracing</span></div>
+  <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end"><div style="flex:1 1 520px"><h1 style="margin:0;font-size:28px;font-weight:600">Website chatbot · tracing and incidents</h1><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"><span class="tag t-grn">Tracing module · active</span><span class="tag t-blu">AI agent · Live</span><span class="tag t-gry">GuardRail policy Chatbot-Sales-v2</span></div></div><button class="btn" type="button">Export for regulator</button><a class="btn btn-p" href="#"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>Report an incident</a></div>
+  <div style="display:flex;flex-wrap:wrap;gap:10px"><div class="card" style="padding:12px 16px;gap:2px;flex:1 1 150px"><div style="font-size:24px;font-weight:700;color:#1B3A6B">3,412</div><div class="sub">Actions in last 24 hours</div></div><div class="card" style="padding:12px 16px;gap:2px;flex:1 1 150px"><div style="font-size:24px;font-weight:700;color:#8A1C1C">17</div><div class="sub">Blocked by GuardRail</div></div><div class="card" style="padding:12px 16px;gap:2px;flex:1 1 150px"><div style="font-size:24px;font-weight:700;color:#6E4300">96</div><div class="sub">Handed to a person</div></div><div class="card" style="padding:12px 16px;gap:2px;flex:1 1 150px"><div style="font-size:24px;font-weight:700;color:#8A1C1C">1</div><div class="sub">Open incident</div></div><div class="card" style="padding:12px 16px;gap:2px;flex:1 1 150px"><div style="font-size:24px;font-weight:700;color:#1F5C38">0</div><div class="sub">Reporting deadlines missed</div></div></div>
+
+  <section class="card" style="padding:0;gap:0">
+    <div style="padding:14px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;border-bottom:1px solid #D9DFE7"><h2 style="flex:1 1 200px">Action trace</h2><div><label class="lbl" for="d1">Decision</label><select id="d1"><option>All</option><option>Allowed</option><option>Blocked</option><option>Escalated</option></select></div><div><label class="lbl" for="d2">Period</label><select id="d2"><option>Last 24 hours</option></select></div></div>
+    <div style="overflow-x:auto"><table style="min-width:1150px"><thead><tr><th style="width:30px"><input type="checkbox" aria-label="Select all"></th><th>Time</th><th>Session</th><th>Action</th><th>Tool</th><th>Data touched</th><th>Decision</th><th>Policy</th><th>Approver or note</th><th style="width:44px"><span style="position:absolute;width:1px;height:1px;overflow:hidden">Actions</span></th></tr></thead><tbody><tr><td><input type="checkbox" aria-label="Select Search product knowledge base"></td><td>29 Oct 14:02:11</td><td>S-88213</td><td><strong>Search product knowledge base</strong></td><td><code style="font-size:12.5px">kb.search</code></td><td>Public product docs</td><td><span class="tag t-grn">Allowed</span></td><td>Chatbot-Sales-v2</td><td></td><td><button class="kb" type="button" aria-label="Actions for Search product knowledge base"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr><td><input type="checkbox" aria-label="Select Quote refund policy"></td><td>29 Oct 14:02:13</td><td>S-88213</td><td><strong>Quote refund policy</strong></td><td><code style="font-size:12.5px">kb.answer</code></td><td>Policy page v7</td><td><span class="tag t-grn">Allowed</span></td><td>Chatbot-Sales-v2</td><td></td><td><button class="kb" type="button" aria-label="Actions for Quote refund policy"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr><td><input type="checkbox" aria-label="Select Create lead in CRM"></td><td>29 Oct 14:03:40</td><td>S-88214</td><td><strong>Create lead in CRM</strong></td><td><code style="font-size:12.5px">crm.create_lead</code></td><td>Name, email</td><td><span class="tag t-grn">Allowed</span></td><td>Chatbot-Sales-v2</td><td></td><td><button class="kb" type="button" aria-label="Actions for Create lead in CRM"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr><td><input type="checkbox" aria-label="Select Offer a discount"></td><td>29 Oct 14:05:02</td><td>S-88215</td><td><strong>Offer a discount</strong></td><td><code style="font-size:12.5px">pricing.apply</code></td><td>Price list</td><td><span class="tag t-red">Blocked</span></td><td>Chatbot-Sales-v2</td><td>GuardRail: not delegated</td><td><details class="kebab" open><summary aria-label="Actions for Offer a discount"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></summary><div class="menu"><a href="#">Open full trace</a><a href="#">Raise an incident</a><a href="#">Add to a finding</a><a href="#">Export</a></div></details></td></tr><tr><td><input type="checkbox" aria-label="Select Customer asked for a person"></td><td>29 Oct 14:06:19</td><td>S-88216</td><td><strong>Customer asked for a person</strong></td><td><code style="font-size:12.5px">handoff.human</code></td><td>Chat transcript</td><td><span class="tag t-amb">Escalated</span></td><td>Chatbot-Sales-v2</td><td>[Name], Sales desk</td><td><button class="kb" type="button" aria-label="Actions for Customer asked for a person"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr></tbody></table></div>
+    <div style="padding:12px 16px" class="sub">Each action is logged with the agent's identity and kept for the retention period set by the records retention owner.</div>
+  </section>
+
+  <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start">
+    <section class="card" style="flex:999 1 760px;min-width:0;padding:0;gap:0">
+      <div style="padding:14px 16px;border-bottom:1px solid #D9DFE7"><h2>Incidents (3)</h2></div>
+      <div class="bar"><strong style="font-size:14px;margin-right:10px">1 selected</strong><button class="btn" type="button" style="min-height:34px">Edit selected</button><button class="btn btn-g" type="button">Assign owner</button><button class="btn btn-g" type="button">Export</button><div style="flex:1"></div><button class="btn btn-g" type="button">Clear</button></div>
+      <div style="overflow-x:auto"><table style="min-width:1000px"><thead><tr><th style="width:30px"><input type="checkbox" aria-label="Select all"></th><th>ID</th><th>Opened</th><th>What happened</th><th>Severity</th><th>Status</th><th>Regulator check</th><th>Deadline</th><th>Owner</th><th style="width:44px"><span style="position:absolute;width:1px;height:1px;overflow:hidden">Actions</span></th></tr></thead><tbody><tr class="sel"><td><input type="checkbox" checked aria-label="Select INC-014"></td><td><strong>INC-014</strong></td><td>27 Oct 2026</td><td>Chatbot quoted a 60-day refund window; policy is 30 days</td><td><span class="tag t-amb">Medium</span></td><td>Open · contained</td><td>Not serious (EU AI Act Art. 73) · tell provider (Art. 26(5))</td><td><span style="color:#8A1C1C;font-weight:600">Provider notice due in 2 days</span></td><td>[Name]</td><td><button class="kb" type="button" aria-label="Actions for INC-014"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr><td><input type="checkbox" aria-label="Select INC-011"></td><td><strong>INC-011</strong></td><td>12 Sep 2026</td><td>Chatbot answered in English to German users without AI disclosure</td><td><span class="tag t-amb">Medium</span></td><td>Closed 20 Sep 2026</td><td>Not reportable</td><td>—</td><td>[Name]</td><td><button class="kb" type="button" aria-label="Actions for INC-011"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr><tr><td><input type="checkbox" aria-label="Select INC-006"></td><td><strong>INC-006</strong></td><td>03 Jun 2026</td><td>Lead records created with wrong consent flag</td><td><span class="tag t-gry">Low</span></td><td>Closed 05 Jun 2026</td><td>Not reportable</td><td>—</td><td>[Name]</td><td><button class="kb" type="button" aria-label="Actions for INC-006"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></td></tr></tbody></table></div>
+    </section>
+    <aside class="card" style="flex:1 1 360px;max-width:420px;border-color:#1B3A6B">
+      <div style="display:flex;justify-content:space-between"><h2>INC-014</h2><button class="kb" type="button" aria-label="Actions for panel"><svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="3.5" r="1.6" fill="#3E4757"/><circle cx="9" cy="9" r="1.6" fill="#3E4757"/><circle cx="9" cy="14.5" r="1.6" fill="#3E4757"/></svg></button></div>
+      <div><label class="lbl" for="i1">What happened *</label><textarea id="i1" rows="2">Chatbot quoted a 60-day refund window to 23 customers; the policy is 30 days.</textarea></div>
+      <div class="g2"><div><label class="lbl" for="i2">Found on</label><input type="date" id="i2" value="2026-10-27"></div><div><label class="lbl" for="i3">Severity</label><select id="i3"><option>Medium</option><option>High</option><option>Serious (Art. 73)</option><option>Low</option></select></div></div>
+      <div><label class="lbl" for="i4">Cause</label><input type="text" id="i4" value="Old policy page still in the knowledge base"></div>
+      <div><label class="lbl" for="i5">Containment and fix</label><textarea id="i5" rows="2">Old page removed 27 Oct; affected customers to be contacted.</textarea></div>
+      <fieldset style="border:none;margin:0;padding:0"><legend class="lbl" style="padding:0">Who must be told</legend>
+        <label class="opt"><input type="checkbox" checked><span>AI provider (EU AI Act Art. 26(5)) · due 31 Oct</span></label>
+        <label class="opt"><input type="checkbox"><span>Regulator: serious incident (EU AI Act Art. 73)</span></label>
+        <label class="opt"><input type="checkbox" checked><span>AI Incident Response Lead (sent)</span></label>
+      </fieldset>
+      <div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn" type="button">Save</button><button class="btn btn-p" type="button">Close incident</button></div>
+    </aside>
+  </div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1700}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
