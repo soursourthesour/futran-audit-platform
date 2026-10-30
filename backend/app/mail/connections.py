@@ -5,7 +5,9 @@ nonce whose hash is kept on the connection, so a consent response is accepted on
 asked. The callback needs no sign-in: the client's IT admin can approve from the link the Client Admin emails them.
 """
 import hashlib
+import re
 import secrets
+from urllib.parse import quote, urlsplit
 
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from sqlalchemy import select
@@ -25,6 +27,20 @@ RETURN_PATHS = {"futran": "/staff/admin/email", "client": "/admin/email", "user"
 
 class BadRequest(AppError):
     status_code = 400
+
+
+def safe_next(v) -> str | None:
+    """A return path is kept only when it is a same-origin relative path that starts with a single "/"."""
+    if not isinstance(v, str) or not v.startswith("/") or v.startswith("//") or len(v) > 500 or re.search(r"[\x00-\x1f\x7f\\]", v):
+        return None
+    parts = urlsplit(v)
+    return v if not parts.scheme and not parts.netloc else None
+
+
+def with_query(path: str, **params: str) -> str:
+    """Add query parameters to a return path that may already carry some."""
+    q = "&".join(f"{k}={quote(v, safe='/')}" for k, v in params.items())
+    return f"{path}{'&' if '?' in path else '?'}{q}"
 
 
 def _serializer(settings: Settings) -> URLSafeTimedSerializer:
@@ -66,12 +82,16 @@ def _check_provider(settings: Settings, provider: str):
     return adapter
 
 
-def start_consent(db: Session, settings: Settings, actor: User | None, holder, *, provider: str, kind: str, mailbox: str | None = None, tenant: str | None = None) -> str:
+def start_consent(db: Session, settings: Settings, actor: User | None, holder, *, provider: str, kind: str, mailbox: str | None = None, tenant: str | None = None,
+                  next_path: str | None = None) -> str:
     """Return the provider URL that asks for consent. `holder` is a MailConnection (kind admin) or a UserMailConnection."""
     adapter = _check_provider(settings, provider)
     nonce = secrets.token_urlsafe(16)
     target = "user" if isinstance(holder, UserMailConnection) else "org"
-    state = _serializer(settings).dumps({"t": target, "id": holder.id, "n": nonce, "k": kind, "p": provider})
+    payload = {"t": target, "id": holder.id, "n": nonce, "k": kind, "p": provider}
+    if target == "user" and safe_next(next_path):
+        payload["r"] = safe_next(next_path)  # where the person was going when the mailbox step interrupted them
+    state = _serializer(settings).dumps(payload)
     holder.oauth_state_hash = _h(nonce)
     holder.provider = provider
     if isinstance(holder, MailConnection):
@@ -120,7 +140,8 @@ def complete_consent(db: Session, settings: Settings, provider: str, params: dic
         holder.scopes, holder.status, holder.consented_at = adapter.scopes("user"), "connected", now
         tokens.store(settings, holder, grant)
         db.flush()
-        return RETURN_PATHS["user"], holder
+        r = safe_next(data.get("r"))
+        return (with_query(RETURN_PATHS["user"], next=r) if r else RETURN_PATHS["user"]), holder
     domains = [d.lower() for d in grant.get("domains") or []]
     if grant.get("mailbox") and (not holder.mailbox_address or provider == "google"):
         holder.mailbox_address = grant["mailbox"]

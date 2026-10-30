@@ -6,6 +6,7 @@ import type { Me } from '@/api/auth';
 import { homePath } from '@/nav';
 import { Alert, Button, TextField } from '@/components/ui';
 import { AuthLayout } from './AuthLayout';
+import { nextQuery, safeNext } from '@/lib/safeNext';
 
 type LoginOut = { mfa_required: boolean; mfa_enrolled: boolean; csrf_token: string };
 
@@ -34,11 +35,12 @@ function SignInForm({ portal }: { portal: 'staff' | 'client' }) {
       setCsrf(out.csrf_token);
       await qc.invalidateQueries();
       if (out.mfa_required) {
-        nav(out.mfa_enrolled ? '/mfa' : '/mfa/setup', { replace: true, state: { next: params.get('next') } });
+        nav(out.mfa_enrolled ? '/mfa' : '/mfa/setup', { replace: true, state: { next: safeNext(params.get('next')) } });
         return;
       }
       const me = await qc.fetchQuery({ queryKey: ['me'], queryFn: () => api.get<Me>('/auth/me') });
-      nav(me.terms_required ? '/welcome/terms' : params.get('next') || homeFor(me), { replace: true });
+      const next = safeNext(params.get('next'));
+      nav(me.terms_required ? `/welcome/terms${nextQuery(next)}` : next ?? homeFor(me), { replace: true });
     } catch (err) {
       setError(errorMessage(err));
     } finally {

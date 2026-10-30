@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { homePath } from '@/nav';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { safeNext } from '@/lib/safeNext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
 import { useMe, useSignOut } from '@/api/auth';
@@ -17,6 +18,8 @@ export function NoticeAcknowledge() {
   const { data: me, isLoading } = useMe();
   const qc = useQueryClient();
   const nav = useNavigate();
+  const [params] = useSearchParams();
+  const next = safeNext(params.get('next'));
   const signOut = useSignOut();
   const q = useQuery({ queryKey: ['notice-pending'], queryFn: () => api.get<Pending>('/me/notice/pending'), enabled: !!me?.notice_required, retry: false });
   const [ok, setOk] = useState(false);
@@ -24,7 +27,7 @@ export function NoticeAcknowledge() {
   const [busy, setBusy] = useState(false);
   if (isLoading) return <Loading />;
   if (!me) { nav('/login', { replace: true }); return null; }
-  if (!me.notice_required) { nav(homePath(me), { replace: true }); return null; }
+  if (!me.notice_required) { nav(next ?? homePath(me), { replace: true }); return null; }
 
   async function acknowledge() {
     if (!q.data) return;
@@ -32,7 +35,7 @@ export function NoticeAcknowledge() {
     try {
       await api.post('/me/notice/acknowledge', { version: q.data.version, accepted: ok });
       await qc.invalidateQueries({ queryKey: ['me'] });
-      nav(homePath(me!), { replace: true });
+      nav(next ?? homePath(me!), { replace: true });
     } catch (e) {
       setErr(errorMessage(e));
       await qc.invalidateQueries({ queryKey: ['notice-pending'] });

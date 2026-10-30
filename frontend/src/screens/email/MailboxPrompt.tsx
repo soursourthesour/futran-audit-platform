@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { homePath } from '@/nav';
+import { herePath, nextQuery, safeNext } from '@/lib/safeNext';
 import { Link, Navigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
@@ -12,8 +13,8 @@ export function useMyMailbox(enabled = true) {
   return useQuery({ queryKey: ['my-mailbox'], queryFn: () => api.get<MyMailbox>('/me/mailbox'), enabled, retry: false, staleTime: 60_000 });
 }
 
-async function connect(provider: string) {
-  const r = await api.post<{ url: string }>('/me/mailbox/connect', { provider });
+async function connect(provider: string, next?: string | null) {
+  const r = await api.post<{ url: string }>('/me/mailbox/connect', { provider, next: safeNext(next) });
   goToConsent(r.url);
 }
 
@@ -26,7 +27,7 @@ export function MailboxGate() {
   const [err, setErr] = useState<string | null>(null);
   const m = q.data;
   if (!m || !m.prompt) return null;
-  if (m.required) return <Navigate to={`/welcome/mailbox?next=${encodeURIComponent(loc.pathname)}`} replace />;
+  if (m.required) return <Navigate to={`/welcome/mailbox${nextQuery(herePath(loc))}`} replace />;
   const providers = (['microsoft365', 'google'] as const).filter((p) => m.credentials[p].available);
   if (!providers.length) return null;
   const preferred = m.suggested_provider && providers.includes(m.suggested_provider as 'microsoft365') ? m.suggested_provider : providers[0];
@@ -34,7 +35,7 @@ export function MailboxGate() {
     <div className="mailbox-banner" role="region" aria-label="Connect your mailbox">
       <span>Connect your mailbox so emails you send from the platform come from your own address. Only replies to those emails are read back.</span>
       <span className="row" style={{ gap: 8 }}>
-        <Button size="sm" variant="primary" onClick={async () => { try { await connect(preferred!); } catch (e) { setErr(errorMessage(e)); } }}>Connect {PROVIDER_LABEL[preferred!]}</Button>
+        <Button size="sm" variant="primary" onClick={async () => { try { await connect(preferred!, herePath(loc)); } catch (e) { setErr(errorMessage(e)); } }}>Connect {PROVIDER_LABEL[preferred!]}</Button>
         <Button size="sm" onClick={async () => { try { await api.post('/me/mailbox/decline'); await qc.invalidateQueries({ queryKey: ['my-mailbox'] }); } catch (e) { setErr(errorMessage(e)); } }}>Not now</Button>
       </span>
       {err && <span className="small" role="alert">{err}</span>}
@@ -53,7 +54,7 @@ export function MailboxPrompt() {
   if (!me) return <Navigate to="/login" replace />;
   const m = q.data;
   const home = homePath(me);
-  const next = params.get('next') || home;
+  const next = safeNext(params.get('next')) ?? home;
   const connected = m?.connection?.status === 'connected';
   const providers = m ? (['microsoft365', 'google'] as const).filter((p) => m.credentials[p].available) : [];
   return (
@@ -75,8 +76,8 @@ export function MailboxPrompt() {
               {err && <Alert tone="danger">{err}</Alert>}
               {providers.length === 0 && <Alert tone="warn">Mailbox connection is not set up on this platform yet. Your emails come from your organisation's mailbox meanwhile.</Alert>}
               <div className="row" style={{ flexWrap: 'wrap' }}>
-                {providers.map((p) => <Button key={p} variant={p === (m?.suggested_provider ?? 'microsoft365') ? 'primary' : 'default'} onClick={async () => { try { await connect(p); } catch (e) { setErr(errorMessage(e)); } }}>Connect {PROVIDER_LABEL[p]}</Button>)}
-                {m?.policy !== 'required' && <Button variant="ghost" onClick={async () => { await api.post('/me/mailbox/decline'); await qc.invalidateQueries({ queryKey: ['my-mailbox'] }); window.location.assign(next); }}>Not now</Button>}
+                {providers.map((p) => <Button key={p} variant={p === (m?.suggested_provider ?? 'microsoft365') ? 'primary' : 'default'} onClick={async () => { try { await connect(p, safeNext(params.get('next'))); } catch (e) { setErr(errorMessage(e)); } }}>Connect {PROVIDER_LABEL[p]}</Button>)}
+                {m?.policy !== 'required' && <Button variant="ghost" onClick={async () => { try { await api.post('/me/mailbox/decline'); await qc.invalidateQueries({ queryKey: ['my-mailbox'] }); window.location.assign(next); } catch (e) { setErr(errorMessage(e)); } }}>Not now</Button>}
               </div>
             </>
           )}

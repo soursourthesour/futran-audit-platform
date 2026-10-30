@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { safeNext } from '@/lib/safeNext';
 import { useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
 import { useMe } from '@/api/auth';
@@ -14,11 +15,12 @@ export function Terms() {
   const [err, setErr] = useState<string | null>(null);
   const qc = useQueryClient();
   const nav = useNavigate();
+  const [params] = useSearchParams();
   if (isLoading) return <AuthLayout><Loading /></AuthLayout>;
   if (!me) { nav('/login', { replace: true }); return null; }
   async function accept() {
     setErr(null);
-    try { await api.post('/auth/terms', { accepted: ok }); await qc.invalidateQueries({ queryKey: ['me'] }); nav(homePath(me!), { replace: true }); } catch (e) { setErr(errorMessage(e)); }
+    try { await api.post('/auth/terms', { accepted: ok }); await qc.invalidateQueries({ queryKey: ['me'] }); nav(safeNext(params.get('next')) ?? homePath(me!), { replace: true }); } catch (e) { setErr(errorMessage(e)); }
   }
   return (
     <AuthLayout>

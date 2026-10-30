@@ -7,6 +7,7 @@ import { NotificationBell } from '@/components/NotificationBell';
 import logo from '@/assets/futran-logo.svg';
 import logoWhite from '@/assets/futran-logo-white.svg';
 import { MailboxGate } from '@/screens/email/MailboxPrompt';
+import { herePath, nextQuery } from '@/lib/safeNext';
 
 export function TestModeBar({ me }: { me?: Pick<Me, 'test_mode' | 'mfa_required' | 'email_mode'> | null }) {
   if (!me?.test_mode) return null;
@@ -69,8 +70,8 @@ export function RequireAuth({ children, side }: { children: ReactNode; side?: 'f
   if (isLoading) return <Loading />;
   if (!me) return <Navigate to={`${side === 'futran' ? '/staff/login' : '/login'}?next=${encodeURIComponent(loc.pathname + loc.search)}`} replace />;
   if (side && me.organization.type !== side) return <Navigate to={homePath(me)} replace />;
-  if (me.terms_required) return <Navigate to="/welcome/terms" replace />;
-  if (me.notice_required) return <Navigate to="/welcome/notice" replace />;
+  if (me.terms_required) return <Navigate to={`/welcome/terms${nextQuery(herePath(loc))}`} replace />;
+  if (me.notice_required) return <Navigate to={`/welcome/notice${nextQuery(herePath(loc))}`} replace />;
   return <>{children}</>;
 }
 

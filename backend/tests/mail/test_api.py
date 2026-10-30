@@ -273,6 +273,23 @@ def test_per_user_mailbox_policy_and_connection(client, db, w):
     assert client.patch("/api/v1/mail/settings", json={"per_user_sync": "off"}).status_code == 403
 
 
+@pytest.mark.parametrize("nxt, back", [
+    ("/inventory?tab=tools", "/inventory?tab=tools"),
+    ("https://evil.example/x", None),
+    ("//evil.example/x", None),
+    ("/\\evil.example", None),
+    ("javascript:alert(1)", None),
+])
+def test_personal_mailbox_consent_returns_to_a_same_origin_next(client, db, w, nxt, back):
+    _as(client, db, w["contrib"])
+    start = client.post("/api/v1/me/mailbox/connect", json={"provider": "microsoft365", "next": nxt}).json()
+    r = _consent(client, {**start, "mailbox": "tom@abc.com"})
+    assert r.status_code == 200, r.text
+    q = parse_qs(urlparse(r.json()["redirect"]).query)
+    assert urlparse(r.json()["redirect"]).path == "/welcome/mailbox" and q["connected"] == ["1"]
+    assert q.get("next", [None])[0] == back
+
+
 # ---- templates
 def test_templates_are_copied_and_versioned(client, db, w):
     _as(client, db, w["caico"])

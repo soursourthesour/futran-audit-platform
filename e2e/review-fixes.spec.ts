@@ -207,3 +207,35 @@ for (const [who, email] of [['QA Reviewer', 'qa@futran.demo'], ['Engagement Mana
     await expect(page.getByRole('link', { name: 'Applicability and intro letter' })).toHaveCount(0);
   });
 }
+
+test('a deep link survives sign-in, the terms and the data notice; a foreign next is ignored', async ({ page }) => {
+  await page.context().clearCookies();
+  await page.goto('/inventory?tab=tools');
+  await expect(page).toHaveURL(/\/login\?next=/);
+  await page.getByLabel('Work email').fill('nina.patel@abccorp.example');
+  await page.getByLabel('Password').fill(PW);
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  for (let i = 0; i < 4; i++) {
+    await page.waitForLoadState('networkidle');
+    const p = new URL(page.url()).pathname;
+    if (p.startsWith('/welcome/terms')) { await page.getByRole('checkbox', { name: /I accept the terms/ }).check(); await page.getByRole('button', { name: 'Accept and continue' }).click(); }
+    else if (p.startsWith('/welcome/notice')) { await page.getByRole('checkbox', { name: 'I have read and understand this notice.' }).check(); await page.getByRole('button', { name: 'Acknowledge and continue' }).click(); }
+    else if (p.startsWith('/welcome/mailbox')) { await page.getByRole('button', { name: 'Not now' }).click(); }
+    else break;
+    await page.waitForURL((u) => !u.pathname.startsWith(p));
+  }
+  await expect(page).toHaveURL(/\/inventory\?tab=tools$/);
+  // a next that leaves the site is not followed
+  for (const bad of ['//evil.example/x', 'https://evil.example/x', '/\\evil.example']) {
+    await page.context().clearCookies();
+    await page.goto(`/login?next=${encodeURIComponent(bad)}`);
+    await page.getByLabel('Work email').fill('nina.patel@abccorp.example');
+    await page.getByLabel('Password').fill(PW);
+    await page.getByRole('button', { name: 'Sign in' }).click();
+    await page.waitForLoadState('networkidle');
+    expect(page.url()).not.toContain('evil.example');
+    await page.goto(`/welcome/mailbox?next=${encodeURIComponent(bad)}`);
+    const notNow = page.getByRole('button', { name: 'Not now' });
+    if (await notNow.count()) { await notNow.click(); await page.waitForLoadState('networkidle'); expect(page.url()).not.toContain('evil.example'); }
+  }
+});

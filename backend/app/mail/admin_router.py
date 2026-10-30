@@ -25,6 +25,7 @@ class ConnectIn(BaseModel):
     provider: str
     mailbox_address: str | None = None
     tenant: str | None = None
+    next: str | None = None  # personal mailbox only: the same-origin path to return to
 
 
 class ToIn(BaseModel):
@@ -270,7 +271,7 @@ def oauth_callback(provider: str, request: Request, db: Session = Depends(get_db
     try:
         path = _finish(db, settings, provider, params)
         db.commit()
-        return RedirectResponse(f"{settings.base_url}{path}?connected=1", status_code=302)
+        return RedirectResponse(f"{settings.base_url}{cx.with_query(path, connected='1')}", status_code=302)
     except AppError as exc:
         db.commit()
         msg = exc.errors[0]["message"] if exc.errors else exc.detail
@@ -285,7 +286,7 @@ def oauth_test_consent(provider: str, body: TestConsentIn, db: Session = Depends
     params = {"state": body.state, "mailbox": body.mailbox, "admin_consent": "True", "code": "test-code"}
     if not body.approve:
         params["error"] = "access_denied"
-    return {"redirect": _finish(db, settings, provider, params) + "?connected=1"}
+    return {"redirect": cx.with_query(_finish(db, settings, provider, params), connected="1")}
 
 
 @router.get("/mail/test-consent-info")
@@ -330,7 +331,7 @@ def my_mailbox_connect(body: ConnectIn, actor: Actor = Depends(current_actor), d
         raise Conflict("Your organisation has switched off personal mailbox connections.")
     uc = cx.user_connection(db, actor.user, create=True)
     uc.mailbox = uc.mailbox or actor.user.email
-    return {"url": cx.start_consent(db, settings, actor.user, uc, provider=body.provider, kind="user")}
+    return {"url": cx.start_consent(db, settings, actor.user, uc, provider=body.provider, kind="user", next_path=body.next)}
 
 
 @router.post("/me/mailbox/decline")

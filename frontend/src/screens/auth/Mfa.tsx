@@ -6,6 +6,7 @@ import { useSessionState, type Me } from '@/api/auth';
 import { Alert, Button, Loading, TextField } from '@/components/ui';
 import { AuthLayout } from './AuthLayout';
 import { homeFor } from './Login';
+import { safeNext } from '@/lib/safeNext';
 
 function useFinish() {
   const qc = useQueryClient();
@@ -14,7 +15,7 @@ function useFinish() {
   return async () => {
     await qc.invalidateQueries();
     const me = await qc.fetchQuery({ queryKey: ['me'], queryFn: () => api.get<Me>('/auth/me') });
-    nav(loc.state?.next || homeFor(me), { replace: true });
+    nav(safeNext(loc.state?.next) ?? homeFor(me), { replace: true });
   };
 }
 
