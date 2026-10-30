@@ -25,7 +25,9 @@ mailbox is connected the email still goes out through the outbox or SMTP.
 
 `preview_expansion` returns the same steps without sending, for the E4 preview.
 """
+import base64
 import hashlib
+import hmac
 import html as html_lib
 import logging
 import secrets
@@ -39,7 +41,7 @@ from sqlalchemy.orm.attributes import set_committed_value
 from app.core.clock import utcnow
 from app.core.config import Settings
 from app.core.errors import Invalid, NotFound
-from app.mail import adminlog, delivery, library
+from app.mail import adminlog, delivery, library, tokens
 from app.mail.groups import ensure_default_groups, resolve
 from app.mail.models import DirectoryPerson, MailGroup, MailRecipient, MailSend, MailTemplate, MailThread
 from app.tenancy.models import Department, Organization, User
@@ -353,22 +355,43 @@ def dispatch(db: Session, settings: Settings, s: MailSend, now: datetime | None 
     return sent
 
 
+def _shared_token(settings: Settings, s: MailSend) -> str:
+    """The send's one shared link token. It is derived from the send and the platform's token key (the key that
+    encrypts mailbox tokens), so a retry or a later paced batch carries the same link as the batches already delivered,
+    and only its hash is stored."""
+    _, material = tokens._key_material(settings)
+    digest = hmac.new(f"mail-shared-link:{material}".encode(), s.id.encode(), hashlib.sha256).digest()
+    return base64.urlsafe_b64encode(digest).decode().rstrip("=")
+
+
 def _dispatch_bcc(db: Session, settings: Settings, s: MailSend, sender: delivery.Sender, due: list[MailRecipient], now: datetime, ref: str | None, limit: int | None) -> int:
-    """BCC mode: one message per batch, everyone in BCC, one shared link. All batches go together because the shared
-    link is only known while sending (it is stored hashed)."""
-    due = [r for r in due if _claim(db, r)]
+    """BCC mode: one message per batch, everyone in BCC, one shared link for the whole send. The link is issued once
+    and reused on retries and later batches; at most `limit` batches go per run (the pacing limit). Only the batches
+    that go in this run are claimed."""
     if not due:
         return 0
-    raw = secrets.token_urlsafe(32)
-    s.shared_token_hash, s.shared_link_expires_at = token_hash(raw), _plus(now, s.link_days or LINK_DAYS_DEFAULT)
+    raw = _shared_token(settings, s)
+    if s.shared_token_hash != token_hash(raw):
+        # first batch (or the token key changed since): issue the link now
+        s.shared_token_hash, s.shared_link_expires_at = token_hash(raw), _plus(now, s.link_days or LINK_DAYS_DEFAULT)
     link = f"{settings.base_url}/m/s/{raw}"
-    batches: dict[int, list[MailRecipient]] = {}
+    grouped: dict[int, list[MailRecipient]] = {}
     for r in due:
-        batches.setdefault(r.batch_no or 1, []).append(r)
+        grouped.setdefault(r.batch_no or 1, []).append(r)
+    batches: dict[int, list[MailRecipient]] = {}
+    for n, rows in sorted(grouped.items()):
+        if limit is not None and len(batches) >= limit:
+            break
+        claimed = [r for r in rows if _claim(db, r)]
+        if claimed:
+            batches[n] = claimed
+    if not batches:
+        return 0
     subj, html, text = render(db, s, None, link, s.shared_link_expires_at, ref)
     stored = None
     if settings.email_mode != "outbox":
         subj2, html2, text2 = render(db, s, None, f"{settings.base_url}/m/s/(shared link, not stored)", s.shared_link_expires_at, ref)
+    sent = 0
     for n, rows in sorted(batches.items()):
         to = [sender.from_address] if sender.from_address else []
         env = delivery.Envelope(to=to, bcc=[r.email for r in rows], subject=subj, html=html, text=text, thread_ref=ref)
@@ -378,7 +401,8 @@ def _dispatch_bcc(db: Session, settings: Settings, s: MailSend, sender: delivery
         res = delivery.deliver(db, settings, sender, env, msg)
         for r in rows:
             _apply(r, res, now)
-    return len(batches)
+        sent += 1
+    return sent
 
 
 def _apply(r: MailRecipient, res: delivery.Result, now: datetime) -> None:
