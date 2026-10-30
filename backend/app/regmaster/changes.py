@@ -397,6 +397,25 @@ def _create_new_law(db: Session, pc: ProposedChange, value: dict, reviewer_id: s
     return v
 
 
+def _content(v):
+    """A value as the reviewer sees it: row ids (which change when a version is copied forward) do not count."""
+    if isinstance(v, dict):
+        return {k: _content(x) for k, x in v.items() if k != "id"}
+    if isinstance(v, list):
+        return [_content(x) for x in v]
+    return v
+
+
+def _check_base(db: Session, reg: Regulation, pc: ProposedChange) -> None:
+    """Refuse to overwrite a field that changed after the change was proposed (another approval, a Reference data edit
+    or a re-import); a change to another field of the law since then does not matter."""
+    if not pc.base_version_id or pc.base_version_id == reg.current_version_id:
+        return
+    if _content(current_value(db, reg, pc.field_path)) != _content(pc.old_value):
+        raise Conflict(f"This change was proposed against an earlier version of {reg.short_name}, and {pc.field_path} has changed since. "
+                       "Review it again against the current version: reject it and propose it again if it is still needed.")
+
+
 def apply_changes(db: Session, items: list[ProposedChange], reviewer_id: str, edited: dict[str, object] | None = None, note: str | None = None) -> LawVersion | None:
     """Approve changes. Changes to one law become one new version. `edited` maps change id -> the value as edited
     by the reviewer (status `edited_approved`). Returns the last version written."""
@@ -429,6 +448,8 @@ def apply_changes(db: Session, items: list[ProposedChange], reviewer_id: str, ed
                 last = v
             continue
         reg = db.get(Regulation, reg_id)
+        for pc in group:
+            _check_base(db, reg, pc)
         base = db.get(LawVersion, reg.current_version_id)
         v = clone_version(db, base, summary="; ".join(pc.summary for pc in group)[:2000], created_by=group[0].proposed_by)
         for pc in group:
