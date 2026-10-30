@@ -115,3 +115,12 @@ def test_import_from_inventory_shadow_only_tool(client, db, reg):
     client.post("/api/v1/register/import-inventory")
     s = db.scalar(select(RegisterSystem).where(RegisterSystem.name == "Claude"))
     assert s.sourcing == "shadow" and s.type == "genai_chat_tool"
+
+
+def test_import_tool_made_by_the_client_is_in_house(client, db, reg):
+    db.add(AITool(organization_id=reg.org.id, vendor="ABC Corp", product="Invoice anomaly model", account_type="enterprise"))
+    db.commit()
+    reg.as_(reg.caico)
+    client.post("/api/v1/register/import-inventory")
+    s = db.scalar(select(RegisterSystem).where(RegisterSystem.name == "Invoice anomaly model"))
+    assert s.sourcing == "in_house" and s.vendor_id is None and s.type == "in_house_model"

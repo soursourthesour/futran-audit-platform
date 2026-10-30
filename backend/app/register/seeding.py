@@ -183,6 +183,9 @@ def _create_from_group(db: Session, actor: User, org: Organization, key: str, g:
     ucs: list[UseCase] = g["use_cases"]
     is_agent = any(t.kind == "agent" for t in tools)
     only_personal = bool(tools) and all(t.account_type in SHADOW_ACCOUNTS for t in tools)
+    own = {" ".join((n or "").split()).casefold() for n in (org.name, org.legal_name, org.trading_name) if n}
+    if g["vendor"] and " ".join(g["vendor"].split()).casefold() in own:
+        g = g | {"vendor": None}  # the company's own model: built in-house, not a vendor
     first = ucs[0] if ucs else None
     depts = {u.department_id for u in ucs}
     cats = sorted({DATA_MAP[c] for u in ucs for c in (u.data_categories or []) if c in DATA_MAP})
@@ -194,7 +197,8 @@ def _create_from_group(db: Session, actor: User, org: Organization, key: str, g:
         purpose_parts.append(f"Used by {', '.join(sorted(names))}.")
     payload: dict = {
         "name": g["product"][:160],
-        "type": "agent" if is_agent else ("genai_chat_tool" if only_personal or not ucs else "vendor_app"),
+        # tools staff declared in the attestation with no approved use case are usually chat tools; the user corrects the type
+        "type": "agent" if is_agent else ("genai_chat_tool" if only_personal or (not ucs and all(t.source == "attestation" for t in tools)) else ("vendor_app" if g["vendor"] else "in_house_model")),
         "sourcing": "shadow" if only_personal else ("vendor" if g["vendor"] else "in_house"),
         "stage": "proposed",
         "purpose": " ".join(purpose_parts) or None,
