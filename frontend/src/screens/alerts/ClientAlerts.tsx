@@ -10,7 +10,7 @@ import '@/styles/monitoring.css';
 type Rule = { id: string; trigger: string; when_label: string; audience_label: string; client_groups: string[]; email_label: string; approval: string; approval_label: string; active: boolean; days_before: number[]; last_sent_at: string | null; last_sent_count: number };
 type Send = { id: string; rule_id: string; organization_id: string; client_name: string; change_ref: string; headline: string; subject: string; systems: string[]; todo_count: number; status: string; sent_from: string; deadline: string | null; created_at: string; sent_at: string | null; approved_by_name: string | null };
 type Group = { change_ref: string; headline: string; rule_id: string; approval: string | null; when_label: string; items: Send[] };
-type Preview = Send & { subject: string; html: string; text: string; from: string; to: string[]; groups: string[]; fallback: boolean };
+type Preview = Send & { subject: string; html: string; text: string; from: string; to: string[]; groups: string[]; fallback: boolean; recipients_hidden?: boolean };
 type Msg = { tone: 'success' | 'danger'; text: string } | null;
 
 export function ClientAlerts() {
@@ -101,7 +101,7 @@ function PreviewDialog({ id, onClose, onApprove }: { id: string; onClose: () => 
           {err && <Alert tone="danger">{err}</Alert>}
           <dl className="kv">
             <dt>From</dt><dd>{q.data.from}</dd>
-            <dt>To</dt><dd>{q.data.fallback ? `${q.data.to.join(', ')} (the client group is empty, so the Chief AI Compliance Officer)` : `${q.data.groups.join(', ')} (${q.data.to.length} ${q.data.to.length === 1 ? 'person' : 'people'})`}</dd>
+            <dt>To</dt><dd>{q.data.recipients_hidden ? `${q.data.groups.join(', ')} at the client (the Chief Auditor sees the names)` : q.data.fallback ? `${q.data.to.join(', ')} (the client group is empty, so the Chief AI Compliance Officer)` : `${q.data.groups.join(', ')} (${q.data.to.length} ${q.data.to.length === 1 ? 'person' : 'people'})`}</dd>
             <dt>Subject</dt><dd>{q.data.subject}</dd>
           </dl>
           <iframe title="Email preview" className="email-frame" srcDoc={q.data.html} sandbox="" />

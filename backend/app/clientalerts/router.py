@@ -115,12 +115,31 @@ def _can_queue(db: Session, actor: Actor) -> bool:
     return False
 
 
+def _sees_client_alerts(db: Session, actor: Actor) -> bool:
+    """The Chief Auditor and the Futran Admin see every client alert. The Sales Team (APPROVE_ADDON_ALERTS only) sees
+    the add-on alerts it approves, without the client's recipient list."""
+    for a in (Action.MANAGE_CLIENT_ALERTS, Action.APPROVE_CLIENT_ALERTS):
+        try:
+            authorize(db, actor, a)
+            return True
+        except Exception:
+            continue
+    return False
+
+
+def _sales_owned_rule_ids(db: Session) -> set[str]:
+    return set(db.scalars(select(AlertRule.id).where(AlertRule.approval == "sales_owner")))
+
+
 @router.get("/alerts/queue")
 def queue(status: str = "waiting_approval", actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """Sends waiting for approval, grouped by the change that created them."""
     if not _can_queue(db, actor):
         raise Forbidden()
-    rows = list(db.scalars(select(AlertSend).where(AlertSend.status.in_(status.split(","))).order_by(AlertSend.created_at.desc()).limit(500)))
+    stmt = select(AlertSend).where(AlertSend.status.in_(status.split(",")))
+    if not _sees_client_alerts(db, actor):
+        stmt = stmt.where(AlertSend.alert_rule_id.in_(_sales_owned_rule_ids(db)))
+    rows = list(db.scalars(stmt.order_by(AlertSend.created_at.desc()).limit(500)))
     groups: dict[str, dict] = {}
     for s in rows:
         g = groups.setdefault(s.change_ref, {"change_ref": s.change_ref, "headline": s.headline, "rule_id": s.alert_rule_id, "items": []})
@@ -154,7 +173,12 @@ def send_preview(send_id: str, request: Request, actor: Actor = Depends(current_
     if not _can_queue(db, actor):
         raise Forbidden()
     s = _send_or_404(db, send_id)
-    return preview(db, request.app.state.settings, s) | send_out(db, s)
+    if _sees_client_alerts(db, actor):
+        return preview(db, request.app.state.settings, s) | send_out(db, s)
+    if s.alert_rule_id not in _sales_owned_rule_ids(db):
+        raise Forbidden("Only the Chief Auditor previews this alert.")
+    authorize(db, actor, Action.APPROVE_ADDON_ALERTS)
+    return preview(db, request.app.state.settings, s) | {"to": [], "recipients_hidden": True} | send_out(db, s)  # never the client's employee list
 
 
 class SendPatch(BaseModel):
