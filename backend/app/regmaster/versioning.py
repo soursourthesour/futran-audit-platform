@@ -11,7 +11,9 @@ def status_from_text(status_text: str | None, reg_type: str | None) -> str:
         return "repealed"
     if re.search(r"delay|postpon|under amendment", t):
         return "delayed"
-    if re.search(r"enacted|not yet in force|effective \d|from \d", t) and "in force" not in t:
+    if re.search(r"not yet in force|pending", t):  # before the "in force" checks: "not yet in force" contains "in force"
+        return "pending"
+    if re.search(r"enacted|effective \d|from \d", t) and "in force" not in t:
         return "enacted_not_in_force"
     if "phased" in t:
         return "in_force_phased"

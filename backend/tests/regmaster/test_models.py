@@ -125,7 +125,8 @@ def test_migration_creates_version_one_for_every_current_law(tmp_path):
     assert c.execute("select count(*) from regulations").fetchone() == (2,)
 
 
-@pytest.mark.parametrize("text,expected", [("In force", "in_force"), ("Enacted; effective 1 Jan 2027", "enacted_not_in_force"), ("Repealed", "repealed"), ("Delayed to 2027", "delayed"), (None, "in_force")])
+@pytest.mark.parametrize("text,expected", [("In force", "in_force"), ("Enacted; effective 1 Jan 2027", "enacted_not_in_force"), ("Repealed", "repealed"), ("Delayed to 2027", "delayed"), (None, "in_force"),
+                                           ("Not yet in force", "pending"), ("Signed; not yet in force", "pending"), ("Pending in committee", "pending")])
 def test_status_text_maps_to_version_status(text, expected):
     from app.regmaster.versioning import status_from_text
 
@@ -155,3 +156,29 @@ def test_migration_gives_approved_repeals_their_date_back(tmp_path):
     _alembic(url, "head")
     c = sqlite3.connect(path)
     assert c.execute("select id, repealed_on from law_versions order by id").fetchall() == [("v1", None), ("v2", "2027-07-01")]
+
+
+def test_migration_corrects_not_yet_in_force_versions(tmp_path):
+    """The v1 data move read "not yet in force" as in force; the correction leaves a person's own decision alone."""
+    path = tmp_path / "s.db"
+    url = f"sqlite:///{path}"
+    _alembic(url, "b7d1e3a90c21")
+    c = sqlite3.connect(path)
+    c.execute("insert into jurisdictions (id, code, name, level, has_laws, active, created_at, updated_at) values ('j1','US-CO','Colorado','state',1,1,'2026-01-01','2026-01-01')")
+    c.execute("insert into matrix_versions (id, label, origin, status, published_at) values ('m1','m','import','published','2026-01-01')")
+    reg = "insert into regulations (id, jurisdiction_id, matrix_version_id, short_name, feature, type, applies_to, verify_flag, public_summary, origin, created_at, status_text) values (?, 'j1', 'm1', ?, 'employment_hiring', 'statute', 'deployer', 0, 0, 'import', '2026-01-01', ?)"
+    c.execute(reg, ("r1", "SB 26-189", "Signed; not yet in force"))
+    c.execute(reg, ("r2", "HB 1", "In force"))
+    c.execute(reg, ("r3", "SB 2", "Not yet in force"))
+    ver = "insert into law_versions (id, regulation_id, version_no, status, verify_flag, created_at) values (?, ?, 1, ?, 0, '2026-01-01')"
+    c.execute(ver, ("v1", "r1", "in_force"))
+    c.execute(ver, ("v2", "r2", "in_force"))
+    c.execute(ver, ("v3", "r3", "in_force"))
+    c.execute("insert into proposed_changes (id, origin, change_type, regulation_id, field_path, new_value, summary, confidence, status, created_at, applied_version_id) "
+              "values ('p1','admin_edit','amendment','r3','law.status','\"in_force\"','Now in force','high','approved','2026-01-01','v3')")
+    c.commit()
+    c.close()
+    _alembic(url, "head")
+    _alembic(url, "head")  # idempotent
+    c = sqlite3.connect(path)
+    assert c.execute("select id, status from law_versions order by id").fetchall() == [("v1", "pending"), ("v2", "in_force"), ("v3", "in_force")]
