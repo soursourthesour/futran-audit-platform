@@ -141,16 +141,20 @@ function ChangeDetail({ id, isChief, isSecond, reviewers, onDone, onClose }: { i
   const [err, setErr] = useState<string | null>(null);
   const [reviewNote, setReviewNote] = useState('');
   const [assignee, setAssignee] = useState('');
-  useEffect(() => { if (q.data) { setNotify(q.data.notify_clients); setLetters(q.data.update_letters); setValue(typeof q.data.new_value === 'string' ? q.data.new_value : JSON.stringify(q.data.new_value, null, 1)); } }, [q.data]);
+  useEffect(() => { if (q.data) { setNotify(q.data.notify_clients); setLetters(q.data.update_letters); const v = q.data.pending_edit ?? q.data.new_value; setValue(typeof v === 'string' ? v : JSON.stringify(v, null, 1)); } }, [q.data]);
   if (q.isLoading || !q.data) return <Loading />;
   const c = q.data;
   const open = ['pending', 'held', 'legal_review'].includes(c.status);
   async function act(action: string, body: Record<string, unknown> = {}) {
     setErr(null);
     try {
-      await api.post(`/reg/changes/${c.id}/decide`, { action, note: note || null, notify_clients: notify, update_letters: letters, ...body });
+      const out = await api.post<ChangeItem>(`/reg/changes/${c.id}/decide`, { action, note: note || null, notify_clients: notify, update_letters: letters, ...body });
       await qc.invalidateQueries({ queryKey: ['reg-change', id] });
       setEditing(false);
+      if (action === 'edit_approve' && out?.status === 'pending') {
+        onDone({ tone: 'warn', text: 'Your edit is saved. The value changed after the second review, so it goes back to the second reviewer before you can approve it.' });
+        return;
+      }
       onDone({ tone: 'success', text: action === 'approve' || action === 'edit_approve' ? `Approved: ${c.summary}` : `Saved: ${STATUS_LABEL[{ hold: 'held', reject: 'rejected', legal_review: 'legal_review' }[action] ?? ''] ?? action}.` });
     } catch (e) { setErr(errorMessage(e)); }
   }
@@ -180,6 +184,7 @@ function ChangeDetail({ id, isChief, isSecond, reviewers, onDone, onClose }: { i
           <div><div className="label">Current{c.base_version_no ? ` (version ${c.base_version_no})` : ''}</div><p>{fmtValue(c.old_value)}</p></div>
           <div className="proposed"><div className="label">Proposed{c.base_version_no ? ` (version ${c.base_version_no + 1})` : ''}</div><p>{fmtValue(c.new_value)}</p></div>
         </div>
+        {c.pending_edit != null && <Alert tone="warn">Edited by the Chief Auditor to: <strong>{fmtValue(c.pending_edit)}</strong>. The edited value needs the second review before approval.</Alert>}
         <p style={{ margin: 0 }}>{c.summary}</p>
         <figure className="quote">
           <blockquote>“{c.source_quote}”</blockquote>

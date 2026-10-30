@@ -138,7 +138,11 @@ def test_edit_then_approve_uses_the_edited_value(client, db, lit, case_change):
     client.post(f"/api/v1/reg/changes/{pc.id}/second-review", json={"outcome": "concur", "note": "ok"})
     login_as(client, db, lit["chief"])
     r = _decide(client, pc, "edit_approve", new_value="stayed", note="Stayed pending appeal")
-    assert r.status_code == 200, r.text
+    assert r.status_code == 200 and r.json()["status"] == "pending"  # edited after the review: reviewed again first
+    login_as(client, db, lit["qa"])
+    client.post(f"/api/v1/reg/changes/{pc.id}/second-review", json={"outcome": "concur", "note": "Stayed: confirmed"})
+    login_as(client, db, lit["chief"])
+    assert _decide(client, pc, "approve", note="Stayed pending appeal").status_code == 200
     db.expire_all()
     assert db.get(ProposedChange, pc.id).status == "edited_approved" and db.get(Case, case.id).stage == "stayed"
     assert db.get(RefreshProposalMeta, pc.id).edited_value == "stayed"

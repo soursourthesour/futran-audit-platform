@@ -6,7 +6,7 @@ export type ChangeItem = {
   source_quote: string | null; confidence: 'high' | 'medium' | 'low'; claude_confidence: string | null; off_allowlist: boolean; needs_second_review: boolean;
   second_review: { outcome: 'concur' | 'object' | null; note: string | null; by: string | null; at: string | null }; assigned_reviewer: string | null;
   status: string; review_note: string | null; reviewer: string | null; created_at: string; seen_count: number; run_ids: string[];
-  impact: { clients: number; systems: number; roles: string[]; letters: number }; notify_clients: boolean; update_letters: boolean;
+  impact: { clients: number; systems: number; roles: string[]; letters: number }; notify_clients: boolean; update_letters: boolean; pending_edit?: unknown;
   impacts?: { organization_id: string; organization_name: string; systems: string[]; roles: string[]; letter_update_needed: boolean }[]; base_version_no?: number | null;
 };
 export type Queue = { items: ChangeItem[]; counts: Record<string, number>; reviewers: { id: string; name: string }[]; change_types: { value: string; label: string }[] };

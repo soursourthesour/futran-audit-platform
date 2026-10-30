@@ -273,6 +273,8 @@ def change_out(db: Session, c: ProposedChange, detail: bool = False) -> dict:
         "impact": {"clients": len({i.organization_id for i in impacts}), "systems": len({s for i in impacts for s in (i.ai_system_ids or [])}),
                    "roles": sorted({r for i in impacts for r in (i.roles_affected or [])}), "letters": sum(bool(i.letter_update_needed) for i in impacts)},
         "notify_clients": meta.notify_clients if meta else True, "update_letters": meta.update_letters if meta else True,
+        # an edit waiting for the second review (it replaces new_value when approved)
+        "pending_edit": meta.edited_value if meta and meta.edited_value is not None and c.status in ("pending", "held", "legal_review") else None,
     }
     if detail:
         from app.clientalerts.service import system_names

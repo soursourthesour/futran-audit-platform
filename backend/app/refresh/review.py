@@ -145,25 +145,29 @@ def decide(db: Session, settings: Settings, change: ProposedChange, actor: User,
     if update_letters is not None:
         meta.update_letters = update_letters
     if action in ("approve", "edit_approve"):
+        reviewed = meta.edited_value if meta.edited_value is not None else change.new_value  # what the second reviewer saw
+        if action == "edit_approve" and new_value is not None and meta.needs_second_review and meta.second_review_outcome == "concur" and new_value != reviewed:
+            return _back_to_second_review(db, change, meta, actor, new_value, note)
         if meta.needs_second_review and meta.second_review_outcome != "concur":
             if meta.second_review_outcome == "object":
                 raise Conflict("The second reviewer objected to this change. Reject it, or ask for another review.")
             raise Conflict("This change needs a second reviewer (QA Reviewer or legal review) before approval.")
         if change.second_reviewer_id and change.second_reviewer_id == actor.id:
             raise Conflict("The second reviewer and the approver must be a different person.")
-        value = change.new_value
+        value = reviewed
         if action == "edit_approve":
             if new_value is None:
                 raise Invalid(errors=[{"field": "new_value", "message": "Enter the corrected value."}])
             value = new_value
             meta.edited_value = new_value
+        edited = action == "edit_approve" or meta.edited_value is not None
         case = None
         if meta.kind == "litigation":
             case = apply_case_change(db, change, meta, value, actor)
-            change.status = "approved" if action == "approve" else "edited_approved"
+            change.status = "edited_approved" if edited else "approved"
             change.reviewer_id, change.reviewed_at, change.review_note = actor.id, now, note
         else:
-            apply_law_change(db, change, actor, value, action == "edit_approve", note)
+            apply_law_change(db, change, actor, value, edited, note)
         db.flush()
         _after_approval(db, settings, change, meta, actor, case)
     else:
@@ -181,6 +185,23 @@ def decide(db: Session, settings: Settings, change: ProposedChange, actor: User,
                 resolve_run_alerts(db, run_id)
     audit.record(db, actor_id=actor.id, action=f"reg_change.{change.status}", object_type="ProposedChange", object_id=change.id, organization_id=actor.organization_id,
                  summary=f"{change.status.replace('_', ' ').capitalize()}: {change.summary}"[:500], after={"status": change.status, "note": note, "edited": action == "edit_approve"})
+    db.flush()
+    return change
+
+
+def _back_to_second_review(db: Session, change: ProposedChange, meta: RefreshProposalMeta, actor: User, value, note: str | None) -> ProposedChange:
+    """The Chief Auditor changed the value after the second reviewer concurred: keep the edit, clear the concurrence
+    and ask for the second review again. Nothing is applied."""
+    meta.edited_value = value
+    meta.second_review_outcome, meta.second_review_note = None, None
+    change.second_reviewer_id, change.second_reviewed_at = None, None
+    reviewers = [u for u in [db.get(User, meta.assigned_reviewer_id)] if u is not None] if meta.assigned_reviewer_id else []
+    if reviewers:
+        notify(db, reviewers, "second_review", "A change you reviewed was edited", f"{actor.name} changed the value after your review: {change.summary}", link=f"/reg/refresh?change={change.id}")
+    else:
+        _notify_reviewers(db, change, "A change you reviewed was edited", f"{actor.name} changed the value after the second review: {change.summary}")
+    audit.record(db, actor_id=actor.id, action="reg_change.edited_for_second_review", object_type="ProposedChange", object_id=change.id, organization_id=actor.organization_id,
+                 summary=f"Edited after the second review; sent back for review: {change.summary}"[:500], after={"value": value, "note": note})
     db.flush()
     return change
 
