@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import { ClientEmailStatus } from './ClientEmailStatus';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
 import { useMe } from '@/api/auth';
@@ -346,6 +347,22 @@ function Members({ g, list, owner, clientId, editable, onChanged }: { g: GroupDe
           </div>
         </Dialog>
       )}
+    </div>
+  );
+}
+
+/** Futran's view of one client's groups (/clients/:clientId/groups): read-only for the Chief Auditor and Auditors; the
+ *  Futran Admin may set up the client's starting groups during onboarding (spec §27.1). */
+export function ClientGroupsForFutran() {
+  const { clientId = '' } = useParams();
+  return (
+    <div className="page">
+      <PageHeader title="Client email groups" crumbs={[{ to: '/clients', label: 'Clients' }, { to: `/clients/${clientId}`, label: 'Client' }, { label: 'Email groups' }]}
+        subtitle="The client's groups, expanded to people when an email is sent. The client's Client Admin and Chief AI Compliance Officer manage them." />
+      <div className="stack">
+        <ClientEmailStatus clientId={clientId} />
+        <GroupsManager clientId={clientId} />
+      </div>
     </div>
   );
 }

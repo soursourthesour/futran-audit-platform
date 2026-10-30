@@ -40,7 +40,7 @@ import { Applicability } from '@/screens/futran/reg/Applicability';
 import { wsdRoutes } from '@/routes.wsd';
 import { FutranEmail } from '@/screens/email/FutranEmail';
 import { ClientEmailSetup } from '@/screens/email/ClientEmailSetup';
-import { GroupsScreen } from '@/screens/email/Groups';
+import { ClientGroupsForFutran, GroupsScreen } from '@/screens/email/Groups';
 import { SendToGroups } from '@/screens/email/SendToGroups';
 import { EmailLog } from '@/screens/email/EmailLog';
 import { LinkLanding } from '@/screens/email/LinkLanding';
@@ -52,6 +52,7 @@ export const futranRoutes: RouteObject[] = [
   ...wsdRoutes,
   { path: '/admin/users', element: <UsersAdmin /> },
   { path: '/staff/admin/email', element: <FutranEmail /> },
+  { path: '/clients/:clientId/groups', element: <ClientGroupsForFutran /> },
   { path: '/admin/audit-log', element: <AuditLogScreen /> },
   { path: '/admin/outbox', element: <OutboxScreen /> },
   { path: '/admin/settings', element: <SettingsScreen /> },

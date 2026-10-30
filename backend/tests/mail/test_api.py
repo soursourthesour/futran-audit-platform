@@ -305,3 +305,13 @@ def test_mail_tick_finishes_sends_and_runs_due_jobs(db, settings, w):
     out = run_mail_tick(db, settings, __import__("app.core.clock", fromlist=["utcnow"]).utcnow())
     assert set(out) == {"dispatched", "replies", "directory_syncs", "reminders"}
     assert "email" in JOBS
+
+
+def test_futran_admin_may_set_up_a_clients_starting_groups_and_the_chief_auditor_only_views(client, db, w):
+    _as(client, db, w["admin"])
+    r = client.post(f"/api/v1/mail/groups?client_id={w['c'].id}", json={"name": "AI-NIST", "source": "manual"})
+    assert r.status_code == 200 and r.json()["can_edit"] is True
+    assert db.scalar(select(AdminLogEntry).where(AdminLogEntry.organization_id == w["c"].id, AdminLogEntry.category == "group")) is not None
+    _as(client, db, w["chief"])
+    assert client.get(f"/api/v1/mail/groups?client_id={w['c'].id}").status_code == 200
+    assert client.post(f"/api/v1/mail/groups?client_id={w['c'].id}", json={"name": "X", "source": "manual"}).status_code == 403

@@ -1,4 +1,5 @@
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
+import { useMe } from '@/api/auth';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/api/client';
 import { Card, fmtDateTime } from '@/components/ui';
@@ -10,6 +11,7 @@ type Status = { status: Connection['status']; provider: string | null; provider_
 /** Wizard step 6 (client contacts) and the client page: whether the client has connected its email (spec §26.1). */
 export function ClientEmailStatus({ clientId: given }: { clientId?: string }) {
   const params = useParams();
+  const { data: me } = useMe();
   const clientId = given ?? params.clientId ?? '';
   const q = useQuery({ queryKey: ['client-mail-status', clientId], queryFn: () => api.get<Status>(`/mail/clients/${clientId}/status`), enabled: !!clientId, retry: false });
   if (!q.data) return null;
@@ -24,6 +26,7 @@ export function ClientEmailStatus({ clientId: given }: { clientId?: string }) {
             : s.status === 'consent_requested' ? 'The client has asked its IT administrator to approve access.'
             : 'The Client Admin connects Microsoft 365 or Google Workspace during onboarding ("Connect your email" in Getting started). Until then emails come from Futran on the client\'s behalf.'}
         </span>
+        {me?.organization.type === 'futran' && !given && <Link className="btn btn-sm" to={`/clients/${clientId}/groups`}>Email groups</Link>}
       </div>
     </Card>
   );
