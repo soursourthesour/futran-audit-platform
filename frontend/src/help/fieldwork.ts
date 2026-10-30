@@ -23,6 +23,8 @@ export const findingHelp = {
 };
 
 export const systemHelp = {
+  registerAdd: "Copies the system's name, who built it and its vendor from the client's register, and links the two so its bias tests and history show on the assessment. Rows already in scope or waiting for approval are not listed.",
+  registerEdit: "Links this system to the client's register entry so the client's bias tests and history show on the assessment. Empty fields here are filled from the register; values you have already set are kept. Choose 'Not linked' to remove the link.",
   useCases: 'The Tier 2 and 3 use cases this system supports. Every Tier 3 use case must map to a system.',
   name: "Leave blank to use the first use case's name. Use the client's own name for the system.",
   version: 'The version or release in production during the audit period.',

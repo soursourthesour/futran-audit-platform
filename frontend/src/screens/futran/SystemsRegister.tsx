@@ -27,6 +27,20 @@ const BUILT_BY = [{ value: 'in_house', label: 'In-house' }, { value: 'vendor', l
 const RATING_TONE: Record<string, 'danger' | 'warn' | 'navy' | 'muted'> = { Critical: 'danger', High: 'danger', Medium: 'warn', Low: 'muted' };
 const yesNo = (v: boolean | null) => (v === null ? 'Not known' : v ? 'Yes' : 'No');
 
+/** Register rows that can be linked: not linked to another system in scope and not waiting in a scope-addition request. */
+function linkableRegister(d: Register, keep?: string | null): RegisterOption[] {
+  const pending = new Set(d.pending_requests.map((r) => r.payload.register_system_id).filter((x): x is string => typeof x === 'string' && !!x));
+  return (d.register_options ?? []).filter((o) => o.id === keep || (!o.linked_to && !pending.has(o.id)));
+}
+const registerLabel = (o: RegisterOption) => `${o.reference} · ${o.name} · ${o.type_label} · ${o.stage_label}${o.risk_tier ? ` · Tier ${o.risk_tier}` : ''}`;
+type Facts = Record<string, string>;
+/** Takes back the facts a register pick copied in, leaving any value the auditor has since changed. */
+function unpick<T extends object>(f: T, copied: Facts): T {
+  const out = { ...f } as Record<string, unknown>;
+  for (const [k, v] of Object.entries(copied)) if (out[k] === v) out[k] = '';
+  return out as T;
+}
+
 export function SystemsRegister() {
   const { clientId = '' } = useParams();
   const q = useQuery({ queryKey: ['systems', clientId], queryFn: () => api.get<Register>(`/clients/${clientId}/systems`) });
@@ -125,20 +139,27 @@ function UseCasePicker({ d, value, onChange }: { d: Register; value: string[]; o
 function AddSystem({ clientId, d, preselected, onClose, onDone }: { clientId: string; d: Register; preselected: string[]; onClose: () => void; onDone: (m: string) => void }) {
   const qc = useQueryClient();
   const [f, setF] = useState({ name: '', built_by: '', vendor_id: '', register_system_id: '', use_case_ids: preselected, reason: preselected.length ? 'Tier 3 use case found in discovery.' : '' });
-  const regOpts = (d.register_options ?? []).filter((o) => !o.linked_to);
+  const [copied, setCopied] = useState<Facts>({});
+  const regOpts = linkableRegister(d);
   function pickRegister(id: string) {
     const o = d.register_options.find((x) => x.id === id);
-    setF({ ...f, register_system_id: id, ...(o ? { name: o.name, built_by: o.built_by ?? f.built_by, vendor_id: o.vendor_id ?? f.vendor_id, reason: f.reason || `In the client's AI system register as ${o.reference}.` } : {}) });
+    const base = unpick(f, copied);  // facts from an earlier pick go first, so "Not from the register" leaves nothing behind
+    const facts: Facts = o ? Object.fromEntries(Object.entries({ name: o.name, built_by: o.built_by ?? '', vendor_id: o.vendor_id ?? '', reason: base.reason ? '' : `In the client's AI system register as ${o.reference}.` }).filter(([, v]) => v)) : {};
+    setCopied(facts);
+    setF({ ...base, ...facts, register_system_id: o ? id : '' });
   }
   const [err, setErr] = useState<string | null>(null);
   const [fe, setFe] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState(false);
   async function save(e: FormEvent) {
     e.preventDefault();
+    if (busy) return;
+    setBusy(true);
     try {
       await api.post(`/clients/${clientId}/systems`, { ...f, vendor_id: f.vendor_id || null, built_by: f.built_by || null, register_system_id: f.register_system_id || null });
       await qc.invalidateQueries({ queryKey: ['systems', clientId] });
       onDone('Sent to the Engagement Manager for approval. The system appears here once approved.');
-    } catch (ex) { setErr(errorMessage(ex)); setFe(fieldErrors(ex)); }
+    } catch (ex) { setErr(errorMessage(ex)); setFe(fieldErrors(ex)); } finally { setBusy(false); }
   }
   return (
     <Dialog title="Add a system to the scope" onClose={onClose} wide>
@@ -146,8 +167,8 @@ function AddSystem({ clientId, d, preselected, onClose, onDone }: { clientId: st
         <p className="small muted" style={{ margin: 0 }}>Adding a system after initiation needs the Engagement Manager's approval (template §1.3).</p>
         {err && <Alert tone="danger">{err}</Alert>}
         {regOpts.length > 0 && (
-          <SelectField label="Start from the client's AI system register" help="Copies the system's name, who built it, vendor, department and owner from the client's register, and links the two so its bias tests and history show on the assessment." value={f.register_system_id} placeholder="Not from the register" onChange={(e) => pickRegister(e.target.value)}
-            options={regOpts.map((o) => ({ value: o.id, label: `${o.reference} · ${o.name} · ${o.type_label} · ${o.stage_label}${o.risk_tier ? ` · Tier ${o.risk_tier}` : ''}` }))} error={fe.register_system_id} />
+          <SelectField label="Start from the client's AI system register" help={S.registerAdd} value={f.register_system_id} placeholder="Not from the register" onChange={(e) => pickRegister(e.target.value)}
+            options={regOpts.map((o) => ({ value: o.id, label: registerLabel(o) }))} error={fe.register_system_id} />
         )}
         <UseCasePicker d={d} value={f.use_case_ids} onChange={(v) => setF({ ...f, use_case_ids: v })} />
         {fe.use_case_ids && <div className="small" style={{ color: "var(--danger)" }}>{fe.use_case_ids}</div>}
@@ -157,7 +178,7 @@ function AddSystem({ clientId, d, preselected, onClose, onDone }: { clientId: st
           <SelectField label="Vendor" help={S.vendor} value={f.vendor_id} placeholder="None" onChange={(e) => setF({ ...f, vendor_id: e.target.value })} options={d.vendors.map((v) => ({ value: v.id, label: v.legal_name }))} error={fe.vendor_id} />
         </div>
         <TextArea label="Reason for adding it" help={S.reason} value={f.reason} onChange={(e) => setF({ ...f, reason: e.target.value })} error={fe.reason} />
-        <div className="row"><Button type="submit" variant="primary">Send for approval</Button><Button onClick={onClose}>Cancel</Button></div>
+        <div className="row"><Button type="submit" variant="primary" disabled={busy}>Send for approval</Button><Button onClick={onClose}>Cancel</Button></div>
       </form>
     </Dialog>
   );
@@ -168,14 +189,26 @@ function EditSystem({ clientId, d, s, onClose }: { clientId: string; d: Register
   const [f, setF] = useState({
     name: s.name, version: s.version ?? '', built_by: s.built_by ?? '', vendor_id: s.vendor_id ?? '', department_id: s.department_id ?? '', owner_user_id: s.owner?.id ?? '',
     technical_owner_user_id: s.technical_owner?.id ?? '', use_case_ids: s.use_cases.map((u) => u.id), tool_ids: s.tools.map((t) => t.id), assessment_depth: s.assessment_depth,
+    register_system_id: s.register_system?.id ?? '',
   });
+  const [copied, setCopied] = useState<Facts>({});
+  const regOpts = linkableRegister(d, s.register_system?.id);
+  function pickRegister(id: string) {
+    const o = d.register_options.find((x) => x.id === id);
+    const base = unpick(f, copied);
+    // on an existing system only empty fields take the register's facts
+    const facts: Facts = o ? Object.fromEntries(Object.entries({ name: o.name, built_by: o.built_by ?? '', vendor_id: o.vendor_id ?? '', department_id: o.department_id ?? '', owner_user_id: o.owner_user_id ?? '' })
+      .filter(([k, v]) => v && !(base as Record<string, unknown>)[k])) : {};
+    setCopied(facts);
+    setF({ ...base, ...facts, register_system_id: o ? id : '' });
+  }
   const [err, setErr] = useState<string | null>(null);
   const [fe, setFe] = useState<Record<string, string>>({});
   const people = d.people.map((p) => ({ value: p.id, label: p.name }));
   async function save(e: FormEvent) {
     e.preventDefault();
     try {
-      const body = { ...f, built_by: f.built_by || null, vendor_id: f.vendor_id || null, department_id: f.department_id || null, owner_user_id: f.owner_user_id || null, technical_owner_user_id: f.technical_owner_user_id || null };
+      const body = { ...f, built_by: f.built_by || null, vendor_id: f.vendor_id || null, department_id: f.department_id || null, owner_user_id: f.owner_user_id || null, technical_owner_user_id: f.technical_owner_user_id || null, register_system_id: f.register_system_id || null };
       await api.patch(`/systems/${s.id}`, body);
       await qc.invalidateQueries({ queryKey: ['systems', clientId] });
       onClose();
@@ -185,6 +218,10 @@ function EditSystem({ clientId, d, s, onClose }: { clientId: string; d: Register
     <Dialog title={`${s.reference_id} · ${s.name}`} onClose={onClose} wide>
       <form className="stack" onSubmit={save} noValidate>
         {err && <Alert tone="danger">{err}</Alert>}
+        {regOpts.length > 0 && (
+          <SelectField label="Client's AI system register" help={S.registerEdit} value={f.register_system_id} placeholder="Not linked" onChange={(e) => pickRegister(e.target.value)}
+            options={regOpts.map((o) => ({ value: o.id, label: registerLabel(o) }))} error={fe.register_system_id} />
+        )}
         <div className="grid-2">
           <TextField label="System name" help={S.name} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} error={fe.name} />
           <TextField label="Version" help={S.version} value={f.version} onChange={(e) => setF({ ...f, version: e.target.value })} error={fe.version} />
