@@ -1,0 +1,964 @@
+# Regulatory master seed (spec §24.1, §25). Loaded by `python -m app.cli seed-regmaster` and by the demo loader.
+# Every requirement quotes the source it was read from on 30 Oct 2026. `verify: true` marks an item whose section
+# number or wording could not be confirmed against the final official text; the law record shows a Verify badge.
+# Stages: program_setup | procurement | development | go_live | ongoing | yearly.
+# AI types: decision (AI or ML software deciding about people) | agent | embedded | genai | all.
+
+roles:
+  - {code: accountable_executive, number: 1, name: Accountable executive, level: company, default_stage: development, main_sources: "NIST GOVERN 2.3; ISO 42001 §5.1", description: "Owns AI risk decisions; signs the AI policy"}
+  - {code: ai_governance_committee, number: 2, name: AI Governance Committee, level: company, default_stage: program_setup, main_sources: "NIST GOVERN 2.1, 3.1; ISO 42001 §5.3 (recommended)", description: "Approves high-risk uses, policies and exceptions", headline_code: GR-01}
+  - {code: ai_compliance_officer, number: 3, name: AI Compliance Officer, level: company, default_stage: development, main_sources: "EU AI Act Art. 26; NIST GOVERN 2", description: "Runs the AI risk program and the register"}
+  - {code: dpo, number: 4, name: Data Protection Officer, level: company, default_stage: go_live, main_sources: "GDPR Art. 37; India DPDP §10", description: "Data protection reviews and assessments"}
+  - {code: grievance_officer_india, number: 5, name: Grievance officer (India), level: company, default_stage: go_live, main_sources: "DPDP §8(10); IT Rules 2021", description: "Answers data principals' complaints"}
+  - {code: incident_response_lead, number: 6, name: AI Incident Response Lead, level: company, default_stage: go_live, main_sources: "EU AI Act Art. 26(5), 73; CERT-In (6 hours)", description: "Logs incidents; reports to regulators on time", headline_code: GR-06}
+  - {code: ai_literacy_owner, number: 7, name: AI literacy and training owner, level: company, default_stage: go_live, main_sources: "EU AI Act Art. 4", description: "Trains staff who use or oversee AI", headline_code: GR-07}
+  - {code: vendor_ai_risk_owner, number: 8, name: Vendor AI risk owner, level: company, default_stage: procurement, main_sources: "NIST GOVERN 6.1; EU AI Act Art. 25", description: "Vendor due diligence and AI contract terms"}
+  - {code: records_retention_owner, number: 9, name: Records retention owner, level: company, default_stage: go_live, main_sources: "EU AI Act Art. 26(6); CA ADS rules (4 yrs); Colorado SB 26-189 (3 yrs)", description: "Keeps logs, audits and assessments for the required time"}
+  - {code: ai_system_owner, number: 10, name: AI System Owner, level: system, default_stage: development, main_sources: "NIST GOVERN 2.1", description: "Business owner of the use case", headline_code: GR-04}
+  - {code: technical_owner, number: 11, name: Technical owner, level: system, default_stage: go_live, main_sources: "EU AI Act Art. 26(5)–(6)", description: "Operates, monitors and logs the system"}
+  - {code: human_oversight_person, number: 12, name: Human oversight person, level: system, default_stage: go_live, main_sources: "EU AI Act Art. 14, 26(2); Colorado human review", description: "Reviews, corrects or overrides the AI system's outputs", extra_checks: oversight_confirmations, headline_code: GR-05}
+  - {code: stop_authority, number: 13, name: Stop / disengage authority, level: agent, default_stage: go_live, main_sources: "EU AI Act Art. 14(4)(e); NIST MANAGE 2.4", description: "Can halt the agent or revoke its permissions"}
+  - {code: agent_permissions_approver, number: 14, name: Agent permissions approver, level: agent, default_stage: go_live, main_sources: "NIST GOVERN 2.1; enforced by GuardRail", description: "Approves the actions, tools and data an agent may use"}
+  - {code: explainability_contact, number: 15, name: Explainability contact, level: system, default_stage: go_live, main_sources: "EU AI Act Art. 86; Colorado (30-day explanation); CCPA ADMT", description: "Explains an individual decision to the person affected", headline_code: GR-03}
+  - {code: appeals_correction_reviewer, number: 16, name: Appeals and correction reviewer, level: system, default_stage: go_live, main_sources: "Colorado; CCPA ADMT", description: "Hears appeals with human review; corrects data"}
+  - {code: bias_testing_lead, number: 17, name: Bias testing lead / independent auditor, level: system, default_stage: go_live, main_sources: "NYC LL144; CA ADS rules; NIST MEASURE 2.11", description: "Runs or commissions bias tests", headline_code: GR-02}
+  - {code: impact_assessment_owner, number: 18, name: Impact assessment owner, level: system, default_stage: go_live, main_sources: "EU AI Act Art. 27; CCPA risk assessment; DPDP (SDF)", description: "Completes the impact or risk assessment"}
+  - {code: transparency_notice_owner, number: 19, name: Transparency and notice owner, level: system, default_stage: go_live, main_sources: "NYC LL144; IL HB 3773; EU AI Act Art. 26(11), 50; Colorado", description: "Tells people AI is used; publishes notices"}
+  - {code: data_consent_steward, number: 20, name: Data and consent steward, level: system, default_stage: development, main_sources: "DPDP; CCPA; GDPR; EU AI Act Art. 10", description: "Confirms consent or lawful basis for the data"}
+  - {code: worker_rep_contact, number: 21, name: Worker representative contact, level: system, default_stage: go_live, main_sources: "EU AI Act Art. 26(7)", description: "Informs worker representatives before workplace use"}
+
+# Allowlist (§25.1 principle 2). Domains the refresh may treat as official; law firms and mirrors are secondary.
+sources:
+  - {jurisdiction: US-CO, name: Colorado General Assembly, url: "https://leg.colorado.gov", kind: official}
+  - {jurisdiction: US-CO, name: Colorado Attorney General, url: "https://coag.gov", kind: official}
+  - {jurisdiction: US-CO, name: State of Colorado, url: "https://colorado.gov", kind: official}
+  - {jurisdiction: US-NYC, name: NYC Department of Consumer and Worker Protection, url: "https://www.nyc.gov", kind: official}
+  - {jurisdiction: US-NYC, name: NYC Rules, url: "https://rules.cityofnewyork.us", kind: official}
+  - {jurisdiction: US-NYC, name: New York City Council (Legistar), url: "https://legistar.council.nyc.gov", kind: official}
+  - {jurisdiction: US-IL, name: Illinois General Assembly, url: "https://www.ilga.gov", kind: official}
+  - {jurisdiction: US-IL, name: Illinois Department of Human Rights, url: "https://dhr.illinois.gov", kind: official}
+  - {jurisdiction: US-CA, name: California Privacy Protection Agency, url: "https://cppa.ca.gov", kind: official}
+  - {jurisdiction: US-CA, name: California Civil Rights Department, url: "https://calcivilrights.ca.gov", kind: official}
+  - {jurisdiction: US-CA, name: California Attorney General, url: "https://oag.ca.gov", kind: official}
+  - {jurisdiction: US, name: NIST AI Resource Center, url: "https://airc.nist.gov", kind: official}
+  - {jurisdiction: US, name: NIST, url: "https://www.nist.gov", kind: official}
+  - {jurisdiction: US, name: Federal Register, url: "https://www.federalregister.gov", kind: official}
+  - {jurisdiction: US, name: Congress.gov, url: "https://www.congress.gov", kind: official}
+  - {jurisdiction: US, name: Federal Trade Commission, url: "https://www.ftc.gov", kind: official}
+  - {jurisdiction: EU, name: EUR-Lex (Official Journal of the EU), url: "https://eur-lex.europa.eu", kind: official}
+  - {jurisdiction: EU, name: European Commission AI Act Service Desk, url: "https://ai-act-service-desk.ec.europa.eu", kind: official}
+  - {jurisdiction: EU, name: European Commission digital strategy, url: "https://digital-strategy.ec.europa.eu", kind: official}
+  - {jurisdiction: EU, name: European Data Protection Board, url: "https://www.edpb.europa.eu", kind: official}
+  - {jurisdiction: IN, name: Ministry of Electronics and IT, url: "https://www.meity.gov.in", kind: official}
+  - {jurisdiction: IN, name: Press Information Bureau, url: "https://www.pib.gov.in", kind: official}
+  - {jurisdiction: IN, name: Gazette of India, url: "https://egazette.gov.in", kind: official}
+  - {jurisdiction: IN, name: CERT-In, url: "https://www.cert-in.org.in", kind: official}
+  - {jurisdiction: GB, name: legislation.gov.uk, url: "https://www.legislation.gov.uk", kind: official}
+  - {jurisdiction: GB, name: Information Commissioner's Office, url: "https://ico.org.uk", kind: official}
+  - {jurisdiction: CA, name: Government of Canada, url: "https://www.canada.ca", kind: official}
+  - {name: LegiScan (bill text mirror), url: "https://legiscan.com", kind: secondary}
+  - {name: Holland & Knight, url: "https://www.hklaw.com", kind: secondary}
+  - {name: Davis Wright Tremaine, url: "https://www.dwt.com", kind: secondary}
+  - {name: Burke, Warren, MacKay & Serritella, url: "https://www.burkelaw.com", kind: secondary}
+  - {name: Cuatrecasas, url: "https://www.cuatrecasas.com", kind: secondary}
+
+laws:
+  # ---------------------------------------------------------------- NYC Local Law 144
+  - key: nyc_ll144
+    jurisdiction: US-NYC
+    match: "Local Law 144"
+    label: NYC LL144
+    region: us_states
+    binding: true
+    topics: [hiring]
+    version:
+      status: in_force
+      effective_on: 2023-01-01
+      compliance_on: 2023-07-05
+      effective_text: "Law effective 1 Jan 2023; DCWP enforcement from 5 Jul 2023"
+      scope_text: "Employers and employment agencies that use an automated employment decision tool to screen candidates or employees for hiring or promotion in New York City."
+      applies_to: [employer]
+      enforcer: "NYC Department of Consumer and Worker Protection (DCWP)"
+      penalty_text: "Civil penalty of up to $500 for a first violation and $500 to $1,500 for each subsequent violation (§20-872(a))."
+      main_duty: "Yearly independent bias audit; publish the summary; notice 10 business days before use"
+      sources:
+        - {name: "Local Law 144 of 2021 (enacted text)", url: "https://legistar.council.nyc.gov/View.ashx?GUID=F99584B7-57C8-469E-9637-46A0E780690E&ID=10399761&M=F", kind: official}
+        - {name: "DCWP: Automated employment decision tools", url: "https://www.nyc.gov/site/dca/about/automated-employment-decision-tools.page", kind: official}
+    scope_tests:
+      - {question: "Does the client hire or promote people for roles in New York City?", prefill: client_geographies, prefill_codes: [US-NYC], rule: {equals: "yes"}}
+      - {question: "Does any AI system substantially assist or replace decisions on hiring or promotion?", prefill: decision_impact, prefill_feature: employment, rule: {equals: "yes"}}
+    requirements:
+      - code: LL144-01
+        text: "Have the tool bias-audited no more than one year before each use"
+        applies_to: [employer]
+        needed_by: go_live
+        evidence: "Bias audit report dated within the past 12 months; auditor independence statement"
+        role: bias_testing_lead
+        ai_types: [decision]
+        citation: "NYC Admin. Code §20-871(a)(1)"
+        quote: "Such tool has been the subject of a bias audit conducted no more than one year prior to the use of such tool"
+        source: 0
+      - code: LL144-02
+        text: "Publish a summary of the results of the most recent bias audit on the website before use"
+        applies_to: [employer]
+        needed_by: go_live
+        evidence: "Published summary page and its date"
+        role: transparency_notice_owner
+        ai_types: [decision]
+        citation: "NYC Admin. Code §20-871(a)(2)"
+        quote: "A summary of the results of the most recent bias audit of such tool"
+        source: 0
+      - code: LL144-03
+        text: "Tell each NYC candidate or employee that the tool will be used, at least 10 business days before use, and allow a request for an alternative process or accommodation"
+        applies_to: [employer]
+        needed_by: go_live
+        evidence: "Notice text, delivery log, alternative process"
+        role: transparency_notice_owner
+        ai_types: [decision]
+        citation: "NYC Admin. Code §20-871(b)(1)"
+        quote: "Such notice shall be made no less than ten business days before such use and allow a candidate to request an alternative selection process or accommodation"
+        source: 0
+      - code: LL144-04
+        text: "Tell candidates and employees the job qualifications and characteristics the tool will assess, at least 10 business days before use"
+        applies_to: [employer]
+        needed_by: go_live
+        evidence: "Notice text listing qualifications and characteristics"
+        role: transparency_notice_owner
+        ai_types: [decision]
+        citation: "NYC Admin. Code §20-871(b)(2)"
+        quote: "Such notice shall be made no less than 10 business days before such use"
+        source: 0
+      - code: LL144-05
+        text: "Disclose the type of data the tool collects, if it is not already on the website"
+        applies_to: [employer]
+        needed_by: go_live
+        evidence: "Website disclosure or response template"
+        role: data_consent_steward
+        ai_types: [decision]
+        citation: "NYC Admin. Code §20-871(b)(3)"
+        quote: "If not disclosed on the employer or employment agency's website, information about the type of data collected"
+        source: 0
+    role_maps:
+      - {role: bias_testing_lead, level: required, needed_by: go_live, requirements: [LL144-01], basis: "§20-871(a)(1): independent bias audit within one year"}
+      - {role: transparency_notice_owner, level: required, needed_by: go_live, requirements: [LL144-02, LL144-03, LL144-04], basis: "§20-871(a)(2), (b): summary and notices"}
+      - {role: data_consent_steward, level: required, needed_by: go_live, requirements: [LL144-05], basis: "§20-871(b)(3): data disclosure"}
+
+  # ---------------------------------------------------------------- Colorado SB 26-189
+  - key: co_sb26_189
+    jurisdiction: US-CO
+    match: "^SB 26-189$"
+    label: Colorado
+    region: us_states
+    binding: true
+    topics: [consumer_decisions, hiring]
+    version:
+      status: enacted_not_in_force
+      signed_on: 2026-05-14
+      compliance_on: 2027-01-01
+      effective_text: "Signed 14 May 2026; applies to consequential decisions made on or after 1 Jan 2027"
+      scope_text: "Developers and deployers of automated decision-making technology (ADMT) used to materially influence a consequential decision about a Colorado consumer: education, employment, financial or lending services, insurance, health care, and essential government services and public benefits."
+      applies_to: [developer, deployer]
+      enforcer: "Colorado Attorney General only. No private right of action."
+      private_right_of_action: false
+      penalty_text: "A violation is a deceptive trade practice under the Colorado Consumer Protection Act (§6-1-105(1)(uuuu), C.R.S.)."
+      cure_period: "60 days after a notice of violation where a cure is possible; none for knowing or repeated violations; the cure right is repealed on 1 Jan 2030"
+      removed_text: "SB 24-205's duty of reasonable care, risk management program and annual impact assessments"
+      exemptions_text: "Insurers subject to §10-3-1104.9, C.R.S. are generally deemed compliant; HIPAA-covered entities and FDA-regulated devices are largely excluded (law firm summaries; verify against the signed act)"
+      litigation_text: "A legal challenge by xAI is reported as pending (law firm summaries); status not confirmed from court records"
+      main_duty: "Notice before use; explanation within 30 days of an adverse outcome; correction; human review; 3-year records"
+      verify: true
+      change_summary: "SB 26-189 repeals and re-enacts SB 24-205: program, impact assessments and duty of care removed; notice, explanation, correction and human review kept; applies from 1 Jan 2027. Section numbers taken from the engrossed bill."
+      sources:
+        - {name: "Colorado Division of Real Estate: SB26-189 summary", url: "https://dre.colorado.gov/sb26-189-summary", kind: official}
+        - {name: "SB26-189 engrossed bill text", url: "https://leg.colorado.gov/bill_files/115943/download", kind: official}
+        - {name: "Colorado General Assembly: SB26-189", url: "https://leg.colorado.gov/bills/sb26-189", kind: official}
+        - {name: "Colorado AG: ADMT rulemaking", url: "https://coag.gov/ai/", kind: official}
+        - {name: "Holland & Knight: Colorado Governor signs SB 189 (18 May 2026)", url: "https://www.hklaw.com/en/insights/publications/2026/05/colorado-governor-signs-sb-189", kind: secondary}
+        - {name: "Davis Wright Tremaine: Colorado AI Act repeal", url: "https://www.dwt.com/blogs/privacy--security-law-blog/2026/05/colorado-ai-act-repeal-new-transparency-law", kind: secondary}
+    scope_tests:
+      - {question: "Does the client make decisions about Colorado residents?", prefill: client_geographies, prefill_codes: [US-CO], rule: {equals: "yes"}}
+      - {question: "Does any AI system materially influence a consequential decision: employment, housing, credit, insurance, health care, education or government services?", prefill: decision_impact, rule: {equals: "yes"}}
+      - {question: "Is the client the developer, the deployer, or both?", answer_type: pick, prefill: built_or_bought, rule: {any: true}, decisive: false, note: "Developer duties: documentation and 3-year retention. Deployer duties: notice, explanation, correction, human review, 3-year retention."}
+    requirements:
+      - code: CO-01
+        text: "Give deployers documentation: intended and known harmful uses, data categories, known limitations and risks, instructions for use and human review"
+        applies_to: [developer]
+        needed_by: procurement
+        evidence: "Documentation pack received from the vendor"
+        role: vendor_ai_risk_owner
+        ai_types: [decision]
+        citation: "§6-1-1702(1), C.R.S. (SB 26-189)"
+        quote: "ON AND AFTER JANUARY 1, 2027, A DEVELOPER SHALL MAKE AVAILABLE TO EACH DEPLOYER"
+        source: 1
+        verify: true
+      - code: CO-02
+        text: "Developer keeps compliance records for at least 3 years"
+        applies_to: [developer]
+        needed_by: ongoing
+        evidence: "Retention schedule"
+        role: records_retention_owner
+        ai_types: [decision]
+        citation: "§6-1-1702(4), C.R.S. (SB 26-189)"
+        quote: "A DEVELOPER SHALL RETAIN, FOR NOT LESS THAN THREE YEARS"
+        source: 1
+        verify: true
+      - code: CO-03
+        text: "Deployer keeps records for at least 3 years after a consequential decision"
+        applies_to: [deployer]
+        needed_by: ongoing
+        evidence: "Retention schedule; decision records"
+        role: records_retention_owner
+        ai_types: [decision]
+        citation: "§6-1-1703, C.R.S. (SB 26-189)"
+        quote: "A DEPLOYER SHALL RETAIN, FOR NOT LESS THAN THREE YEARS"
+        source: 1
+        verify: true
+      - code: CO-04
+        text: "Give clear and conspicuous notice before ADMT is used to materially influence a consequential decision"
+        applies_to: [deployer]
+        needed_by: go_live
+        evidence: "Notice text, where it is shown, delivery log"
+        role: transparency_notice_owner
+        ai_types: [decision]
+        citation: "§6-1-1704(1), C.R.S. (SB 26-189)"
+        quote: "PRIOR TO A DEPLOYER USING A COVERED ADMT TO MATERIALLY INFLUENCE"
+        source: 1
+        verify: true
+      - code: CO-05
+        text: "Within 30 days of an adverse outcome, give a plain-language description of the decision and the role ADMT played, how to request more information, and the person's rights"
+        applies_to: [deployer]
+        needed_by: go_live
+        evidence: "Explanation template, response log"
+        role: explainability_contact
+        ai_types: [decision]
+        citation: "§6-1-1704(3), C.R.S. (SB 26-189)"
+        quote: "WITHIN THIRTY DAYS AFTER MAKING THE DECISION"
+        source: 1
+        verify: true
+      - code: CO-06
+        text: "Let the person correct factually incorrect or materially inaccurate personal data"
+        applies_to: [deployer]
+        needed_by: go_live
+        evidence: "Correction process, log"
+        role: appeals_correction_reviewer
+        ai_types: [decision]
+        citation: "§6-1-1705(1)(a)(I), C.R.S. (SB 26-189)"
+        quote: "CORRECTING FACTUALLY INCORRECT OR MATERIALLY INACCURATE PERSONAL DATA"
+        source: 1
+        verify: true
+      - code: CO-07
+        text: "Offer meaningful human review and reconsideration, to the extent commercially reasonable, by a reviewer who can override the decision"
+        applies_to: [deployer]
+        needed_by: go_live
+        evidence: "Review procedure, case log, reviewer authority"
+        role: human_oversight_person
+        ai_types: [decision]
+        citation: "§6-1-1705(1)(a)(II), C.R.S. (SB 26-189)"
+        quote: "AN OPPORTUNITY FOR MEANINGFUL HUMAN REVIEW AND RECONSIDERATION"
+        source: 1
+        verify: true
+      - code: CO-08
+        text: "Follow Attorney General rules on adverse-outcome disclosures, correction and human review once adopted (due by 1 Jan 2027)"
+        applies_to: [developer, deployer]
+        needed_by: ongoing
+        evidence: "Set when the rules are published"
+        role: ai_compliance_officer
+        ai_types: [decision]
+        citation: "§6-1-1704(4)(b), §6-1-1705(3), C.R.S. (SB 26-189)"
+        quote: "ON OR BEFORE JANUARY 1, 2027, THE ATTORNEY GENERAL SHALL ADOPT RULES"
+        source: 1
+        verify: true
+    role_maps:
+      - {role: transparency_notice_owner, level: required, needed_by: go_live, requirements: [CO-04], basis: "CO-04: notice before use"}
+      - {role: explainability_contact, level: required, needed_by: go_live, requirements: [CO-05], basis: "CO-05: explanation within 30 days"}
+      - {role: appeals_correction_reviewer, level: required, needed_by: go_live, requirements: [CO-06], basis: "CO-06: data correction"}
+      - {role: human_oversight_person, level: required, needed_by: go_live, requirements: [CO-07], basis: "CO-07: human review where commercially reasonable"}
+      - {role: records_retention_owner, level: required, needed_by: ongoing, requirements: [CO-02, CO-03], basis: "CO-02, CO-03: 3-year records"}
+      - {role: vendor_ai_risk_owner, level: recommended, needed_by: procurement, requirements: [CO-01], basis: "CO-01: receives developer documentation"}
+      - {role: ai_compliance_officer, level: recommended, needed_by: development, requirements: [CO-08], basis: "CO-08: tracks AG rules"}
+    committees:
+      - {type: consequential_decision_rights, level: required, title: "Consequential-decision rights", basis: "Colorado SB 26-189 (from 1 Jan 2027)", items: ["Notice before use", "Explanation after an adverse outcome; data correction", "Human review or reconsideration", "Colorado no longer requires a risk program or impact assessments"]}
+
+  # ---------------------------------------------------------------- Illinois HB 3773
+  - key: il_hb3773
+    jurisdiction: US-IL
+    match: "HB 3773"
+    label: Illinois HB 3773
+    region: us_states
+    binding: true
+    topics: [hiring]
+    version:
+      status: in_force
+      effective_on: 2026-01-01
+      effective_text: "In force 1 Jan 2026"
+      scope_text: "Employers that use artificial intelligence for recruitment, hiring, promotion, renewal of employment, selection for training or apprenticeship, discharge, discipline, tenure, or the terms, privileges or conditions of employment."
+      applies_to: [employer]
+      enforcer: "Illinois Department of Human Rights"
+      penalty_text: "Remedies under the Illinois Human Rights Act"
+      main_duty: "Notify employees of AI use in employment decisions; no discriminatory effect; no zip-code proxies"
+      litigation_text: "IDHR issued draft notice rules (Subpart J) and withdrew them on 2 Jun 2026 to revise them (law firm report; verify on dhr.illinois.gov)"
+      sources:
+        - {name: "Illinois General Assembly: Public Act 103-0804", url: "https://www.ilga.gov/Legislation/publicacts/view/103-0804", kind: official}
+        - {name: "HB3773 enrolled text (LegiScan mirror)", url: "https://legiscan.com/IL/text/HB3773/2023", kind: secondary}
+        - {name: "Burke Warren: IDHR withdraws proposed AI rules", url: "https://www.burkelaw.com/alert-illinois-department-of-human-rights-withdraws-proposed-ai-in-employment-rules", kind: secondary}
+    scope_tests:
+      - {question: "Does the client employ or recruit people in Illinois?", prefill: client_geographies, prefill_codes: [US-IL], rule: {equals: "yes"}}
+      - {question: "Does any AI system play a part in recruitment, hiring, promotion, discipline, discharge or other terms of employment?", prefill: decision_impact, prefill_feature: employment, rule: {equals: "yes"}}
+    requirements:
+      - code: IL-01
+        text: "Do not use AI that has the effect of subjecting employees to discrimination on the basis of protected classes"
+        applies_to: [employer]
+        needed_by: go_live
+        evidence: "Bias testing results; adverse-impact review"
+        role: bias_testing_lead
+        ai_types: [decision]
+        citation: "775 ILCS 5/2-102(L)(1)"
+        quote: "for an employer to use artificial intelligence that has the effect of subjecting employees to discrimination on the basis of protected classes under this Article"
+        source: 1
+      - code: IL-02
+        text: "Do not use zip codes as a proxy for protected classes"
+        applies_to: [employer]
+        needed_by: development
+        evidence: "Model input list; feature review"
+        role: data_consent_steward
+        ai_types: [decision]
+        citation: "775 ILCS 5/2-102(L)(1)"
+        quote: "or to use zip codes as a proxy for protected classes under this Article"
+        source: 1
+      - code: IL-03
+        text: "Notify employees that the employer uses AI for these employment purposes"
+        applies_to: [employer]
+        needed_by: go_live
+        evidence: "Notice text, where and when it is given"
+        role: transparency_notice_owner
+        ai_types: [decision]
+        citation: "775 ILCS 5/2-102(L)(2)"
+        quote: "For an employer to fail to provide notice to an employee that the employer is using artificial intelligence for the purposes described in paragraph (1)."
+        source: 1
+      - code: IL-04
+        text: "Follow the Department's rules on when, how and how soon notice is given, once adopted"
+        applies_to: [employer]
+        needed_by: ongoing
+        evidence: "Set when the rules are adopted"
+        role: ai_compliance_officer
+        ai_types: [decision]
+        citation: "775 ILCS 5/2-102(L)"
+        quote: "The Department shall adopt any rules necessary for the implementation and enforcement of this subdivision, including, but not limited to, rules on the circumstances and conditions that require notice, the time period for providing notice, and the means for providing notice."
+        source: 1
+    role_maps:
+      - {role: transparency_notice_owner, level: required, needed_by: go_live, requirements: [IL-03], basis: "IL-03: employee notice"}
+      - {role: bias_testing_lead, level: recommended, needed_by: go_live, requirements: [IL-01], basis: "IL-01: no discriminatory effect (testing is how it is shown)"}
+      - {role: data_consent_steward, level: recommended, needed_by: development, requirements: [IL-02], basis: "IL-02: no zip-code proxies"}
+
+  # ---------------------------------------------------------------- EU AI Act
+  - key: eu_ai_act
+    jurisdiction: EU
+    match: "2024/1689"
+    label: EU AI Act
+    region: eu
+    binding: true
+    topics: [consumer_decisions, hiring, genai, frontier]
+    version:
+      status: in_force_phased
+      effective_on: 2024-08-01
+      effective_text: "Phased: AI literacy and prohibitions from 2 Feb 2025; transparency (Art. 50) from 2 Aug 2026; Annex III high-risk from 2 Dec 2027; Annex I high-risk from 2 Aug 2028 (as amended by Regulation (EU) 2026/1744)"
+      scope_text: "Providers and deployers of AI systems placed on the market or used in the EU, wherever they are based. Most deployer duties apply to high-risk systems (Annex III, such as employment, credit and essential services)."
+      applies_to: [provider, deployer]
+      enforcer: "National market surveillance authorities; the AI Office for general-purpose AI models"
+      penalty_text: "Up to EUR 35 million or 7% of worldwide annual turnover for prohibited practices; up to EUR 15 million or 3% for other duties, including deployer duties under Art. 26 and transparency under Art. 50 (Art. 99(3)–(4))"
+      main_duty: "AI literacy; human oversight, logs and notices for high-risk use; tell people when they deal with AI"
+      change_summary: "Consolidated text as at 27 Jul 2026, including Regulation (EU) 2026/1744 (Digital Omnibus on AI): Annex III high-risk duties move from 2 Aug 2026 to 2 Dec 2027; Art. 4 AI literacy kept in revised form."
+      sources:
+        - {name: "EUR-Lex: Regulation (EU) 2024/1689, consolidated 27 Jul 2026", url: "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX%3A02024R1689-20260727", kind: official}
+        - {name: "AI Act Service Desk: Article 26", url: "https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-26", kind: official}
+        - {name: "AI Act Service Desk: Article 99", url: "https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-99", kind: official}
+        - {name: "AI Act Service Desk: Article 73", url: "https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-73", kind: official}
+        - {name: "AI Act Service Desk: Article 50", url: "https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-50", kind: official}
+        - {name: "AI Act Service Desk: Article 86", url: "https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-86", kind: official}
+        - {name: "Cuatrecasas: Digital Omnibus on AI has been published", url: "https://www.cuatrecasas.com/en/spain/intellectual-property/art/digital-omnibus-ai-has-been-published", kind: secondary}
+    scope_tests:
+      - {question: "Does the client place AI on the EU market, or use AI in the EU, or is the output of its AI used in the EU?", prefill: client_geographies, prefill_codes: [EU], rule: {equals: "yes"}}
+      - {question: "Is any AI system high-risk (Annex III: employment, credit, insurance, education, essential services, biometrics)?", prefill: decision_impact, rule: {any: true}, decisive: false, note: "High-risk use adds the Art. 26 deployer duties; AI literacy applies to every AI system."}
+    requirements:
+      - code: EU-01
+        text: "Take measures to support the AI literacy of staff and others who operate or use AI on the client's behalf"
+        applies_to: [provider, deployer]
+        needed_by: go_live
+        evidence: "Training plan, completion records"
+        role: ai_literacy_owner
+        ai_types: [all]
+        citation: "EU AI Act Art. 4 (as amended by Reg. (EU) 2026/1744)"
+        quote: "Providers and deployers of AI systems shall take measures to support the development of AI literacy of their staff"
+        source: 0
+      - code: EU-02
+        text: "Use high-risk AI in line with the provider's instructions for use"
+        applies_to: [deployer]
+        needed_by: go_live
+        evidence: "Instructions for use; operating procedure"
+        role: technical_owner
+        ai_types: [decision]
+        citation: "EU AI Act Art. 26(1)"
+        quote: "shall take appropriate technical and organisational measures to ensure they use such systems"
+        source: 1
+      - code: EU-03
+        text: "Assign human oversight to people with the competence, training and authority to do it"
+        applies_to: [deployer]
+        needed_by: go_live
+        evidence: "Appointment, training record, authority to override"
+        role: human_oversight_person
+        ai_types: [decision, agent]
+        citation: "EU AI Act Art. 26(2)"
+        quote: "competence, training and authority"
+        source: 1
+      - code: EU-04
+        text: "Monitor the system and, on a serious incident, inform the provider first and then the authorities"
+        applies_to: [deployer]
+        needed_by: go_live
+        evidence: "Monitoring procedure; incident log"
+        role: incident_response_lead
+        ai_types: [decision]
+        citation: "EU AI Act Art. 26(5)"
+        quote: "Where deployers have identified a serious incident, they shall also immediately inform first the provider"
+        source: 1
+      - code: EU-05
+        text: "Keep the system's automatically generated logs for at least six months"
+        applies_to: [deployer]
+        needed_by: go_live
+        evidence: "Log retention setting; retention schedule"
+        role: records_retention_owner
+        ai_types: [decision]
+        citation: "EU AI Act Art. 26(6)"
+        quote: "at least six months"
+        source: 1
+      - code: EU-06
+        text: "Before workplace use, inform workers' representatives and the affected workers"
+        applies_to: [deployer, employer]
+        needed_by: go_live
+        evidence: "Notice to works council or representatives; date"
+        role: worker_rep_contact
+        ai_types: [decision]
+        citation: "EU AI Act Art. 26(7)"
+        quote: "that they will be subject to the use"
+        source: 1
+      - code: EU-07
+        text: "Tell people that a high-risk system is used to make or help make decisions about them"
+        applies_to: [deployer]
+        needed_by: go_live
+        evidence: "Notice text, delivery"
+        role: transparency_notice_owner
+        ai_types: [decision]
+        citation: "EU AI Act Art. 26(11)"
+        quote: "shall inform the natural persons that they are subject to the use of the high-risk AI system"
+        source: 0
+      - code: EU-08
+        text: "Complete a fundamental rights impact assessment before use, where the deployer is a public body, provides public services, or uses AI for credit scoring or life and health insurance pricing"
+        applies_to: [deployer]
+        needed_by: go_live
+        evidence: "Completed assessment"
+        role: impact_assessment_owner
+        ai_types: [decision]
+        citation: "EU AI Act Art. 27(1)"
+        quote: "Prior to deploying a high-risk AI system referred to in Article 6(2)"
+        source: 0
+      - code: EU-09
+        text: "Disclose deep fakes as artificially generated or manipulated, and tell people exposed to emotion recognition or biometric categorisation"
+        applies_to: [deployer]
+        needed_by: go_live
+        evidence: "Labels, notices"
+        role: transparency_notice_owner
+        ai_types: [genai]
+        citation: "EU AI Act Art. 50(3)–(4)"
+        quote: "Deployers of an AI system that generates or manipulates image, audio or video content constituting a deep fake"
+        source: 4
+      - code: EU-10
+        text: "Tell people when they are interacting with an AI system, unless it is obvious"
+        applies_to: [provider]
+        needed_by: go_live
+        evidence: "Chat disclosure text"
+        role: transparency_notice_owner
+        ai_types: [genai]
+        citation: "EU AI Act Art. 50(1)"
+        quote: "Providers shall ensure that AI systems intended to interact directly with natural persons are designed and developed"
+        source: 4
+      - code: EU-11
+        text: "On request, give a clear and meaningful explanation of the AI system's role in a decision about the person"
+        applies_to: [deployer]
+        needed_by: go_live
+        evidence: "Explanation procedure, response log"
+        role: explainability_contact
+        ai_types: [decision]
+        citation: "EU AI Act Art. 86(1)"
+        quote: "obtain from the deployer clear and meaningful explanations of the role of the AI system in the decision-making procedure"
+        source: 5
+      - code: EU-12
+        text: "Make sure the people overseeing a high-risk system can intervene or stop it"
+        applies_to: [provider, deployer]
+        needed_by: go_live
+        evidence: "Stop procedure; named authority"
+        role: stop_authority
+        ai_types: [agent, decision]
+        citation: "EU AI Act Art. 14(4)(e)"
+        quote: "to intervene in the operation of the high-risk AI system or interrupt the system through a 'stop' button"
+        source: 0
+      - code: EU-13
+        text: "Report a serious incident to the market surveillance authority no later than 15 days after becoming aware (2 days for widespread infringements, 10 days for a death)"
+        applies_to: [provider, deployer]
+        needed_by: go_live
+        evidence: "Incident procedure with deadlines; reports filed"
+        role: incident_response_lead
+        ai_types: [decision]
+        citation: "EU AI Act Art. 73(2)–(4)"
+        quote: "not later than 15 days after the provider or, where applicable, the deployer, becomes aware of the serious incident"
+        source: 3
+    role_maps:
+      - {role: ai_literacy_owner, level: required, needed_by: go_live, requirements: [EU-01], basis: "Art. 4: AI literacy"}
+      - {role: technical_owner, level: required, needed_by: go_live, requirements: [EU-02], basis: "Art. 26(1): use per instructions (high-risk)"}
+      - {role: human_oversight_person, level: required, needed_by: go_live, requirements: [EU-03], basis: "Art. 14, 26(2): deployer assigns oversight to trained people"}
+      - {role: incident_response_lead, level: required, needed_by: go_live, requirements: [EU-04, EU-13], basis: "Art. 26(5), 73: serious incidents"}
+      - {role: records_retention_owner, level: required, needed_by: go_live, requirements: [EU-05], basis: "Art. 26(6): logs for at least six months"}
+      - {role: worker_rep_contact, level: required, needed_by: go_live, requirements: [EU-06], basis: "Art. 26(7): workplace use"}
+      - {role: transparency_notice_owner, level: required, needed_by: go_live, requirements: [EU-07, EU-09, EU-10], basis: "Art. 26(11), 50: notices and disclosure"}
+      - {role: impact_assessment_owner, level: required, needed_by: go_live, requirements: [EU-08], basis: "Art. 27: certain deployers only"}
+      - {role: explainability_contact, level: required, needed_by: go_live, requirements: [EU-11], basis: "Art. 86: right to explanation"}
+      - {role: stop_authority, level: required, needed_by: go_live, requirements: [EU-12], basis: "Art. 14(4)(e): high-risk systems"}
+      - {role: ai_compliance_officer, level: recommended, needed_by: development, basis: "Art. 26: someone must run the deployer duties"}
+      - {role: vendor_ai_risk_owner, level: recommended, needed_by: procurement, basis: "Art. 25: value chain responsibilities"}
+      - {role: data_consent_steward, level: recommended, needed_by: development, basis: "Art. 10: data governance (providers)"}
+      - {role: dpo, level: recommended, needed_by: go_live, basis: "Works with GDPR assessments"}
+      - {role: accountable_executive, level: recommended, needed_by: development}
+    committees:
+      - {type: quality_management_system, level: required, title: "Quality management system", basis: "EU AI Act Art. 17 (providers of high-risk AI; text not re-read for this seed)", condition: "Applies only if the client builds and sells high-risk AI", items: ["Accountability framework with named roles", "Post-market monitoring and incident reporting"]}
+
+  # ---------------------------------------------------------------- GDPR
+  - key: gdpr
+    jurisdiction: EU
+    match: "^GDPR"
+    label: GDPR
+    region: eu
+    binding: true
+    topics: [personal_data]
+    version:
+      status: in_force
+      effective_on: 2018-05-25
+      effective_text: "Applies from 25 May 2018"
+      scope_text: "Controllers and processors of personal data of people in the EU, including automated decision-making and profiling."
+      applies_to: [data_fiduciary]
+      enforcer: "National data protection authorities"
+      penalty_text: "Up to EUR 20 million or 4% of worldwide annual turnover for the most serious breaches (Art. 83(5); not re-read for this seed)"
+      main_duty: "Lawful basis; DPIA for high-risk profiling; human intervention in solely automated decisions"
+      sources:
+        - {name: "EUR-Lex: Regulation (EU) 2016/679", url: "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX%3A02016R0679-20160504", kind: official}
+    scope_tests:
+      - {question: "Does the client process personal data of people in the EU?", prefill: client_geographies, prefill_codes: [EU], rule: {equals: "yes"}}
+    requirements:
+      - code: GDPR-01
+        text: "For solely automated decisions with legal or similar effects, give the person the right to human intervention, to express a view and to contest the decision"
+        applies_to: [data_fiduciary]
+        needed_by: go_live
+        evidence: "Appeal route, reviewer, case log"
+        role: appeals_correction_reviewer
+        ai_types: [decision]
+        citation: "GDPR Art. 22(1), (3)"
+        quote: "at least the right to obtain human intervention on the part of the controller"
+        source: 0
+      - code: GDPR-02
+        text: "Tell the person about automated decision-making and give meaningful information about the logic involved"
+        applies_to: [data_fiduciary]
+        needed_by: go_live
+        evidence: "Privacy notice wording"
+        role: explainability_contact
+        ai_types: [decision]
+        citation: "GDPR Art. 13(2)(f)"
+        quote: "meaningful information about the logic involved"
+        source: 0
+      - code: GDPR-03
+        text: "Carry out a data protection impact assessment before high-risk processing, including systematic automated evaluation and profiling"
+        applies_to: [data_fiduciary]
+        needed_by: go_live
+        evidence: "DPIA"
+        role: impact_assessment_owner
+        ai_types: [decision]
+        citation: "GDPR Art. 35(1), (3)(a)"
+        quote: "a systematic and extensive evaluation of personal aspects relating to natural persons"
+        source: 0
+      - code: GDPR-04
+        text: "Designate a data protection officer where core activities involve large-scale systematic monitoring or large-scale special-category data"
+        applies_to: [data_fiduciary]
+        needed_by: go_live
+        evidence: "DPO appointment; published contact"
+        role: dpo
+        ai_types: [all]
+        citation: "GDPR Art. 37(1)(b)–(c)"
+        quote: "require regular and systematic monitoring of data subjects on a large scale"
+        source: 0
+    role_maps:
+      - {role: appeals_correction_reviewer, level: required, needed_by: go_live, requirements: [GDPR-01], basis: "Art. 22(3): human intervention"}
+      - {role: explainability_contact, level: required, needed_by: go_live, requirements: [GDPR-02], basis: "Art. 13(2)(f): logic involved"}
+      - {role: impact_assessment_owner, level: required, needed_by: go_live, requirements: [GDPR-03], basis: "Art. 35: DPIA"}
+      - {role: dpo, level: required, needed_by: go_live, requirements: [GDPR-04], basis: "Art. 37(1): where core activities require it"}
+      - {role: data_consent_steward, level: required, needed_by: development, basis: "Lawful basis for processing (Art. 6; not re-read for this seed)", verify: true}
+
+  # ---------------------------------------------------------------- India DPDP
+  - key: in_dpdp
+    jurisdiction: IN
+    match: "Digital Personal Data Protection Act"
+    label: India DPDP
+    region: india
+    binding: true
+    topics: [personal_data]
+    version:
+      status: in_force_phased
+      effective_text: "Rules notified Nov 2025; most duties apply after an 18-month phase-in"
+      scope_text: "Data fiduciaries processing digital personal data in India, or outside India when offering goods or services to people in India. Extra duties for significant data fiduciaries."
+      applies_to: [data_fiduciary]
+      enforcer: "Data Protection Board of India"
+      penalty_text: "Up to ₹250 crore for failing to take reasonable security safeguards (Schedule, item 1)"
+      main_duty: "Notice and consent; grievance redress; for significant data fiduciaries, a DPO in India, an independent data auditor and periodic DPIA"
+      sources:
+        - {name: "MeitY: Digital Personal Data Protection Act, 2023", url: "https://www.meity.gov.in/static/uploads/2024/06/2bf1f0e9f04e6fb4f8fef35e82c42aa5.pdf", kind: official}
+        - {name: "PIB: Government notifies DPDP Rules (14 Nov 2025)", url: "https://www.pib.gov.in/PressReleasePage.aspx?PRID=2190014", kind: official}
+    scope_tests:
+      - {question: "Does the client process digital personal data in India, or offer goods or services to people in India?", prefill: client_geographies, prefill_codes: [IN], rule: {equals: "yes"}}
+      - {question: "Has the client been notified as a significant data fiduciary?", rule: {any: true}, decisive: false, note: "Adds the DPO in India, independent data auditor and periodic DPIA."}
+    requirements:
+      - code: DPDP-01
+        text: "Give a notice with or before every consent request, explaining the personal data and the purpose"
+        applies_to: [data_fiduciary]
+        needed_by: go_live
+        evidence: "Notice text"
+        role: transparency_notice_owner
+        ai_types: [all]
+        citation: "DPDP Act §5"
+        quote: "accompanied or preceded by a notice"
+        source: 0
+      - code: DPDP-02
+        text: "Rely on consent that is free, specific, informed, unconditional and unambiguous, limited to the stated purpose"
+        applies_to: [data_fiduciary]
+        needed_by: development
+        evidence: "Consent records"
+        role: data_consent_steward
+        ai_types: [all]
+        citation: "DPDP Act §6(1)"
+        quote: "free, specific, informed, unconditional and unambiguous"
+        source: 0
+      - code: DPDP-03
+        text: "Publish the business contact of a data protection officer or a person who can answer questions about processing"
+        applies_to: [data_fiduciary]
+        needed_by: go_live
+        evidence: "Published contact"
+        role: dpo
+        ai_types: [all]
+        citation: "DPDP Act §8(9)"
+        quote: "the business contact information of a Data Protection Officer"
+        source: 0
+      - code: DPDP-04
+        text: "Set up an effective mechanism to redress data principals' grievances"
+        applies_to: [data_fiduciary]
+        needed_by: go_live
+        evidence: "Grievance process; named officer; response log"
+        role: grievance_officer_india
+        ai_types: [all]
+        citation: "DPDP Act §8(10)"
+        quote: "shall establish an effective mechanism to redress the grievances of Data Principals"
+        source: 0
+      - code: DPDP-05
+        text: "Answer requests to access, correct, update or erase personal data within 90 days"
+        applies_to: [data_fiduciary]
+        needed_by: go_live
+        evidence: "Request log with response dates"
+        role: grievance_officer_india
+        ai_types: [all]
+        citation: "DPDP Rules 2025 (rule number not confirmed)"
+        quote: "a maximum of 90 days"
+        source: 1
+        verify: true
+      - code: DPDP-06
+        text: "Significant data fiduciaries: appoint a data protection officer based in India"
+        applies_to: [data_fiduciary]
+        needed_by: go_live
+        evidence: "DPO appointment"
+        role: dpo
+        ai_types: [all]
+        citation: "DPDP Act §10(2)(a)"
+        quote: "appoint a Data Protection Officer"
+        source: 0
+      - code: DPDP-07
+        text: "Significant data fiduciaries: appoint an independent data auditor"
+        applies_to: [data_fiduciary]
+        needed_by: yearly
+        evidence: "Auditor engagement; audit report"
+        role: ai_compliance_officer
+        ai_types: [all]
+        citation: "DPDP Act §10(2)(b)"
+        quote: "independent data auditor"
+        source: 0
+      - code: DPDP-08
+        text: "Significant data fiduciaries: carry out a periodic data protection impact assessment"
+        applies_to: [data_fiduciary]
+        needed_by: yearly
+        evidence: "DPIA"
+        role: impact_assessment_owner
+        ai_types: [all]
+        citation: "DPDP Act §10(2)(c)(i)"
+        quote: "periodic Data Protection Impact Assessment"
+        source: 0
+    role_maps:
+      - {role: grievance_officer_india, level: required, needed_by: go_live, requirements: [DPDP-04, DPDP-05], basis: "§8(10): grievance redress"}
+      - {role: data_consent_steward, level: required, needed_by: development, requirements: [DPDP-02], basis: "§6: consent"}
+      - {role: transparency_notice_owner, level: required, needed_by: go_live, requirements: [DPDP-01], basis: "§5: notice"}
+      - {role: dpo, level: required, needed_by: go_live, requirements: [DPDP-03, DPDP-06], basis: "§8(9); §10(2)(a) for significant data fiduciaries"}
+      - {role: impact_assessment_owner, level: recommended, needed_by: yearly, requirements: [DPDP-08], basis: "§10(2)(c): significant data fiduciaries only"}
+    committees:
+      - {type: sdf_setup, level: required, title: "Significant data fiduciary set-up", basis: "India DPDP Act §10 (if designated)", condition: "Only if designated a significant data fiduciary", items: ["DPO based in India", "Independent data auditor", "Periodic data protection impact assessment"]}
+
+  # ---------------------------------------------------------------- California CCPA ADMT regulations
+  - key: ca_ccpa_admt
+    jurisdiction: US-CA
+    match: "^CCPA automated-decisionmaking technology$"
+    label: CA CCPA ADMT
+    region: us_states
+    binding: true
+    topics: [consumer_decisions, personal_data]
+    version:
+      status: in_force_phased
+      effective_on: 2026-01-01
+      compliance_on: 2027-01-01
+      effective_text: "Regulations effective 1 Jan 2026; ADMT duties from 1 Jan 2027; risk assessment attestation due 1 Apr 2028"
+      scope_text: "Businesses subject to the CCPA that use automated decisionmaking technology to make a significant decision about a consumer: financial or lending services, housing, education, employment or compensation, and health care."
+      applies_to: [deployer]
+      enforcer: "California Privacy Protection Agency"
+      penalty_text: "Administrative fines per violation under the CCPA"
+      main_duty: "Pre-use notice; opt-out or human appeal; access to ADMT information; risk assessment"
+      sources:
+        - {name: "CPPA: Approved regulations text", url: "https://cppa.ca.gov/regulations/pdf/ccpa_updates_cyber_risk_admt_appr_text.pdf", kind: official}
+        - {name: "CPPA: California finalizes regulations (23 Sep 2025)", url: "https://cppa.ca.gov/announcements/2025/20250923.html", kind: official}
+        - {name: "CPPA: ADMT fact sheet (draft, 2023)", url: "https://cppa.ca.gov/meetings/materials/adt_regulations.pdf", kind: official}
+    scope_tests:
+      - {question: "Is the client a business subject to the CCPA (California consumers or employees)?", prefill: client_geographies, prefill_codes: [US-CA], rule: {equals: "yes"}}
+      - {question: "Does any AI system make a significant decision about a consumer (lending, housing, education, employment, health care)?", prefill: decision_impact, rule: {equals: "yes"}}
+    requirements:
+      - code: CA-ADMT-01
+        text: "Give consumers a pre-use notice before using ADMT for a significant decision"
+        applies_to: [deployer]
+        needed_by: go_live
+        evidence: "Pre-use notice text"
+        role: transparency_notice_owner
+        ai_types: [decision]
+        citation: "11 CCR §7220 (referenced in §7010(c))"
+        quote: "must provide consumers with a Pre-use Notice in accordance with section 7220"
+        source: 0
+      - code: CA-ADMT-02
+        text: "Let consumers opt out of ADMT, unless an exception applies such as an appeal to a qualified human reviewer"
+        applies_to: [deployer]
+        needed_by: go_live
+        evidence: "Opt-out link or appeal route; reviewer"
+        role: appeals_correction_reviewer
+        ai_types: [decision]
+        citation: "11 CCR §7221 (referenced in §7010(d))"
+        quote: "a link through which consumers can opt-out of the business's use of ADMT"
+        source: 0
+        verify: true
+      - code: CA-ADMT-03
+        text: "Answer consumer requests to access information about how the business used ADMT"
+        applies_to: [deployer]
+        needed_by: go_live
+        evidence: "Access request procedure, response log"
+        role: explainability_contact
+        ai_types: [decision]
+        citation: "11 CCR §7222 (definition in §7001(jj))"
+        quote: "a consumer request that a business provide information to the consumer about the business's use of ADMT"
+        source: 0
+      - code: CA-ADMT-04
+        text: "Complete a risk assessment before using ADMT for a significant decision; submit the attestation and summary by 1 Apr 2028"
+        applies_to: [deployer]
+        needed_by: go_live
+        evidence: "Risk assessment; attestation"
+        role: impact_assessment_owner
+        ai_types: [decision]
+        citation: "CCPA regulations, risk assessments (section number not confirmed)"
+        quote: "By April 1, 2028, covered businesses must submit an attestation"
+        source: 1
+        verify: true
+    role_maps:
+      - {role: transparency_notice_owner, level: required, needed_by: go_live, requirements: [CA-ADMT-01], basis: "§7220: pre-use notice"}
+      - {role: appeals_correction_reviewer, level: required, needed_by: go_live, requirements: [CA-ADMT-02], basis: "§7221: opt-out or human appeal"}
+      - {role: explainability_contact, level: required, needed_by: go_live, requirements: [CA-ADMT-03], basis: "§7222: access to ADMT information"}
+      - {role: impact_assessment_owner, level: required, needed_by: go_live, requirements: [CA-ADMT-04], basis: "Risk assessment"}
+      - {role: data_consent_steward, level: recommended, needed_by: development}
+    committees:
+      - {type: risk_program, level: required, title: "Risk assessment program", basis: "CCPA regulations (risk assessments from 1 Jan 2026; attestation by 1 Apr 2028)", items: ["Risk assessment before ADMT for significant decisions", "Attestation and summary to the CPPA"]}
+      - {type: consequential_decision_rights, level: required, title: "Consequential-decision rights", basis: "CCPA ADMT (from 1 Jan 2027)", items: ["Pre-use notice", "Opt-out or human appeal", "Access to ADMT information"]}
+
+  # ---------------------------------------------------------------- California Civil Rights Council ADS regulations
+  - key: ca_ads_rules
+    jurisdiction: US-CA
+    match: "^FEHA automated-decision system regulations$"
+    label: CA ADS rules
+    region: us_states
+    binding: true
+    topics: [hiring]
+    version:
+      status: in_force
+      effective_on: 2025-10-01
+      effective_text: "In force 1 Oct 2025"
+      scope_text: "Employers and other covered entities, and their agents, that use automated-decision systems in employment decisions in California."
+      applies_to: [employer]
+      enforcer: "California Civil Rights Department"
+      penalty_text: "Remedies under the Fair Employment and Housing Act"
+      main_duty: "No discriminatory effect; keep automated-decision data for 4 years; anti-bias testing counts as evidence"
+      sources:
+        - {name: "Civil Rights Council: approval of ADS regulations (30 Jun 2025)", url: "https://calcivilrights.ca.gov/2025/06/30/civil-rights-council-secures-approval-for-regulations-to-protect-against-employment-discrimination-related-to-artificial-intelligence/", kind: official}
+        - {name: "Civil Rights Council: final text (Attachment B)", url: "https://calcivilrights.ca.gov/wp-content/uploads/sites/32/2025/03/Attachment-B-Final-Unmodified-Text-of-Proposed-Employment-Regulations-Regarding-Automated-Decision-Systems.pdf", kind: official}
+    scope_tests:
+      - {question: "Does the client employ or recruit people in California?", prefill: client_geographies, prefill_codes: [US-CA], rule: {equals: "yes"}}
+      - {question: "Does any AI system make or help make employment decisions?", prefill: decision_impact, prefill_feature: employment, rule: {equals: "yes"}}
+    requirements:
+      - code: CA-ADS-01
+        text: "Do not use an automated-decision system that harms applicants or employees based on protected characteristics"
+        applies_to: [employer]
+        needed_by: go_live
+        evidence: "Adverse-impact analysis"
+        role: bias_testing_lead
+        ai_types: [decision]
+        citation: "Cal. Code Regs., tit. 2, §11008.1 et seq. (Civil Rights Council ADS regulations)"
+        quote: "may violate California law if it harms applicants or employees based on protected characteristics"
+        source: 0
+      - code: CA-ADS-02
+        text: "Run and document anti-bias testing; its presence or absence is evidence in a claim or defence"
+        applies_to: [employer]
+        needed_by: go_live
+        evidence: "Bias test reports, dates, scope"
+        role: bias_testing_lead
+        ai_types: [decision]
+        citation: "Cal. Code Regs., tit. 2, §11009(f)"
+        quote: "Relevant to any such claim or available defense is evidence, or the lack of evidence, of anti-bias testing"
+        source: 1
+      - code: CA-ADS-03
+        text: "Keep employment records, including automated-decision system data, for at least four years"
+        applies_to: [employer]
+        needed_by: ongoing
+        evidence: "Retention schedule covering ADS data"
+        role: records_retention_owner
+        ai_types: [decision]
+        citation: "Cal. Code Regs., tit. 2, §11013(c)"
+        quote: "shall be preserved by the employer or other covered entity for a period of four years"
+        source: 1
+    role_maps:
+      - {role: records_retention_owner, level: required, needed_by: ongoing, requirements: [CA-ADS-03], basis: "§11013(c): 4-year records"}
+      - {role: bias_testing_lead, level: recommended, needed_by: go_live, requirements: [CA-ADS-01, CA-ADS-02], basis: "§11009(f): anti-bias testing as evidence"}
+
+  # ---------------------------------------------------------------- India CERT-In Directions
+  - key: in_certin
+    jurisdiction: IN
+    match: "CERT-In"
+    create:
+      short_name: "CERT-In Directions under section 70B(6) of the IT Act (2022)"
+      feature: government_other
+      type: regulation
+      applies_to: deployer
+      full_text: "CERT-In Directions No. 20(3)/2022-CERT-In of 28 April 2022 under section 70B(6) of the Information Technology Act, 2000: incident reporting within 6 hours, point of contact, 180-day logs, clock synchronisation."
+    label: India CERT-In
+    region: india
+    binding: true
+    topics: [security]
+    version:
+      status: in_force
+      effective_text: "Issued 28 Apr 2022; effective 60 days after issue"
+      scope_text: "Service providers, intermediaries, data centres, body corporate and government organisations, including those running AI systems in India."
+      applies_to: [deployer]
+      enforcer: "CERT-In (Indian Computer Emergency Response Team)"
+      penalty_text: "Punitive action under section 70B(7) of the IT Act"
+      main_duty: "Report cyber incidents to CERT-In within 6 hours; keep logs for 180 days in India"
+      sources:
+        - {name: "CERT-In Directions of 28 Apr 2022", url: "https://www.cert-in.org.in/PDF/CERT-In_Directions_70B_28.04.2022.pdf", kind: official}
+    scope_tests:
+      - {question: "Does the client run ICT systems or provide services in India?", prefill: client_geographies, prefill_codes: [IN], rule: {equals: "yes"}}
+    requirements:
+      - code: CERTIN-01
+        text: "Report listed cyber incidents, including those involving AI systems, to CERT-In within 6 hours of noticing them"
+        applies_to: [deployer]
+        needed_by: go_live
+        evidence: "Incident procedure with the 6-hour step; reports filed"
+        role: incident_response_lead
+        ai_types: [all]
+        citation: "CERT-In Directions, 28 Apr 2022, direction (ii)"
+        quote: "within 6 hours of noticing such incidents"
+        source: 0
+      - code: CERTIN-02
+        text: "Designate a point of contact to interface with CERT-In"
+        applies_to: [deployer]
+        needed_by: go_live
+        evidence: "Named point of contact sent to CERT-In"
+        role: incident_response_lead
+        ai_types: [all]
+        citation: "CERT-In Directions, 28 Apr 2022, direction (iii)"
+        quote: "designate a Point of Contact to interface with CERT-In"
+        source: 0
+      - code: CERTIN-03
+        text: "Keep ICT system logs for a rolling 180 days within India"
+        applies_to: [deployer]
+        needed_by: go_live
+        evidence: "Log retention configuration"
+        role: records_retention_owner
+        ai_types: [all]
+        citation: "CERT-In Directions, 28 Apr 2022, direction (iv)"
+        quote: "for a rolling period of 180 days"
+        source: 0
+      - code: CERTIN-04
+        text: "Synchronise system clocks to the NIC or NPL time servers"
+        applies_to: [deployer]
+        needed_by: go_live
+        evidence: "NTP configuration"
+        role: technical_owner
+        ai_types: [all]
+        citation: "CERT-In Directions, 28 Apr 2022, direction (i)"
+        quote: "connect to the Network Time Protocol (NTP) Server"
+        source: 0
+    role_maps:
+      - {role: incident_response_lead, level: required, needed_by: go_live, requirements: [CERTIN-01, CERTIN-02], basis: "Directions (ii)–(iii): 6-hour reporting, point of contact"}
+      - {role: records_retention_owner, level: required, needed_by: go_live, requirements: [CERTIN-03], basis: "Direction (iv): 180-day logs"}
+      - {role: technical_owner, level: required, needed_by: go_live, requirements: [CERTIN-04], basis: "Direction (i): clock synchronisation"}
+
+  # ---------------------------------------------------------------- NIST AI RMF (framework baseline)
+  - key: nist_ai_rmf
+    jurisdiction: US
+    match: "NIST AI Risk Management Framework"
+    label: NIST / ISO
+    region: framework
+    binding: false
+    topics: [framework]
+    version:
+      status: guidance
+      effective_text: "Version 1.0, January 2023"
+      scope_text: "Any organisation designing, developing, deploying or using AI. Voluntary; Futran's audit baseline."
+      applies_to: [developer, deployer]
+      enforcer: "None (voluntary)"
+      penalty_text: "None (voluntary)"
+      main_duty: "Futran's audit baseline: governance roles, testing, incident handling"
+      sources:
+        - {name: "NIST AI RMF Core (AI Resource Center)", url: "https://airc.nist.gov/airmf-resources/airmf/5-sec-core/", kind: official}
+    scope_tests:
+      - {question: "Futran baseline: applies to every client", rule: {any: true}}
+    requirements:
+      - {code: NIST-GV2.1, text: "Document roles, responsibilities and lines of communication for managing AI risk", applies_to: [deployer], needed_by: development, evidence: "RACI; role appointments", role: ai_compliance_officer, ai_types: [all], citation: "NIST AI RMF GOVERN 2.1", quote: "Roles and responsibilities and lines of communication related to mapping, measuring, and managing AI risks are documented", source: 0}
+      - {code: NIST-GV2.3, text: "Executive leadership takes responsibility for decisions about AI risk", applies_to: [deployer], needed_by: development, evidence: "Board or executive resolution", role: accountable_executive, ai_types: [all], citation: "NIST AI RMF GOVERN 2.3", quote: "Executive leadership of the organization takes responsibility for decisions about risks associated with AI system", source: 0}
+      - {code: NIST-GV3.1, text: "AI risk decisions are informed by a diverse team", applies_to: [deployer], needed_by: program_setup, evidence: "Committee charter and membership", role: ai_governance_committee, ai_types: [all], citation: "NIST AI RMF GOVERN 3.1", quote: "Decision-making related to mapping, measuring, and managing AI risks throughout the lifecycle is informed by a diverse team", source: 0}
+      - {code: NIST-GV6.1, text: "Policies address AI risks from third parties", applies_to: [deployer], needed_by: procurement, evidence: "Vendor AI risk procedure", role: vendor_ai_risk_owner, ai_types: [all], citation: "NIST AI RMF GOVERN 6.1", quote: "Policies and procedures are in place that address AI risks associated with third-party entities", source: 0}
+      - {code: NIST-MS2.11, text: "Evaluate fairness and bias and document the results", applies_to: [deployer], needed_by: go_live, evidence: "Bias test report", role: bias_testing_lead, ai_types: [decision], citation: "NIST AI RMF MEASURE 2.11", quote: "Fairness and bias – as identified in the map function – are evaluated and results are documented.", source: 0}
+      - {code: NIST-MG2.4, text: "Assign responsibility to supersede, disengage or deactivate an AI system that behaves outside its intended use", applies_to: [deployer], needed_by: go_live, evidence: "Named stop authority; procedure", role: stop_authority, ai_types: [agent], citation: "NIST AI RMF MANAGE 2.4", quote: "Mechanisms are in place and applied, and responsibilities are assigned and understood, to supersede, disengage", source: 0}
+      - {code: NIST-MG4.3, text: "Communicate incidents and errors to relevant AI actors, including affected communities", applies_to: [deployer], needed_by: go_live, evidence: "Incident procedure; communications", role: incident_response_lead, ai_types: [all], citation: "NIST AI RMF MANAGE 4.3", quote: "Incidents and errors are communicated to relevant AI actors, including affected communities.", source: 0}
+    role_maps:
+      - {role: accountable_executive, level: recommended, needed_by: development, requirements: [NIST-GV2.3], basis: "GOVERN 2.3"}
+      - {role: ai_governance_committee, level: recommended, needed_by: program_setup, requirements: [NIST-GV3.1], basis: "GOVERN 2.1, 3.1"}
+      - {role: ai_compliance_officer, level: recommended, needed_by: development, requirements: [NIST-GV2.1], basis: "GOVERN 2.1"}
+      - {role: vendor_ai_risk_owner, level: recommended, needed_by: procurement, requirements: [NIST-GV6.1], basis: "GOVERN 6.1"}
+      - {role: ai_system_owner, level: recommended, needed_by: development, basis: "GOVERN 2.1"}
+      - {role: technical_owner, level: recommended, needed_by: go_live, basis: "GOVERN 2.1"}
+      - {role: human_oversight_person, level: recommended, needed_by: go_live, basis: "GOVERN 2.1, MANAGE"}
+      - {role: stop_authority, level: recommended, needed_by: go_live, requirements: [NIST-MG2.4], basis: "MANAGE 2.4"}
+      - {role: agent_permissions_approver, level: recommended, needed_by: go_live, basis: "GOVERN 2.1"}
+      - {role: bias_testing_lead, level: recommended, needed_by: go_live, requirements: [NIST-MS2.11], basis: "MEASURE 2.11"}
+      - {role: incident_response_lead, level: recommended, needed_by: go_live, requirements: [NIST-MG4.3], basis: "GOVERN 4.3, MANAGE 4.3"}
+      - {role: ai_literacy_owner, level: recommended, needed_by: go_live}
+    committees:
+      - {type: ai_governance_committee, level: recommended, title: "AI Governance Committee", basis: "NIST GOVERN 2.1 and 3.1; ISO/IEC 42001 §5.3", composition: "Chair: accountable executive. Members: AI Compliance Officer, Legal, Data Protection Officer, a technical lead and a business or HR lead.", cadence: "At least quarterly", triggers: "Approves high-risk (Tier 3) systems, policies and exceptions", items: ["Chair: accountable executive", "Members: AI Compliance Officer, Legal, DPO, technical lead, a business or HR lead", "Approves Tier 3 systems and exceptions", "Meets at least quarterly"]}
