@@ -30,6 +30,7 @@ class FakeWorld:
     sent: list[FakeSent] = field(default_factory=list)
     replies: dict[str, list[IncomingMessage]] = field(default_factory=dict)
     directories: dict[str, tuple[list[DirectoryEntry], list[DirectoryGroupEntry]]] = field(default_factory=dict)
+    tenants: dict[str, list[str]] = field(default_factory=dict)  # tenant id -> its verified domains, for consents that name a tenant
     fail_next: int = 0  # the next N sends fail (retry tests)
     _ids = itertools.count(1)
 
@@ -37,7 +38,11 @@ class FakeWorld:
         self.sent.clear()
         self.replies.clear()
         self.directories.clear()
+        self.tenants.clear()
         self.fail_next = 0
+
+    def add_tenant(self, tenant_id: str, domains: list[str]) -> None:
+        self.tenants[tenant_id] = [d.lower() for d in domains]
 
     def add_reply(self, thread_id: str, *, from_address: str, subject: str, body: str, auto_reply: bool = False, at: datetime | None = None) -> IncomingMessage:
         m = IncomingMessage(message_id=f"fake-in-{next(self._ids)}", from_address=from_address.lower(), subject=subject, snippet=body[:500], received_at=at or utcnow(), auto_reply=auto_reply)
@@ -104,8 +109,15 @@ class FakeAdapter:
             raise ProviderError("Access was not granted.")
         mailbox = (params.get("mailbox") or params.get("login_hint") or "").lower() or None
         domain = (params.get("domain") or (mailbox.split("@", 1)[1] if mailbox and "@" in mailbox else "example.com")).lower()
-        return Grant({"fake": True, "kind": "app" if kind == "admin" and self.provider == "microsoft365" else "delegated", "tenant": f"fake-tenant-{domain}",
-                      "domains": [domain], "mailbox": mailbox, "access_token": "fake-access", "refresh_token": "fake-refresh"})
+        # Like the real providers: the tenant's verified domains come from the provider, not from the platform. A consent
+        # that names a registered tenant gets that tenant's domains; otherwise the tenant owns the mailbox's domain.
+        tenant = str(params.get("tenant") or "")
+        if tenant and tenant in FAKE.tenants:
+            domains = list(FAKE.tenants[tenant])
+        else:
+            tenant, domains = f"fake-tenant-{domain}", [domain]
+        return Grant({"fake": True, "kind": "app" if kind == "admin" and self.provider == "microsoft365" else "delegated", "tenant": tenant if self.provider == "microsoft365" else None,
+                      "domains": domains, "mailbox": mailbox, "access_token": "fake-access", "refresh_token": "fake-refresh"})
 
     def send(self, g, m: OutgoingMessage) -> SentMessage:
         if FAKE.fail_next > 0:

@@ -46,6 +46,7 @@ class MailConnection(TimestampedTenantMixin, Base):
     provider: Mapped[str | None] = mapped_column(String(20))  # microsoft365 | google
     tenant_id: Mapped[str | None] = mapped_column(String(120))  # Entra tenant ID or Google Workspace customer
     domain: Mapped[str | None] = mapped_column(String(200))
+    verified_domains: Mapped[list | None] = mapped_column(JSON)  # domains the tenant proved at consent; the sending mailbox must be in one
     mailbox_address: Mapped[str | None] = mapped_column(String(254))
     send_as_name: Mapped[str | None] = mapped_column(String(200))
     reply_to: Mapped[str | None] = mapped_column(String(254))

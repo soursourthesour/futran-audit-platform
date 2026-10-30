@@ -2,7 +2,10 @@
 
 Consent goes through the provider's own page. The `state` sent with it is signed, names the connection and carries a
 nonce whose hash is kept on the connection, so a consent response is accepted once and only for the connection that
-asked. The callback needs no sign-in: the client's IT admin can approve from the link the Client Admin emails them.
+asked. The organisation callback needs no sign-in: the client's IT admin can approve from the link the Client Admin
+emails them. What the response grants is checked, not trusted: the tenant must have verified one of the organisation's
+own email domains and must not be connected to another organisation, and the sending mailbox must be in a verified
+domain. A personal mailbox (§27.1) is bound to the browser session that started it and must be the user's own address.
 """
 import hashlib
 import re
@@ -82,15 +85,56 @@ def _check_provider(settings: Settings, provider: str):
     return adapter
 
 
+def _domain_of(address: str | None) -> str | None:
+    return address.rsplit("@", 1)[1].lower() if address and "@" in address else None
+
+
+def own_domains(db: Session, org: Organization, mailbox: str | None) -> set[str]:
+    """The email domains that are the organisation's own: those of its users. For Futran, whose admin runs the
+    platform, the requested sending mailbox's domain counts too. A client's requested mailbox does not count: the
+    Client Admin types it, so it proves nothing."""
+    emails = db.scalars(select(User.email).where(User.organization_id == org.id, User.deleted_at.is_(None), User.status != "disabled"))
+    out = {d for d in (_domain_of(e) for e in emails) if d}
+    if org.type == "futran" and _domain_of(mailbox):
+        out.add(_domain_of(mailbox))
+    return out
+
+
+def allowed_mailbox_domains(conn: MailConnection) -> list[str] | None:
+    """Domains a connected organisation mailbox may send from: those the tenant verified at consent, or for a
+    connection made before that was recorded, the domain it was connected with. None: not connected, no limit yet."""
+    if conn.status != "connected":
+        return None
+    if conn.verified_domains:
+        return list(conn.verified_domains)
+    return [conn.domain] if conn.domain else None
+
+
+def _check_mailbox(conn: MailConnection, mailbox: str) -> str | None:
+    allowed = allowed_mailbox_domains(conn)
+    if allowed is not None and _domain_of(mailbox) not in allowed:
+        return f"Choose a mailbox in a domain your email system has verified: {', '.join(allowed)}."
+    return None
+
+
 def start_consent(db: Session, settings: Settings, actor: User | None, holder, *, provider: str, kind: str, mailbox: str | None = None, tenant: str | None = None,
-                  next_path: str | None = None) -> str:
-    """Return the provider URL that asks for consent. `holder` is a MailConnection (kind admin) or a UserMailConnection."""
+                  next_path: str | None = None, session_id: str | None = None) -> str:
+    """Return the provider URL that asks for consent. `holder` is a MailConnection (kind admin) or a UserMailConnection.
+    A personal mailbox consent needs `session_id`, the signed-in session that starts it: only that session may finish it."""
     adapter = _check_provider(settings, provider)
     nonce = secrets.token_urlsafe(16)
     target = "user" if isinstance(holder, UserMailConnection) else "org"
     payload = {"t": target, "id": holder.id, "n": nonce, "k": kind, "p": provider}
     if target == "user" and safe_next(next_path):
         payload["r"] = safe_next(next_path)  # where the person was going when the mailbox step interrupted them
+    if target == "user":
+        if not session_id:
+            raise BadRequest("Sign in again, then connect your mailbox.")
+        payload["s"] = _h(session_id)
+    if isinstance(holder, MailConnection) and mailbox:
+        problem = _check_mailbox(holder, mailbox.strip().lower())
+        if problem:
+            raise Invalid(errors=[{"field": "mailbox_address", "message": problem}])
     state = _serializer(settings).dumps(payload)
     holder.oauth_state_hash = _h(nonce)
     holder.provider = provider
@@ -113,8 +157,18 @@ def _load_state(settings: Settings, state: str) -> dict:
     return data
 
 
-def complete_consent(db: Session, settings: Settings, provider: str, params: dict) -> tuple[str, object]:
-    """Finish a consent from the provider's redirect. Returns (return path, holder)."""
+def _refuse(db: Session, holder: MailConnection, message: str) -> None:
+    """A consent whose grant does not belong to the organisation: nothing is stored, the attempt is logged."""
+    holder.status, holder.last_error = "error", message[:500]
+    adminlog.write(db, organization_id=holder.organization_id, category="consent", action="consent_failed", actor_name="Provider", summary=f"Consent refused: {message[:200]}")
+    db.flush()
+    raise BadRequest(message)
+
+
+def complete_consent(db: Session, settings: Settings, provider: str, params: dict, *, session_id: str | None = None) -> tuple[str, object]:
+    """Finish a consent from the provider's redirect. Returns (return path, holder). `session_id` is the signed-in
+    session of the browser that brought the response back (None when there is none); a personal mailbox needs the
+    session that started the consent."""
     data = _load_state(settings, params.get("state", ""))
     if data.get("p") != provider:
         raise BadRequest("This consent response is not valid.")
@@ -124,6 +178,8 @@ def complete_consent(db: Session, settings: Settings, provider: str, params: dic
         raise BadRequest("This consent response has already been used or was replaced by a newer request.")
     if data["t"] == "user" and (utcnow() - holder.updated_at).total_seconds() > STATE_MAX_AGE["user"]:
         raise BadRequest("This sign-in has expired. Connect your mailbox again.")
+    if data["t"] == "user" and (not data.get("s") or not session_id or _h(session_id) != data["s"]):
+        raise BadRequest("Finish connecting your mailbox in the same browser you started from, while signed in to the Futran Audit Platform.")
     holder.oauth_state_hash = None  # single use, whatever happens next
     adapter = _check_provider(settings, provider)
     try:
@@ -136,26 +192,48 @@ def complete_consent(db: Session, settings: Settings, provider: str, params: dic
         raise Invalid(errors=[{"field": "consent", "message": str(exc)}]) from exc
     now = utcnow()
     if isinstance(holder, UserMailConnection):
-        holder.mailbox = (grant.get("mailbox") or holder.mailbox or "").lower() or None
+        user = db.get(User, holder.user_id)
+        granted = (grant.get("mailbox") or "").strip().lower()
+        own = (user.email or "").strip().lower() if user else ""
+        if not granted or granted != own:
+            try:
+                adapter.revoke(grant)
+            except ProviderError:
+                pass
+            raise BadRequest(f"You signed in to {PROVIDER_LABELS[provider]} as {granted or 'another account'}. Connect the mailbox of your own account, {own}.")
+        holder.mailbox = granted
         holder.scopes, holder.status, holder.consented_at = adapter.scopes("user"), "connected", now
         tokens.store(settings, holder, grant)
         db.flush()
         r = safe_next(data.get("r"))
         return (with_query(RETURN_PATHS["user"], next=r) if r else RETURN_PATHS["user"]), holder
-    domains = [d.lower() for d in grant.get("domains") or []]
-    if grant.get("mailbox") and (not holder.mailbox_address or provider == "google"):
-        holder.mailbox_address = grant["mailbox"]
-    holder.tenant_id = grant.get("tenant") or holder.tenant_id
+    org = db.get(Organization, holder.organization_id)
+    domains = list(dict.fromkeys(d.lower() for d in grant.get("domains") or [] if d))
+    mailbox = (grant["mailbox"] if grant.get("mailbox") and (not holder.mailbox_address or provider == "google") else holder.mailbox_address) or None
+    own = own_domains(db, org, mailbox)
+    label = PROVIDER_LABELS[provider]
+    if not own & set(domains):
+        _refuse(db, holder, f"This {label} organisation has not verified {org.name}'s email domain ({', '.join(sorted(own)) or 'none on record'}). "
+                            f"Approve access from {org.name}'s own {label} account.")
+    if mailbox and _domain_of(mailbox) not in domains:
+        _refuse(db, holder, f"The sending mailbox {mailbox} is not in a domain this {label} organisation has verified ({', '.join(domains)}). Choose a mailbox in one of those domains.")
+    tenant = grant.get("tenant")
+    if tenant and db.scalar(select(MailConnection.id).where(MailConnection.tenant_id == tenant, MailConnection.organization_id != holder.organization_id,
+                                                            MailConnection.deleted_at.is_(None)).limit(1)):
+        _refuse(db, holder, f"This {label} tenant is already connected to another organisation on the platform. Each organisation connects its own tenant.")
+    holder.verified_domains = domains
+    holder.mailbox_address = mailbox
+    holder.tenant_id = tenant or holder.tenant_id
     holder.domain = (holder.mailbox_address.split("@", 1)[1] if holder.mailbox_address and "@" in holder.mailbox_address else (domains[0] if domains else None))
     holder.scopes, holder.status, holder.consent_at, holder.last_error = adapter.scopes(data["k"]), "connected", now, None
     holder.consent_by = grant.get("mailbox") or "the organization's IT administrator"
     tokens.store(settings, holder, grant)
     domain_check(db, settings, holder)
-    org = db.get(Organization, holder.organization_id)
     adminlog.write(db, organization_id=holder.organization_id, category="consent", action="consent", actor_name="IT admin",
                    summary=f"Admin consent for the Futran Audit Platform in {PROVIDER_LABELS[provider]} (send mail, read replies to platform emails, read users and groups)")
     adminlog.write(db, organization_id=holder.organization_id, category="connection", action="connected", actor_name="System",
-                   summary=f"Connected {PROVIDER_LABELS[provider]}" + (f"; sender {holder.mailbox_address}" if holder.mailbox_address else ""))
+                   summary=f"Connected {PROVIDER_LABELS[provider]}" + (f"; sender {holder.mailbox_address}" if holder.mailbox_address else ""),
+                   details={"tenant": holder.tenant_id, "verified_domains": domains})
     if holder.owner == "client":
         holder.onboarding_step = max(holder.onboarding_step or 1, 2)
         if db.scalar(select(DirectorySync).where(DirectorySync.connection_id == holder.id)) is None:
@@ -189,6 +267,8 @@ def update(db: Session, actor: User, conn: MailConnection, data: dict) -> MailCo
             errs.append({"field": "mailbox_address", "message": "Enter the mailbox address, for example ai-governance@yourcompany.com."})
         elif mb and conn.status == "connected" and conn.provider == "google" and conn.mailbox_address and mb != conn.mailbox_address:
             errs.append({"field": "mailbox_address", "message": "With Google Workspace the sender is the account that signed in. Connect again as the other mailbox."})
+        elif mb and _check_mailbox(conn, mb):
+            errs.append({"field": "mailbox_address", "message": _check_mailbox(conn, mb)})
         else:
             conn.mailbox_address = mb or None
             if mb:

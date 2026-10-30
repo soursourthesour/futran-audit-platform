@@ -258,18 +258,27 @@ def client_status_for_futran(client_id: str, actor: Actor = Depends(current_acto
 
 
 # ---- OAuth redirects
-def _finish(db: Session, settings, provider: str, params: dict) -> str:
-    path, _ = cx.complete_consent(db, settings, provider, params)
+def _session_id(db: Session, settings, request: Request) -> str | None:
+    """The browser's signed-in session, if any. A personal mailbox consent must come back to the session that started it."""
+    from app.auth.sessions import COOKIE_NAME, load_session
+
+    s = load_session(db, request.cookies.get(COOKIE_NAME), settings, touch=False)
+    return s.id if s is not None else None
+
+
+def _finish(db: Session, settings, provider: str, params: dict, request: Request) -> str:
+    path, _ = cx.complete_consent(db, settings, provider, params, session_id=_session_id(db, settings, request))
     return path
 
 
 @router.get("/mail/oauth/{provider}")
 def oauth_callback(provider: str, request: Request, db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
-    """Where Microsoft or Google send the browser back. No sign-in needed: the signed, single-use state identifies the
-    connection (the client's IT admin may approve from an emailed link)."""
+    """Where Microsoft or Google send the browser back. An organisation consent needs no sign-in: the signed, single-use
+    state identifies the connection (the client's IT admin may approve from an emailed link). A personal mailbox consent
+    needs the session that started it."""
     params = dict(request.query_params)
     try:
-        path = _finish(db, settings, provider, params)
+        path = _finish(db, settings, provider, params, request)
         db.commit()
         return RedirectResponse(f"{settings.base_url}{cx.with_query(path, connected='1')}", status_code=302)
     except AppError as exc:
@@ -279,14 +288,14 @@ def oauth_callback(provider: str, request: Request, db: Session = Depends(get_db
 
 
 @router.post("/mail/oauth/{provider}/test")
-def oauth_test_consent(provider: str, body: TestConsentIn, db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
+def oauth_test_consent(provider: str, body: TestConsentIn, request: Request, db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     """Test mode only: the platform's own consent page stands in for Microsoft's or Google's."""
     if not use_fake(settings):
         raise NotFound()
     params = {"state": body.state, "mailbox": body.mailbox, "admin_consent": "True", "code": "test-code"}
     if not body.approve:
         params["error"] = "access_denied"
-    return {"redirect": cx.with_query(_finish(db, settings, provider, params), connected="1")}
+    return {"redirect": cx.with_query(_finish(db, settings, provider, params, request), connected="1")}
 
 
 @router.get("/mail/test-consent-info")
@@ -331,7 +340,8 @@ def my_mailbox_connect(body: ConnectIn, actor: Actor = Depends(current_actor), d
         raise Conflict("Your organization has switched off personal mailbox connections.")
     uc = cx.user_connection(db, actor.user, create=True)
     uc.mailbox = uc.mailbox or actor.user.email
-    return {"url": cx.start_consent(db, settings, actor.user, uc, provider=body.provider, kind="user", next_path=body.next)}
+    return {"url": cx.start_consent(db, settings, actor.user, uc, provider=body.provider, kind="user", next_path=body.next,
+                                    session_id=actor.session.id if actor.session else None)}
 
 
 @router.post("/me/mailbox/decline")

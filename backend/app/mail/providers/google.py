@@ -9,6 +9,7 @@ Docs: https://developers.google.com/accounts/docs/OAuth , https://developers.goo
 https://knowledge.workspace.google.com/admin/apps/control-which-apps-access-google-workspace-data
 """
 import base64
+import json
 from datetime import datetime, timezone
 from email.message import EmailMessage
 from email.utils import formataddr
@@ -64,7 +65,13 @@ class GoogleAdapter:
                        "scope": tok.get("scope", "")})
             prof = request(c, "GET", f"{GMAIL}/profile", "Reading the mailbox", headers=self._auth(g)).json()
             g["mailbox"] = (prof.get("emailAddress") or "").lower()
-            g["domains"] = [g["mailbox"].split("@", 1)[1]] if "@" in g["mailbox"] else []
+            domains = [g["mailbox"].split("@", 1)[1]] if "@" in g["mailbox"] else []
+            hd = _hosted_domain(tok.get("id_token"))
+            if hd:
+                g["hosted_domain"] = hd
+                if hd not in domains:
+                    domains.append(hd)
+            g["domains"] = domains
             return g
 
     def _ensure(self, c: httpx.Client, g) -> None:
@@ -165,3 +172,17 @@ class GoogleAdapter:
                 request(c, "POST", REVOKE, "Revoking access", data={"token": token}, headers={"Content-Type": "application/x-www-form-urlencoded"})
             except ProviderError:
                 pass  # the token is deleted here either way
+
+
+def _hosted_domain(id_token: str | None) -> str | None:
+    """The Workspace domain (`hd` claim) of the account that signed in. The ID token comes straight from Google's token
+    endpoint over TLS, so its claims are read without checking the signature (Google's guidance for this case)."""
+    if not id_token or id_token.count(".") != 2:
+        return None
+    try:
+        body = id_token.split(".")[1]
+        claims = json.loads(base64.urlsafe_b64decode(body + "=" * (-len(body) % 4)))
+    except (ValueError, TypeError):
+        return None
+    hd = claims.get("hd") if isinstance(claims, dict) else None
+    return str(hd).lower() if hd else None
