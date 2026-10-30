@@ -247,7 +247,7 @@ def post_bulk(body: dict, actor: Actor = Depends(current_actor), db: Session = D
         if body.get("roles"):
             check(db, actor, Action.FILL_SYSTEM_ROLES, s)
     direct = all(may(db, actor, Action.REMOVE_SYSTEM_LAW, s) for s in systems)
-    return bulk_edit(db, actor.user, systems, body, can_remove_law_directly=direct)
+    return bulk_edit(db, actor.user, systems, body, can_remove_law_directly=direct, rights=actor)
 
 
 # ---- history log, first-entry questions, bias tests (R6)
@@ -377,3 +377,72 @@ def file_access(db: Session, actor: Actor, f) -> None:
         authorize(db, actor, Action.VIEW_REGISTER, org_id=s.organization_id)
         return
     load(db, actor, s.id)
+
+
+# ---- governance roles (R3) and the go-live gate (§24.3)
+@router.get("/register/{system_id}/roles")
+def get_roles(system_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    from app.register.gate import gate_for, role_summary
+    from app.register.roles import people_options, role_rows
+
+    s = load(db, actor, system_id)
+    summary = role_summary(db, s)
+    return {"system": system_out(db, s, actor), "rows": role_rows(db, s), "summary": summary, "gate": gate_for(db, s, summary), "people": people_options(db, s.organization_id),
+            "can": {"fill": may(db, actor, Action.FILL_SYSTEM_ROLES, s), "company": may(db, actor, Action.SET_COMPANY_ROLES, s), "mark_na": may(db, actor, Action.MARK_REQUIRED_ROLE_NA, s),
+                    "submit": may(db, actor, Action.SUBMIT_GO_LIVE, s), "approve": may(db, actor, Action.APPROVE_GO_LIVE, s)}}
+
+
+@router.put("/register/{system_id}/roles/{role_id}")
+def put_role(system_id: str, role_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    from app.register.roles import catalog_role, check_role_rights, clean_assignment, row_for, set_assignment
+
+    s = load(db, actor, system_id)
+    role = catalog_role(db, role_id)
+    if role is None:
+        raise NotFound()
+    row = row_for(db, s, role_id)
+    override = bool(data.get("override"))
+    check_role_rights(db, actor, s, role, row, str(data.get("status") or ""), override=override)
+    v = clean_assignment(db, s.organization_id, data, role)
+    override_reason = svc._text(data.get("override_reason"), 1000)
+    if role["level"] == "company" and override and not override_reason:
+        raise Invalid(errors=[{"field": "override_reason", "message": "Say why this system does not use the company-wide person."}])
+    set_assignment(db, actor.user, s.organization_id, role, s, v, override=override, override_reason=override_reason, reason=svc._text(data.get("reason"), 1000) if data.get("status") != "not_applicable" else None)
+    return row_for(db, s, role_id)
+
+
+@router.post("/register/{system_id}/go-live/submit")
+def post_go_live_submit(system_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    from app.register.gate import submit_go_live
+
+    s = load(db, actor, system_id)
+    check(db, actor, Action.SUBMIT_GO_LIVE, s)
+    return system_out(db, submit_go_live(db, actor.user, s), actor, full=True)
+
+
+@router.post("/register/{system_id}/go-live/decide")
+def post_go_live_decide(system_id: str, body: DecideIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    from app.register.gate import decide_go_live
+
+    s = load(db, actor, system_id)
+    check(db, actor, Action.APPROVE_GO_LIVE, s)
+    return system_out(db, decide_go_live(db, actor.user, s, body.approve, body.comment), actor, full=True)
+
+
+# ---- requirements checklist (R6)
+@router.get("/register/{system_id}/requirements")
+def get_requirements(system_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    from app.register.requirements import checklist
+
+    s = load(db, actor, system_id)
+    return checklist(db, s) | {"can_edit": may(db, actor, Action.RECORD_SYSTEM_HISTORY, s)}
+
+
+@router.put("/register/{system_id}/requirements/{requirement_id}")
+def put_requirement(system_id: str, requirement_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    from app.register.requirements import checklist, set_status
+
+    s = load(db, actor, system_id)
+    check(db, actor, Action.RECORD_SYSTEM_HISTORY, s)
+    set_status(db, actor.user, s, requirement_id, data)
+    return next(r for r in checklist(db, s)["rows"] if r["id"] == requirement_id)

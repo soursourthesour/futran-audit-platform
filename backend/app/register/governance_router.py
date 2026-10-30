@@ -75,3 +75,30 @@ def delete_member(member_id: str, actor: Actor = Depends(current_actor), db: Ses
     c = com.committee_for(db, org, actor.user)
     com.remove_member(db, actor.user, c, com.get_member(db, c, member_id))
     return {"ok": True}
+
+
+# ---- company-wide roles (R5)
+@router.get("/governance/company-roles")
+def get_company_roles(actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    from app.register.roles import company_page, people_options
+
+    org = client_org(actor)
+    authorize(db, actor, Action.VIEW_REGISTER, org_id=org.id, list_view=True)
+    return company_page(db, org.id) | {"people": people_options(db, org.id), "can": {"set": _can(db, actor, Action.SET_COMPANY_ROLES), "mark_na": _can(db, actor, Action.MARK_REQUIRED_ROLE_NA)}}
+
+
+@router.put("/governance/company-roles/{role_id}")
+def put_company_role(role_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db)):
+    from app.core.errors import NotFound
+    from app.register.roles import catalog_role, check_role_rights, clean_assignment, company_page, company_required_anywhere, set_assignment
+
+    org = client_org(actor)
+    role = catalog_role(db, role_id)
+    if role is None or role["level"] != "company":
+        raise NotFound()
+    status = str(data.get("status") or "")
+    row = {"requirement": "required" if status == "not_applicable" and company_required_anywhere(db, org.id, role_id) else "recommended"}
+    check_role_rights(db, actor, None, role, row, status)
+    v = clean_assignment(db, org.id, data, role)
+    set_assignment(db, actor.user, org.id, role, None, v, reason=None)
+    return next(r for r in company_page(db, org.id)["rows"] if r["role_id"] == role_id)

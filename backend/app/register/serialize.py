@@ -65,4 +65,5 @@ def system_out(db: Session, s: RegisterSystem, actor: Actor | None, *, full: boo
         from app.register.history import history_summary
 
         out["history"] = history_summary(db, s)
+        out["suggested_laws"] = svc.suggested_laws(db, s)
     return out

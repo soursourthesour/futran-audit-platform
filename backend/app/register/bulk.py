@@ -17,7 +17,8 @@ from app.tenancy.models import Organization, User
 BULK_FIELDS = {"department_id", "stage", "owner_user_id", "bias_next_due", "purpose", "decision_impact", "ai_provider", "hosting", "vendor_trains_on_data", "type", "sourcing", "vendor_id"}
 
 
-def bulk_edit(db: Session, actor: User, systems: list[RegisterSystem], body: dict, *, can_remove_law_directly: bool) -> dict:
+def bulk_edit(db: Session, actor: User, systems: list[RegisterSystem], body: dict, *, can_remove_law_directly: bool, rights=None) -> dict:
+    """`rights` is the signed-in Actor, used for the per-role checks."""
     reason = " ".join(str(body.get("reason") or "").split())
     if not reason:
         raise Invalid(errors=[{"field": "reason", "message": "Give a reason for the change. It is saved to each system's change history."}])
@@ -39,7 +40,7 @@ def bulk_edit(db: Session, actor: User, systems: list[RegisterSystem], body: dic
     cleaned = {s.id: svc.clean(db, org, changes, current=s) for s in systems} if changes else {}
     from app.register.roles import plan_bulk_roles
 
-    role_plan = plan_bulk_roles(db, actor, systems, roles) if roles else []
+    role_plan = plan_bulk_roles(db, rights, systems, roles) if roles else []
     preview = bool(body.get("preview"))
     batch = svc.new_batch_id()
     per: list[dict] = []

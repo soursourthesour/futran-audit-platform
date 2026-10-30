@@ -562,3 +562,32 @@ def consent_status(d: RegisterSystemData | None) -> tuple[str, bool]:
 
 def new_batch_id() -> str:
     return new_id()
+
+
+def suggested_laws(db: Session, s: RegisterSystem) -> list[dict]:
+    """Laws the applicability engine found in scope for the company (§25.4) that are not yet on this system.
+
+    Read from ClientLawApplicability, the engine's output. Before the engine has run for a client, the laws in scope on
+    its engagement (ClientRequirement) are used instead."""
+    from app.engagements.models import ClientRequirement
+    from app.regmaster.models import ClientLawApplicability
+
+    have = set()
+    for link in law_links(db, s):
+        cur = current_regulation(db, link.regulation_id)
+        if cur is not None:
+            have.add(cur.id)
+    rows = list(db.scalars(select(ClientLawApplicability).where(ClientLawApplicability.organization_id == s.organization_id, ClientLawApplicability.deleted_at.is_(None))))
+    if rows:
+        pairs = [(r.regulation_id, r.reason_text) for r in rows if r.in_scope]
+    else:
+        pairs = [(r.regulation_id, r.reason_text) for r in db.scalars(select(ClientRequirement).where(ClientRequirement.organization_id == s.organization_id, ClientRequirement.deleted_at.is_(None),
+                                                                                                      ClientRequirement.in_scope.is_(True), ClientRequirement.regulation_id.is_not(None)))]
+    out, seen = [], set()
+    for rid, reason in pairs:
+        reg = current_regulation(db, rid)
+        if reg is None or reg.id in have or reg.id in seen:
+            continue
+        seen.add(reg.id)
+        out.append({"regulation_id": reg.id, "short_name": reg.short_name, "reason": reason})
+    return sorted(out, key=lambda x: x["short_name"])
