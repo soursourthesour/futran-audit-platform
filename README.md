@@ -61,11 +61,14 @@ All demo accounts use the password `Demo-Password-2026`. Sign-in codes are off i
 | Staff | auditor1@futran.demo, auditor2@futran.demo | Auditor |
 | Staff | qa@futran.demo | QA Reviewer |
 | Staff | em@futran.demo | Engagement Manager |
+| Staff | legal@futran.demo | Legal and Compliance Reviewer |
+| Staff | sales@futran.demo | Sales Team |
 | Client (`/login`) | maria.lopez@abccorp.example | ABC Corp: Chief AI Compliance Officer |
 | Client | sam.okafor@abccorp.example | ABC Corp: Client Admin |
 | Client | priya.shah@abccorp.example | ABC Corp: Department Compliance Lead, HR |
 | Client | robert.chen@abccorp.example | ABC Corp: Executive Sponsor |
 | Client | daniel.kim@abccorp.example | ABC Corp: Data Protection Officer |
+| Client | tom.reyes@abccorp.example | ABC Corp: Contributor |
 | Client | katrin.vogel@meridian.example | Meridian GmbH: Chief AI Compliance Officer |
 
 The demo contains:

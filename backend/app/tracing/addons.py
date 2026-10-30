@@ -190,7 +190,10 @@ def decide(db: Session, settings, actor, sub_id: str, approve: bool, comment: st
     body = ("The Tracing tab is now open on the systems it covers." + (f" Free trial until {sub.trial_ends_on.day} {sub.trial_ends_on:%B %Y}." if sub.trial_ends_on else "")) if approve else f"Reason: {comment}"
     notify(db, [asker], "addon_decided", title, body, "/addons", settings=settings, email_template="notification")
     _log_on_opportunity(db, sub, "approved_by_client" if approve else "declined_by_client",
-                        f"The client's Executive Sponsor {'approved' if approve else 'declined'} the add-on" + (f": {comment}" if comment else "."), actor.id)
+                        f"The client's Executive Sponsor {'approved' if approve else 'declined'} the add-on" + (f": {comment}" if comment else "."), actor.id,
+                        addon_status="active" if approve else "declined",
+                        why_now=(f"Approved by {actor.user.name} on {now.day} {now:%B %Y}" + (f"; trial until {sub.trial_ends_on.day} {sub.trial_ends_on:%B %Y}" if sub.trial_ends_on else ""))
+                        if approve else f"Declined by {actor.user.name}: {comment}")
     return sub
 
 
@@ -204,19 +207,27 @@ def cancel(db: Session, settings, actor, sub_id: str, reason: str | None) -> Add
     sub.status, sub.cancelled_by, sub.cancelled_at, sub.cancel_reason, sub.updated_by = "cancelled", actor.id, utcnow(), reason, actor.id
     db.flush()
     audit.record(db, actor_id=actor.id, action="addon.cancelled", obj=sub, organization_id=sub.organization_id, summary=f"Cancelled the tracing add-on: {reason}")
-    _log_on_opportunity(db, sub, "cancelled_by_client", f"The client cancelled the add-on: {reason}", actor.id)
+    _log_on_opportunity(db, sub, "cancelled_by_client", f"The client cancelled the add-on: {reason}", actor.id,
+                        addon_status="cancelled", why_now=f"Cancelled by {actor.user.name}: {reason}")
     return sub
 
 
-def _log_on_opportunity(db: Session, sub: AddonSubscription, kind: str, summary: str, by_id: str) -> None:
+def _log_on_opportunity(db: Session, sub: AddonSubscription, kind: str, summary: str, by_id: str, *,
+                        addon_status: str | None = None, why_now: str | None = None) -> None:
+    """Log the client's decision on the add-on's opportunity and keep its status and 'why now' current for Sales."""
     if not sub.opportunity_id:
         return
     from app.sales.models import Opportunity
     from app.sales.service import log
 
     o = db.get(Opportunity, sub.opportunity_id)
-    if o is not None:
-        log(db, o, kind, summary, by_id)
+    if o is None:
+        return
+    if addon_status:
+        o.addon_status = addon_status
+    if why_now:
+        o.why_now = why_now[:300]
+    log(db, o, kind, summary, by_id)
 
 
 def covered_ids(db: Session, org_id: str) -> set[str]:

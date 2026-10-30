@@ -185,3 +185,19 @@ def member_out(db: Session, m: CommitteeMember) -> dict:
     return {"id": m.id, "user_id": m.user_id, "name": member_name(db, m), "job_title": u.job_title if u else None, "external_party": m.external_party,
             "committee_role": m.committee_role, "committee_role_label": COMMITTEE_ROLE_LABELS.get(m.committee_role, m.committee_role),
             "covers_role_id": m.covers_role_id, "covers_role": cov["name"] if cov else None, "department": dept.name if dept else None}
+
+
+def member_user_ids(db: Session, org_id: str) -> list[str]:
+    """Platform users on the organization's committee. External members have no mailbox here and are left out."""
+    c = db.scalar(select(GovernanceCommittee).where(GovernanceCommittee.organization_id == org_id, GovernanceCommittee.deleted_at.is_(None)))
+    return [m.user_id for m in members(db, c) if m.user_id] if c is not None else []
+
+
+def _register_mail_resolver() -> None:
+    from app.mail.groups import COMMITTEE_RESOLVERS
+
+    if member_user_ids not in COMMITTEE_RESOLVERS:
+        COMMITTEE_RESOLVERS.append(member_user_ids)
+
+
+_register_mail_resolver()

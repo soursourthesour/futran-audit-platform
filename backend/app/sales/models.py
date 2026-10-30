@@ -32,7 +32,7 @@ class Opportunity(IdMixin, Base):
     next_step: Mapped[str | None] = mapped_column(String(300))
     system_ids: Mapped[list] = mapped_column(JSON, default=list)  # register systems the trigger touches
     system_types: Mapped[list] = mapped_column(JSON, default=list)  # what Sales sees instead of the systems themselves
-    addon_status: Mapped[str | None] = mapped_column(String(12))  # recommended | requested
+    addon_status: Mapped[str | None] = mapped_column(String(12))  # recommended | requested | active | declined | cancelled
     needs_ca_approval: Mapped[bool] = mapped_column(Boolean, default=False)
     approval_requested_at: Mapped[datetime | None] = mapped_column(DateTime)
     ca_decision: Mapped[str | None] = mapped_column(String(10))  # approved | declined

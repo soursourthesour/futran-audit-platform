@@ -203,6 +203,8 @@ def _rule_people(db: Session, g: MailGroup) -> list[DirectoryPerson]:
         ids = set(db.scalars(select(EngagementTeam.user_id).where(EngagementTeam.engagement_id == rule.get("engagement_id"), EngagementTeam.deleted_at.is_(None))))
         return _people_by_user(db, org_id, ids & _active_user_ids(db, org_id))
     if kind == "committee":
+        import app.register.committee  # noqa: F401  (registers the committee resolver)
+
         refs = {r for resolver in COMMITTEE_RESOLVERS for r in resolver(db, org_id)}
         return [p for p in db.scalars(base) if p.user_id in refs or p.email in refs]
     if kind == "all_people":

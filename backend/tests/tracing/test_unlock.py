@@ -170,3 +170,25 @@ def test_other_clients_requests_are_invisible(client, db, trc):
     db.commit()
     r = client.post("/api/v1/addons/tracing/requests", json={"system_ids": [theirs.id], "plan": "per_system", "trial": False, "approver_id": trc.sponsor.id})
     assert r.status_code == 422
+
+
+def test_the_opportunity_follows_the_sponsors_decision(client, db, trc):
+    """Sales sees where the add-on stands, not a request that was decided long ago."""
+    sub = activate(client, trc, [trc.screening])
+    o = db.get(Opportunity, db.get(AddonSubscription, sub["id"]).opportunity_id)
+    db.refresh(o)
+    assert o.addon_status == "active" and "waiting" not in o.why_now.lower() and "approved" in o.why_now.lower()
+    trc.as_(trc.sponsor)
+    assert client.post(f"/api/v1/addons/requests/{sub['id']}/cancel", json={"reason": "Moving to the vendor's own logging."}).status_code == 200
+    db.refresh(o)
+    assert o.addon_status == "cancelled" and "cancelled" in o.why_now.lower()
+
+
+def test_a_declined_request_shows_as_declined_on_the_opportunity(client, db, trc):
+    trc.as_(trc.caico)
+    sid = client.post("/api/v1/addons/tracing/requests", json={"system_ids": [trc.screening.id], "plan": "per_system", "trial": False, "approver_id": trc.sponsor.id}).json()["id"]
+    trc.as_(trc.sponsor)
+    assert client.post(f"/api/v1/addons/requests/{sid}/decide", json={"approve": False, "comment": "Not in this year's budget."}).status_code == 200
+    o = db.get(Opportunity, db.get(AddonSubscription, sid).opportunity_id)
+    db.refresh(o)
+    assert o.addon_status == "declined" and "declined" in o.why_now.lower()

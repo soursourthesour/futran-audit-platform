@@ -66,3 +66,15 @@ def test_committee_tenant_isolated(client, db, reg):
     reg.as_(o)
     assert client.get("/api/v1/governance/committee").json()["members"] == []
     assert client.request("DELETE", f"/api/v1/governance/committee/members/{m['id']}").status_code == 404
+
+
+def test_committee_email_group_lists_the_committee_members(client, db, reg):
+    """The client's default 'AI Governance Committee' email group follows the committee record (spec §26.3)."""
+    from app.mail.groups import active_members, default_group, ensure_default_groups
+
+    reg.as_(reg.admin)
+    assert client.post("/api/v1/governance/committee/members", json={"user_id": reg.caico.id, "committee_role": "chair"}).status_code == 200
+    assert client.post("/api/v1/governance/committee/members", json={"external_party": "Futran Solutions", "committee_role": "external_advisor_non_voting"}).status_code == 200
+    ensure_default_groups(db, reg.org.id)
+    group = default_group(db, reg.org.id, "committee")
+    assert [p.user_id for p in active_members(db, group)] == [reg.caico.id]
