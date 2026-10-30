@@ -9,6 +9,7 @@ import { DocPreview } from '@/components/DocPreview';
 import { DocEditDialog } from '@/components/DocEditDialog';
 import { StageDetail } from '@/components/StageDetail';
 import { formatPhone } from '@/lib/phone';
+import { ClientEmailStatus } from '@/screens/email/ClientEmailStatus';
 import '@/styles/staff-forms.css';
 
 type PackageDoc = {
@@ -173,7 +174,7 @@ export function ClientPage() {
       {tab === 'contacts' && (
         <div className="split">
           <div className="main"><Card title="Client contacts">{contacts}</Card></div>
-          <div className="side"><Card title="Client users">{live ? <p className="small" style={{ margin: 0 }}>Departments, users and role holders are managed by the client. <Link to={`/clients/${clientId}/people`}>View them</Link>.</p> : <p className="small muted" style={{ margin: 0 }}>Available once the initiation package is sent.</p>}</Card></div>
+          <div className="side"><Card title="Client users">{live ? <p className="small" style={{ margin: 0 }}>Departments, users and role holders are managed by the client. <Link to={`/clients/${clientId}/people`}>View them</Link>.</p> : <p className="small muted" style={{ margin: 0 }}>Available once the initiation package is sent.</p>}</Card><ClientEmailStatus /></div>
         </div>
       )}
       {tab === 'documents' && (
