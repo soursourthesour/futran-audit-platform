@@ -107,3 +107,25 @@ def test_request_bias_test_notifies_owners(client, db, reg):
     assert db.get(RegisterSystem, a["id"]).bias_next_due.isoformat() == "2026-12-01"
     n = db.scalar(select(Notification).where(Notification.user_id == reg.hr_user.id, Notification.kind == "register_bias_test_requested"))
     assert n is not None and "Résumé screening" in n.title
+
+
+def test_bulk_failure_after_the_changes_leaves_every_system_as_it_was(client, db, reg, monkeypatch):
+    """The bulk edit applies to every selected system or to none, even when something fails after the per-system
+    changes (the savepoint must not commit them on its own)."""
+    import pytest
+
+    a, b, c = _three(client, reg)
+    reg.as_(reg.hr_lead)
+
+    import app.notifications.service as notifications
+
+    def boom(*args, **kw):
+        raise RuntimeError("notifications unavailable")
+
+    monkeypatch.setattr(notifications, "notify", boom)  # runs after the per-system changes
+    with pytest.raises(RuntimeError):
+        client.post("/api/v1/register/bulk", json={"system_ids": [a["id"], b["id"]], "changes": {"purpose": "Changed in bulk"}, "reason": "Tidy",
+                                                   "request_bias_test": {"due": "2026-12-01"}})
+    db.expire_all()
+    assert {db.get(RegisterSystem, x["id"]).purpose for x in (a, b)} != {"Changed in bulk"}
+    assert db.scalars(select(ChangeLog).where(ChangeLog.reason == "Tidy")).first() is None

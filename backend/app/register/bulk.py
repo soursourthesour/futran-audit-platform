@@ -45,6 +45,9 @@ def bulk_edit(db: Session, actor: User, systems: list[RegisterSystem], body: dic
     batch = svc.new_batch_id()
     per: list[dict] = []
     total = 0
+    from app.core.db import hold_transaction
+
+    hold_transaction(db)  # so the savepoint below cannot commit on its own (sqlite3 driver)
     sp = db.begin_nested()
     try:
         for s in systems:

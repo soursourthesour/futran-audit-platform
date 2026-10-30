@@ -41,3 +41,19 @@ def get_db(request: Request) -> Iterator[Session]:
         raise
     finally:
         db.close()
+
+
+def hold_transaction(db: Session) -> None:
+    """Make sure the request's own transaction is open before `begin_nested()`.
+
+    The sqlite3 driver only opens a transaction before INSERT/UPDATE/DELETE. A SAVEPOINT issued while none is open
+    becomes the outermost transaction, and releasing it commits: the work inside could no longer be undone when a
+    later step of the same request failed. This starts the transaction first (BEGIN IMMEDIATE: the request is about
+    to write, and taking the write lock now avoids a stale read snapshot under WAL). No-op on other databases or when
+    a transaction is already open. The app engine otherwise keeps the driver's default behaviour."""
+    conn = db.connection()
+    if conn.dialect.name != "sqlite":
+        return
+    raw = conn.connection.dbapi_connection
+    if raw is not None and not raw.in_transaction:
+        raw.execute("BEGIN IMMEDIATE")

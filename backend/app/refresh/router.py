@@ -387,6 +387,9 @@ def bulk(body: BulkIn, request: Request, actor: Actor = Depends(current_actor), 
     authorize(db, actor, Action.APPROVE_REG_CHANGE)
     if body.action not in ACTIONS or body.action == "edit_approve":
         raise Invalid(errors=[{"field": "action", "message": "Approve, hold, reject or send to legal review."}])
+    from app.core.db import hold_transaction
+
+    hold_transaction(db)  # each item's savepoint must not commit on its own: a later failure undoes the whole request
     results = []
     for cid in body.ids:
         c = db.get(ProposedChange, cid)
