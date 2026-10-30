@@ -261,8 +261,10 @@ def _people_titles(db: Session, titles: dict[str, str]) -> None:
 ABC = "abccorp.example"
 
 
-def abc(demo: Demo, until_stage6: bool = False) -> str:
-    """ABC Corp from draft to completed; with until_stage6, stop when every finding is approved (sign-off 5 not sent)."""
+def abc(demo: Demo, until_stage6: bool = False, register=None) -> str:
+    """ABC Corp from draft to completed; with until_stage6, stop when every finding is approved (sign-off 5 not sent).
+    `register(m, cid, depts)`, when given, builds the client's AI system register before fieldwork and returns the register
+    id for each fieldwork system reference, so the auditor links SYS-001 to SYS-004 to it (the demo; not the browser tests)."""
     m = demo
     cid = m.new_client(
         company={"legal_name": "ABC Corp Inc.", "trading_name": "ABC Corp", "industry": "staffing", "employee_band": "250-999", "hq_street": "350 Fifth Avenue", "hq_city": "New York",
@@ -297,7 +299,8 @@ def abc(demo: Demo, until_stage6: bool = False) -> str:
                           f"daniel.kim@{ABC}": "Data Protection Officer", f"robert.chen@{ABC}": "Chief Operating Officer"})
     depts = _abc_discovery(m, cid)
     _abc_client_review(m, cid, depts)
-    _abc_fieldwork(m, cid, depts)
+    links = register(m, cid, depts) if register else {}
+    _abc_fieldwork(m, cid, depts, links)
     if not until_stage6:
         _abc_report_and_close(m, cid)
     return cid
@@ -432,7 +435,7 @@ def _answer_all(m: Demo, e, s, fixed: dict) -> None:
     m.db.commit()
 
 
-def _abc_fieldwork(m: Demo, cid: str, depts: dict) -> None:
+def _abc_fieldwork(m: Demo, cid: str, depts: dict, links: dict | None = None) -> None:
     from app.findings.models import DraftFindingLink, Finding
     from app.inventory.models import UseCase
     from app.scoring import service as scoring
@@ -451,6 +454,8 @@ def _abc_fieldwork(m: Demo, cid: str, depts: dict) -> None:
         "SYS-004": {"name": "Customer support chatbot", "built_by": "vendor", "department_id": depts["Sales & Marketing"], "use_case_ids": [ucs["Customer support chatbot"].id]},
     }
     for ref, body in plan.items():
+        if (links or {}).get(ref):
+            body = body | {"register_system_id": links[ref]}
         m.patch(f"/systems/{systems[ref].id}", body)
     e = m.engagement(cid)
     for ref in plan:
@@ -692,7 +697,7 @@ def northwind_pending(m: Demo) -> str:
 
 
 # ---- Meridian GmbH (stage 3) and the internal client (stage 2)
-def meridian(m: Demo) -> str:
+def meridian(m: Demo, extra_team: list[tuple[str, str]] | None = None) -> str:
     keep = lambda s: any(k in (s.get("label") or "") for k in ("EU AI Act", "GDPR", "General Data Protection", "Digital Personal Data Protection", "DPDP"))  # noqa: E731
     cid = m.new_client(
         company={"legal_name": "Meridian Analytics GmbH", "trading_name": "Meridian GmbH", "industry": "bfsi", "employee_band": "250-999", "hq_street": "Friedrichstraße 68", "hq_city": "Berlin",
@@ -705,7 +710,8 @@ def meridian(m: Demo) -> str:
                "data_environments": ["production"], "geographic_scope": "Germany and India", "planned_systems": ["Credit risk scoring model", "Developer copilot"], "departments": ["Data Science", "Engineering"]},
         contacts={"caico": {"name": "Katrin Vogel", "title": "Head of AI Compliance", "email": "katrin.vogel@meridian.example"}, "client_admin": {"same_as_caico": True},
                   "dpo": {"name": "Jonas Weber", "title": "Data Protection Officer", "email": "jonas.weber@meridian.example"}, "exec_sponsor": {"not_appointed": True}, "project_lead": {"same_as_caico": True}},
-        team=[("chief@futran.demo", "chief_auditor"), ("em@futran.demo", "engagement_manager"), ("auditor1@futran.demo", "auditor"), ("auditor2@futran.demo", "auditor")], keep=keep)
+        team=[("chief@futran.demo", "chief_auditor"), ("em@futran.demo", "engagement_manager"), ("auditor1@futran.demo", "auditor"), ("auditor2@futran.demo", "auditor")]
+        + list(extra_team or []), keep=keep)
     m.approve_and_sign_letter(cid, "katrin.vogel@meridian.example")
     m.setup_people(cid, "katrin.vogel@meridian.example", ["Data Science", "Engineering"], [
         ("Aarav", "Menon", "aarav.menon@meridian.example", "dept_compliance_lead", "Engineering"),
@@ -789,15 +795,15 @@ def run(db: Session, settings, client: TestClient | None = None) -> dict:
         client = TestClient(create_app(app_settings, engine=db.get_bind()))
     m = Demo(db, settings, client)
     try:
-        m.futran_staff()
-        out = {"abc": abc(m)}
-        out["northwind"] = northwind_pending(m)
-        out["meridian"] = meridian(m)
-        out["internal"] = internal(m)
-        from app.auth.passwords import hash_password
-        from app.demo.wsd import seed_wsd
+        from app.demo import v061
 
-        out["litigation"] = seed_wsd(db, hash_password(DEMO_PASSWORD))  # v0.6 WS-D
+        m.futran_staff()
+        v061.legal_reviewer(m)
+        out = {"abc": abc(m, register=v061.abc_register_core)}
+        out["northwind"] = northwind_pending(m)
+        out["meridian"] = meridian(m, extra_team=[("qa@futran.demo", "qa_reviewer"), (v061.LEGAL[1], "legal_reviewer")])
+        out["internal"] = internal(m)
+        out |= v061.seed(m, dict(out))  # v0.4–v0.6.1 screens; adds the WS-D litigation cases
     finally:
         client.cookies.clear()
         if own:
