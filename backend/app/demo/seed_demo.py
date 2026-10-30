@@ -24,6 +24,7 @@ FUTRAN_STAFF = [
     ("Priyanka Rao", "auditor2@futran.demo", "auditor", "Auditor"),
     ("Quinn Taylor", "qa@futran.demo", "qa_reviewer", "QA Reviewer"),
     ("Elena Brooks", "em@futran.demo", "engagement_manager", "Engagement Manager"),
+    ("Sam Seller", "sales@futran.demo", "sales_team", "Sales"),  # v0.6.1 WS-F: every role's home is checked in the browser
 ]
 APPROVAL = {"client_message": "Thank you for choosing Futran. Your engagement letter and getting-started pack are attached.",
             "checklist": {"scope_ok": True, "no_conflict": True, "letter_previewed": True}}

@@ -336,7 +336,7 @@ def dpo_home(actor: Actor = Depends(current_actor), db: Session = Depends(get_db
     from app.signoffs import client_review
     from app.signoffs.service import current, sign_off_out
 
-    privacy = {"min_group": att.MIN_AGGREGATE, "individuals_visible_to": _individual_viewers() + ["Assigned Futran auditors"]}
+    privacy = {"min_group": att.MIN_AGGREGATE, "individuals_visible_to": _individual_viewers() + ["assigned Futran auditors"]}
     e = current_engagement(db, org)
     if e is None:
         return {"organization": org.name, "engagement": None, "signoff3": None, "use_cases": [], "privacy": privacy, "campaign": None}

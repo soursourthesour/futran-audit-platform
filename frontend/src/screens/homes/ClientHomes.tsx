@@ -37,7 +37,7 @@ export function ClientAdminHome() {
               ))}</ul>
             )}
           </Card>
-          <Card title="Sign-off role changes" actions={<span className="small muted">Futran is told of every change to a sign-off role</span>}>
+          <Card title="Role changes" actions={<span className="small muted">Futran is told of every change to a sign-off role</span>}>
             {d.role_changes.length === 0 ? <EmptyState>No role changes yet.</EmptyState> : (
               <ul className="home-rows">{d.role_changes.map((c, i) => (
                 <li key={i}><div className="what">{c.summary}<div className="small muted">{c.by ?? 'System'} · {fmtDateTime(c.at)}</div></div>{c.sign_off_role && <Badge tone="navy">Futran notified</Badge>}</li>
@@ -166,8 +166,9 @@ function DepartmentSection({ s, shared }: { s: DeptSection; shared: boolean }) {
     <section className="stack" aria-label={s.name}>
       <div className="grid-tiles home-tiles">
         <Tile label="Use cases" value={s.use_cases.length} hint={`${s.tiers['3'] ?? 0} Tier 3 · ${s.tiers['2'] ?? 0} Tier 2 · ${s.tiers['1'] ?? 0} Tier 1`} />
-        <Tile label="Awaiting your approval" value={s.awaiting_approval} hint={signOffStatus(so).label === 'Not started' ? 'sign-off 2 not started' : `sign-off 2: ${signOffStatus(so).label.toLowerCase()}`} />
-        <Tile label="Attestation" value={resp == null ? '—' : `${resp}${s.attestation.headcount ? ` / ${s.attestation.headcount}` : ''}`} hint="totals only" />
+        <Tile label="Awaiting your approval" value={s.awaiting_approval} hint={`Sign-off 2: ${signOffStatus(so).label}`} />
+        <Tile label="Attestation" value={resp == null ? '—' : typeof resp === 'string' ? cap(resp) : `${resp}${s.attestation.headcount ? ` / ${s.attestation.headcount}` : ''}`} text={typeof resp === 'string'}
+          hint={typeof resp === 'string' ? `counts below ${s.attestation.min_group} are hidden` : 'totals only'} />
         <Tile label="Findings to respond to" value={shared ? open.length : '—'} hint={shared ? `${(s.findings ?? []).length} for your department` : 'shared with the draft report'} />
       </div>
       <div className="split">

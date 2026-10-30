@@ -1,12 +1,16 @@
 import { test, expect, type Page } from '@playwright/test';
 
+/** Each role lands on its own home after sign-in (spec §13.1). */
+const HOME: Record<string, RegExp> = { 'admin@futran.demo': /\/staff\/admin$/, 'auditor1@futran.demo': /\/my-work$/, 'auditor2@futran.demo': /\/my-work$/, 'em@futran.demo': /\/my-work$/, 'manager@futran.demo': /\/my-work$/, 'qa@futran.demo': /\/qa$/, 'sales@futran.demo': /\/opportunities$/ };
+const homeOf = (email: string) => HOME[email] ?? /\/audits$/;
+
 /* v0.6 WS-D: refresh and review (M3) with a second reviewer, refresh alerts (M6), litigation (L1, L2),
    the Sales Team and opportunities (S1), and automatic client alerts (A1). The server runs with REFRESH_CLIENT=fake,
    so a refresh proposes labelled test changes and never calls the network. */
 
 const SHOTS = process.env.WSD_SHOTS || '/mnt/user-data/outputs/v061/ws-d';
 
-async function signIn(page: Page, email: string, home = /\/audits$/) {
+async function signIn(page: Page, email: string, home = homeOf(email)) {
   await page.goto('/staff/login');
   await page.getByLabel('Work email').fill(email);
   await page.getByLabel('Password').fill('Demo-Password-2026');

@@ -1,12 +1,16 @@
 import { test, expect, type Page } from '@playwright/test';
 import path from 'path';
 
+/** Each role lands on its own home after sign-in (spec §13.1). */
+const HOME: Record<string, RegExp> = { 'admin@futran.demo': /\/staff\/admin$/, 'auditor1@futran.demo': /\/my-work$/, 'auditor2@futran.demo': /\/my-work$/, 'em@futran.demo': /\/my-work$/, 'manager@futran.demo': /\/my-work$/, 'qa@futran.demo': /\/qa$/, 'sales@futran.demo': /\/opportunities$/ };
+const homeOf = (email: string) => HOME[email] ?? /\/audits$/;
+
 async function signIn(page: Page, email: string) {
   await page.goto('/staff/login');
   await page.getByLabel('Work email').fill(email);
   await page.getByLabel('Password').fill('Demo-Password-2026');
   await page.getByRole('button', { name: 'Sign in' }).click();
-  await expect(page).toHaveURL(/\/audits$/);
+  await expect(page).toHaveURL(homeOf(email));
 }
 
 test('admin re-imports the law matrix, browses Illinois and edits a law into a new version', async ({ page }) => {

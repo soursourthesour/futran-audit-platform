@@ -1,11 +1,15 @@
 import { test, expect, type Page } from '@playwright/test';
 
+/** Each role lands on its own home after sign-in (spec §13.1). */
+const HOME: Record<string, RegExp> = { 'admin@futran.demo': /\/staff\/admin$/, 'auditor1@futran.demo': /\/my-work$/, 'auditor2@futran.demo': /\/my-work$/, 'em@futran.demo': /\/my-work$/, 'manager@futran.demo': /\/my-work$/, 'qa@futran.demo': /\/qa$/, 'sales@futran.demo': /\/opportunities$/ };
+const homeOf = (email: string) => HOME[email] ?? /\/audits$/;
+
 async function signIn(page: Page, email: string) {
   await page.goto('/staff/login');
   await page.getByLabel('Work email', { exact: true }).fill(email);
   await page.getByLabel('Password').fill('Demo-Password-2026');
   await page.getByRole('button', { name: 'Sign in' }).click();
-  await expect(page).toHaveURL(/\/audits$/);
+  await expect(page).toHaveURL(homeOf(email));
 }
 
 async function signOut(page: Page) {
@@ -16,7 +20,7 @@ async function signOut(page: Page) {
 test('auditor sets up a client, the Chief Auditor approves and the client signs the engagement letter', async ({ page }) => {
   test.setTimeout(120_000);
   await signIn(page, 'auditor1@futran.demo');
-  await page.getByRole('link', { name: 'New client' }).click();
+  await page.getByRole('link', { name: 'Draft a new client' }).click();
   await expect(page).toHaveURL(/\/setup\/company$/);
 
   // Step 1

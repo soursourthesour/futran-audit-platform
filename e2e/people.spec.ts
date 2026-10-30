@@ -127,7 +127,7 @@ test('the CAICO edits and resends the data notice; another user acknowledges it 
   await expect(page).toHaveURL(/\/welcome\/notice$/);  // nothing else opens until it is acknowledged
   await page.getByRole('checkbox', { name: 'I have read and understand this notice.' }).check();
   await page.getByRole('button', { name: 'Acknowledge and continue' }).click();
-  await expect(page).toHaveURL(/\/start$/);
+  await expect(page).toHaveURL(/\/my-department$/);  // a Department Compliance Lead's home (spec §13.1)
 
   await clientUser(page, KATRIN);
   await page.goto('/people/users');

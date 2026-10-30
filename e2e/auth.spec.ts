@@ -1,14 +1,14 @@
 import { test, expect } from '@playwright/test';
 
-test('admin signs in with a password and lands on the audits dashboard', async ({ page }) => {
+test('admin signs in with a password and lands on the Admin console', async ({ page }) => {
   await page.goto('/staff/login');
   await expect(page.getByRole('heading', { name: 'Futran staff sign in' })).toBeVisible();
   await expect(page.getByTestId('test-mode-bar')).toBeVisible();
   await page.getByLabel('Work email').fill('admin@futran.demo');
   await page.getByLabel('Password').fill('Demo-Password-2026');
   await page.getByRole('button', { name: 'Sign in' }).click();
-  await expect(page).toHaveURL(/\/audits$/);
-  await expect(page.getByRole('heading', { name: 'Audits' })).toBeVisible();
+  await expect(page).toHaveURL(/\/staff\/admin$/);  // each role lands on its own home (spec §13.1)
+  await expect(page.getByRole('heading', { name: 'Admin console' })).toBeVisible();
   await expect(page.getByText('Ada Admin · Admin')).toBeVisible();
 });
 

@@ -1,6 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
 
+/** Each role lands on its own home after sign-in (spec §13.1). */
+const HOME: Record<string, RegExp> = { 'admin@futran.demo': /\/staff\/admin$/, 'auditor1@futran.demo': /\/my-work$/, 'auditor2@futran.demo': /\/my-work$/, 'em@futran.demo': /\/my-work$/, 'manager@futran.demo': /\/my-work$/, 'qa@futran.demo': /\/qa$/, 'sales@futran.demo': /\/opportunities$/ };
+const homeOf = (email: string) => HOME[email] ?? /\/audits$/;
+
 // ABC Corp at stage 6 (every finding approved) from start-server.sh … late; this walks review to close in the browser.
 const late = () => JSON.parse(readFileSync(`${__dirname}/../backend/data/e2e-late.json`, 'utf8')) as { abc: string; meridian: string; attest_link: string; confirm_link: string };
 const PW = 'Demo-Password-2026';
@@ -13,7 +17,7 @@ async function staff(page: Page, email: string) {
   await page.getByLabel('Work email', { exact: true }).fill(email);
   await page.getByLabel('Password').fill(PW);
   await page.getByRole('button', { name: 'Sign in' }).click();
-  await expect(page).toHaveURL(/\/audits$/);
+  await expect(page).toHaveURL(homeOf(email));
 }
 
 async function clientUser(page: Page, email: string) {
