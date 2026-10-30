@@ -20,9 +20,20 @@ def _replies_due(db: Session, now: datetime) -> bool:
     return False
 
 
-def run_mail_tick(db: Session, settings: Settings, now: datetime) -> dict[str, int]:
-    out = {"dispatched": sending.dispatch_due(db, settings, now), "replies": 0, "directory_syncs": directory.run_due(db, settings, now),
-           "reminders": reminders.run_reminders(db, settings, now)}
+def _part(db: Session, name: str, fn, *args):
+    """Run one part of the tick in its own savepoint: a failure is rolled back and logged, and the other parts go on."""
+    try:
+        with db.begin_nested():
+            return fn(*args)
+    except Exception as exc:  # noqa: BLE001 (one failing part must not stop the others)
+        log.exception("Email tick: %s failed", name)
+        return f"failed: {exc.__class__.__name__}"
+
+
+def run_mail_tick(db: Session, settings: Settings, now: datetime) -> dict[str, int | str]:
+    out = {"dispatched": _part(db, "sending", sending.dispatch_due, db, settings, now), "replies": 0,
+           "directory_syncs": _part(db, "directory sync", directory.run_due, db, settings, now),
+           "reminders": _part(db, "reminders", reminders.run_reminders, db, settings, now)}
     if _replies_due(db, now):
-        out["replies"] = replies.run_reply_sync(db, settings, now)
+        out["replies"] = _part(db, "reply sync", replies.run_reply_sync, db, settings, now)
     return out

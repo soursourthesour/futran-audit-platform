@@ -58,6 +58,13 @@ class Result:
     error: str | None = None
 
 
+def one_line(value: str | None) -> str:
+    """A header value on one line: line breaks and tabs become spaces and other control characters are dropped, so text
+    from a template, a form or a merge field can never add a header (spec §26.4)."""
+    folded = " ".join((value or "").split())
+    return "".join(c for c in folded if c >= " " and c != "\x7f")
+
+
 def fallback_sender(settings: Settings) -> Sender:
     name, addr = parseaddr(settings.smtp_from)
     return Sender(channel="smtp" if settings.email_mode == "smtp" else "outbox", from_name=name or "Futran Audit Platform", from_address=addr)
@@ -125,6 +132,7 @@ def record(db: Session, *, organization_id: str, env: Envelope, stored: Envelope
 
 
 def deliver(db: Session, settings: Settings, sender: Sender, env: Envelope, msg: OutboxMessage) -> Result:
+    env.subject = one_line(env.subject)
     if sender.channel == "outbox":
         res = Result(ok=True)
     elif sender.channel == "smtp":
@@ -139,18 +147,18 @@ def deliver(db: Session, settings: Settings, sender: Sender, env: Envelope, msg:
 
 
 def _smtp(settings: Settings, sender: Sender, env: Envelope) -> Result:
-    em = EmailMessage()
-    em["From"] = formataddr((sender.from_name, sender.from_address)) if sender.from_address else settings.smtp_from
-    if env.to:
-        em["To"] = ", ".join(env.to)
-    if env.cc:
-        em["Cc"] = ", ".join(env.cc)
-    if sender.reply_to:
-        em["Reply-To"] = sender.reply_to
-    em["Subject"] = env.subject
-    em.set_content(env.text)
-    em.add_alternative(env.html, subtype="html")
-    try:
+    try:  # building the headers can fail on bad input too: recorded on the message, never raised
+        em = EmailMessage()
+        em["From"] = formataddr((sender.from_name, sender.from_address)) if sender.from_address else settings.smtp_from
+        if env.to:
+            em["To"] = ", ".join(env.to)
+        if env.cc:
+            em["Cc"] = ", ".join(env.cc)
+        if sender.reply_to:
+            em["Reply-To"] = sender.reply_to
+        em["Subject"] = env.subject
+        em.set_content(env.text)
+        em.add_alternative(env.html, subtype="html")
         with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=20) as s:
             if settings.smtp_starttls:
                 s.starttls()

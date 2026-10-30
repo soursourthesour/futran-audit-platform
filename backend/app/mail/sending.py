@@ -27,6 +27,7 @@ mailbox is connected the email still goes out through the outbox or SMTP.
 """
 import hashlib
 import html as html_lib
+import logging
 import secrets
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -42,6 +43,8 @@ from app.mail import adminlog, delivery, library
 from app.mail.groups import ensure_default_groups, resolve
 from app.mail.models import DirectoryPerson, MailGroup, MailRecipient, MailSend, MailTemplate, MailThread
 from app.tenancy.models import Department, Organization, User
+
+log = logging.getLogger(__name__)
 
 LINK_DAYS_DEFAULT = 14
 BCC_BATCH_DEFAULT = 450  # Exchange Online allows 500 recipients per message by default; leave headroom
@@ -247,7 +250,7 @@ def _merge_values(db: Session, s: MailSend, person: DirectoryPerson | None, link
 def render(db: Session, s: MailSend, person: DirectoryPerson | None, link: str | None, expires: datetime | None, ref: str | None) -> tuple[str, str, str]:
     t = db.get(MailTemplate, s.template_id) if s.template_id else None
     values = _merge_values(db, s, person, link, expires)
-    subject = library.merge(s.subject or (t.subject if t else ""), values)
+    subject = delivery.one_line(library.merge(s.subject or (t.subject if t else ""), values))
     if ref:
         subject = f"{subject} [{ref}]"
     body = (s.context or {}).get("_body") or (t.body if t else "")
@@ -403,9 +406,14 @@ def _finish(db: Session, s: MailSend, now: datetime) -> None:
 
 
 def dispatch_due(db: Session, settings: Settings, now: datetime | None = None) -> int:
-    """Scheduler: continue every send that still has queued recipients (scheduled sends start at their time)."""
+    """Scheduler: continue every send that still has queued recipients (scheduled sends start at their time). Each send
+    runs in its own savepoint: one that fails is rolled back, logged and tried again next minute, and the others go on."""
     now = now or utcnow()
     n = 0
-    for s in list(db.scalars(select(MailSend).where(MailSend.status.in_(["scheduled", "queued", "sending"])))):
-        n += dispatch(db, settings, s, now)
+    for sid in list(db.scalars(select(MailSend.id).where(MailSend.status.in_(["scheduled", "queued", "sending"])))):
+        try:
+            with db.begin_nested():
+                n += dispatch(db, settings, db.get(MailSend, sid), now)
+        except Exception:  # noqa: BLE001 (any failure in one send must not stop the others)
+            log.exception("Email send %s failed in the scheduler; it is tried again next minute", sid)
     return n

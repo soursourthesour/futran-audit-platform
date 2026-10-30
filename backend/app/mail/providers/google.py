@@ -88,20 +88,23 @@ class GoogleAdapter:
         return {"Authorization": f"Bearer {g['access_token']}"}
 
     def send(self, g, m: OutgoingMessage) -> SentMessage:
-        em = EmailMessage()
-        em["From"] = formataddr((m.from_name, m.from_address))
-        if m.to:
-            em["To"] = ", ".join(m.to)
-        if m.cc:
-            em["Cc"] = ", ".join(m.cc)
-        if m.bcc:
-            em["Bcc"] = ", ".join(m.bcc)  # Gmail delivers to Bcc and removes the header
-        if m.reply_to:
-            em["Reply-To"] = m.reply_to
-        em["Subject"] = m.subject
-        em.set_content(m.text)
-        em.add_alternative(m.html, subtype="html")
-        raw = base64.urlsafe_b64encode(em.as_bytes()).decode().rstrip("=")
+        try:  # a bad header value is a failed delivery for this message, not an error for the whole run
+            em = EmailMessage()
+            em["From"] = formataddr((m.from_name, m.from_address))
+            if m.to:
+                em["To"] = ", ".join(m.to)
+            if m.cc:
+                em["Cc"] = ", ".join(m.cc)
+            if m.bcc:
+                em["Bcc"] = ", ".join(m.bcc)  # Gmail delivers to Bcc and removes the header
+            if m.reply_to:
+                em["Reply-To"] = m.reply_to
+            em["Subject"] = m.subject
+            em.set_content(m.text)
+            em.add_alternative(m.html, subtype="html")
+            raw = base64.urlsafe_b64encode(em.as_bytes()).decode().rstrip("=")
+        except (ValueError, TypeError) as exc:
+            raise ProviderError(f"The message could not be built: {exc}"[:300]) from exc
         with client(self.transport) as c:
             self._ensure(c, g)
             data = request(c, "POST", f"{GMAIL}/messages/send", "Sending the message", headers=self._auth(g), json={"raw": raw}).json()

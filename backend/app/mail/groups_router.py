@@ -383,7 +383,14 @@ def _check_groups(db: Session, org: Organization, ids: list, scope: set[str] | N
     return ids
 
 
+def _check_subject(data: dict) -> None:
+    subject = data.get("subject")
+    if subject and any(c < " " or c == "\x7f" for c in str(subject)):
+        raise Invalid(errors=[{"field": "subject", "message": "Write the subject on one line, without tabs or line breaks."}])
+
+
 def _expand_args(db: Session, actor: Actor, data: dict) -> dict:
+    _check_subject(data)
     ctx = _send_context(db, actor, data)
     t = _template_for(db, actor, ctx["org"], data)
     return {"ctx": ctx, "template": t, "group_ids": _check_groups(db, ctx["org"], data.get("group_ids"), ctx["scope"]),
