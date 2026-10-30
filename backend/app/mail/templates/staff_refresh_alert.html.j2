@@ -1,0 +1,17 @@
+{% extends "_layout.html.j2" %}{% block body %}
+<p><strong>{{ title }}</strong></p>
+{% if is_test %}<p>This is a test of the refresh alert settings. No refresh ran.</p>{% else %}
+<p>{% if summary.trigger == "scheduled" %}The scheduled{% else %}The{% endif %} {{ "litigation" if scope == "litigation_refresh" else "law" }} refresh read {{ summary.sources_read }} sources.</p>
+{% if rows %}
+<table cellpadding="6" style="border-collapse:collapse;border:1px solid #d8dee8">
+<tr style="background:#f2f5fa"><th align="left">Found</th><th align="right">Count</th><th align="left">Needs your review</th></tr>
+{% for r in rows %}<tr><td>{{ r.label }}</td><td align="right">{{ r.count }}</td><td>{% if r.label == "New laws" %}Yes, plus a second reviewer or legal review{% else %}Yes{% endif %}</td></tr>{% endfor %}
+</table>
+<p>Affected: {{ summary.clients_affected }} {{ "client" if summary.clients_affected == 1 else "clients" }} and {{ summary.systems_affected }} AI {{ "system" if summary.systems_affected == 1 else "systems" }}. Client alerts for these changes are on hold until you approve them.</p>
+{% if summary.low_confidence %}<p>Low confidence: {{ summary.low_confidence }} {{ "change is" if summary.low_confidence == 1 else "changes are" }} marked for a second reviewer or legal review{% if summary.low_confidence_items %} ({{ summary.low_confidence_items | join("; ") }}){% endif %}.</p>{% endif %}
+{% else %}<p>Nothing new was found. No client is affected.</p>{% endif %}
+{% if kind != "refresh_done" %}<p>{{ summary.open }} {{ "change is" if summary.open == 1 else "changes are" }} still waiting for review.</p>{% endif %}
+{% endif %}
+<p style="margin:24px 0"><a href="{{ link }}" style="background:#1B3A6B;color:#ffffff;padding:12px 20px;text-decoration:none;display:inline-block">{{ "Review case updates" if scope == "litigation_refresh" else "Review law changes" }}</a></p>
+<p>No client sees any change until you approve it.</p>
+{% endblock %}

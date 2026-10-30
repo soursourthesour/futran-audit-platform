@@ -9,6 +9,7 @@ class Role(StrEnum):
     QA_REVIEWER = "qa_reviewer"
     ENGAGEMENT_MANAGER = "engagement_manager"
     LEGAL_REVIEWER = "legal_reviewer"
+    SALES_TEAM = "sales_team"  # §27.5
     # Client
     EXEC_SPONSOR = "exec_sponsor"
     CAICO = "caico"
@@ -18,7 +19,7 @@ class Role(StrEnum):
     CONTRIBUTOR = "contributor"
 
 
-FUTRAN_ROLES = {Role.CHIEF_AUDITOR, Role.ADMIN, Role.AUDITOR, Role.QA_REVIEWER, Role.ENGAGEMENT_MANAGER, Role.LEGAL_REVIEWER}
+FUTRAN_ROLES = {Role.CHIEF_AUDITOR, Role.ADMIN, Role.AUDITOR, Role.QA_REVIEWER, Role.ENGAGEMENT_MANAGER, Role.LEGAL_REVIEWER, Role.SALES_TEAM}
 CLIENT_ROLES = {Role.EXEC_SPONSOR, Role.CAICO, Role.CLIENT_ADMIN, Role.DPO, Role.DEPT_COMPLIANCE_LEAD, Role.CONTRIBUTOR}
 SIGN_OFF_ROLES = {Role.CAICO, Role.EXEC_SPONSOR, Role.DPO}
 
@@ -29,6 +30,7 @@ ROLE_LABELS: dict[str, str] = {
     "qa_reviewer": "QA Reviewer",
     "engagement_manager": "Engagement Manager",
     "legal_reviewer": "Legal/Compliance Reviewer",
+    "sales_team": "Sales Team",
     "exec_sponsor": "Executive Sponsor",
     "caico": "Chief AI Compliance Officer",
     "client_admin": "Client Admin",

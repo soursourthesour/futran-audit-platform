@@ -1,0 +1,24 @@
+{{ title }}
+{% if is_test %}
+This is a test of the refresh alert settings. No refresh ran.
+{% else %}
+
+{% if summary.trigger == "scheduled" %}The scheduled{% else %}The{% endif %} {{ "litigation" if scope == "litigation_refresh" else "law" }} refresh read {{ summary.sources_read }} sources.
+{% if rows %}
+{% for r in rows %}- {{ r.label }}: {{ r.count }}
+{% endfor %}
+
+Affected: {{ summary.clients_affected }} {{ "client" if summary.clients_affected == 1 else "clients" }} and {{ summary.systems_affected }} AI {{ "system" if summary.systems_affected == 1 else "systems" }}. Client alerts for these changes are on hold until you approve them.
+{% if summary.low_confidence %}Low confidence: {{ summary.low_confidence }} {{ "change is" if summary.low_confidence == 1 else "changes are" }} marked for a second reviewer or legal review.
+{% endif %}
+{% else %}
+Nothing new was found. No client is affected.
+{% endif %}
+{% if kind != "refresh_done" %}{{ summary.open }} {{ "change is" if summary.open == 1 else "changes are" }} still waiting for review.
+{% endif %}
+{% endif %}
+
+{{ "Review case updates" if scope == "litigation_refresh" else "Review law changes" }}: {{ link }}
+
+No client sees any change until you approve it.
+Futran Solutions

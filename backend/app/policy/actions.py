@@ -71,3 +71,13 @@ class Action(StrEnum):
     MANAGE_COMMITTEE_MEMBERS = "manage_committee_members"
     RECORD_COMMITTEE = "record_committee"
     RECORD_SYSTEM_HISTORY = "record_system_history"
+    # v0.6 WS-D: litigation (§27.4), opportunities (§27.5), client alerts (§27.6), refresh alerts (§27.9)
+    VIEW_LITIGATION = "view_litigation"
+    MANAGE_LITIGATION = "manage_litigation"  # add and edit cases, run the litigation refresh
+    VIEW_OPPORTUNITIES = "view_opportunities"
+    WORK_OPPORTUNITIES = "work_opportunities"  # add, log calls, proposals and outcomes, change stage and owner
+    APPROVE_OPPORTUNITY = "approve_opportunity"  # approve an offer to a current audit client
+    MANAGE_CLIENT_ALERTS = "manage_client_alerts"  # alert rules grid
+    APPROVE_CLIENT_ALERTS = "approve_client_alerts"  # approve and send waiting client alerts
+    APPROVE_ADDON_ALERTS = "approve_addon_alerts"  # the Sales owner approves tracing add-on alerts
+    MANAGE_ALERT_SETTINGS = "manage_alert_settings"  # M6 refresh alert settings

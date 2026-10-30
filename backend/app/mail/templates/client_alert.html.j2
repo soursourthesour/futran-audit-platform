@@ -1,0 +1,5 @@
+{% extends "_layout.html.j2" %}{% block body %}
+{% for p in paragraphs %}{% if p == "[Link]" %}<p style="margin:24px 0"><a href="{{ link }}" style="background:#1B3A6B;color:#ffffff;padding:12px 20px;text-decoration:none;display:inline-block">{{ button }}</a></p>
+{% else %}<p>{% for line in p.split("\n") %}{{ line }}{% if not loop.last %}<br>{% endif %}{% endfor %}</p>
+{% endif %}{% endfor %}
+{% endblock %}

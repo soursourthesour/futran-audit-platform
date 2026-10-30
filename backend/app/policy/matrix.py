@@ -250,3 +250,31 @@ def scopes_for(roles: set[str], action: A) -> set[S]:
         if s != S.NONE:
             out.add(s)
     return out
+
+
+# ---- v0.6 WS-D: litigation (§27.4), Sales Team and opportunities (§27.5), client alerts (§27.6), refresh alerts (§27.9).
+# The Sales Team sees cases, opportunities and the trigger behind each; it holds no engagement, evidence, finding,
+# score or report permission, and edits no law, case, register or engagement record.
+_WS_D: dict[R, dict[A, S]] = {
+    R.SALES_TEAM: {
+        A.VIEW_LITIGATION: S.ALL,
+        A.VIEW_OPPORTUNITIES: S.ALL,
+        A.WORK_OPPORTUNITIES: S.ALL,
+        A.APPROVE_ADDON_ALERTS: S.ALL,
+    },
+    R.CHIEF_AUDITOR: {
+        A.VIEW_LITIGATION: S.ALL,
+        A.MANAGE_LITIGATION: S.ALL,
+        A.VIEW_OPPORTUNITIES: S.ALL,
+        A.WORK_OPPORTUNITIES: S.ALL,
+        A.APPROVE_OPPORTUNITY: S.ALL,
+        A.MANAGE_CLIENT_ALERTS: S.ALL,
+        A.APPROVE_CLIENT_ALERTS: S.ALL,
+        A.APPROVE_ADDON_ALERTS: S.ALL,
+        A.MANAGE_ALERT_SETTINGS: S.ALL,
+    },
+    R.AUDITOR: {A.VIEW_LITIGATION: S.ALL},
+    R.ADMIN: {A.MANAGE_CLIENT_ALERTS: S.ALL, A.MANAGE_ALERT_SETTINGS: S.ALL},
+}
+for _role, _acts in _WS_D.items():
+    MATRIX.setdefault(_role, {}).update(_acts)

@@ -8,3 +8,7 @@ ROUTER_MODULES: list[str] = ["auth.router", "invitations.router", "mail.router",
 
 def api_routers() -> list[APIRouter]:
     return [importlib.import_module(f"app.{m}").router for m in ROUTER_MODULES]
+
+
+# v0.6 WS-D: litigation, opportunities, refresh alerts (M6), client alerts (A1), refresh and review (M3)
+ROUTER_MODULES += ["litigation.router", "sales.router", "staffalerts.router", "clientalerts.router"]
