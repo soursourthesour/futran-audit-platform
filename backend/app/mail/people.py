@@ -34,6 +34,15 @@ def upsert_person(db: Session, org_id: str, *, email: str, name: str, source: st
     return p
 
 
+def add_person_if_new(db: Session, org_id: str, *, email: str, name: str, **fields) -> DirectoryPerson:
+    """The person with this email, unchanged; or a new manual person. Adding someone to a group by email or CSV never
+    renames or moves a person who is already on record (the directory sync and the Client Admin own those details)."""
+    p = find_person(db, org_id, email)
+    if p is not None:
+        return p
+    return upsert_person(db, org_id, email=email, name=name, **fields)
+
+
 def _user_department(db: Session, u: User) -> str | None:
     """The user's department, or the department their department-scoped role is for."""
     if u.department_id:

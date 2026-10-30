@@ -17,7 +17,7 @@ from app.mail import adminlog, connections as cx, directory, library, reminders,
 from app.mail.groups import active_members, add_member, create_group, ensure_default_groups, remove_member, rule_text
 from app.mail.models import (FUTRAN_OWNER, DirectoryGroup, DirectoryPerson, MailGroup, MailGroupMember, MailRecipient, MailReply, MailSend, MailTemplate, MailThread,
                              OutboxMessage)
-from app.mail.people import person_out, upsert_person
+from app.mail.people import add_person_if_new, person_out
 from app.policy.actions import Action
 from app.policy.authorize import assigned_engagement_ids, authorize, departments_for, sees_all_engagements
 from app.tenancy.models import Department, Organization
@@ -218,8 +218,13 @@ def add_group_member(group_id: str, data: dict, actor: Actor = Depends(current_a
         email = str(data["email"]).strip().lower()
         if "@" not in email or " " in email:
             raise Invalid(errors=[{"field": "email", "message": "Enter a valid email address."}])
-        person_id = upsert_person(db, org.id, email=email, name=str(data.get("name") or email.split("@")[0]).strip()[:160],
-                                  **({"department_id": data["department_id"]} if data.get("department_id") in _depts(db, org.id) else {})).id
+        dept = data.get("department_id") or None
+        if dept is not None:
+            scope = _dept_scope(actor, Action.MANAGE_CLIENT_GROUPS) if org.type == "client" else None
+            if dept not in _depts(db, org.id) or (scope is not None and dept not in scope):
+                raise Invalid(errors=[{"field": "department_id", "message": "Choose one of the departments you manage."}])
+        person_id = add_person_if_new(db, org.id, email=email, name=str(data.get("name") or email.split("@")[0]).strip()[:160],
+                                      **({"department_id": dept} if dept else {})).id
     m = add_member(db, actor.user, g, person_id=person_id, nested_group_id=data.get("nested_group_id"))
     what = db.get(MailGroup, m.nested_group_id).name if m.nested_group_id else db.get(DirectoryPerson, m.person_id).name
     adminlog.write(db, organization_id=org.id, category="group", action="member_added", actor=actor.user, department_id=g.department_id, summary=f"{g.name}: added {what}")
@@ -249,7 +254,7 @@ def import_members(group_id: str, data: dict, actor: Actor = Depends(current_act
         if "@" not in email:
             errors.append({"row": i, "field": "email", "message": f"Row {i}: “{row[0][:60]}” is not an email address."})
             continue
-        p = upsert_person(db, org.id, email=email, name=(row[1].strip() if len(row) > 1 and row[1].strip() else email.split("@")[0])[:160])
+        p = add_person_if_new(db, org.id, email=email, name=(row[1].strip() if len(row) > 1 and row[1].strip() else email.split("@")[0])[:160])
         add_member(db, actor.user, g, person_id=p.id)
         added += 1
     adminlog.write(db, organization_id=org.id, category="group", action="imported", actor=actor.user, department_id=g.department_id, summary=f"{g.name}: imported {added} people from CSV")
