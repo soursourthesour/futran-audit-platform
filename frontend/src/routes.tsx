@@ -1,5 +1,5 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
-import { ClientShell, FutranShell, RequireAuth } from '@/shells/Shells';
+import { ClientShell, EitherShell, FutranShell, RequireAuth } from '@/shells/Shells';
 import { Login, StaffLogin } from '@/screens/auth/Login';
 import { Terms } from '@/screens/auth/Terms';
 import { NoticeAcknowledge } from '@/screens/auth/NoticeAcknowledge';
@@ -11,7 +11,7 @@ import { InitiationChecklist } from '@/screens/client/InitiationChecklist';
 import { useMe } from '@/api/auth';
 import { Loading } from '@/components/ui';
 import { homeFor } from '@/screens/auth/Login';
-import { futranRoutes, clientRoutes, publicRoutes } from '@/routes.extra';
+import { futranRoutes, clientRoutes, publicRoutes, sharedRoutes } from '@/routes.extra';
 
 function Home() {
   const { data: me, isLoading } = useMe();
@@ -37,6 +37,10 @@ export const router = createBrowserRouter([
   {
     element: <RequireAuth side="client"><ClientShell /></RequireAuth>,
     children: [{ path: '/start', element: <InitiationChecklist /> }, ...clientRoutes],
+  },
+  {
+    element: <RequireAuth><EitherShell /></RequireAuth>,
+    children: sharedRoutes,
   },
   { path: '*', element: <Home /> },
 ]);

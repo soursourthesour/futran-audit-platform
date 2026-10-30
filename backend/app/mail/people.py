@@ -34,6 +34,15 @@ def upsert_person(db: Session, org_id: str, *, email: str, name: str, source: st
     return p
 
 
+def _user_department(db: Session, u: User) -> str | None:
+    """The user's department, or the department their department-scoped role is for."""
+    if u.department_id:
+        return u.department_id
+    from app.tenancy.models import RoleAssignment
+
+    return db.scalar(select(RoleAssignment.scope_id).where(RoleAssignment.user_id == u.id, RoleAssignment.scope_type == "department", RoleAssignment.deleted_at.is_(None)).limit(1))
+
+
 def ensure_platform_people(db: Session, org_id: str) -> None:
     """Every active user with a login is also a person who can be emailed (their department comes with them)."""
     users = db.scalars(select(User).where(User.organization_id == org_id, User.deleted_at.is_(None), User.status != "disabled"))
@@ -41,13 +50,13 @@ def ensure_platform_people(db: Session, org_id: str) -> None:
         p = find_person(db, org_id, u.email)
         if p is None:
             p = DirectoryPerson(organization_id=org_id, email=u.email.lower(), name=u.name, source="platform", status="active", user_id=u.id,
-                                department_id=u.department_id, job_title=u.job_title, office=u.location, directory_group_ids=[])
+                                department_id=_user_department(db, u), job_title=u.job_title, office=u.location, directory_group_ids=[])
             db.add(p)
         else:
             if p.user_id is None:
                 p.user_id = u.id
-            if p.department_id is None and u.department_id:
-                p.department_id = u.department_id
+            if p.department_id is None:
+                p.department_id = _user_department(db, u)
     db.flush()
 
 

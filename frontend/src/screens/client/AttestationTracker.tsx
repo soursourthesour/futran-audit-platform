@@ -7,6 +7,7 @@ import { Alert, Badge, Button, Card, Checkbox, Dialog, EmptyState, FieldGroup, L
 import { DataGrid, type GridColumn, type GridFilter } from '@/components/ui/DataGrid';
 import { attestationLaunchHelp as H } from '@/help/client';
 import { attestationAnswersHelp as AH, sendAttestationHelp as SH } from '@/help/attestation';
+import { SendToAllEmployees } from '@/screens/email/SendToAllEmployees';
 import './attestation.css';
 
 type ToolItem = { label: string; kind: 'tool' | 'agent'; tool: string; account_type: string; name: string | null; has_name: boolean };
@@ -115,7 +116,7 @@ function SendOnlyView({ clientId }: { clientId: string }) {
   return (
     <div className="page">
       <PageHeader title="AI use attestation" subtitle={c ? `Policy version ${c.policy_version} · launched ${fmtDate(c.launched_at)} · ${open ? `closes ${fmtDate(c.closes_at)}` : 'closed'}` : 'Your Chief AI Compliance Officer launches the campaign.'}
-        actions={open ? <SendButton clientId={clientId} onSent={setMsg} /> : undefined} />
+        actions={open ? <><SendButton clientId={clientId} onSent={setMsg} /><SendToAllEmployees clientId={clientId} onSent={setMsg} /></> : undefined} />
       {msg && <Alert tone="success">{msg}</Alert>}
       {!c ? <Card><EmptyState>The campaign has not been launched yet. Once your Chief AI Compliance Officer launches it, you can send it to everyone with a login from here.</EmptyState></Card> : (
         <div style={{ maxWidth: 560 }}><InAppCard inApp={{ sent_at: q.data.sent_at ?? null, assigned: q.data.assigned ?? 0, submitted: q.data.submitted ?? 0 }} open={open} /></div>
@@ -154,7 +155,7 @@ function AttestationView({ clientId, canLaunch }: { clientId: string; canLaunch:
   return (
     <div className="page">
       <PageHeader title="AI use attestation" subtitle={`Policy version ${t.campaign.policy_version} · launched ${fmtDate(t.campaign.launched_at)} · ${open ? `closes ${fmtDate(t.campaign.closes_at)}` : `closed ${fmtDate(t.campaign.closed_at ?? t.campaign.closes_at)}`}`}
-        actions={<>{open && t.permissions?.send && <SendButton clientId={clientId} onSent={(text) => setMsg({ tone: 'success', text })} />}{canLaunch && link && open && <Button onClick={copy}>Copy staff link</Button>}{canLaunch && open && <Button onClick={close}>Close campaign</Button>}</>} />
+        actions={<>{open && t.permissions?.send && <SendButton clientId={clientId} onSent={(text) => setMsg({ tone: 'success', text })} />}{open && t.permissions?.send && <SendToAllEmployees clientId={clientId} departments={campaignDepts.map((d) => ({ id: d.id, name: d.name }))} onSent={(text) => setMsg({ tone: 'success', text })} />}{canLaunch && link && open && <Button onClick={copy}>Copy staff link</Button>}{canLaunch && open && <Button onClick={close}>Close campaign</Button>}</>} />
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
       <div className="grid-tiles" style={{ margin: '16px 0 24px' }}>
         <div className="tile"><div className="label">Responses</div><div className="value">{t.totals.responses}</div><div className="hint">{t.totals.headcount ? `of ${t.totals.headcount} staff` : 'staff'}</div></div>

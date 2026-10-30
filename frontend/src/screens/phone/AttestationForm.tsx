@@ -15,9 +15,10 @@ const nameHelp = (t: ToolOpt) => (t.value === 'in_app' ? F.appName : t.value ===
 
 /** The four check-in steps, shared by the no-login phone link and the in-app attestation. With `identity`, the
  * person is already known: name and email are not asked, and the department only when their account has none. */
-export function AttestationSteps({ info, identity, onSubmit, headingLevel = 1 }: { info: AttestInfo; identity?: Identity; onSubmit: (payload: Record<string, unknown>) => Promise<void>; headingLevel?: 1 | 2 }) {
+export function AttestationSteps({ info, identity, prefill, onSubmit, headingLevel = 1 }: { info: AttestInfo; identity?: Identity; prefill?: Identity; onSubmit: (payload: Record<string, unknown>) => Promise<void>; headingLevel?: 1 | 2 }) {
   const [step, setStep] = useState(1);
-  const [who, setWho] = useState({ respondent_name: identity?.respondent_name ?? '', respondent_email: identity?.respondent_email ?? '', department_id: identity?.department_id ?? '' });
+  const start = identity ?? prefill;
+  const [who, setWho] = useState({ respondent_name: start?.respondent_name ?? '', respondent_email: start?.respondent_email ?? '', department_id: start?.department_id ?? '' });
   const [none, setNone] = useState(false);
   const [tools, setTools] = useState<Tool[]>([]);
   const [purposes, setPurposes] = useState<string[]>([]);
@@ -90,6 +91,15 @@ export function AttestationSteps({ info, identity, onSubmit, headingLevel = 1 }:
                 <p style={{ margin: 0 }}><strong>{identity.respondent_name}</strong> · {identity.respondent_email}{deptName ? ` · ${deptName}` : ''}</p>
               </FieldGroup>
               {!identity.department_id && <SelectField label="Department" help={H.department} value={who.department_id} onChange={(e) => setWho({ ...who, department_id: e.target.value })} placeholder="Choose…" options={info.departments.map((d) => ({ value: d.id, label: d.name }))} error={fe.department_id} />}
+            </>
+          ) : prefill ? (
+            <>
+              <p className="small" style={{ margin: 0 }}>We filled these in from your company directory. Correct them if they are wrong.</p>
+              <TextField label="Your name" help={H.name} value={who.respondent_name} onChange={(e) => setWho({ ...who, respondent_name: e.target.value })} autoComplete="name" error={fe.respondent_name} />
+              <FieldGroup legend="Work email" legendClassName="small" help={F.linkEmail}>
+                <p style={{ margin: 0 }}>{prefill.respondent_email}</p>
+              </FieldGroup>
+              <SelectField label="Department" help={H.department} value={who.department_id} onChange={(e) => setWho({ ...who, department_id: e.target.value })} placeholder="Choose…" options={info.departments.map((d) => ({ value: d.id, label: d.name }))} error={fe.department_id} />
             </>
           ) : (
             <>

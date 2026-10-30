@@ -3,6 +3,7 @@ import { Card, Checkbox, FieldGroup, TextField } from '@/components/ui';
 import { PhoneField } from '@/components/ui/PhoneField';
 import { contactHelp as H } from '@/help/onboarding';
 import { useStepForm, useWizardCtx } from './Wizard';
+import { ClientEmailStatus } from '@/screens/email/ClientEmailStatus';
 
 type Contacts = Record<string, Contact>;
 
@@ -26,6 +27,7 @@ export function StepContacts() {
 
   return (
     <fieldset disabled={!editable} className="stack">
+      <ClientEmailStatus />
       <Card title="Chief AI Compliance Officer">
         <p className="small muted" style={{ marginTop: 0 }}>Required. Receives the initiation package and signs the engagement letter.</p>
         <div className="grid-2">

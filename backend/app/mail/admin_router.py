@@ -176,9 +176,17 @@ def client_directory(data: dict, actor: Actor = Depends(current_actor), db: Sess
     conn = cx.org_connection(db, org)
     if conn is None or conn.status != "connected":
         raise Conflict("Connect your email system first.")
-    directory.configure(db, actor.user, conn, data)
-    adminlog.write(db, organization_id=org.id, category="directory", action="settings", actor=actor.user,
-                   summary="Directory sync settings: " + ", ".join(f"{k.replace('_', ' ')} {v}" for k, v in data.items() if k in ("schedule", "include_guests", "department_field", "scope_group_name")))
+    fields = ("schedule", "include_guests", "use_directory_groups", "department_field", "scope_group")
+    ds = directory.for_connection(db, conn)
+    before = {k: getattr(ds, k) for k in fields} if ds else None
+    ds = directory.configure(db, actor.user, conn, data)
+    changed = [k for k in fields if before is None or before[k] != getattr(ds, k)]
+    if changed:
+        words = {"schedule": f"sync {dict(daily='daily', weekly='weekly', off='off').get(ds.schedule, 'every 6 hours')}",
+                 "include_guests": "guests and contractors included" if ds.include_guests else "guests and contractors left out",
+                 "use_directory_groups": "directory groups used as a source" if ds.use_directory_groups else "directory groups not used",
+                 "department_field": f"department from the {ds.department_field} field", "scope_group": f"only people in {ds.scope_group_name}" if ds.scope_group else "everyone in the directory"}
+        adminlog.write(db, organization_id=org.id, category="directory", action="settings", actor=actor.user, summary="Directory sync settings: " + "; ".join(words[k] for k in changed))
     return _client_out(db, settings, actor, org)
 
 
@@ -302,11 +310,13 @@ def _me_out(db: Session, actor: Actor, settings) -> dict:
     uc = cx.user_connection(db, actor.user)
     connected = uc is not None and uc.status == "connected"
     org_conn = cx.org_connection(db, actor.organization)
-    prompt = policy != "off" and not connected and (policy == "required" or uc is None or uc.status != "declined")
-    return {"policy": policy, "prompt": prompt, "required": policy == "required" and not connected,
+    creds = credentials_status(settings)
+    available = any(creds[p]["available"] for p in ("microsoft365", "google"))  # nothing to connect to yet: never block anyone
+    prompt = available and policy != "off" and not connected and (policy == "required" or uc is None or uc.status != "declined")
+    return {"policy": policy, "prompt": prompt, "required": available and policy == "required" and not connected,
             "connection": None if uc is None or uc.status in ("pending", "declined") else {"status": uc.status, "mailbox": uc.mailbox, "provider": uc.provider,
                                                                                            "provider_label": PROVIDER_LABELS.get(uc.provider), "consented_at": uc.consented_at.isoformat() if uc.consented_at else None},
-            "suggested_provider": org_conn.provider if org_conn and org_conn.provider else None, "credentials": credentials_status(settings)}
+            "suggested_provider": org_conn.provider if org_conn and org_conn.provider else None, "credentials": creds}
 
 
 @router.get("/me/mailbox")

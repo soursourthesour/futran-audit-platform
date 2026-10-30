@@ -13,7 +13,8 @@ import { NoticeDialog } from './NoticePanel';
 type Doc = { id: string; pdf_file_id: string | null; docx_file_id: string | null; csv_file_id: string | null };
 type Acks = { acknowledged: number; pending: number; version: number } | null;
 type Item = { key: string; title: string; description: string; done: boolean; self_complete: boolean; document: Doc | null; acknowledgements?: Acks };
-export type Checklist = { engagement: { id: string; audit_ref: string; name: string }; items: Item[]; done: number; total: number; requested_by: string | null; sign_off_1_id: string | null; chief_auditor: string | null };
+type Extra = { key: string; title: string; description: string; done: boolean; status: string; link: string };
+export type Checklist = { engagement: { id: string; audit_ref: string; name: string }; items: Item[]; done: number; total: number; requested_by: string | null; sign_off_1_id: string | null; chief_auditor: string | null; extra_items?: Extra[] };
 
 /** Where each item is done, when it is done on another screen. */
 const GO_TO: Record<string, { to: string; label: string }> = {
@@ -90,6 +91,23 @@ export function InitiationChecklist() {
           </ol>
         </div>
       </Card>
+      {!!c.extra_items?.length && (
+        <div style={{ marginTop: 16 }}><Card title="Also for you as Client Admin">
+          <ol className="checklist">
+            {c.extra_items.map((it) => (
+              <li key={it.key}>
+                <span className={`num ${it.done ? 'done' : ''}`} aria-hidden="true">{it.done ? '✓' : '•'}</span>
+                <div className="body">
+                  <h3>{it.title}</h3>
+                  <div className="small muted">{it.description}</div>
+                  <div className="small meta">{it.status}</div>
+                </div>
+                <div className="actions">{it.done ? <><Badge tone="success">Done</Badge><Link className="btn btn-sm" to={it.link}>Open</Link></> : <Link className="btn btn-primary" to={it.link}>{it.status === 'Not started' ? 'Connect' : 'Continue'}</Link>}</div>
+              </li>
+            ))}
+          </ol>
+        </Card></div>
+      )}
       {c.chief_auditor && <p className="small muted" style={{ marginTop: 16 }}>Questions? Contact your Futran team: {c.chief_auditor}, Chief Auditor.</p>}
       {signing && c.sign_off_1_id && (
         <Dialog title="Review and sign the engagement letter" onClose={() => setSigning(false)} wide>

@@ -5,6 +5,7 @@ import { Loading } from '@/components/ui';
 import { NotificationBell } from '@/components/NotificationBell';
 import logo from '@/assets/futran-logo.svg';
 import logoWhite from '@/assets/futran-logo-white.svg';
+import { MailboxGate } from '@/screens/email/MailboxPrompt';
 
 export function TestModeBar({ me }: { me?: Pick<Me, 'test_mode' | 'mfa_required' | 'email_mode'> | null }) {
   if (!me?.test_mode) return null;
@@ -53,6 +54,8 @@ export function FutranShell() {
     { to: '/admin/users', label: 'Users', show: hasRole(me, 'admin', 'chief_auditor') },
     { to: '/admin/audit-log', label: 'Audit log', show: hasRole(me, 'admin', 'chief_auditor') },
     { to: '/admin/outbox', label: 'Outbox', show: hasRole(me, 'admin', 'chief_auditor') },
+    { to: '/staff/admin/email', label: 'Email and groups', show: hasRole(me, 'admin', 'chief_auditor') },
+    { to: '/admin/log', label: 'Email log', show: hasRole(me, 'admin', 'chief_auditor', 'auditor') },
     { to: '/admin/settings', label: 'Settings', show: hasRole(me, 'admin', 'chief_auditor') },
   ];
   return (
@@ -65,13 +68,14 @@ export function FutranShell() {
         </nav>
         <UserMenu me={me} />
       </header>
+      <MailboxGate />
       <main><Outlet /></main>
     </>
   );
 }
 
 /** Client screens that exist so far; later phases add theirs here. */
-const BUILT_CLIENT_ROUTES = new Set(['/start', '/people', '/register', '/governance/roles', '/governance', '/attestation', '/my-attestation', '/inventory', '/systems', '/documents', '/review', '/report', '/responses', '/remediation']);
+const BUILT_CLIENT_ROUTES = new Set(['/admin/email', '/admin/groups', '/admin/log', '/start', '/people', '/register', '/governance/roles', '/governance', '/attestation', '/my-attestation', '/inventory', '/systems', '/documents', '/review', '/report', '/responses', '/remediation']);
 
 export function ClientShell() {
   const { data: me } = useMe();
@@ -91,6 +95,9 @@ export function ClientShell() {
     { to: '/report', label: 'Report', show: hasRole(me, 'caico', 'dpo', 'exec_sponsor') },
     { to: '/responses', label: 'Responses', show: hasRole(me, 'caico', 'exec_sponsor', 'dept_compliance_lead') },
     { to: '/remediation', label: 'Remediation', show: hasRole(me, 'caico', 'dpo', 'exec_sponsor', 'dept_compliance_lead', 'contributor') },
+    { to: '/admin/email', label: 'Email connection', show: hasRole(me, 'client_admin', 'caico') },
+    { to: '/admin/groups', label: 'Groups', show: hasRole(me, 'client_admin', 'caico', 'dept_compliance_lead') },
+    { to: '/admin/log', label: 'Email log', show: hasRole(me, 'client_admin', 'caico', 'dept_compliance_lead') },
   ].filter((n) => n.show !== false && BUILT_CLIENT_ROUTES.has(n.to));
   return (
     <>
@@ -102,9 +109,17 @@ export function ClientShell() {
         </nav>
         <UserMenu me={me} />
       </header>
+      <MailboxGate />
       <main><Outlet /></main>
     </>
   );
+}
+
+/** For screens in both portals: the shell of the signed-in person's own side. */
+export function EitherShell() {
+  const { data: me } = useMe();
+  if (!me) return null;
+  return me.organization.type === 'futran' ? <FutranShell /> : <ClientShell />;
 }
 
 export function PhoneShell({ title, children }: { title: string; children: ReactNode }) {

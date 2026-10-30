@@ -8,6 +8,7 @@ export const attestationFormHelp = {
   inHouseAgent: 'An agent your company built or configured itself. It is treated as running on a company account.',
   purposeOther: 'In a few words, what else you use AI for, for example translating contracts or preparing board packs. Up to 200 characters.',
   identity: 'Taken from your account, so you are not asked again. If your department is wrong, tell your Client Admin.',
+  linkEmail: 'The address this link was sent to. Your answer is recorded against it, and a later answer from the same address replaces this one.',
 };
 
 export const attestationAnswersHelp = {

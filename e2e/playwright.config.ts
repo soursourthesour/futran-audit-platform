@@ -3,7 +3,7 @@ import { defineConfig, devices } from '@playwright/test';
 const PORT = Number(process.env.E2E_PORT || 8765);
 const LATE = PORT + 1; // ABC Corp at stage 6 and Meridian at stage 3 (start-server.sh … late)
 const chrome = { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 900 } };
-const LATE_SPECS = /(journey|mobile|a11y|people|register)\.spec\.ts/;
+const LATE_SPECS = /(journey|mobile|a11y|people|register|email)\.spec\.ts/;
 
 export default defineConfig({
   testDir: '.',

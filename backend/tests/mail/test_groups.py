@@ -96,3 +96,12 @@ def test_employees_all_includes_everyone_with_a_login_before_any_directory_sync(
     _person(db, org, "Ana Ruiz")
     everyone = default_group(db, org.id, "all_employees")
     assert {p.email for p in active_members(db, everyone)} == {"ana@abc.com", "cleo@abc.com"}
+
+
+def test_a_department_lead_without_a_department_on_their_account_gets_the_role_department(db, org, admin):
+    from app.mail.people import ensure_platform_people, find_person
+
+    hr = make_department(db, org, name="Human Resources")
+    make_user(db, org, roles=[("dept_compliance_lead", "department", hr.id)], name="Lena Lead", email="lena@abc.com")
+    ensure_platform_people(db, org.id)
+    assert find_person(db, org.id, "lena@abc.com").department_id == hr.id
