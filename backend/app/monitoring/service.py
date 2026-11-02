@@ -260,12 +260,13 @@ def result_out(r: MonitorResult, check: MonitorCheck) -> dict:
             "run_at": r.run_at.isoformat()}
 
 
-def dashboard(db: Session, org: Organization) -> dict:
+def dashboard(db: Session, org: Organization, *, for_futran: bool = False) -> dict:
+    """The monitoring screen. The plan note is Futran's internal record (pricing, renewal plans): only Futran staff see it."""
     plan = plan_of(org)
     sub = current_subscription(db, org.id)
     nr = next_review(db, org)
     base = {"organization": {"id": org.id, "name": org.name}, "plan": plan, "plan_label": PLAN_LABELS[plan], "plans": [{"value": p, "label": PLAN_LABELS[p]} for p in PLANS],
-            "subscription": {"start_on": sub.start_on.isoformat() if sub and sub.start_on else None, "end_on": None, "note": sub.note if sub else None} if sub else None,
+            "subscription": {"start_on": sub.start_on.isoformat() if sub and sub.start_on else None, "end_on": None, "note": sub.note if for_futran else None} if sub else None,
             "next_review_on": nr.isoformat() if nr else None, "offers": OFFERS}
     if plan not in MONITOR_PLANS:
         return base | {"kpis": None, "needs_action": [], "healthy": [], "last_run": None, "runs": []}

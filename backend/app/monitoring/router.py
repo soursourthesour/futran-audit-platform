@@ -78,11 +78,11 @@ def _futran_client(db: Session, actor: Actor, client_id: str, action: Action) ->
 @router.get("/clients/{client_id}/monitoring")
 def futran_dashboard(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _futran_client(db, actor, client_id, Action.VIEW_MONITORING)
-    return mon.dashboard(db, org) | {"can_act": False, "can_set_plan": _may(db, actor, Action.MANAGE_SUBSCRIPTION, org.id)}
+    return mon.dashboard(db, org, for_futran=True) | {"can_act": False, "can_set_plan": _may(db, actor, Action.MANAGE_SUBSCRIPTION, org.id)}
 
 
 @router.put("/clients/{client_id}/subscription")
 def set_plan(client_id: str, body: PlanIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _futran_client(db, actor, client_id, Action.MANAGE_SUBSCRIPTION)
     mon.set_plan(db, actor.user, org, body.plan, next_review_on=body.next_review_on, note=body.note)
-    return mon.dashboard(db, org) | {"can_act": False, "can_set_plan": True}
+    return mon.dashboard(db, org, for_futran=True) | {"can_act": False, "can_set_plan": True}

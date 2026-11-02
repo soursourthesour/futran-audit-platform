@@ -143,3 +143,14 @@ def test_training_reminders_go_through_the_training_service(w, checks, monkeypat
     assert row["action_kind"] == "server"
     r = w.client.post(f"/api/v1/monitoring/results/{row['id']}/act")
     assert r.status_code == 200 and sent == [w.org.id] and "7" in r.json()["message"]
+
+
+def test_the_plan_note_is_for_futran_staff_only(w):
+    assert _plan(w, note="Discounted 30%; push Monitor Plus at renewal").json()["subscription"]["note"] == "Discounted 30%; push Monitor Plus at renewal"
+    w.as_(w.chief)
+    assert w.client.get(f"/api/v1/clients/{w.org.id}/monitoring").json()["subscription"]["note"] == "Discounted 30%; push Monitor Plus at renewal"
+    for user in (w.caico, w.admin):
+        w.as_(user)
+        r = w.client.get("/api/v1/monitoring")
+        assert r.status_code == 200 and r.json()["plan"] == "monitor"
+        assert "Discounted" not in r.text and r.json()["subscription"]["note"] is None
