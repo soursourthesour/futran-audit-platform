@@ -155,3 +155,17 @@ class Action(StrEnum):
     REVIEW_AGENT_DECISIONS = "review_agent_decisions"  # draw and judge a decision sample on an agent in the audit (Futran)
     MANAGE_PLATFORM_TRUST = "manage_platform_trust"  # SOC 2 readiness register and the platform's own AI systems (Futran Admin)
     VIEW_PLATFORM_TRUST = "view_platform_trust"
+
+    # Wave 3 WS-H: regulatory change alerts (§21 F4, screen 26) and AI project impact assessment (F8, screen 28)
+    VIEW_REG_UPDATES = "view_reg_updates"  # screen 26 list, impact per client, upcoming dates (Futran)
+    MANAGE_REG_UPDATES = "manage_reg_updates"  # add and edit updates, submit for review, review and publish another's
+    ACT_ON_REG_UPDATES = "act_on_reg_updates"  # send to A1, create an advisory opportunity, propose the law change
+    MANAGE_UPDATE_DIGEST = "manage_update_digest"  # turn the weekly digest on or off per client
+    VIEW_CLIENT_UPDATES = "view_client_updates"  # client "What this means for you" and deadline calendar
+    VIEW_PROJECTS = "view_projects"
+    SUBMIT_PROJECT = "submit_project"
+    REVIEW_PROJECT_DEPARTMENT = "review_project_department"
+    REVIEW_PROJECT_DPO = "review_project_dpo"
+    DECIDE_PROJECT = "decide_project"
+    VIEW_REASSESSMENT = "view_reassessment"  # reassessment triggers on the register and the client home
+    MANAGE_REASSESSMENT = "manage_reassessment"  # raise by hand, start, resolve or dismiss a trigger

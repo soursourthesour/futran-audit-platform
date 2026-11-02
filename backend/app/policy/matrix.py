@@ -423,3 +423,22 @@ for _role in (R.CAICO, R.CLIENT_ADMIN, R.DPO, R.EXEC_SPONSOR, R.DEPT_COMPLIANCE_
     _WS_I.setdefault(_role, {})[A.COMPLETE_OWN_TRAINING] = S.ORG
 for _role, _grants in _WS_I.items():
     MATRIX.setdefault(_role, {}).update(_grants)
+
+
+# ---- Wave 3 WS-H: regulatory change alerts (§21 F4, screen 26; the spec's "FRD analyst" is the Legal/Compliance
+# Reviewer) and new AI project impact assessment with reassessment triggers (F8, screen 28). An update is published only
+# by a second reviewer who is not its author (service rule). Clients see updates only as "What this means for you".
+_WS_H: dict[R, dict[A, S]] = {
+    R.CHIEF_AUDITOR: {A.VIEW_REG_UPDATES: S.ALL, A.MANAGE_REG_UPDATES: S.ALL, A.ACT_ON_REG_UPDATES: S.ALL, A.MANAGE_UPDATE_DIGEST: S.ALL},
+    R.LEGAL_REVIEWER: {A.VIEW_REG_UPDATES: S.ALL, A.MANAGE_REG_UPDATES: S.ALL, A.ACT_ON_REG_UPDATES: S.ALL},
+    R.AUDITOR: {A.VIEW_REG_UPDATES: S.ALL},
+    R.CAICO: {A.VIEW_CLIENT_UPDATES: S.ORG, A.VIEW_PROJECTS: S.ORG, A.SUBMIT_PROJECT: S.ORG, A.DECIDE_PROJECT: S.ORG, A.VIEW_REASSESSMENT: S.ORG,
+              A.MANAGE_REASSESSMENT: S.ORG},
+    R.CLIENT_ADMIN: {A.VIEW_CLIENT_UPDATES: S.ORG, A.VIEW_PROJECTS: S.ORG, A.VIEW_REASSESSMENT: S.ORG},
+    R.DEPT_COMPLIANCE_LEAD: {A.VIEW_CLIENT_UPDATES: S.DEPT, A.VIEW_PROJECTS: S.DEPT, A.SUBMIT_PROJECT: S.DEPT, A.REVIEW_PROJECT_DEPARTMENT: S.DEPT,
+                             A.VIEW_REASSESSMENT: S.DEPT, A.MANAGE_REASSESSMENT: S.DEPT},
+    R.DPO: {A.VIEW_PROJECTS: S.ORG, A.REVIEW_PROJECT_DPO: S.ORG, A.VIEW_REASSESSMENT: S.ORG},
+    R.CONTRIBUTOR: {A.VIEW_PROJECTS: S.DEPT, A.SUBMIT_PROJECT: S.DEPT},
+}
+for _role, _grants in _WS_H.items():
+    MATRIX.setdefault(_role, {}).update(_grants)

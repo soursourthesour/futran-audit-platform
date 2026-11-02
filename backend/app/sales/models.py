@@ -7,11 +7,12 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.core.clock import utcnow
 from app.core.models import Base, IdMixin
 
-TRIGGERS = ("unlock_request", "recommended_addon", "law_change", "new_law", "effective_date", "case", "manual", "policy_review")
+TRIGGERS = ("unlock_request", "recommended_addon", "law_change", "new_law", "effective_date", "case", "manual", "policy_review", "regulatory_update", "impact_assessment")
 TRIGGER_LABELS = {
     "unlock_request": "Unlock request", "recommended_addon": "Recommended add-on", "law_change": "New rule",
     "new_law": "New law", "effective_date": "Effective date", "case": "Litigation", "manual": "Added by hand",
     "policy_review": "Policy review request",  # wave 3 WS-I: "Request Futran review" in the policy builder
+    "regulatory_update": "Regulatory update", "impact_assessment": "Impact assessment",  # wave 3 WS-H (§21 F4, F8)
 }
 STAGES = ("new", "contacted", "proposal", "won", "lost")
 SERVICE_KINDS = ("audit", "bias_audit", "readiness", "addon", "advisory", "training", "remediation", "other")
