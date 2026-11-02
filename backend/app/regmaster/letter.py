@@ -34,6 +34,15 @@ AI_TYPE_SECTIONS = [
 FOOTER = "General information, not legal advice. Confirm obligations with your counsel."
 
 
+def status_label(v: LawVersion | None) -> str:
+    """The status as a client reads it. A repeal dated in the future leaves the law in force until then."""
+    if v is None:
+        return ""
+    if v.status == "repealed" and v.repealed_on and v.repealed_on > today():
+        return f"In force; repealed from {v.repealed_on.day} {v.repealed_on:%B %Y}"
+    return STATUS_LABELS.get(v.status, v.status)
+
+
 def letters(db: Session, org_id: str) -> list[IntroLetter]:
     return list(db.scalars(select(IntroLetter).where(IntroLetter.organization_id == org_id, IntroLetter.deleted_at.is_(None)).order_by(IntroLetter.version_no.desc())))
 
@@ -71,7 +80,7 @@ def build_body(db: Session, org: Organization) -> dict:
     for reg, v in sorted(pairs, key=lambda p: (p[0].binding is False, engine.law_label(p[0]))):
         j = db.get(Jurisdiction, reg.jurisdiction_id)
         laws.append({"regulation_id": reg.id, "law_version_id": v.id, "version_no": v.version_no, "geography": j.name if j else "", "law": engine.law_label(reg),
-                     "status": STATUS_LABELS.get(v.status, v.status), "binding": reg.binding is not False, "main_duty": v.main_duty or _first_sentence(reg.obligations_text) or "—"})
+                     "status": status_label(v), "binding": reg.binding is not False, "main_duty": v.main_duty or _first_sentence(reg.obligations_text) or "—"})
     roles = []
     for r in engine.required_roles(db, org.id):
         req_by = [s["law"] for s in r["sources"] if s["level"] == "required"] or [s["law"] for s in r["sources"]]

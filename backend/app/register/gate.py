@@ -2,11 +2,13 @@
 
 The required set for a system is computed from the laws on it (LawRoleMap in the regulatory master), never stored.
 """
+from datetime import date
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.audit_log import service as audit
-from app.core.clock import utcnow
+from app.core.clock import today, utcnow
 from app.core.errors import Conflict, Invalid
 from app.register.models import RegisterSystem
 from app.tenancy.models import User
@@ -79,7 +81,20 @@ def _assert_clear(db: Session, s: RegisterSystem) -> None:
         raise Conflict("Go-live is blocked until these are resolved: " + "; ".join(items) + ".", errors=[{"field": "gate", "message": i} for i in items])
 
 
-def submit_go_live(db: Session, actor: User, s: RegisterSystem) -> RegisterSystem:
+def _in_use_since(value: str | None) -> date | None:
+    """The date a system already in use first went live. Not in the future and not before 1990."""
+    if not value:
+        return None
+    try:
+        d = date.fromisoformat(str(value)[:10])
+    except ValueError:
+        d = None
+    if d is None or d > today() or d.year < 1990:
+        raise Invalid(errors=[{"field": "in_use_since", "message": "Enter the date the system first went into use (YYYY-MM-DD), not in the future."}])
+    return d
+
+
+def submit_go_live(db: Session, actor: User, s: RegisterSystem, in_use_since: str | None = None) -> RegisterSystem:
     from app.register.service import compliance_officers, log_change
     from app.notifications.service import notify
 
@@ -87,7 +102,11 @@ def submit_go_live(db: Session, actor: User, s: RegisterSystem) -> RegisterSyste
         raise Conflict("Only a system in development or ready for go-live can be submitted.")
     if s.go_live_requested_at:
         raise Conflict("This system is already waiting for go-live approval.")
+    since = _in_use_since(in_use_since)
     _assert_clear(db, s)
+    if since:
+        log_change(db, actor, s, "live_since", s.live_since.isoformat() if s.live_since else None, since.isoformat(), "Already in use before it was registered.")
+        s.live_since = since
     old = s.stage
     s.stage, s.go_live_requested_by, s.go_live_requested_at, s.updated_by = "ready_for_go_live", actor.id, utcnow(), actor.id
     if old != s.stage:
@@ -110,7 +129,8 @@ def decide_go_live(db: Session, actor: User, s: RegisterSystem, approve: bool, c
     requester = db.get(User, s.go_live_requested_by) if s.go_live_requested_by else None
     if approve:
         _assert_clear(db, s)
-        s.stage, s.go_live_approved_by, s.go_live_approved_at, s.live_since = "live", actor.id, utcnow(), utcnow().date()
+        s.stage, s.go_live_approved_by, s.go_live_approved_at = "live", actor.id, utcnow()
+        s.live_since = s.live_since or today()  # a system already in use keeps the date given when it was submitted
         log_change(db, actor, s, "stage", "ready_for_go_live", "live", comment or "Go-live approved.")
         log_change(db, actor, s, "go_live", "Submitted for approval", "Approved", comment, raw=True)
     else:

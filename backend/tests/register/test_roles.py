@@ -289,3 +289,26 @@ def test_role_catalog_for_bulk_edit(client, db, reg, cat):
     rows = client.get("/api/v1/register/role-catalog").json()
     assert [r["code"] for r in rows][:2] == ["accountable_executive", "records_retention_owner"]
     assert {r["level"] for r in rows} == {"company", "system", "agent"} and rows[0]["name"] == "Accountable executive"
+
+
+def test_a_system_already_in_use_keeps_the_date_it_went_live(client, db, reg, cat):
+    """Registering a system the company has used for years must not record today as its go-live date."""
+    reg.as_(reg.hr_lead)
+    s = new_system(client, department_id=reg.hr.id, stage="ready_for_go_live")
+    future = client.post(f"/api/v1/register/{s['id']}/go-live/submit", json={"in_use_since": "2999-01-01"})
+    assert future.status_code == 422 and future.json()["errors"][0]["field"] == "in_use_since"
+    assert client.post(f"/api/v1/register/{s['id']}/go-live/submit", json={"in_use_since": "2024-03-01"}).status_code == 200
+    reg.as_(reg.caico)
+    r = client.post(f"/api/v1/register/{s['id']}/go-live/decide", json={"approve": True})
+    assert r.status_code == 200, r.text
+    assert r.json()["live_since"] == "2024-03-01"
+
+
+def test_a_new_system_goes_live_on_the_day_it_is_approved(client, db, reg, cat):
+    from app.core.clock import today
+
+    reg.as_(reg.hr_lead)
+    s = new_system(client, department_id=reg.hr.id, stage="ready_for_go_live")
+    assert client.post(f"/api/v1/register/{s['id']}/go-live/submit").status_code == 200
+    reg.as_(reg.caico)
+    assert client.post(f"/api/v1/register/{s['id']}/go-live/decide", json={"approve": True}).json()["live_since"] == today().isoformat()

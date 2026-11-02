@@ -104,7 +104,11 @@ test('roles editor and the go-live gate refusal', async ({ page }) => {
 
   // the API refuses go-live while roles needed by go-live are unanswered, and says which
   await page.getByRole('button', { name: 'Submit for go-live approval' }).click();
-  await expect(page.getByRole('alert').filter({ hasText: 'Go-live is blocked until these are resolved' })).toContainText('Bias testing lead');
+  const submitDlg = page.getByRole('dialog', { name: /Submit for go-live approval/ });
+  await expect(submitDlg.getByLabel('Already in use since')).toBeVisible();  // a system already in use keeps its real go-live date
+  await submitDlg.getByRole('button', { name: 'Submit for approval' }).click();
+  await expect(submitDlg.getByRole('alert').filter({ hasText: 'Go-live is blocked until these are resolved' })).toContainText('Bias testing lead');
+  await submitDlg.getByRole('button', { name: 'Cancel' }).click();
 
   // the role editor: a Department Head cannot mark a required role Not applicable
   await own.getByRole('button', { name: 'Actions for Bias testing lead / independent auditor' }).click();

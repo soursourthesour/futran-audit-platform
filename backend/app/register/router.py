@@ -27,6 +27,10 @@ class LawIn(BaseModel):
     reason: str | None = None
 
 
+class GoLiveIn(BaseModel):
+    in_use_since: str | None = None  # a system already in use before it was registered
+
+
 class DecideIn(BaseModel):
     approve: bool
     comment: str | None = None
@@ -412,12 +416,12 @@ def put_role(system_id: str, role_id: str, data: dict, actor: Actor = Depends(cu
 
 
 @router.post("/register/{system_id}/go-live/submit")
-def post_go_live_submit(system_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+def post_go_live_submit(system_id: str, body: GoLiveIn | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     from app.register.gate import submit_go_live
 
     s = load(db, actor, system_id)
     check(db, actor, Action.SUBMIT_GO_LIVE, s)
-    return system_out(db, submit_go_live(db, actor.user, s), actor, full=True)
+    return system_out(db, submit_go_live(db, actor.user, s, in_use_since=body.in_use_since if body else None), actor, full=True)
 
 
 @router.post("/register/{system_id}/go-live/decide")

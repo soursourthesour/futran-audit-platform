@@ -92,7 +92,7 @@ def _law_row(db: Session, reg: Regulation, j: Jurisdiction | None, v: LawVersion
     return {
         "id": reg.id, "geography": j.name if j else "", "jurisdiction_code": j.code if j else None, "short_name": reg.short_name, "label": engine.law_label(reg),
         "citation": reg.citation if reg.citation and len(reg.citation) < 120 else None, "type": reg.type, "binding": reg.binding,
-        "status": v.status if v else None, "status_label": letters.STATUS_LABELS.get(v.status, v.status) if v else "", "effective": _effective_label(v),
+        "status": v.status if v else None, "status_label": letters.status_label(v), "effective": _effective_label(v),
         "effective_on": _iso(v.compliance_on or v.effective_on) if v else None, "scope": (v.scope_text if v else None) or reg.trigger_text or "",
         "applies_to": (v.applies_to if v else None) or [], "topics": reg.topics or [], "requirement_count": reqs.get(v.id, 0) if v else 0,
         "role_count": roles.get(v.id, 0) if v else 0, "committee": "; ".join(comm.get(v.id, [])) if v else "", "penalty": (v.penalty_text if v else None) or "",
@@ -660,7 +660,7 @@ def applicability(client_id: str, actor: Actor = Depends(current_actor), db: Ses
         used = (row.scope_answers or {}).get("used") or {}
         manual = (row.scope_answers or {}).get("manual") or {}
         item = {"regulation_id": reg.id, "label": engine.law_label(reg), "short_name": reg.short_name, "geography": j.name if j else "", "binding": reg.binding is not False,
-                "kind": "Baseline" if reg.region == "framework" else ("Binding" if reg.binding is not False else "Guidance"), "status": letters.STATUS_LABELS.get(v.status, "") if v else "",
+                "kind": "Baseline" if reg.region == "framework" else ("Binding" if reg.binding is not False else "Guidance"), "status": letters.status_label(v),
                 "reason": row.reason_text, "override": row.override, "version_no": v.version_no if v else None, "main_duty": v.main_duty if v else None,
                 "questions": [{"order": t.order, "question_text": t.question_text, "answer": manual.get(str(t.order)) or used.get(str(t.order)), "manual": str(t.order) in manual, "decisive": t.decisive} for t in tests]}
         (laws_in if row.in_scope else laws_out).append(item)

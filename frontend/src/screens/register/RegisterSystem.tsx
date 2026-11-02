@@ -24,6 +24,7 @@ export function RegisterSystemPage({ tab }: { tab: Tab }) {
   const qc = useQueryClient();
   const [flash, setFlash] = useState<{ tone: 'success' | 'danger'; text: string } | null>(null);
   const [deciding, setDeciding] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   useEffect(() => setFlash(null), [tab]);
   if (q.isLoading) return <div className="page"><Loading /></div>;
   if (!q.data) return <div className="page"><Alert tone="danger">{errorMessage(q.error)}</Alert></div>;
@@ -31,11 +32,6 @@ export function RegisterSystemPage({ tab }: { tab: Tab }) {
   const refresh = () => Promise.all([qc.invalidateQueries({ queryKey: ['register'] }), qc.invalidateQueries({ queryKey: ['register-roles', systemId] }), qc.invalidateQueries({ queryKey: ['register-history', systemId] })]);
   const canSubmit = s.can_submit_go_live && ['in_development', 'ready_for_go_live'].includes(s.stage) && !s.go_live.requested_at;
   const awaiting = s.stage === 'ready_for_go_live' && !!s.go_live.requested_at;
-  async function submit() {
-    setFlash(null);
-    try { await api.post(`/register/${s.id}/go-live/submit`); await refresh(); setFlash({ tone: 'success', text: 'Sent to the Chief AI Compliance Officer for go-live approval.' }); }
-    catch (e) { setFlash({ tone: 'danger', text: errorMessage(e) }); }
-  }
   const gaps = s.roles.no_such_person + s.roles.pending_committee + (s.stage !== 'proposed' ? s.roles.not_answered : 0);
   const tabs: [Tab, string, string][] = [
     ['details', 'Details', `/register/${s.id}`],
@@ -53,12 +49,12 @@ export function RegisterSystemPage({ tab }: { tab: Tab }) {
           <span>{s.type_label} · {s.sourcing_label.toLowerCase()}</span>
           {(s.ai_provider_label || s.model_name) && <span>{[s.ai_provider_label, s.model_name].filter(Boolean).join(' · ')}</span>}
           {s.risk_tier && <Badge tone={TIER_TONE[s.risk_tier]}>{TIER_LABEL[s.risk_tier]}</Badge>}
-          <span>Stage: {s.stage_label}{s.live_since ? ` since ${fmtDate(s.live_since)}` : ''}</span>
+          <span>Stage: {s.stage_label}{s.stage === 'live' && s.live_since ? ` since ${fmtDate(s.live_since)}` : ''}</span>
           <span>{s.roles.filled} of {s.roles.required} required roles filled</span>
           {s.laws.length > 0 && <span>{s.laws.map((l) => l.short_name).join(' · ')}</span>}
         </span>}
         actions={<>
-          {canSubmit && <Button variant="primary" onClick={submit}>Submit for go-live approval</Button>}
+          {canSubmit && <Button variant="primary" onClick={() => { setFlash(null); setSubmitting(true); }}>Submit for go-live approval</Button>}
           {awaiting && s.can_approve_go_live && <Button variant="primary" onClick={() => setDeciding(true)}>Review go-live</Button>}
         </>} />
       {flash && <Alert tone={flash.tone}>{flash.text}</Alert>}
@@ -83,8 +79,33 @@ export function RegisterSystemPage({ tab }: { tab: Tab }) {
       {tab === 'tracing' && <TracingTab s={s} />}
       {tab === 'evidence' && <EvidenceTab s={s} />}
       {tab === 'changes' && <ChangesTab s={s} />}
+      {submitting && <SubmitGoLiveDialog s={s} onClose={() => setSubmitting(false)} onDone={async () => { setSubmitting(false); await refresh(); setFlash({ tone: 'success', text: 'Sent to the Chief AI Compliance Officer for go-live approval.' }); }} />}
       {deciding && <GoLiveDialog s={s} onClose={() => setDeciding(false)} onDone={async (m) => { setDeciding(false); await refresh(); setFlash({ tone: 'success', text: m }); }} />}
     </div>
+  );
+}
+
+function SubmitGoLiveDialog({ s, onClose, onDone }: { s: RegSystem; onClose: () => void; onDone: () => void }) {
+  const [since, setSince] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [errs, setErrs] = useState<Record<string, string>>({});
+  async function send() {
+    if (busy) return;
+    setBusy(true); setErr(null); setErrs({});
+    try { await api.post(`/register/${s.id}/go-live/submit`, since ? { in_use_since: since } : {}); onDone(); }
+    catch (e) { setErrs(fieldErrors(e)); setErr(errorMessage(e)); }
+    finally { setBusy(false); }
+  }
+  return (
+    <Dialog title={`Submit for go-live approval: ${s.name}`} onClose={onClose}>
+      <div className="stack">
+        <p style={{ margin: 0 }}>The Chief AI Compliance Officer approves it. Approval is refused while a required role or a pre-go-live requirement is open.</p>
+        {err && !errs.in_use_since && <Alert tone="danger">{err}</Alert>}
+        <TextField label="Already in use since" type="date" help={H.inUseSince} hint="Leave blank for a new system: it goes live on the day it is approved." value={since} max={new Date().toISOString().slice(0, 10)} error={errs.in_use_since} onChange={(e) => setSince(e.target.value)} />
+        <div className="row"><Button variant="primary" onClick={send} disabled={busy}>Submit for approval</Button><Button variant="ghost" onClick={onClose}>Cancel</Button></div>
+      </div>
+    </Dialog>
   );
 }
 

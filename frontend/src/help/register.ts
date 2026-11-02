@@ -36,6 +36,7 @@ export const systemHelp = {
   removeLaw: 'Say why the law no longer applies. A Department Head\'s request waits for the Chief AI Compliance Officer.',
   impact: 'Whether the output is used to make decisions about people, such as hiring, credit or benefits. Making or substantially making the decision is Tier 3.',
   biasNextDue: 'When the next bias test is due. New systems are tested before go-live, then every 12 months.',
+  inUseSince: 'For a system the company was already using before it was registered: the date it first went into use. It becomes the live-since date when go-live is approved.',
   reason: 'Why you are making this change. It is saved to the change history with your name and the time.',
   importFile: 'A CSV with the columns in the template. Every row is checked as the form checks it; nothing is imported until all rows are correct.',
 };

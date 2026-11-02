@@ -77,3 +77,16 @@ def test_repeal_date_must_be_a_date(master):
     reg = find_law(master, "US-NYC", "Local Law 144")
     with pytest.raises(Invalid):
         changes.propose(master, actor_id="u1", regulation_id=reg.id, field_path="repeal", new_value={"status": "repealed", "effective_on": "soon"}, summary="Repealed", origin="admin_edit", change_type="repeal")
+
+
+def test_the_intro_letter_shows_a_future_repeal_as_in_force_until_its_date(master):
+    """A law still in force must not be described to the client as already repealed."""
+    from app.regmaster import letter
+
+    db = master
+    org = make_org(db)
+    _geo(db, org, "US-NYC")
+    _repeal(db, "2027-07-01")
+    _row(db, org, "US-NYC", "Local Law 144")
+    row = next(x for x in letter.build_body(db, org)["laws"] if "144" in x["law"])
+    assert row["status"] == "In force; repealed from 1 July 2027"

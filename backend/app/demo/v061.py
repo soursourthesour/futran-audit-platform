@@ -107,21 +107,11 @@ def set_requirements(m: Demo, sid: str, statuses: dict, entries: dict | None = N
         m.put(f"/register/{sid}/requirements/{row['id']}", body)
 
 
-def go_live(m: Demo, sid: str, submitter: str, approver: str, comment: str) -> None:
-    m.as_(m.user(submitter)).post(f"/register/{sid}/go-live/submit")
+def go_live(m: Demo, sid: str, submitter: str, approver: str, comment: str, in_use_since: str | None = None) -> None:
+    """Submit and approve go-live. A system ABC was already using before it started its register keeps the date it went
+    into use, as the client would tell its auditor."""
+    m.as_(m.user(submitter)).post(f"/register/{sid}/go-live/submit", {"in_use_since": in_use_since} if in_use_since else None)
     m.as_(m.user(approver)).post(f"/register/{sid}/go-live/decide", {"approve": True, "comment": comment})
-
-
-def _backdate_live(m: Demo, sid: str, since: str) -> None:
-    """No service: go-live approval records today's date. These systems were in use before ABC started its register, so
-    the date they went into use is kept, as the client would tell its auditor. The approval itself stays as recorded."""
-    from datetime import date
-
-    from app.register.models import RegisterSystem
-
-    s = m.db.get(RegisterSystem, sid)
-    s.live_since = date.fromisoformat(since)
-    m.db.commit()
 
 
 # ---------------------------------------------------------------- requirement notes (what a client records)
@@ -229,12 +219,9 @@ def abc_register_core(m: Demo, cid: str, depts: dict) -> dict:
     set_requirements(m, chatbot["id"], NIST_MET | {
         "NIST-MS2.11": ("partly_met", "Containment and hand-off rates are monitored. Answers are not yet sampled for accuracy or fair treatment."),
     })
-    go_live(m, invoice["id"], f"grace.liu@{ABC}", maria, "Quarterly validation by Finance analytics is in place.")
-    go_live(m, copilot["id"], f"marco.diaz@{ABC}", maria, "Company licence with data protection terms; no decisions about people.")
-    go_live(m, chatbot["id"], f"marco.diaz@{ABC}", maria, "Agents take over complex requests. Answer sampling to follow.")
-    _backdate_live(m, invoice["id"], "2024-07-01")
-    _backdate_live(m, copilot["id"], "2025-09-15")
-    _backdate_live(m, chatbot["id"], "2025-02-03")
+    go_live(m, invoice["id"], f"grace.liu@{ABC}", maria, "Quarterly validation by Finance analytics is in place.", "2024-07-01")
+    go_live(m, copilot["id"], f"marco.diaz@{ABC}", maria, "Company licence with data protection terms; no decisions about people.", "2025-09-15")
+    go_live(m, chatbot["id"], f"marco.diaz@{ABC}", maria, "Agents take over complex requests. Answer sampling to follow.", "2025-02-03")
     return {"SYS-001": ats["id"], "SYS-002": invoice["id"], "SYS-003": copilot["id"], "SYS-004": chatbot["id"]}
 
 
@@ -349,8 +336,7 @@ def abc_after_audit(m: Demo, cid: str) -> dict:
         "IL-01": ("met", "Internal bias test of scores by group recorded in the history log."),
         "NIST-MS2.11": ("met", "Internal bias test recorded; repeated every year."),
     }, entries={"IL-01": [internal_test["id"]], "NIST-MS2.11": [internal_test["id"]]})
-    go_live(m, attr, priya, maria, "Scores inform conversations only; no decision is taken on the score.")
-    _backdate_live(m, attr, "2025-11-03")
+    go_live(m, attr, priya, maria, "Scores inform conversations only; no decision is taken on the score.", "2025-11-03")
     rows = {r["code"]: r for r in m.as_(m.user(maria)).get(f"/register/{attr}/roles")["rows"]}
     m.put(f"/register/{attr}/roles/{rows['transparency_notice_owner']['role_id']}",
           {"status": "no_such_person", "reason": "The HR business partner who owned the employee notice left in September. No replacement named yet."})
@@ -387,8 +373,7 @@ def abc_after_audit(m: Demo, cid: str) -> dict:
         "CERTIN-03": ("met", "HireLoop keeps logs for 180 days in its Mumbai region, confirmed in the contract."),
         "CERTIN-04": ("met", "Vendor confirms NTP synchronisation to NPL time servers for the India region."),
     }, entries={"NIST-MG2.4": [uat["id"]]})
-    go_live(m, agent, priya, maria, "Emails need recruiter approval for the first 30 days; reviewed by the committee.")
-    _backdate_live(m, agent, m.d(-40))
+    go_live(m, agent, priya, maria, "Emails need recruiter approval for the first 30 days; reviewed by the committee.", m.d(-40))
 
     # AIS-008 to AIS-010: the pipeline
     m.as_(m.user(priya))
