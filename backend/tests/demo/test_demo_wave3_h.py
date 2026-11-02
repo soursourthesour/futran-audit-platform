@@ -1,4 +1,4 @@
-"""WS-H demo step on top of the full demo seed: screen 26 has published, awaiting-review and watch items with ABC Corp's
+"""WS-H demo step on top of the full demo seed: screen 26 has published, awaiting-review (each with a point to confirm) and watch items with ABC Corp's
 impact and upcoming dates; screen 28 has an approved project with conditions and one in review; a register edit raised a
 reassessment trigger."""
 import pytest
@@ -79,6 +79,8 @@ def test_screen_26_has_published_awaiting_review_and_watch_items(world, as_user)
     nyc, ca, watch = mine[world["ids"]["reg_update_nyc"]], mine[world["ids"]["reg_update_ca"]], mine[world["ids"]["reg_update_watch"]]
     assert nyc["status"] == "published" and "ABC Corp" in [c["name"] for c in nyc["clients"]]
     assert ca["status"] == "awaiting_review" and ca["verify_note"]
+    co = mine[world["ids"]["reg_update_co"]]  # rests on a law-firm summary with a point to confirm: not published as settled fact
+    assert co["status"] == "awaiting_review" and co["verify_note"]
     assert watch["watch"] is True and watch["client_count"] == 0
     assert d["counts"]["awaiting_review"] >= 1
 

@@ -266,11 +266,12 @@ function UpdateForm({ d, u, onClose, onDone }: { d: Data; u: Update | null; onCl
 
 function ReviewDialog({ u, onClose, onDone }: { u: Update; onClose: () => void; onDone: (t: string) => void }) {
   const [note, setNote] = useState('');
+  const [confirmed, setConfirmed] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   async function decide(approve: boolean) {
     setBusy(true); setErr(null);
-    try { await api.post(`/reg/updates/${u.id}/review`, { approve, note }); onDone(approve ? `${u.reference} published and matched to clients.` : `${u.reference} sent back to ${u.author_name ?? 'its author'}.`); }
+    try { await api.post(`/reg/updates/${u.id}/review`, { approve, note, clear_verify_note: approve && confirmed }); onDone(approve ? `${u.reference} published and matched to clients.` : `${u.reference} sent back to ${u.author_name ?? 'its author'}.`); }
     catch (e) { setErr(errorMessage(e)); } finally { setBusy(false); }
   }
   return (
@@ -289,8 +290,9 @@ function ReviewDialog({ u, onClose, onDone }: { u: Update; onClose: () => void; 
           <dt>Drafted by</dt><dd>{u.author_name}</dd>
         </dl>
         <TextArea label="Note" help={H.reviewNote} rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
+        {u.verify_note && <Checkbox label="I confirmed the point above; clear it and publish" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />}
         <div className="row wrap">
-          <Button variant="primary" disabled={busy} onClick={() => decide(true)}>Publish</Button>
+          <Button variant="primary" disabled={busy || (!!u.verify_note && !confirmed)} onClick={() => decide(true)}>Publish</Button>
           <Button disabled={busy} onClick={() => decide(false)}>Send back</Button>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
         </div>

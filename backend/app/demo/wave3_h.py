@@ -7,7 +7,8 @@ Screen 26 (regulatory change alerts). Facts were checked on 2 November 2026 agai
   same companies; DCWP received 2 complaints in the period. Published, matched to ABC Corp, sent to A1 for approval.
 - Colorado SB 26-189: signed 14 May 2026, deployer obligations from 1 January 2027 (notice before or at use, explanation
   within 30 days of an adverse decision, correction, human review, three-year records). The source is a law-firm summary
-  (Eckert Seamans); the enrolled act on leg.colorado.gov could not be opened when this was written, so the update says so.
+  (Eckert Seamans); the enrolled act on leg.colorado.gov could not be opened when this was written, so the update says so
+  and waits for the second reviewer with that note.
 - California SB 947 "No Robo Bosses Act": passed 31 August 2026 (Senate 28-10, Assembly 53-14, Senator McNerney's press
   release), signed 30 September 2026 (law-firm summary). The operative date is not confirmed, so the update waits for a
   second reviewer with that note.
@@ -79,7 +80,10 @@ def updates(m: Demo, cid: str) -> dict:
         "source_url": OSC_URL, "source_name": "Office of the New York State Comptroller",
         "source_quote": "We reviewed the same companies and identified at least 17 instances of potential non-compliance under LL144.",
         "affected_features": ["employment_hiring"]})
-    co_u = _publish(m, {
+    # Colorado rests on a law-firm summary with a point still to confirm, so it waits for the second reviewer rather
+    # than being published as settled fact
+    m.as_(m.user(LEGAL))
+    co_u = m.post("/reg/updates", {
         "change_type": "effective_date", "jurisdiction_id": _jur(m, "US-CO"), "regulation_id": co, "law_name": "Colorado SB 26-189",
         "title": "Deployer obligations begin 1 January 2027", "effective_on": "2027-01-01",
         "summary": "SB 26-189, signed on 14 May 2026, repeals and replaces the Colorado AI Act. From 1 January 2027 deployers of automated decision-making "
@@ -90,7 +94,7 @@ def updates(m: Demo, cid: str) -> dict:
         "source_url": CO_URL, "source_name": "Eckert Seamans (law-firm summary)",
         "verify_note": "Link the enrolled act on leg.colorado.gov; enforcement depends on Attorney General rulemaking.",
         "affected_features": ["consequential_decisions_admt", "employment_hiring"]})
-    m.as_(m.user(LEGAL))
+    m.post(f"/reg/updates/{co_u['id']}/submit")
     ca_u = m.post("/reg/updates", {
         "change_type": "new_law", "jurisdiction_id": _jur(m, "US-CA"), "regulation_id": ca, "law_name": "California SB 947 \"No Robo Bosses Act\"",
         "title": "Employers may not rely solely on an automated decision system to discipline or dismiss workers",

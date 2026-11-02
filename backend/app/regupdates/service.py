@@ -156,8 +156,9 @@ def _reviewers(db: Session) -> list[User]:
     return [u for u in (db.get(User, i) for i in ids) if u is not None and u.deleted_at is None and u.status != "disabled"]
 
 
-def review(db: Session, settings, actor: User, u: RegulatoryUpdate, approve: bool, note: str | None) -> RegulatoryUpdate:
-    """The expert in the loop: a second reviewer publishes or sends back. The author never publishes their own update."""
+def review(db: Session, settings, actor: User, u: RegulatoryUpdate, approve: bool, note: str | None, clear_verify_note: bool = False) -> RegulatoryUpdate:
+    """The expert in the loop: a second reviewer publishes or sends back. The author never publishes their own update.
+    An update with a point still to confirm is not published until the reviewer confirms it and clears the note."""
     if u.status != "awaiting_review":
         raise Conflict("This update is not waiting for review.")
     if actor.id in preparers(db, u):
@@ -165,11 +166,17 @@ def review(db: Session, settings, actor: User, u: RegulatoryUpdate, approve: boo
     note = (note or "").strip() or None
     if not approve and not note:
         raise Invalid(errors=[{"field": "note", "message": "Say what needs to change."}])
+    if approve and u.verify_note and not clear_verify_note:
+        raise Conflict("This update has a point still to confirm. Confirm it and clear the note, or send the update back.")
     u.reviewed_by, u.reviewed_at, u.review_note, u.updated_by = actor.id, utcnow(), (note or "")[:1000] or None, actor.id
     if not approve:
         u.status = "draft"
         audit.record(db, actor_id=actor.id, action="regupdate.return", obj=u, organization_id=actor.organization_id, after={"note": note}, summary=f"Sent {u.reference} back: {note}"[:300])
         return u
+    if u.verify_note:
+        audit.record(db, actor_id=actor.id, action="regupdate.verify_note_cleared", obj=u, organization_id=actor.organization_id, before={"verify_note": u.verify_note},
+                     summary=f"Confirmed and cleared the point to confirm on {u.reference}")
+        u.verify_note = None
     u.status, u.published_at = "published", utcnow()
     alerts = match(db, u)
     triggers = raise_triggers(db, u, alerts, actor.id)

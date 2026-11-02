@@ -20,6 +20,7 @@ router = APIRouter(tags=["regulatory updates"])
 class ReviewIn(BaseModel):
     approve: bool
     note: str | None = None
+    clear_verify_note: bool = False  # the reviewer confirmed the point the author flagged
 
 
 class ReasonIn(BaseModel):
@@ -232,7 +233,7 @@ def submit_update(uid: str, actor: Actor = Depends(current_actor), db: Session =
 def review_update(uid: str, body: ReviewIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     u = load(db, actor, uid)
     authorize(db, actor, Action.MANAGE_REG_UPDATES)
-    return update_out(db, actor, svc.review(db, request.app.state.settings, actor.user, u, body.approve, body.note))
+    return update_out(db, actor, svc.review(db, request.app.state.settings, actor.user, u, body.approve, body.note, body.clear_verify_note))
 
 
 @router.post("/reg/updates/{uid}/withdraw")
