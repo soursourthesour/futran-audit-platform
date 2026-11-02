@@ -32,6 +32,8 @@ export const FUTRAN_NAV: NavEntry[] = [
   // wave 3 WS-I: Trust Center confirmations (32) and client policy reviews (27, independence rule)
   { to: '/trust-confirmations', label: 'Trust Center confirmations', requires: ['confirm_trust_items'] },
   { to: '/client-policies', label: 'Client policy reviews', requires: ['view_client_policies'] },
+
+  { to: '/reg/updates', label: 'Regulatory updates', requires: ['view_reg_updates'] }, // WS-H screen 26
   // Wave 3 (spec §21, mockups 25–35) adds one entry each when its screen exists, for example:
   // { to: '/copilot', label: 'Copilot', requires: ['use_copilot'] }, bias calculator 29, heat map 35, benchmarking 34.
 ];
@@ -71,6 +73,9 @@ export const CLIENT_NAV: NavEntry[] = [
   { to: '/training', label: 'AI literacy training', requires: ['view_training'] },
   { to: '/my-training', label: 'My training', requires: ['complete_own_training'] },
   { to: '/trust', label: 'Trust Center', requires: ['view_trust_center'], end: true },
+
+  { to: '/projects', label: 'New AI projects', requires: ['view_projects'] }, // WS-H screen 28
+  { to: '/updates', label: 'Regulatory updates', requires: ['view_client_updates'] }, // WS-H screen 26 (client)
   // Wave 3 adds one entry each when its screen exists: policy builder 27, integrations 30, monitoring 31, training 33.
   { to: '/integrations', label: 'Integrations', requires: ['view_integrations'] },
   { to: '/monitoring', label: 'Monitoring', requires: ['view_monitoring'] },

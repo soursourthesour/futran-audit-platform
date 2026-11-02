@@ -4,6 +4,7 @@ import { api, errorMessage } from '@/api/client';
 import type { ClientAdminData, DepartmentData, DeptSection, DpoData, MyTasksData, SponsorData } from '@/api/homes';
 import { Alert, Badge, ButtonLink, Card, EmptyState, Loading, PageHeader, fmtDate, fmtDateTime } from '@/components/ui';
 import { RATING_LABEL, RoleNote, SEVERITY_TONE, SignOffBadge, Tile, cap, signOffStatus } from './common';
+import { ReassessmentCard } from '@/screens/regupdates/Reassessment';
 
 function useHome<T>(key: string) {
   return useQuery({ queryKey: ['home', key], queryFn: () => api.get<T>(`/home/${key}`) });
@@ -211,6 +212,7 @@ function DepartmentSection({ s, shared }: { s: DeptSection; shared: boolean }) {
 export function DepartmentHome() {
   return <Shell q={useHome<DepartmentData>('department')}>{(d) => (
     <div className="page">
+      <ReassessmentCard />
       {d.departments.length === 0 ? <><PageHeader title="My department" /><Card><EmptyState>You are not the lead for a department yet. Ask your Client Admin.</EmptyState></Card></> :
         d.departments.map((s, i) => (
           <div key={s.id} style={i ? { marginTop: 32 } : undefined}>

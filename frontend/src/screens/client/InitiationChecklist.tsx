@@ -9,6 +9,7 @@ import { SignPanel } from '@/components/SignPanel';
 import { DocReader } from '@/components/DocReader';
 import { DownloadLinks } from '@/components/DownloadLinks';
 import { NoticeDialog } from './NoticePanel';
+import { ReassessmentCard } from '@/screens/regupdates/Reassessment';
 
 type Doc = { id: string; pdf_file_id: string | null; docx_file_id: string | null; csv_file_id: string | null };
 type Acks = { acknowledged: number; pending: number; version: number } | null;
@@ -33,7 +34,7 @@ export function InitiationChecklist() {
   const [msg, setMsg] = useState<{ tone: 'success' | 'danger'; text: string } | null>(null);
   if (q.isLoading) return <div className="page"><Loading /></div>;
   if (q.error instanceof ApiError && q.error.status === 404) {
-    return <div className="page"><PageHeader title="Getting started" /><Card><EmptyState>Your initiation package will appear here once Futran sends it.</EmptyState></Card></div>;
+    return <div className="page"><PageHeader title="Getting started" /><ReassessmentCard /><Card><EmptyState>Your initiation package will appear here once Futran sends it.</EmptyState></Card></div>;
   }
   if (!q.data) return <div className="page"><Alert tone="danger">{errorMessage(q.error)}</Alert></div>;
   const c = q.data;
@@ -67,6 +68,7 @@ export function InitiationChecklist() {
     <div className="page page-narrow">
       <PageHeader title="Welcome to your AI governance assessment" subtitle={`Complete these seven items to start. Futran's team is notified as each one is done.${c.requested_by ? ` Requested by ${fmtDate(c.requested_by)}.` : ''}`} />
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
+      <ReassessmentCard />
       <Card>
         <div className="stack">
           <div className="row" style={{ justifyContent: 'space-between' }}><strong>{c.done} of {c.total} complete</strong><span className="small muted">{c.engagement.audit_ref}</span></div>

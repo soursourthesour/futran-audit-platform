@@ -1,0 +1,39 @@
+/* Regulatory change alerts (screen 26), "What this means for you" and new AI projects (screen 28). */
+
+.ru-layout { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start; }
+.ru-main { flex: 999 1 620px; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+.ru-aside { flex: 1 1 340px; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+.ru-main .pills { margin-bottom: 8px; }
+.ru-item { display: flex; flex-direction: column; gap: 4px; white-space: normal; min-width: 220px; }
+.ru-impact { border: 2px solid var(--blue); }
+.ru-impact-title { margin: 0; font-size: 17px; font-weight: 600; }
+.ru-list { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.6; }
+.ru-dates { list-style: none; margin: 0; padding: 0; font-size: 14px; }
+.ru-dates li { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line-soft); }
+.ru-dates li:last-child { border-bottom: none; }
+.ru-checks { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 14px; }
+.ru-update { display: flex; flex-direction: column; gap: 8px; }
+.ru-update h3 { margin: 0; font-size: 16px; }
+.ru-tier { border: 2px solid var(--line); border-radius: 8px; padding: 14px 16px; background: var(--surface); }
+.ru-tier.t2 { border-color: #d9922b; background: #fffaf0; }
+.ru-tier.t3 { border-color: var(--danger); background: var(--danger-bg); }
+.ru-tier.t1 { border-color: var(--success-line); background: var(--success-bg); }
+.ru-tier .ru-tier-value { font-size: 22px; font-weight: 700; }
+.ru-tier.t2 .ru-tier-value, .ru-tier.t2 .ru-tier-label { color: #7a4800; }
+.ru-tier.t3 .ru-tier-value, .ru-tier.t3 .ru-tier-label { color: var(--danger); }
+.ru-tier .ru-tier-label { font-size: 13px; font-weight: 600; color: var(--muted); }
+.ru-laws { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.6; }
+.ru-laws .no { color: var(--muted); }
+.ru-picker { display: flex; flex-wrap: wrap; gap: 6px; }
+.ru-picker .chip { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; }
+.ru-picker .chip button { min-width: 32px; min-height: 32px; border: none; background: none; cursor: pointer; font-size: 16px; }
+.ru-places { max-height: 220px; overflow-y: auto; border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; }
+.ru-place { display: block; width: 100%; min-height: 44px; text-align: left; border: none; border-bottom: 1px solid var(--line-soft); background: none; font: inherit; font-size: 15px; cursor: pointer; padding: 0 4px; }
+.ru-place:hover, .ru-place:focus-visible { background: var(--info-bg); }
+.ru-trigger { display: flex; flex-direction: column; gap: 4px; padding: 10px 0; border-bottom: 1px solid var(--line-soft); }
+.ru-trigger:last-child { border-bottom: none; }
+@media (max-width: 600px) {
+  .ru-aside, .ru-main { flex-basis: 100%; }
+  .ru-places { max-height: 260px; }
+  .ru-picker .chip button { min-width: 44px; min-height: 44px; }
+}
