@@ -167,9 +167,15 @@ def run(db: Session, settings: Settings | None, org: Organization, trigger: str,
 
 
 def after_sync(db: Session, settings: Settings | None, org: Organization, connector_run) -> MonitorRun | None:
+    """The run after a connector sync or upload. A failure here is logged and undone; it never fails the sync or upload."""
     if org is None or org.id in _suppress_after_sync:
         return None
-    return run(db, settings, org, "sync", f"sync:{connector_run.id}", now=connector_run.finished_at)
+    try:
+        with db.begin_nested():
+            return run(db, settings, org, "sync", f"sync:{connector_run.id}", now=connector_run.finished_at)
+    except Exception:  # noqa: BLE001
+        log.exception("Monitoring run after %s %s failed for %s", connector_run.kind, connector_run.id, org.id)
+        return None
 
 
 def run_monthly(db: Session, settings: Settings | None, now: datetime | date) -> int:
@@ -180,9 +186,14 @@ def run_monthly(db: Session, settings: Settings | None, now: datetime | date) ->
         key = f"monthly:{now:%Y-%m}"
         if db.scalar(select(MonitorRun.id).where(MonitorRun.organization_id == org.id, MonitorRun.run_key == key)):
             continue
-        _resync(db, settings, org, now)
-        if run(db, settings, org, "monthly", key, now=now) is not None:
-            n += 1
+        try:
+            with db.begin_nested():  # one client's failure leaves the other clients' runs in place
+                _resync(db, settings, org, now)
+                done = run(db, settings, org, "monthly", key, now=now) is not None
+        except Exception:  # noqa: BLE001 (logged; nothing of this client's run is kept, so the next daily job tries again)
+            log.exception("Monthly monitoring run failed for %s", org.id)
+            continue
+        n += int(done)
     db.flush()
     return n
 

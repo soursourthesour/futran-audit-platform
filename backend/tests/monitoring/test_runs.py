@@ -133,3 +133,47 @@ def test_dashboard_counts_the_latest_run_and_lists_what_needs_action(w, settings
 def test_dashboard_for_audit_only_lists_what_monitoring_offers(w):
     d = mon.dashboard(w.db, w.org)
     assert d["plan"] == "audit_only" and d["kpis"] is None and len(d["offers"]) >= 4
+
+
+def test_one_clients_failure_does_not_undo_the_other_clients_monthly_runs(w, settings, checks, monkeypatch):
+    _monitor(w)
+    mon.set_plan(w.db, w.fadmin, w.other, "monitor")
+    checks["out"] = [CheckOutcome("x", "Thing", "failed", "Broken")]
+    real = mon._alert
+
+    def alert(db, settings_, org, check, r, now):
+        if org.id == w.org.id:
+            raise RuntimeError("mail server down")
+        return real(db, settings_, org, check, r, now)
+
+    monkeypatch.setattr(mon, "_alert", alert)
+    now = datetime(2026, 11, 3, 10, 0)
+    assert mon.run_monthly(w.db, settings, now) == 1
+    w.db.commit()
+    assert w.db.query(MonitorRun).filter_by(organization_id=w.other.id, status="completed").count() == 1
+    assert w.db.query(MonitorRun).filter_by(organization_id=w.org.id).count() == 0  # nothing half-done; the next day's job tries again
+    monkeypatch.setattr(mon, "_alert", real)
+    assert mon.run_monthly(w.db, settings, now + timedelta(days=1)) == 1
+    assert w.db.query(MonitorRun).filter_by(organization_id=w.org.id, status="completed").count() == 1
+
+
+def test_a_monitoring_failure_after_a_sync_or_upload_does_not_fail_it(w, settings, checks, monkeypatch):
+    from app.connectors import service as csvc
+    from app.connectors.models import ConnectorRun, DiscoveredTool
+
+    _monitor(w)
+
+    def broken(*a, **k):
+        w.db.add(MonitorRun(organization_id=w.org.id, run_key="half", trigger="sync", started_at=datetime(2026, 11, 3), status="running", counts={}))
+        w.db.flush()
+        raise RuntimeError("check registry broken")
+
+    monkeypatch.setattr(mon, "run", broken)
+    run = csvc.upload(w.db, settings, w.admin, w.org, "expense_csv", "b.csv", b"Description,Department\nOPENAI *CHATGPT,HR\n")
+    assert run.status == "completed" and run.tools_found == 1
+    w.db.commit()
+    assert w.db.query(ConnectorRun).filter_by(status="completed").count() == 1 and w.db.query(DiscoveredTool).count() == 1
+    assert w.db.query(MonitorRun).count() == 0
+    conn = csvc.connector(w.db, w.org, "okta")
+    csvc.connect_okta(w.db, settings, w.admin, w.org, "abccorp.okta.com", "cid", "s3cret")
+    assert csvc.sync(w.db, settings, conn, w.admin).status == "completed"
