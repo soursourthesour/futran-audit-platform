@@ -57,17 +57,21 @@ class RegisteredCheck:
     frequency: str
     applies_to: str
     fn: Callable[[Session, object], list[CheckOutcome]]
+    on_action: Callable | None = None  # (db, settings, user, org, result) -> message; for request_report and send_reminder
 
 
 CHECKS: dict[str, RegisteredCheck] = {}
 
 
-def register_check(code: str, description: str, severity: str, frequency: str, applies_to: str, fn: Callable) -> RegisteredCheck:
+def register_check(code: str, description: str, severity: str, frequency: str, applies_to: str, fn: Callable, *, on_action: Callable | None = None) -> RegisteredCheck:
+    """Register a check. `on_action(db, settings, user, org, result)` carries out the result's request_report or
+    send_reminder button and returns a short message for the person; start_reassessment calls
+    app.impact.triggers.raise_trigger on the result's register_system_id, and review and open are links."""
     if severity not in SEVERITIES:
         raise ValueError(f"Unknown severity {severity!r}; use one of {', '.join(SEVERITIES)}.")
     if applies_to not in APPLIES_TO:
         raise ValueError(f"Unknown scope {applies_to!r}; use one of {', '.join(APPLIES_TO)}.")
-    c = RegisteredCheck(code, description, severity, frequency, applies_to, fn)
+    c = RegisteredCheck(code, description, severity, frequency, applies_to, fn, on_action)
     CHECKS[code] = c
     return c
 

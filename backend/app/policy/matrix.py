@@ -411,6 +411,21 @@ for _role, _grants in _WS_G.items():
     MATRIX.setdefault(_role, {}).update(_grants)
 
 
+# ---- wave 3 WS-J: integrations and AI discovery (§21 F2, screen 30) and continuous monitoring (§21 F3, screen 31).
+# The Client Admin connects and decides; the CAICO reads integrations and works the monitoring screen. Futran auditors
+# read both on their clients (dismiss reasons are visible to them) and, for Tier 2–3 named-user checks only, the names
+# behind a discovered tool. The Futran Admin sets the plan.
+_WS_J: dict[R, dict[A, S]] = {
+    R.CLIENT_ADMIN: {A.VIEW_INTEGRATIONS: S.ORG, A.MANAGE_INTEGRATIONS: S.ORG, A.DECIDE_DISCOVERED_TOOLS: S.ORG, A.VIEW_MONITORING: S.ORG, A.ACT_ON_MONITORING: S.ORG},
+    R.CAICO: {A.VIEW_INTEGRATIONS: S.ORG, A.VIEW_MONITORING: S.ORG, A.ACT_ON_MONITORING: S.ORG},
+    R.AUDITOR: {A.VIEW_INTEGRATIONS: S.ASSIGNED, A.VIEW_DISCOVERY_PEOPLE: S.ASSIGNED, A.VIEW_MONITORING: S.ASSIGNED},
+    R.CHIEF_AUDITOR: {A.VIEW_INTEGRATIONS: S.ALL, A.VIEW_DISCOVERY_PEOPLE: S.ALL, A.VIEW_MONITORING: S.ALL},
+    R.ADMIN: {A.VIEW_MONITORING: S.ALL, A.MANAGE_SUBSCRIPTION: S.ALL},
+}
+for _role, _grants in _WS_J.items():
+    MATRIX.setdefault(_role, {}).update(_grants)
+
+
 def actions_for(roles: set[str]) -> list[str]:
     """Every action any of `roles` holds at some scope (the union for a person with several roles)."""
     out: set[str] = set()

@@ -222,6 +222,16 @@ JOBS |= {"refresh_schedule": _wsd("run_scheduled"), "refresh_reminders": _wsd("r
 
 
 
+def run_monitoring_monthly(db: Session, settings: Settings, now) -> int:
+    """Continuous monitoring (§21 F3): once a calendar month per client on a Monitor plan; each run is claimed once."""
+    from app.monitoring.service import run_monthly
+
+    return run_monthly(db, settings, _dt(now))
+
+
+JOBS["monitoring_monthly"] = run_monitoring_monthly
+
+
 def run_daily(db: Session, settings: Settings, now) -> dict[str, int | str]:
     out: dict[str, int | str] = {}
     for name, job in JOBS.items():

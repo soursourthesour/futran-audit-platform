@@ -64,6 +64,14 @@ class Settings(BaseSettings):
     guardrail_url: str | None = None
     guardrail_token: str | None = None  # not used for client syncs: each organisation sets its own token (TracingOrgSettings)
     guardrail_tests_live: bool = False  # GenAI guardrail tests (§21 F11) call a client endpoint only when true and permission is recorded
+    # AI discovery connectors (spec §21 F2). CONNECTOR_MODE: auto (the in-process fake while EMAIL_MODE=outbox, else live),
+    # fake or live. Each provider uses its own app registration with read-only permissions only, separate from email.
+    connector_mode: str = "auto"
+    discovery_ms_client_id: str | None = None
+    discovery_ms_client_secret: str | None = None
+    discovery_google_client_id: str | None = None
+    discovery_google_client_secret: str | None = None
+    discovery_redirect_base: str | None = None  # default: BASE_URL/api/v1/connectors/oauth
 
     # Public API webhooks (spec §21 F17). WEBHOOK_MODE: auto (the in-process fake in test mode, else live), fake or live.
     webhook_mode: str = "auto"

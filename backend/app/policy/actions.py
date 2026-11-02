@@ -176,3 +176,11 @@ class Action(StrEnum):
     EXTRACT_OBLIGATIONS = "extract_obligations"
     APPROVE_OBLIGATIONS = "approve_obligations"
     USE_QUESTIONNAIRES = "use_questionnaires"  # client: customer questionnaires and the answer library
+    # wave 3 WS-J: integrations and AI discovery (§21 F2, screen 30), continuous monitoring (§21 F3, screen 31)
+    VIEW_INTEGRATIONS = "view_integrations"  # connectors and discovered tools (aggregated to tool × department)
+    MANAGE_INTEGRATIONS = "manage_integrations"  # connect, disconnect, sync, upload expense and network-log files
+    DECIDE_DISCOVERED_TOOLS = "decide_discovered_tools"  # confirm, map to an inventory tool, or dismiss with a reason
+    VIEW_DISCOVERY_PEOPLE = "view_discovery_people"  # names behind a discovered tool, for Tier 2–3 named-user checks only
+    VIEW_MONITORING = "view_monitoring"
+    ACT_ON_MONITORING = "act_on_monitoring"  # run checks now, start a reassessment, request a report, send a reminder
+    MANAGE_SUBSCRIPTION = "manage_subscription"  # the client's plan (audit only, Monitor, Monitor Plus)

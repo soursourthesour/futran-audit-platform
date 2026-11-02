@@ -33,3 +33,5 @@ ROUTER_MODULES += ["impact.router", "regupdates.router"]
 
 # wave 3 WS-G: AI copilot and the engagement AI switch (F1, screen 25)
 ROUTER_MODULES += ["ai.router", "ai.explain_router", "ai.obligations_router", "ai.questionnaires_router"]
+# wave 3 WS-J: integrations and AI discovery (screen 30), continuous monitoring (screen 31)
+ROUTER_MODULES += ["connectors.router", "monitoring.router"]

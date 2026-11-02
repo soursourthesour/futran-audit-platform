@@ -1,0 +1,202 @@
+# AI vendor list for automated AI discovery (spec §21 F2). Each entry is one AI product.
+#   key:          stable identifier, used to group signals from different sources into one discovered tool
+#   vendor, product, category: what the client and the auditor see
+#   names:        how the product appears as an SSO app, an OAuth client or a licence (matched case-insensitively as a
+#                 whole word or phrase inside the app name)
+#   domains:      web domains (a CASB or proxy row matches the domain or any subdomain of it)
+#   expense:      card statement descriptors (matched case-insensitively as a phrase inside the description or merchant)
+#   attestation:  the attestation answer values (app.attestation.service.TOOLS) that declare this product
+# Futran maintains this list; add a product by appending an entry. Keep keys unchanged once used.
+vendors:
+  - key: openai_chatgpt
+    vendor: OpenAI
+    product: ChatGPT
+    category: General-purpose AI assistant
+    names: [ChatGPT, OpenAI]
+    domains: [chatgpt.com, chat.openai.com, openai.com]
+    expense: ["OPENAI *CHATGPT", "CHATGPT SUBSCRIPTION", "OPENAI"]
+    attestation: [chatgpt, chatgpt_agent]
+  - key: anthropic_claude
+    vendor: Anthropic
+    product: Claude
+    category: General-purpose AI assistant
+    names: [Claude, Anthropic]
+    domains: [claude.ai, anthropic.com]
+    expense: ["CLAUDE.AI SUBSCRIPTION", "ANTHROPIC"]
+    attestation: [claude, claude_agentic]
+  - key: google_gemini
+    vendor: Google
+    product: Gemini
+    category: General-purpose AI assistant
+    names: [Gemini]
+    domains: [gemini.google.com, aistudio.google.com]
+    expense: ["GOOGLE *GEMINI", "GOOGLE ONE AI PREMIUM"]
+    attestation: [gemini, gemini_agents]
+  - key: microsoft_copilot
+    vendor: Microsoft
+    product: Copilot
+    category: General-purpose AI assistant
+    names: [Microsoft 365 Copilot, Copilot]
+    domains: [copilot.microsoft.com, copilot.cloud.microsoft]
+    expense: ["MICROSOFT*COPILOT", "COPILOT PRO"]
+    attestation: [copilot, copilot_agents]
+  - key: github_copilot
+    vendor: GitHub
+    product: GitHub Copilot
+    category: AI coding assistant
+    names: [GitHub Copilot]
+    domains: [githubcopilot.com]
+    expense: ["GITHUB *COPILOT"]
+    attestation: [github_coding_agent]
+  - key: cursor
+    vendor: Anysphere
+    product: Cursor
+    category: AI coding assistant
+    names: [Cursor]
+    domains: [cursor.com, cursor.sh]
+    expense: ["CURSOR AI", "CURSOR, AI POWERED IDE"]
+    attestation: []
+  - key: perplexity
+    vendor: Perplexity AI
+    product: Perplexity
+    category: AI search assistant
+    names: [Perplexity]
+    domains: [perplexity.ai]
+    expense: ["PERPLEXITY"]
+    attestation: []
+  - key: otter
+    vendor: Otter.ai
+    product: Otter.ai
+    category: AI meeting note-taker
+    names: [Otter.ai, Otter]
+    domains: [otter.ai]
+    expense: ["OTTER.AI"]
+    attestation: []
+  - key: fireflies
+    vendor: Fireflies.ai
+    product: Fireflies.ai
+    category: AI meeting note-taker
+    names: [Fireflies.ai, Fireflies]
+    domains: [fireflies.ai]
+    expense: ["FIREFLIES"]
+    attestation: []
+  - key: read_ai
+    vendor: Read AI
+    product: Read AI
+    category: AI meeting note-taker
+    names: [Read AI]
+    domains: [read.ai]
+    expense: ["READ AI"]
+    attestation: []
+  - key: grammarly
+    vendor: Grammarly
+    product: Grammarly
+    category: AI writing assistant
+    names: [Grammarly]
+    domains: [grammarly.com]
+    expense: ["GRAMMARLY"]
+    attestation: []
+  - key: jasper
+    vendor: Jasper AI
+    product: Jasper
+    category: AI writing assistant
+    names: [Jasper]
+    domains: [jasper.ai]
+    expense: ["JASPER.AI", "JASPER AI"]
+    attestation: []
+  - key: writer
+    vendor: Writer
+    product: Writer
+    category: AI writing assistant
+    names: [Writer.com]
+    domains: [writer.com]
+    expense: ["WRITER.COM"]
+    attestation: []
+  - key: deepl
+    vendor: DeepL
+    product: DeepL
+    category: AI translation
+    names: [DeepL]
+    domains: [deepl.com]
+    expense: ["DEEPL"]
+    attestation: []
+  - key: notion_ai
+    vendor: Notion Labs
+    product: Notion AI
+    category: AI features in a workspace app
+    names: [Notion AI]
+    domains: [notion.ai]
+    expense: ["NOTION AI"]
+    attestation: []
+  - key: midjourney
+    vendor: Midjourney
+    product: Midjourney
+    category: AI image generation
+    names: [Midjourney]
+    domains: [midjourney.com]
+    expense: ["MIDJOURNEY"]
+    attestation: []
+  - key: elevenlabs
+    vendor: ElevenLabs
+    product: ElevenLabs
+    category: AI voice generation
+    names: [ElevenLabs]
+    domains: [elevenlabs.io]
+    expense: ["ELEVENLABS"]
+    attestation: []
+  - key: synthesia
+    vendor: Synthesia
+    product: Synthesia
+    category: AI video generation
+    names: [Synthesia]
+    domains: [synthesia.io]
+    expense: ["SYNTHESIA"]
+    attestation: []
+  - key: gamma
+    vendor: Gamma Tech
+    product: Gamma
+    category: AI presentation builder
+    names: [Gamma App]
+    domains: [gamma.app]
+    expense: ["GAMMA.APP"]
+    attestation: []
+  - key: character_ai
+    vendor: Character Technologies
+    product: Character.AI
+    category: AI chat companion
+    names: [Character.AI]
+    domains: [character.ai]
+    expense: ["CHARACTER.AI"]
+    attestation: []
+  - key: hirevue
+    vendor: HireVue
+    product: HireVue
+    category: AI hiring assessment
+    names: [HireVue]
+    domains: [hirevue.com]
+    expense: ["HIREVUE"]
+    attestation: []
+  - key: eightfold
+    vendor: Eightfold AI
+    product: Eightfold Talent Intelligence
+    category: AI résumé screening
+    names: [Eightfold]
+    domains: [eightfold.ai]
+    expense: ["EIGHTFOLD"]
+    attestation: []
+  - key: salesforce_agentforce
+    vendor: Salesforce
+    product: Agentforce
+    category: AI agent platform
+    names: [Agentforce, Einstein]
+    domains: []
+    expense: []
+    attestation: [agentforce]
+  - key: zapier_ai
+    vendor: Zapier
+    product: Zapier AI automations
+    category: AI automation
+    names: [Zapier]
+    domains: [zapier.com]
+    expense: ["ZAPIER"]
+    attestation: [automations]

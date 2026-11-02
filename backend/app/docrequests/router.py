@@ -66,7 +66,7 @@ def request_out(db: Session, r: DocumentRequest, futran: bool) -> dict:
         "id": r.id, "code": item.code, "title": item.title, "description": item.description, "category": item.category, "category_title": item.category_title,
         "system_id": s.id if s else None, "system": s.name if s else None, "system_ref": s.reference_id if s else None,
         "status": r.status, "due_at": r.due_at.isoformat() if r.due_at else None, "received_at": r.received_at.isoformat() if r.received_at else None,
-        "files": _files(db, r.evidence_ids), "not_available_note": r.not_available_note,
+        "files": _files(db, r.evidence_ids), "not_available_note": r.not_available_note, "expires_on": r.expires_on.isoformat() if r.expires_on else None,
     }
     if futran:
         c = svc.last_chase(db, r)
@@ -144,6 +144,28 @@ def post_file(req_id: str, request: Request, file: UploadFile = File(...), actor
 def not_available(req_id: str, body: NoteIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     req = _request(db, actor, req_id)
     return request_out(db, svc.mark_not_available(db, actor.user, req, body.note), actor.is_futran)
+
+
+class ExpiryIn(BaseModel):
+    expires_on: date | None = None
+
+
+@router.put("/document-requests/{req_id}/expiry")
+def set_expiry(req_id: str, body: ExpiryIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+    """When a received document stops being valid (a vendor's SOC 2 report). Continuous monitoring watches the date."""
+    req = _request(db, actor, req_id)
+    if req.status != "received":
+        from app.core.errors import Conflict
+
+        raise Conflict("Upload the document first, then record when it expires.")
+    from app.audit_log import service as audit
+
+    before = req.expires_on
+    req.expires_on = body.expires_on
+    audit.record(db, actor_id=actor.id, action="document_request.expiry_set", obj=req,
+                 summary=f"Expiry date {'cleared' if body.expires_on is None else body.expires_on.isoformat()}" + (f" (was {before.isoformat()})" if before else ""))
+    db.flush()
+    return request_out(db, req, actor.is_futran)
 
 
 @router.get("/me/document-requests")

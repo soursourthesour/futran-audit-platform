@@ -101,6 +101,7 @@ def test_run_daily_runs_every_job(client, db, live, settings):
     assert set(out) == {"invitation_warnings", "invitation_expiry", "due_soon", "escalations", "weekly_digest", "repeal_dates",
                         "refresh_schedule", "refresh_reminders", "client_alert_dates", "opportunity_dates",  # v0.6 WS-D
                         "regulatory_digest", "reassessment_schedule",  # wave 3 WS-H
-                        "bias_raw_data_retention"}  # wave 3 WS-K
+                        "bias_raw_data_retention",  # wave 3 WS-K
+                        "monitoring_monthly"}  # wave 3 WS-J
     # email (every minute) and incident deadlines (every 15 minutes) run on their own ticks, never also in the daily run
     assert all(isinstance(v, int) for v in out.values()), out

@@ -28,6 +28,7 @@ class DocumentRequest(TimestampedTenantMixin, Base):
     escalated_at: Mapped[datetime | None] = mapped_column(DateTime)
     due_warned_at: Mapped[datetime | None] = mapped_column(DateTime)
     escalated_chase_id: Mapped[str | None] = mapped_column(String(36))  # the chase the Lead Auditor was last told about
+    expires_on: Mapped[date | None] = mapped_column(Date)  # when the document stops being valid (a vendor's SOC 2 report); monitoring checks it (§21 F3)
 
 
 class DocumentChase(TimestampedTenantMixin, Base):
