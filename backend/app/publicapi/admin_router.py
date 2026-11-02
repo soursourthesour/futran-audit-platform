@@ -15,7 +15,7 @@ from app.policy.authorize import authorize
 from app.publicapi import auth as A
 from app.publicapi import netguard, webhooks
 from app.publicapi.models import EVENTS, SCOPES, ApiClient, ApiToken, Webhook, WebhookDelivery
-from app.tenancy.models import User
+from app.tenancy.models import Organization, User
 
 router = APIRouter(tags=["public api admin"])
 
@@ -30,6 +30,10 @@ class ClientPatch(BaseModel):
     name: str | None = Field(default=None, max_length=120)
     scopes: list[str] | None = None
     rate_limit_per_minute: int | None = Field(default=None, ge=1, le=600)
+
+
+class TransferIn(BaseModel):
+    owner_id: str = Field(max_length=64)
 
 
 class HookIn(BaseModel):
@@ -84,8 +88,9 @@ def _url(v: str, settings) -> str:
 
 def client_out(db: Session, c: ApiClient) -> dict:
     owner = db.get(User, c.owner_id)
+    org = db.get(Organization, c.organization_id)
     return {"id": c.id, "name": c.name, "client_id": c.client_id, "secret_hint": c.secret_hint, "scopes": c.scopes, "rate_limit_per_minute": c.rate_limit_per_minute,
-            "status": c.status, "owner": owner.name if owner else None, "created_at": c.created_at.isoformat(), "last_used_at": c.last_used_at.isoformat() if c.last_used_at else None,
+            "status": c.status, "owner": owner.name if owner else None, "owner_id": c.owner_id, "owner_is_client_admin": A.is_client_admin(db, owner, org), "created_at": c.created_at.isoformat(), "last_used_at": c.last_used_at.isoformat() if c.last_used_at else None,
             "revoked_at": c.revoked_at.isoformat() if c.revoked_at else None}
 
 
@@ -111,13 +116,20 @@ def _hook(db: Session, actor: Actor, hook_id: str, action: Action = Action.MANAG
     return h
 
 
+def _client_admins(db: Session, org) -> list[dict]:
+    """The people an API client can be transferred to."""
+    users = db.scalars(select(User).where(User.organization_id == org.id, User.deleted_at.is_(None), User.status == "active").order_by(User.name))
+    return [{"id": u.id, "name": u.name} for u in users if A.is_client_admin(db, u, org)]
+
+
 @router.get("/admin/api")
 def overview(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _org(db, actor, Action.VIEW_API_CLIENTS)
+    can_manage = _may(db, actor, Action.MANAGE_API_CLIENTS)
     clients = db.scalars(select(ApiClient).where(ApiClient.organization_id == org.id, ApiClient.deleted_at.is_(None)).order_by(ApiClient.created_at))
     hooks = db.scalars(select(Webhook).where(Webhook.organization_id == org.id, Webhook.deleted_at.is_(None)).order_by(Webhook.created_at))
     return {"clients": [client_out(db, c) for c in clients], "webhooks": [hook_out(db, h) for h in hooks], "scopes": [{"code": k, "label": v} for k, v in SCOPES.items()],
-            "events": [{"code": k, "label": v} for k, v in EVENTS.items()], "can_manage": _may(db, actor, Action.MANAGE_API_CLIENTS),
+            "events": [{"code": k, "label": v} for k, v in EVENTS.items()], "can_manage": can_manage, "client_admins": _client_admins(db, org) if can_manage else [],
             "token_url": "/api/public/v1/oauth/token", "base_url": "/api/public/v1"}
 
 
@@ -152,6 +164,24 @@ def patch_client(client_id: str, body: ClientPatch, actor: Actor = Depends(curre
     c.updated_by = actor.id
     audit.record(db, actor_id=actor.id, action="api_client.edited", obj=c, request=actor.request, before=before,
                  after={"name": c.name, "scopes": c.scopes, "rate_limit_per_minute": c.rate_limit_per_minute}, summary=f"Edited API client {c.name}")
+    return client_out(db, c)
+
+
+@router.post("/admin/api/clients/{client_id}/transfer")
+def transfer_client(client_id: str, body: TransferIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+    """Hand the client to another Client Admin of the organization; API writes are recorded as the owner's."""
+    c = _client(db, actor, client_id)
+    if c.status != "active":
+        raise Invalid("A revoked API client cannot be transferred.")
+    org = actor.organization
+    new = db.get(User, body.owner_id)
+    if not A.is_client_admin(db, new, org):
+        raise Invalid(errors=[{"field": "owner_id", "message": "Choose an active Client Admin of your organization."}])
+    old = db.get(User, c.owner_id)
+    if new.id != c.owner_id:
+        c.owner_id, c.updated_by = new.id, actor.id
+        audit.record(db, actor_id=actor.id, action="api_client.transferred", obj=c, request=actor.request, before={"owner": old.name if old else None},
+                     after={"owner": new.name}, summary=f"Transferred API client {c.name} to {new.name}"[:300])
     return client_out(db, c)
 
 

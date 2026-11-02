@@ -13,6 +13,7 @@ export const apiHelp = {
   name: 'The system that will use this client, for example "ServiceNow GRC sync". It appears in the audit log beside every call.',
   scopes: 'Give only the access the system needs. A token can never do more than its client\'s scopes.',
   rate: 'Calls a minute. Further calls get "429 Too many requests" until the minute has passed.',
+  owner: 'The Client Admin who answers for this client. Changes the client makes through the API are recorded as theirs.',
   secret: 'Copy the secret now. It is shown only once and stored only as a hash. If it is lost, issue a new one.',
   url: 'A public HTTPS address. Addresses on a private network (localhost, 10.x, 192.168.x, 169.254.x and similar) are refused.',
   events: 'The events this address receives. Each delivery is signed with your signing secret.',

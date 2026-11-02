@@ -139,9 +139,27 @@ class Caller:
         from app.core.errors import Conflict
 
         u = db.get(User, self.client.owner_id)
-        if u is None or u.status != "active" or u.deleted_at is not None or u.organization_id != self.organization.id:
-            raise Conflict("The person who owns this API client no longer has an active account. Ask your Client Admin to take it over.")
+        if not is_client_admin(db, u, self.organization):
+            raise Conflict("The owner of this API client is no longer an active Client Admin, so it cannot make changes. "
+                           "A Client Admin can transfer the client to themselves or another Client Admin under Admin > API and webhooks.")
         return u
+
+
+def is_client_admin(db: Session, u: User | None, org: Organization) -> bool:
+    """An active account of `org` that may manage API clients today (the Client Admin role, by the policy matrix)."""
+    from app.auth.deps import Actor
+    from app.core.errors import Forbidden, NotFound
+    from app.policy.actions import Action
+    from app.policy.authorize import authorize
+    from app.tenancy.service import roles_of
+
+    if u is None or u.status != "active" or u.deleted_at is not None or u.organization_id != org.id:
+        return False
+    try:
+        authorize(db, Actor(user=u, organization=org, roles=roles_of(db, u.id)), Action.MANAGE_API_CLIENTS, org_id=org.id)
+    except (Forbidden, NotFound):
+        return False
+    return True
 
 
 def authenticate(request: Request, db: Session) -> Caller:

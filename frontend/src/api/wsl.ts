@@ -23,10 +23,10 @@ export function useCommentCounts(objectType: CommentObjectType, ids: string[]) {
 }
 
 // ---- public API and webhooks (F17)
-export type ApiClientRow = { id: string; name: string; client_id: string; secret_hint: string; scopes: string[]; rate_limit_per_minute: number; status: 'active' | 'revoked'; owner: string | null; created_at: string; last_used_at: string | null; revoked_at: string | null };
+export type ApiClientRow = { id: string; name: string; client_id: string; secret_hint: string; scopes: string[]; rate_limit_per_minute: number; status: 'active' | 'revoked'; owner: string | null; owner_id: string | null; owner_is_client_admin: boolean; created_at: string; last_used_at: string | null; revoked_at: string | null };
 export type Delivery = { id: string; event: string; status: 'pending' | 'retrying' | 'delivered' | 'failed' | 'blocked'; attempts: number; created_at: string; last_attempt_at: string | null; next_attempt_at: string | null; last_status_code: number | null; last_error: string | null; delivered_at: string | null };
 export type WebhookRow = { id: string; url: string; events: string[]; description: string | null; status: 'active' | 'paused'; created_at: string; last_delivery: Delivery | null };
-export type ApiAdmin = { clients: ApiClientRow[]; webhooks: WebhookRow[]; scopes: { code: string; label: string }[]; events: { code: string; label: string }[]; can_manage: boolean; token_url: string; base_url: string };
+export type ApiAdmin = { clients: ApiClientRow[]; webhooks: WebhookRow[]; scopes: { code: string; label: string }[]; events: { code: string; label: string }[]; can_manage: boolean; client_admins: { id: string; name: string }[]; token_url: string; base_url: string };
 export function useApiAdmin() {
   return useQuery({ queryKey: ['api-admin'], queryFn: () => api.get<ApiAdmin>('/admin/api') });
 }

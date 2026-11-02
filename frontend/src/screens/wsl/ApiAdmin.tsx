@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
 import { useApiAdmin, type ApiClientRow, type Delivery, type WebhookRow } from '@/api/wsl';
-import { Alert, Badge, Button, Card, Checkbox, Dialog, EmptyState, FieldGroup, Loading, PageHeader, TextField, fmtDateTime } from '@/components/ui';
+import { Alert, Badge, Button, Card, Checkbox, Dialog, EmptyState, FieldGroup, Loading, PageHeader, SelectField, TextField, fmtDateTime } from '@/components/ui';
 import { DataGrid } from '@/components/ui/DataGrid';
 import { apiHelp as H } from '@/help/wsl';
 import '@/styles/wsl.css';
@@ -20,6 +20,7 @@ export function ApiAdmin() {
   const [addingHook, setAddingHook] = useState(false);
   const [secret, setSecret] = useState<{ title: string; label: string; value: string; note: string } | null>(null);
   const [log, setLog] = useState<WebhookRow | null>(null);
+  const [transferring, setTransferring] = useState<ApiClientRow | null>(null);
   const [flash, setFlash] = useState<{ tone: 'success' | 'danger'; text: string } | null>(null);
   if (q.isLoading) return <div className="page"><Loading /></div>;
   if (!q.data) return <div className="page"><Alert tone="danger">{errorMessage(q.error)}</Alert></div>;
@@ -46,6 +47,7 @@ export function ApiAdmin() {
             columns={[
               { key: 'name', header: 'Name', value: (c) => c.name, render: (c) => <><strong>{c.name}</strong><div className="small muted"><code>{c.client_id}</code> · secret ends {c.secret_hint}</div></> },
               { key: 'scopes', header: 'Scopes', value: (c) => c.scopes.join(' '), render: (c) => <div className="wsl-chips">{c.scopes.map((s) => <Badge key={s}>{s}</Badge>)}</div> },
+              { key: 'owner', header: 'Owner', value: (c) => c.owner ?? '', render: (c) => <>{c.owner ?? <span className="muted">None</span>}{c.status === 'active' && !c.owner_is_client_admin && <div><Badge tone="warn">Transfer needed</Badge></div>}</> },
               { key: 'rate', header: 'Calls a minute', value: (c) => c.rate_limit_per_minute },
               { key: 'used', header: 'Last used', value: (c) => c.last_used_at ?? '', render: (c) => (c.last_used_at ? fmtDateTime(c.last_used_at) : <span className="muted">Never</span>) },
               { key: 'status', header: 'Status', value: (c) => c.status, render: (c) => <Badge tone={c.status === 'active' ? 'success' : 'muted'}>{c.status === 'active' ? 'Active' : 'Revoked'}</Badge> },
@@ -57,6 +59,7 @@ export function ApiAdmin() {
               run: (rows) => act(() => Promise.all(rows.map((c) => api.post(`/admin/api/clients/${c.id}/revoke`))), `${rows.length} revoked.`) }] : undefined}
             rowActions={d.can_manage ? (c) => (c.status === 'active' ? [
               { label: 'Issue a new secret', onSelect: () => rotate(c) },
+              { label: 'Transfer to another Client Admin', onSelect: () => setTransferring(c) },
               { label: 'Revoke', danger: true, onSelect: () => act(() => api.post(`/admin/api/clients/${c.id}/revoke`), `${c.name} revoked.`) },
             ] : []) : undefined}
           />
@@ -87,6 +90,8 @@ export function ApiAdmin() {
       {adding && <NewClientDialog scopes={d.scopes} onClose={() => setAdding(false)} onCreated={(name, value) => { setAdding(false); refresh(); setSecret({ title: `API client ${name} created`, label: 'Client secret', value, note: H.secret }); }} />}
       {addingHook && <NewHookDialog events={d.events} onClose={() => setAddingHook(false)} onCreated={(value) => { setAddingHook(false); refresh(); setSecret({ title: 'Webhook added', label: 'Signing secret', value, note: H.signing }); }} />}
       {secret && <SecretDialog {...secret} onClose={() => setSecret(null)} />}
+      {transferring && <TransferDialog c={transferring} admins={d.client_admins.filter((a) => a.id !== transferring.owner_id)} onClose={() => setTransferring(null)}
+        onDone={(name) => { setTransferring(null); refresh(); setFlash({ tone: 'success', text: `${transferring.name} now belongs to ${name}.` }); }} />}
       {log && <DeliveryLog hook={log} onClose={() => setLog(null)} />}
     </div>
   );
@@ -101,6 +106,32 @@ function SecretDialog({ title, label, value, note, onClose }: { title: string; l
         <div className="wsl-secret"><code aria-label={label}>{value}</code><Button onClick={async () => { try { await navigator.clipboard.writeText(value); setCopied(true); } catch { setCopied(false); } }}>{copied ? 'Copied' : 'Copy'}</Button></div>
         <p className="small muted" style={{ margin: 0 }}>{note}</p>
         <div><Button variant="primary" onClick={onClose}>I have saved it</Button></div>
+      </div>
+    </Dialog>
+  );
+}
+
+function TransferDialog({ c, admins, onClose, onDone }: { c: ApiClientRow; admins: { id: string; name: string }[]; onClose: () => void; onDone: (name: string) => void }) {
+  const [owner, setOwner] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  async function save() {
+    if (busy) return;
+    setBusy(true); setErr(null);
+    try {
+      const r = await api.post<ApiClientRow>(`/admin/api/clients/${c.id}/transfer`, { owner_id: owner });
+      onDone(r.owner ?? '');
+    } catch (e) { setErr(errorMessage(e)); setBusy(false); }
+  }
+  return (
+    <Dialog title={`Transfer ${c.name}`} onClose={onClose}>
+      <div className="stack">
+        <p className="small muted" style={{ margin: 0 }}>{H.owner} Current owner: {c.owner ?? 'none'}.</p>
+        {admins.length === 0
+          ? <Alert tone="warn">There is no other active Client Admin. Give someone the Client Admin role first.</Alert>
+          : <SelectField label="New owner *" value={owner} placeholder="Choose a Client Admin" options={admins.map((a) => ({ value: a.id, label: a.name }))} onChange={(e) => setOwner(e.target.value)} />}
+        {err && <Alert tone="danger">{err}</Alert>}
+        <div className="row"><Button variant="primary" disabled={busy || !owner} onClick={save}>{busy ? 'Transferring…' : 'Transfer'}</Button><Button onClick={onClose}>Cancel</Button></div>
       </div>
     </Dialog>
   );
