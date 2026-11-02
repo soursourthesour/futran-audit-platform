@@ -202,3 +202,41 @@ def test_the_upload_size_is_checked_while_reading(client, db, ats, people, monke
     assert r.status_code == 422 and r.json()["errors"][0] == {"field": "file", "message": "Data files can be up to 1 MB. Split the data by period or role."}
     assert asked and all(isinstance(n, int) and 0 < n <= 1024 * 1024 + 1 for n in asked)  # never the whole upload at once
     assert db.scalar(select(BiasTestRun)) is None
+
+
+def test_the_purge_removes_extracted_text_and_one_failure_does_not_stop_the_others(client, db, ats, people, small_csv, monkeypatch):
+    from app.ai.models import DocumentText
+    from app.biascalc import retention
+    from app.core.clock import utcnow
+
+    cid, e, maria, s = ats
+    login_as(client, db, people["aud"])
+    a = db.get(BiasTestRun, run(client, s.id, small_csv).json()["id"])
+    b = db.get(BiasTestRun, run(client, s.id, small_csv).json()["id"])
+    fa, fb = a.dataset_file_id, b.dataset_file_id
+    for fid in (fa, fb):  # the copilot's text cache of each file holds the applicant rows
+        db.add(DocumentText(organization_id=cid, file_id=fid, sha256=db.get(FileObject, fid).sha256, method="text", pages=[{"page": 1, "text": small_csv.decode()[:200]}], chars=200))
+    eng = db.get(type(e), e.id)
+    eng.retention_years, eng.completed_at = 1, utcnow() - timedelta(days=400)
+    db.commit()
+    settings = client.app.state.settings
+    real = retention.get_storage(settings)
+    broken_key = db.get(FileObject, fa).storage_key
+
+    class Flaky:
+        def delete(self, key):
+            if key == broken_key:
+                raise OSError("storage unavailable")
+            return real.delete(key)
+
+    monkeypatch.setattr(retention, "get_storage", lambda _s: Flaky())
+    assert retention.purge_expired_raw_data(db, settings, utcnow()) == 1  # b is purged although a failed
+    db.commit()
+    db.expire_all()
+    assert db.get(BiasTestRun, b.id).raw_deleted_at is not None and db.scalar(select(DocumentText).where(DocumentText.file_id == fb)) is None
+    assert db.get(BiasTestRun, a.id).raw_deleted_at is None and db.get(FileObject, fa).deleted_at is None  # left for the next run of the job
+    monkeypatch.setattr(retention, "get_storage", lambda _s: real)
+    assert retention.purge_expired_raw_data(db, settings, utcnow()) == 1
+    db.commit()
+    db.expire_all()
+    assert db.get(BiasTestRun, a.id).raw_deleted_at is not None and db.scalar(select(DocumentText).where(DocumentText.file_id == fa)) is None
