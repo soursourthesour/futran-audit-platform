@@ -147,3 +147,29 @@ def test_employee_acknowledges_through_the_personal_link(client, db, world, sett
     assert got["acknowledged"] == 1
     rows = client.get(f"{API}/policies/{p['id']}/acknowledgments").json()["rows"]
     assert [r["email"] for r in rows if r["acknowledged_at"]] == ["hannah@abc.test"]
+
+
+def _role_commitment(db, world):
+    from app.governance.models import GovernanceItem
+
+    org, e, req_item = world["org"], world["engagement"], world["item"]
+    gi = GovernanceItem(organization_id=org.id, request_id=req_item.request_id, engagement_id=e.id, catalog_code="GR-01", kind="role",
+                        title="Appoint an AI incident lead", status="planned", target_date=req_item.target_date, interim_owner="Maria Lopez")
+    db.add(gi)
+    db.flush()
+    c = Commitment(organization_id=org.id, engagement_id=e.id, source="governance_role", source_id=gi.id, description="Appoint an AI incident lead",
+                   target_date=gi.target_date, owner="Maria Lopez", status="open")
+    db.add(c)
+    db.commit()
+    return c
+
+
+def test_a_role_commitment_is_not_offered_and_a_policy_cannot_close_it(client, db, world):
+    c = _role_commitment(db, world)
+    login_as(client, db, world["caico"])
+    listed = client.get(f"{API}/policies").json()["commitments"]
+    assert [x["id"] for x in listed] == [world["commitment"].id]  # only the "Will create" commitment
+    r = client.post(f"{API}/policies", json={"template_code": "acceptable_use", "commitment_id": c.id})
+    assert r.status_code == 409 and "Will create" in r.json()["detail"]
+    db.expire_all()
+    assert db.get(Commitment, c.id).status == "open"

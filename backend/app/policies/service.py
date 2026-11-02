@@ -28,6 +28,7 @@ from app.tenancy.models import Organization, RoleAssignment, User
 
 CAMPAIGN = "policy_ack"
 OPEN_COMMITMENT = ("open", "in_progress", "reopened")
+WILL_CREATE = "governance_document"  # the commitment source a policy answers; role commitments ("Appoint ...") are closed elsewhere
 STATUS_LABELS = {"draft": "Draft", "awaiting_approval": "Awaiting approval", "published": "Published", "retired": "Retired"}
 
 
@@ -63,8 +64,8 @@ def open_commitments(db: Session, org_id: str) -> list[dict]:
     taken = set(db.scalars(select(PolicyDocument.commitment_id).where(PolicyDocument.organization_id == org_id, PolicyDocument.deleted_at.is_(None),
                                                                       PolicyDocument.status != "retired", PolicyDocument.commitment_id.is_not(None))))
     out = []
-    rows = db.scalars(select(Commitment).where(Commitment.organization_id == org_id, Commitment.deleted_at.is_(None), Commitment.status.in_(OPEN_COMMITMENT))
-                      .order_by(Commitment.target_date))
+    rows = db.scalars(select(Commitment).where(Commitment.organization_id == org_id, Commitment.deleted_at.is_(None), Commitment.status.in_(OPEN_COMMITMENT),
+                                         Commitment.source == WILL_CREATE).order_by(Commitment.target_date))
     for c in rows:
         if c.id in taken:
             continue
@@ -82,6 +83,8 @@ def _commitment(db: Session, org_id: str, commitment_id: str | None) -> Commitme
         raise NotFound("That commitment no longer exists.")
     if c.status not in OPEN_COMMITMENT:
         raise Conflict("That commitment is already closed.")
+    if c.source != WILL_CREATE:
+        raise Conflict("A policy can only answer a \"Will create\" commitment for a governance document.")
     if db.scalar(select(PolicyDocument.id).where(PolicyDocument.commitment_id == c.id, PolicyDocument.deleted_at.is_(None), PolicyDocument.status != "retired")):
         raise Conflict("A policy is already being built for that commitment. Open it from the policy list.")
     return c
@@ -234,7 +237,7 @@ def _close_commitment(db: Session, actor: User, p: PolicyDocument) -> None:
     from app.remediation.models import RemediationItem
 
     c = db.get(Commitment, p.commitment_id) if p.commitment_id else None
-    if c is None or c.status == "closed":
+    if c is None or c.status == "closed" or c.source != WILL_CREATE:
         return
     before = c.status
     c.status = "closed"
