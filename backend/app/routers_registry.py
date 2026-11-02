@@ -23,4 +23,4 @@ ROUTER_MODULES += ["homes.router"]
 ROUTER_MODULES += ["policies.router", "training.router"]
 
 # wave 3 WS-K: bias calculator (screen 29), heat map and lineage (35), benchmarking (34), annual review carry-forward (F16)
-ROUTER_MODULES += ["biascalc.router"]
+ROUTER_MODULES += ["biascalc.router", "insights.router", "annual.router"]

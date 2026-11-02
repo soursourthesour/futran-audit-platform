@@ -466,3 +466,61 @@ Use this as a quick reference. It is not legal advice; refer specific legal ques
 | SDF (Significant Data Fiduciary) | Under India's DPDP Act, a data fiduciary classified as handling especially sensitive or large volumes of data | Subject to additional obligations, including DPIAs, audits and appointing a Data Protection Officer |
 | SOC 2 Type II | An independent audit confirming a vendor's security, availability and privacy controls exist and worked over 6–12 months | Expected evidence from high-risk AI vendors; Type II (tested over time) is stronger than Type I (point in time) |
 | Training Data | The dataset used to teach an AI model to make predictions | Its quality, bias, legal basis and provenance are the foundation of the audit |
+{% if heatmap %}
+
+## Appendix D. Risk heat map
+
+Each AI system is placed by its inherent risk (columns) and its control maturity (rows). The cell's band is the residual risk at the centre of that cell; the system's own rating follows it. Knock-out rules can raise a system above its cell.{% if heatmap.provisional %} Scores marked * were not yet locked when this version was generated.{% endif %}{% if heatmap.unplaced %} Not placed until their inherent risk and maturity are both scored: {{ heatmap.unplaced }}.{% endif %}
+
+| Maturity | {% for c in heatmap.columns %}Inherent {{ c.label }} | {% endfor %}
+
+|---|{% for c in heatmap.columns %}---|{% endfor %}
+
+{% for r in heatmap.rows %}
+| {{ r.label }} | {% for cell in r.cells %}{{ cell.text | md_cell }} | {% endfor %}
+
+{% endfor %}
+
+### Findings by severity and domain
+
+| Severity | {% for d in heatmap.domains %}{{ d | md_cell }} | {% endfor %}
+
+|---|{% for d in heatmap.domains %}---|{% endfor %}
+
+{% for r in heatmap.finding_rows %}
+| {{ r.label }} | {% for n in r.counts %}{{ n if n else "" }} | {% endfor %}
+
+{% endfor %}
+{% endif %}
+{% if lineage %}
+
+## Appendix E. Lineage of findings
+
+For each finding: the law it rests on, the controls and checklist items it tests, the answers it came from, the evidence and the remediation agreed.
+{% for l in lineage %}
+
+### {{ l.ref }} {{ l.title }}
+
+| Step | Detail |
+|---|---|
+| Law and obligation | {{ l.laws | md_cell }} |
+| Controls | {{ l.controls | md_cell }} |
+| Checklist items | {{ l.checklist | md_cell }} |
+| Answers | {{ l.answers | md_cell }} |
+| Evidence | {{ l.evidence | md_cell }} |
+| Remediation | {{ l.remediation | md_cell }} |
+{% endfor %}
+{% endif %}
+{% if year_over_year %}
+
+## Appendix F. Year-over-year comparison
+
+This annual review carries forward {{ year_over_year.prior_ref }}. Maturity is on a 1 to 5 scale; residual risk on 0 to 100.
+
+| System | Maturity {{ year_over_year.prior_label }} | Maturity {{ year_over_year.current_label }} | Residual {{ year_over_year.prior_label }} | Residual {{ year_over_year.current_label }} | Rating {{ year_over_year.prior_label }} | Rating {{ year_over_year.current_label }} |
+|---|---|---|---|---|---|---|
+{% for s in year_over_year.systems %}
+| {{ s.system | md_cell }} | {{ s.prior_maturity }} | {{ s.maturity }} | {{ s.prior_residual }} | {{ s.residual }} | {{ s.prior_rating | md_cell }} | {{ s.rating | md_cell }} |
+{% endfor %}
+| Engagement | {{ year_over_year.prior_overall_maturity }} | {{ year_over_year.overall_maturity }} | | | {{ year_over_year.prior_overall_rating | md_cell }} | {{ year_over_year.overall_rating | md_cell }} |
+{% endif %}

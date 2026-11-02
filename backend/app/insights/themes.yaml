@@ -1,0 +1,16 @@
+# Finding themes for the practice view (spec §21 F15): the most common findings across consenting clients and the Futran
+# service each one leads to. A finding takes the first theme whose rule matches: `questions` (any source question code
+# starting with one of these), `sections` (template section prefix) or `words` (any word or phrase in the title).
+themes:
+  - {code: no_ai_policy, label: "No approved AI use policy", service: "Policy builder and advisory", questions: ["4.2"], words: ["ai use policy", "acceptable use policy"]}
+  - {code: personal_ai_accounts, label: "Personal AI accounts used with company data", service: "Copilot rollout (Microsoft practice)", words: ["personal ai account", "personal account", "shadow ai"]}
+  - {code: no_bias_audit, label: "No bias audit on hiring or other people-affecting AI", service: "LL144 bias audit", questions: ["6.2.01", "6.2.06"], words: ["bias testing", "bias audit", "impact ratio"]}
+  - {code: null_compliance, label: "Demographic data missing for most of the candidate pool", service: "LL144 bias audit and data remediation", questions: ["5.1a"]}
+  - {code: no_incident_procedure, label: "No AI incident procedure", service: "Incident procedure template and workshop", sections: ["8.3"], words: ["incident"]}
+  - {code: no_human_oversight, label: "Human oversight or explanation missing", service: "Human oversight design workshop", sections: ["7"]}
+  - {code: no_monitoring, label: "AI systems not monitored in production", service: "Continuous monitoring subscription", sections: ["8.2"], words: ["monitored"]}
+  - {code: vendor_due_diligence, label: "AI vendor due diligence gaps", service: "Vendor AI risk assessment", sections: ["9", "V"], words: ["vendor"]}
+  - {code: no_accountable_owner, label: "No accountable executive or owner for AI", service: "Governance set-up and role mapping", sections: ["4.1"], words: ["accountable"]}
+  - {code: documentation_gaps, label: "Model documentation and validation gaps", service: "Model risk documentation pack", sections: ["6.1", "6.3"]}
+  - {code: data_privacy, label: "Data protection gaps for AI data", service: "Privacy and DPIA advisory", sections: ["5"]}
+  - {code: security_controls, label: "Security controls for AI systems incomplete", service: "AI security review", sections: ["8.1"]}

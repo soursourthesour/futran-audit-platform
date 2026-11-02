@@ -1,0 +1,73 @@
+# Lineage crosswalk (spec §21 F6, F16 cross-framework reuse). For each questionnaire sub-section: the checklist items that
+# test the same control, the framework controls (catalogue codes, §10.4) and the statutory requirements (law library
+# Requirement codes) it evidences. Lineage reads WS-G's approved Obligation rows first and falls back to these requirements.
+# One evidence item linked to a question or checklist item here therefore counts for every control and requirement listed.
+sections:
+  "3.3":
+    checklist: []
+    controls: ["NIST_AI_RMF MAP 1.1", "EU_AI_ACT Art. 6"]
+    requirements: [LL144-03, LL144-04, GDPR-02]
+  "4.1":
+    checklist: ["4.3.01", "4.3.02", "4.3.03"]
+    controls: ["NIST_AI_RMF GOVERN 2", "ISO_42001 5.2"]
+    requirements: [NIST-GV2.1, NIST-GV2.3, NIST-GV3.1]
+  "4.2":
+    checklist: ["4.3.04", "4.3.05", "4.3.06"]
+    controls: ["NIST_AI_RMF GOVERN 2", "EU_AI_ACT Art. 4"]
+    requirements: [NIST-GV2.1, EU-01]
+  "5.1":
+    checklist: ["5.4.01", "5.4.02"]
+    controls: ["NIST_AI_RMF MAP 4.1", "GDPR Art. 5"]
+    requirements: [GDPR-02, DPDP-01]
+  "5.1a":
+    checklist: ["6.4.03", "6.4.04"]
+    controls: ["NYC_LL144 6 RCNY § 5-301", "NYC_LL144 6 RCNY § 5-302", "NIST_AI_RMF MEASURE 2.11"]
+    requirements: [LL144-01, LL144-02, NIST-MS2.11]
+  "5.2":
+    checklist: ["5.4.03", "5.4.04"]
+    controls: ["GDPR Art. 6"]
+    requirements: [GDPR-02, DPDP-01]
+  "5.3":
+    checklist: ["5.4.05"]
+    controls: ["NIST_AI_RMF GOVERN 6.1"]
+    requirements: [NIST-GV6.1]
+  "6.1":
+    checklist: ["6.4.01", "6.4.02"]
+    controls: ["NIST_AI_RMF MAP 2.3", "EU_AI_ACT Art. 11"]
+    requirements: [CO-01]
+  "6.2":
+    checklist: ["6.4.03", "6.4.04", "6.4.10"]
+    controls: ["NYC_LL144 6 RCNY § 5-301", "NIST_AI_RMF MEASURE 2.11", "EU_AI_ACT Art. 10"]
+    requirements: [LL144-01, LL144-02, IL-01, CA-ADS-01, NIST-MS2.11]
+  "6.3":
+    checklist: ["6.4.05", "6.4.06", "6.4.07", "6.4.08"]
+    controls: ["NIST_AI_RMF MEASURE 2.5", "EU_AI_ACT Art. 15"]
+    requirements: [CO-01]
+  "V":
+    checklist: ["V.C.01", "V.C.02", "V.C.03", "V.C.04"]
+    controls: ["NIST_AI_RMF GOVERN 6.1", "ISO_42001 A.10.3"]
+    requirements: [NIST-GV6.1]
+  "7.1":
+    checklist: ["7.3.01", "7.3.02", "7.3.03"]
+    controls: ["NIST_AI_RMF MANAGE 2.4", "EU_AI_ACT Art. 14"]
+    requirements: [EU-03, GDPR-01, NIST-MG2.4]
+  "7.2":
+    checklist: ["7.3.04", "7.3.05"]
+    controls: ["NIST_AI_RMF MEASURE 2.9", "EU_AI_ACT Art. 13", "EU_AI_ACT Art. 86"]
+    requirements: [GDPR-02]
+  "8.1":
+    checklist: ["8.4.01", "8.4.02", "8.4.03", "8.4.04"]
+    controls: ["NIST_AI_RMF MEASURE 2.7", "EU_AI_ACT Art. 15"]
+    requirements: [EU-05]
+  "8.2":
+    checklist: ["8.4.05", "8.4.06"]
+    controls: ["NIST_AI_RMF MEASURE 3.1", "EU_AI_ACT Art. 26"]
+    requirements: [EU-04, EU-05]
+  "8.3":
+    checklist: ["8.4.07", "8.4.08"]
+    controls: ["NIST_AI_RMF MANAGE 4.3", "EU_AI_ACT Art. 73"]
+    requirements: [EU-04, NIST-MG4.3]
+  "9.2":
+    checklist: ["9.3.01", "9.3.02", "9.3.03"]
+    controls: ["NIST_AI_RMF GOVERN 6.1"]
+    requirements: [NIST-GV6.1]
