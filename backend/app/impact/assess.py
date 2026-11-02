@@ -23,7 +23,7 @@ FEATURE_LABELS = {
 }
 HEALTH = re.compile(r"health|patient|clinical|medical|insur|claim", re.I)
 SYNTHETIC = re.compile(r"image|video|voice|audio|deepfake|synthetic|likeness", re.I)
-PRICING = re.compile(r"pric", re.I)
+PRICING = re.compile(r"(personali[sz]ed|individuali[sz]ed|algorithmic|dynamic|surveillance)\s+pric", re.I)
 BINDING_TYPES = ("statute", "regulation")
 
 
@@ -110,11 +110,9 @@ def match_laws(db: Session, jurisdiction_ids: list[str], intake: dict) -> list[d
             continue
         if reg.type not in BINDING_TYPES or reg.feature not in features:
             continue
-        j = db.get(Jurisdiction, reg.jurisdiction_id)
-        if reg.jurisdiction_id in geo:
+        if reg.jurisdiction_id in geo:  # near misses are listed only for the curated laws with scope tests (above)
+            j = db.get(Jurisdiction, reg.jurisdiction_id)
             matched.append({"regulation_id": reg.id, "name": name, "matched": True, "reason": f"Users in {j.name if j else 'scope'}; {FEATURE_LABELS.get(reg.feature, reg.feature).lower()}"})
-        elif j is not None and j.level in ("state", "city"):
-            near.append({"regulation_id": reg.id, "name": name, "matched": False, "reason": f"Not matched: no users in {j.name}"})
     seen = set()
     out = []
     for x in matched + near[:5]:

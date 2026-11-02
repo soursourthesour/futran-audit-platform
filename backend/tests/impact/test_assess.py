@@ -69,3 +69,13 @@ def test_features_follow_the_intake(db):
     assert "health_insurance" in project_features(CHATBOT | {"data_categories": ["health"]})
     assert "biometrics_pricing" in project_features(CHATBOT | {"data_categories": ["biometric"]})
     assert "chatbots_minors" in project_features(CHATBOT | {"data_categories": ["children"]})
+
+
+def test_answering_questions_about_prices_is_not_algorithmic_pricing(db):
+    assert "biometrics_pricing" not in project_features(CHATBOT | {"purpose": "Answers questions about products and pricing on the website."})
+    assert "biometrics_pricing" in project_features(CHATBOT | {"purpose": "Sets personalized pricing for each visitor."})
+
+
+def test_near_misses_are_only_the_curated_laws_with_scope_tests(db, geo):
+    near = [x for x in assess(db, CHATBOT | {"jurisdiction_ids": [geo["US-CA"]]})["laws"] if not x["matched"]]
+    assert all("Privacy Act" not in x["name"] for x in near)  # other states' privacy laws are not listed as near misses

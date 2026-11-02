@@ -113,13 +113,16 @@ export function ReassessmentCard() {
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ['reassessment'], queryFn: () => api.get<{ rows: Trigger[] }>('/reassessment'), enabled: allowed });
   const { act, dialog, msg } = useAct(() => qc.invalidateQueries({ queryKey: ['reassessment'] }));
-  if (!allowed || !q.data || q.data.rows.length === 0) return null;
+  if (!allowed || !q.data) return null;
   const manage = !!me && can(me, 'manage_reassessment');
   return (
-    <Card title={`Reassessment needed · ${q.data.rows.length}`}>
+    <>
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
-      {q.data.rows.map((t) => <TriggerRow key={t.id} t={t} showSystem canManage={manage} onAct={act} />)}
+      {q.data.rows.length > 0 && (
+        <Card title={`Reassessment needed · ${q.data.rows.length}`}>
+          {q.data.rows.map((t) => <TriggerRow key={t.id} t={t} showSystem canManage={manage} onAct={act} />)}
+        </Card>)}
       {dialog}
-    </Card>
+    </>
   );
 }
