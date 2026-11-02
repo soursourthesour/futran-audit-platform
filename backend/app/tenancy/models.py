@@ -30,6 +30,7 @@ class Organization(TimestampedTenantMixin, Base):
     engagement_reason: Mapped[str | None] = mapped_column(String(2000))
     data_region: Mapped[str | None] = mapped_column(String(40))
     is_internal: Mapped[bool] = mapped_column(Boolean, default=False)
+    subscription_plan: Mapped[str | None] = mapped_column(String(16))  # audit_only | monitor | monitor_plus; null = audit_only (§21 F3)
 
 
 class Department(TimestampedTenantMixin, Base):
