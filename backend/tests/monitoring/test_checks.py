@@ -186,3 +186,53 @@ def test_request_new_report_never_reopens_a_closed_engagements_record(w, setting
     assert w.db.query(DocumentRequest).count() == 1
     w.db.refresh(res)
     assert res.action_taken is None
+
+
+def _newer_engagement(w):
+    from app.engagements.models import Engagement
+
+    w.engagement.status = "completed"
+    newer = Engagement(organization_id=w.org.id, client_id=w.org.id, name="Annual review", status="fieldwork", created_at=datetime(2030, 1, 1))
+    w.db.add(newer)
+    w.db.flush()
+    return newer
+
+
+def test_a_superseded_expired_report_no_longer_fails(w, settings):
+    from app.docrequests.models import DocumentRequest
+    from app.monitoring import service as mon
+    from app.monitoring.models import MonitorResult
+
+    old = _soc2(w, -5)
+    newer = _newer_engagement(w)
+    mon.set_plan(w.db, w.fadmin, w.org, "monitor")
+    r1 = mon.run(w.db, settings, w.org, "manual", "manual:1")
+    res = w.db.query(MonitorResult).filter_by(run_id=r1.id, object_id=old.id).one()
+    assert res.status == "failed"
+    mon.act(w.db, settings, w.caico, w.org, res.id)
+    new = w.db.query(DocumentRequest).filter_by(engagement_id=newer.id).one()
+    new.status, new.received_at, new.expires_on = "received", datetime(2030, 2, 1), w.today + timedelta(days=300)  # the client uploads the new report
+    w.db.flush()
+    out = {o.object_id: o for o in _run(w, "vendor_soc2_expiring")}
+    assert old.id not in out and out[new.id].status == "healthy"
+
+
+def test_acting_on_an_earlier_result_never_reopens_a_newer_report(w, settings):
+    from app.docrequests.models import DocumentRequest
+    from app.monitoring import service as mon
+    from app.monitoring.models import MonitorResult
+
+    old = _soc2(w, -5)
+    newer = _newer_engagement(w)
+    mon.set_plan(w.db, w.fadmin, w.org, "monitor")
+    r1 = mon.run(w.db, settings, w.org, "manual", "manual:1")
+    stale = w.db.query(MonitorResult).filter_by(run_id=r1.id, object_id=old.id).one()
+    new = DocumentRequest(organization_id=w.org.id, engagement_id=newer.id, catalog_item_id=old.catalog_item_id, ai_system_id=None, requested_at=datetime(2030, 1, 2),
+                          status="received", received_at=datetime(2030, 2, 1), expires_on=w.today + timedelta(days=300))
+    w.db.add(new)
+    w.db.flush()
+    with pytest.raises(AppError) as exc:
+        mon.act(w.db, settings, w.caico, w.org, stale.id)
+    assert "newer" in str(exc.value.detail).lower()
+    w.db.refresh(new)
+    assert new.status == "received" and new.expires_on == w.today + timedelta(days=300)

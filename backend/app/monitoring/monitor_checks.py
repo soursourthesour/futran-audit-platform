@@ -46,14 +46,32 @@ def commitment_overdue(db, org) -> list[CheckOutcome]:
 
 # ---- vendor SOC 2 reports (the document request register, DR-603, with the expiry date recorded on it)
 def _soc2_rows(db, org):
+    """Received SOC 2 reports, the newest for each vendor system only: a report superseded by one received on a later
+    engagement is no longer watched."""
     from app.docrequests.models import DocumentRequest
     from app.reference.models import DocumentCatalogItem
+
+    from app.engagements.models import Engagement
 
     item = db.scalar(select(DocumentCatalogItem).where(DocumentCatalogItem.code == SOC2_CODE))
     if item is None:
         return []
-    return list(db.scalars(select(DocumentRequest).where(DocumentRequest.organization_id == org.id, DocumentRequest.catalog_item_id == item.id,
+    rows = list(db.scalars(select(DocumentRequest).where(DocumentRequest.organization_id == org.id, DocumentRequest.catalog_item_id == item.id,
                                                          DocumentRequest.deleted_at.is_(None), DocumentRequest.status == "received")))
+    started = {e.id: e.created_at for e in db.scalars(select(Engagement).where(Engagement.id.in_({r.engagement_id for r in rows})))}
+    mapped: dict[tuple[str, str | None], str | None] = {}
+
+    def same(eid: str, system_id: str | None) -> str | None:
+        if (eid, system_id) not in mapped:
+            mapped[(eid, system_id)] = _same_system(db, eid, system_id)
+        return mapped[(eid, system_id)]
+
+    def superseded(r) -> bool:
+        # a report received on a later engagement, in the place a new request for this one goes (see request_new_report)
+        return any(z.engagement_id != r.engagement_id and started[z.engagement_id] > started[r.engagement_id] and z.ai_system_id == same(z.engagement_id, r.ai_system_id)
+                   for z in rows)
+
+    return [r for r in rows if not superseded(r)]
 
 
 def _soc2_label(db, r) -> str:
@@ -128,6 +146,8 @@ def request_new_report(db, settings, user, org, result) -> str:
     q = select(DocumentRequest).where(DocumentRequest.engagement_id == eid, DocumentRequest.catalog_item_id == old.catalog_item_id, DocumentRequest.deleted_at.is_(None))
     q = q.where(DocumentRequest.ai_system_id.is_(None) if system_id is None else DocumentRequest.ai_system_id == system_id)
     row = db.scalar(q)
+    if row is not None and row.id != old.id and row.status == "received":
+        raise Conflict(f"A newer report is already on file on your Documents page (received {_d(row.received_at or row.requested_at)}). It was not reopened.")
     due = today() + timedelta(days=30)
     if row is None:
         row = DocumentRequest(organization_id=org.id, engagement_id=eid, catalog_item_id=old.catalog_item_id, ai_system_id=system_id, requested_at=utcnow(),
