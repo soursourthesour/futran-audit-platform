@@ -30,7 +30,8 @@ def comments(m: Demo, cid: str) -> dict:
     from app.questionnaire.models import Question, Response
     from app.systems.models import AISystem
 
-    e = m.db.scalar(select(Engagement).where(Engagement.client_id == cid, Engagement.deleted_at.is_(None)).order_by(Engagement.created_at.desc()))
+    # ABC's current engagement: the newest that is not a draft (WS-K leaves an annual review draft after the completed audit)
+    e = m.db.scalar(select(Engagement).where(Engagement.client_id == cid, Engagement.deleted_at.is_(None), Engagement.status.not_in(["draft", "pending_approval"])).order_by(Engagement.created_at.desc()).limit(1))
     f = m.db.scalar(select(Finding).where(Finding.engagement_id == e.id, Finding.title == "Recruiters use personal ChatGPT accounts with applicant data"))
     if f is None:
         raise DemoError("ABC Corp's ChatGPT finding is missing")

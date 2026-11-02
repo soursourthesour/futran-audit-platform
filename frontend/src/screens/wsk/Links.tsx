@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import './wsk.css';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
@@ -66,18 +67,15 @@ export function BiasData() {
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
       <Card>
         {q.data.runs.length === 0 ? <EmptyState>No bias test data has been uploaded.</EmptyState> : (
-          <div className="table-wrap"><table className="table">
-            <thead><tr><th>System</th><th>File</th><th>Tested</th><th>Raw data</th><th>After the retention period</th></tr></thead>
-            <tbody>{q.data.runs.map((r) => (
-              <tr key={r.id}>
-                <td>{r.system}</td><td className="small">{r.dataset_filename}</td><td className="small">{fmtDate(r.run_at)}</td>
-                <td className="small">{r.raw_deleted_at ? `Deleted ${fmtDate(r.raw_deleted_at)}` : r.raw_delete_on ? `Deleted on ${fmtDate(r.raw_delete_on)} unless kept` : 'Kept until the engagement retention period ends'}</td>
-                <td>{r.raw_deleted_at ? '—' : r.keep_raw_data
-                  ? <><Badge tone="navy">Kept</Badge> <Button size="sm" disabled={busy} onClick={() => void keep(r.id, false)} aria-label={`Let ${r.dataset_filename ?? 'this file'} be deleted at the end of the retention period`}>Let it be deleted</Button></>
-                  : <Button size="sm" disabled={busy} onClick={() => void keep(r.id, true)} aria-label={`Keep ${r.dataset_filename ?? 'this file'} after the retention period`}>Keep</Button>}</td>
-              </tr>
-            ))}</tbody>
-          </table></div>
+          <ul className="data-list">{q.data.runs.map((r) => (
+            <li key={r.id}>
+              <div><strong>{r.system}</strong><div className="small muted">{r.dataset_filename} · tested {fmtDate(r.run_at)}</div>
+                <div className="small">{r.raw_deleted_at ? `Raw data deleted ${fmtDate(r.raw_deleted_at)}` : r.keep_raw_data ? 'Kept after the retention period' : r.raw_delete_on ? `Deleted on ${fmtDate(r.raw_delete_on)} unless kept` : 'Kept until the engagement retention period ends, then deleted unless kept'}</div></div>
+              <div className="row" style={{ gap: 8, alignItems: 'center' }}>{r.raw_deleted_at ? null : r.keep_raw_data
+                ? <><Badge tone="navy">Kept</Badge><Button size="sm" disabled={busy} onClick={() => void keep(r.id, false)} aria-label={`Let ${r.dataset_filename ?? 'this file'} be deleted at the end of the retention period`}>Let it be deleted</Button></>
+                : <Button size="sm" disabled={busy} onClick={() => void keep(r.id, true)} aria-label={`Keep ${r.dataset_filename ?? 'this file'} after the retention period`}>Keep</Button>}</div>
+            </li>
+          ))}</ul>
         )}
       </Card>
     </div>

@@ -96,7 +96,7 @@ function LineagePanel({ findingId, findings, onPick, onProof }: { findingId: str
         <ol className="lineage">
           <Step k="Regulation and obligation">
             {l.obligations.length === 0 ? <span className="muted">No law in this engagement’s scope is mapped to these questions.</span> : l.obligations.map((o) => (
-              <div key={o.regulation_id}><strong>{o.regulation}</strong>{o.citation ? ` · ${o.citation}` : ''}<span className="small muted"> · {o.kind === 'obligation' ? 'approved obligation' : 'law library requirement'}</span>
+              <div key={o.regulation_id}><strong>{o.regulation}</strong>{o.citation && o.citation !== o.regulation ? ` · ${o.citation}` : ''}<span className="small muted"> · {o.kind === 'obligation' ? 'approved obligation' : 'law library requirement'}</span>
                 <ul className="small">{o.items.map((i, n) => <li key={n}>{i.code ? `${i.code}: ` : ''}{i.text}</li>)}</ul></div>
             ))}
           </Step>

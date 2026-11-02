@@ -120,16 +120,15 @@ function CategoryTable({ run, dim }: { run: BiasRun; dim: 'race' | 'sex' | 'inte
     <>
       <div className="table-wrap"><table className="table bias-table">
         <caption className="sr-only">{`${t.label} categories`}</caption>
-        <thead><tr><th>Category</th><th className="num">Applicants</th><th className="num">{scoring ? 'Above median' : 'Selected'}</th><th className="num">{scoring ? 'Scoring rate' : 'Selection rate'}</th><th className="num">Impact ratio</th>{labels && <th className="num">Equal opportunity difference</th>}<th className="num">Parity difference</th><th /></tr></thead>
+        <thead><tr><th>Category</th><th className="num">Applicants</th><th className="num">{scoring ? 'Above median' : 'Selected'}</th><th className="num">{scoring ? 'Scoring rate' : 'Selection rate'}</th><th className="num">Impact ratio</th>{labels && <th className="num">Equal opportunity difference</th>}<th className="num">Parity difference</th></tr></thead>
         <tbody>
           {t.categories.map((c) => (
             <tr key={c.key} className={c.excluded ? 'muted' : undefined}>
-              <td>{c.label}</td><td className="num">{c.applicants.toLocaleString()}</td><td className="num">{c.selected.toLocaleString()}</td><td className="num">{pct(c.rate)}</td>
+              <td>{c.label}<div>{c.below_threshold ? <Badge tone="danger">Below {run.settings.threshold.toFixed(2)}</Badge> : c.excluded ? <Badge tone="muted">{`Under ${(run.settings.small_share * 100).toFixed(0)}% of data`}</Badge> : t.reference === c.key ? <Badge tone="navy">Most selected</Badge> : null}</div></td><td className="num">{c.applicants.toLocaleString()}</td><td className="num">{c.selected.toLocaleString()}</td><td className="num">{pct(c.rate)}</td>
               <td className="num">{c.excluded ? 'excluded' : ratio(c.impact_ratio)}</td>{labels && <td className="num">{ratio(c.equal_opportunity_difference)}</td>}<td className="num">{c.parity_difference === null ? '—' : `${(c.parity_difference * 100).toFixed(1)} pts`}</td>
-              <td>{c.below_threshold ? <Badge tone="danger">Below {run.settings.threshold.toFixed(2)}</Badge> : c.excluded ? <Badge tone="muted">{`< ${(run.settings.small_share * 100).toFixed(0)}% of data`}</Badge> : t.reference === c.key ? <Badge tone="navy">Most selected</Badge> : null}</td>
             </tr>
           ))}
-          <tr className="muted"><td>Unknown</td><td className="num">{t.unknown.toLocaleString()}</td><td className="num">{t.unknown_selected.toLocaleString()}</td><td className="num">{pct(t.unknown ? t.unknown_selected / t.unknown : null)}</td><td className="num">—</td>{labels && <td />}<td /><td><span className="small">not in the calculation</span></td></tr>
+          <tr className="muted"><td>Unknown<div className="small">not in the calculation</div></td><td className="num">{t.unknown.toLocaleString()}</td><td className="num">{t.unknown_selected.toLocaleString()}</td><td className="num">{pct(t.unknown ? t.unknown_selected / t.unknown : null)}</td><td className="num">—</td>{labels && <td />}<td /></tr>
         </tbody>
       </table></div>
       {t.note && <Alert tone="info">{t.note}</Alert>}
