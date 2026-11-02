@@ -6,12 +6,19 @@ import { Alert, Button, Card, Loading, TextField } from '@/components/ui';
 import { PhoneShell } from '@/shells/Shells';
 import { AttestationSteps, type AttestInfo, type Identity } from '@/screens/phone/AttestationForm';
 import { emailHelp as H } from '@/help/email';
+import type { Block, PlayerState } from '@/api/wsi';
+import { BlockView } from '@/screens/wsi/Blocks';
+import { TrainingPlayer } from '@/screens/wsi/TrainingPlayer';
 
-type LinkView = ({ kind: 'attestation' } & AttestInfo & { prefill?: Identity; already_answered?: boolean } | { kind: 'message'; title: string; organization: string; paragraphs: string[]; action: 'acknowledge' | 'sign_in'; completed: boolean }) & { mode: 'personal' | 'shared' };
+type PolicyAck = { kind: 'policy_ack'; organization: string; title: string; version_no: number; status: string; approved_at: string | null; blocks: Block[]; already_acknowledged?: boolean };
+type TrainingLink = { kind: 'training'; organization: string; module: { title: string }; status: string };
+type LinkView = ({ kind: 'attestation' } & AttestInfo & { prefill?: Identity; already_answered?: boolean } | { kind: 'message'; title: string; organization: string; paragraphs: string[]; action: 'acknowledge' | 'sign_in'; completed: boolean } | PolicyAck | TrainingLink) & { mode: 'personal' | 'shared' };
 
 function title(v?: LinkView) {
   if (!v) return 'Futran Audit Platform';
-  return v.kind === 'attestation' ? `${v.client_name} · AI use check-in` : `${v.organization} · ${v.title}`;
+  if (v.kind === 'attestation') return `${v.client_name} · AI use check-in`;
+  if (v.kind === 'training') return `${v.organization} · AI training`;
+  return `${v.organization} · ${v.title}`;
 }
 
 /** The page behind a personal link in a group email (spec §26.5): no sign-in; the person's name and department come
@@ -31,8 +38,16 @@ export function LinkLanding({ shared }: { shared?: boolean }) {
       <PhoneShell title={title(v)}>
         <div className="stack">
           <h1 style={{ fontSize: 22 }}>Thank you</h1>
-          <p>{v.kind === 'attestation' ? 'Your answers have been recorded. If something changes, open the link in your latest email and answer again; your new answers replace the old ones.' : 'Your confirmation has been recorded. You can close this page.'}</p>
+          <p>{v.kind === 'policy_ack' ? 'Your acknowledgment has been recorded. You can close this page.' : v.kind === 'attestation' ? 'Your answers have been recorded. If something changes, open the link in your latest email and answer again; your new answers replace the old ones.' : 'Your confirmation has been recorded. You can close this page.'}</p>
         </div>
+      </PhoneShell>
+    );
+  }
+  if (v.kind === 'training') return <PhoneShell title={title(v)}><TrainingLinkPlayer token={token} organization={v.organization} /></PhoneShell>;
+  if (v.kind === 'policy_ack') {
+    return (
+      <PhoneShell title={title(v)}>
+        <PolicyAckView v={v} onConfirm={async () => { await api.post(`${base}/attestation`, shared ? { confirm: true, proof } : { confirm: true }); setDone(true); }} />
       </PhoneShell>
     );
   }
@@ -85,5 +100,38 @@ function ConfirmEmail({ base, onProof }: { base: string; onProof: (p: string) =>
         )}
       </div>
     </Card>
+  );
+}
+
+function TrainingLinkPlayer({ token, organization }: { token: string; organization: string }) {
+  const q = useQuery({ queryKey: ['training-link', token], queryFn: () => api.get<PlayerState>(`/public/training/${token}`), retry: false });
+  if (q.isLoading) return <Loading />;
+  if (!q.data) return <Alert tone="danger">{errorMessage(q.error)}</Alert>;
+  return <TrainingPlayer state={q.data} base={`/public/training/${token}`} organization={organization} />;
+}
+
+function PolicyAckView({ v, onConfirm }: { v: PolicyAck; onConfirm: () => Promise<void> }) {
+  const [read, setRead] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  if (v.status !== 'published') return <Alert tone="info">This version of the policy has been replaced. Use the link in your most recent email.</Alert>;
+  return (
+    <div className="stack">
+      <div>
+        <h1 style={{ fontSize: 22, margin: 0 }}>{v.title}</h1>
+        <p className="small muted" style={{ margin: '4px 0 0' }}>Version {v.version_no}{v.approved_at ? `, approved ${new Date(v.approved_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}` : ''}</p>
+      </div>
+      {v.already_acknowledged && <Alert tone="success">You have already acknowledged this policy.</Alert>}
+      <div className="wsi-doc"><BlockView blocks={v.blocks} /></div>
+      {!v.already_acknowledged && (
+        <Card>
+          <div className="stack">
+            {err && <Alert tone="danger">{err}</Alert>}
+            <label className="check"><input type="checkbox" checked={read} onChange={(e) => setRead(e.target.checked)} /><span>I have read the {v.title} and will follow it.</span></label>
+            <Button variant="primary" block disabled={!read || busy} onClick={async () => { setBusy(true); setErr(null); try { await onConfirm(); } catch (e) { setErr(errorMessage(e)); setBusy(false); } }}>Confirm</Button>
+          </div>
+        </Card>
+      )}
+    </div>
   );
 }

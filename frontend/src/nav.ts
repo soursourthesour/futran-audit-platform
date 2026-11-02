@@ -29,6 +29,9 @@ export const FUTRAN_NAV: NavEntry[] = [
   { to: '/admin/settings', label: 'Settings', requires: ['view_platform_settings'] },
   { to: '/insights', label: 'Insights', requires: ['view_benchmarks', 'view_practice_insights'] }, // WS-K screen 34
   { to: '/staff/admin/trust', label: 'Platform trust', requires: ['view_platform_trust'] },
+  // wave 3 WS-I: Trust Center confirmations (32) and client policy reviews (27, independence rule)
+  { to: '/trust-confirmations', label: 'Trust Center confirmations', requires: ['confirm_trust_items'] },
+  { to: '/client-policies', label: 'Client policy reviews', requires: ['view_client_policies'] },
   // Wave 3 (spec §21, mockups 25–35) adds one entry each when its screen exists, for example:
   // { to: '/copilot', label: 'Copilot', requires: ['use_copilot'] }, bias calculator 29, heat map 35, benchmarking 34.
 ];
@@ -63,6 +66,11 @@ export const CLIENT_NAV: NavEntry[] = [
   { to: '/bias-data', label: 'Bias test data', requires: ['keep_bias_data'] }, // WS-K: keep or delete raw applicant data
   { to: '/admin/api', label: 'API and webhooks', requires: ['view_api_clients'] },
   { to: '/questionnaires', label: 'Customer questionnaires', requires: ['use_questionnaires'] },
+  // wave 3 WS-I: policy builder (27), AI literacy training (33), Trust Center (32)
+  { to: '/policies', label: 'Policies', requires: ['view_policies'] },
+  { to: '/training', label: 'AI literacy training', requires: ['view_training'] },
+  { to: '/my-training', label: 'My training', requires: ['complete_own_training'] },
+  { to: '/trust', label: 'Trust Center', requires: ['view_trust_center'], end: true },
   // Wave 3 adds one entry each when its screen exists: policy builder 27, integrations 30, monitoring 31, training 33.
 ];
 

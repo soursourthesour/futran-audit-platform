@@ -1,0 +1,47 @@
+/* Policy builder (27), AI literacy training (33) and Trust Center (32). */
+.wsi-two { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+.wsi-two > .wsi-side { flex: 1 1 340px; max-width: 440px; min-width: 0; }
+.wsi-two > .wsi-main { flex: 999 1 520px; min-width: 0; }
+.wsi-doc { border: 1px solid var(--line-soft); border-radius: 6px; padding: 16px 20px; background: #fcfcfd; overflow-wrap: anywhere; }
+.wsi-doc h1 { font-size: 19px; margin: 0 0 8px; }
+.wsi-doc h2 { font-size: 16px; margin: 18px 0 6px; }
+.wsi-doc h3 { font-size: 15px; margin: 14px 0 6px; }
+.wsi-doc p { margin: 0 0 10px; line-height: 1.6; }
+.wsi-doc ul, .wsi-doc ol { margin: 0 0 10px; padding-left: 22px; line-height: 1.6; }
+.wsi-block { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; padding: 10px; border: 1px solid var(--line-soft); border-radius: 6px; background: var(--surface); }
+.wsi-block-tools { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.wsi-block-tools select { min-height: 44px; }
+.wsi-steps { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 0; padding: 0; list-style: none; font-size: 14px; color: var(--muted); }
+.wsi-steps li[aria-current="step"] { color: var(--ink); font-weight: 600; }
+.wsi-steps li + li::before { content: "→ "; color: var(--muted); font-weight: 400; }
+.wsi-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+.wsi-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.wsi-card h3 { margin: 0; font-size: 15.5px; }
+.wsi-dep { display: grid; grid-template-columns: minmax(90px, 170px) minmax(0, 1fr) 54px; gap: 12px; align-items: center; font-size: 14px; padding: 6px 0; }
+.wsi-bar { height: 10px; border-radius: 5px; background: #e8ecf1; overflow: hidden; }
+.wsi-bar > span { display: block; height: 100%; background: #2e75b6; }
+.wsi-bar.below > span { background: var(--danger); }
+.wsi-footer { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; }
+.wsi-opt { display: flex; align-items: center; gap: 12px; border: 1px solid var(--line); border-radius: 8px; padding: 12px; min-height: 44px; font-size: 15px; cursor: pointer; }
+.wsi-opt input { width: 22px; height: 22px; flex: none; margin: 0; }
+.wsi-opt.right { border-color: var(--success-line); background: var(--success-bg); }
+.wsi-opt.wrong { border-color: var(--danger-line); background: var(--danger-bg); }
+.wsi-note { background: #f4f6f9; border-radius: 8px; padding: 14px; line-height: 1.55; }
+.wsi-meter { height: 4px; border-radius: 2px; background: #e8ecf1; overflow: hidden; }
+.wsi-meter > span { display: block; height: 100%; background: #0098d4; }
+.wsi-spark { display: flex; align-items: flex-end; gap: 2px; height: 48px; }
+.wsi-spark > span { flex: 1; background: #c5d4ec; min-height: 1px; border-radius: 1px; }
+/* public Trust Center */
+.tc-public { min-height: 100vh; background: #fff; color: var(--ink); }
+.tc-public header { border-bottom: 1px solid var(--line); padding: 0 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; min-height: 72px; }
+.tc-public main { max-width: 1100px; margin: 0 auto; padding: 32px 16px 56px; display: flex; flex-direction: column; gap: 28px; box-sizing: border-box; }
+.tc-hero { display: flex; flex-wrap: wrap; gap: 24px; align-items: center; justify-content: space-between; }
+.tc-hero h1 { margin: 0; font-size: 32px; line-height: 1.2; }
+.tc-badge { border: 2px solid var(--navy); border-radius: 10px; padding: 16px 20px; display: flex; flex-direction: column; gap: 4px; min-width: 0; max-width: 360px; }
+.tc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.tc-card { border: 1px solid var(--line); border-radius: 8px; padding: 20px; display: flex; flex-direction: column; gap: 8px; min-width: 0; overflow-wrap: anywhere; }
+.tc-card h2 { font-size: 16px; margin: 0; }
+.tc-ratios { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.tc-ratios th, .tc-ratios td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--line-soft); }
+@media (max-width: 600px) { .tc-hero h1 { font-size: 26px; } .wsi-dep { grid-template-columns: minmax(80px, 120px) minmax(0, 1fr) 46px; } }
+.wsi-overdue { color: var(--danger); font-weight: 600; }

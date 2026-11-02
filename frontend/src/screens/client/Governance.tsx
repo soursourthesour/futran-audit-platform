@@ -1,7 +1,8 @@
 import { useRef, useState, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
-import { useMe } from '@/api/auth';
+import { can, useMe } from '@/api/auth';
+import { Link } from 'react-router-dom';
 import { Alert, Badge, Button, Card, Checkbox, FieldHelp, Loading, PageHeader, SelectField, TextArea, TextField, fileUrl, fmtDate } from '@/components/ui';
 import { governanceExtraHelp, governanceHelp as H } from '@/help/client';
 
@@ -47,6 +48,7 @@ export function Governance() {
 export function GovernanceView({ clientId, canAnswer, header, crumbs }: { clientId: string; canAnswer: boolean; header?: ReactNode; crumbs?: { to?: string; label: string }[] }) {
   const q = useGovernance(clientId);
   const qc = useQueryClient();
+  const { data: me } = useMe();
   const [accurate, setAccurate] = useState(false);
   const [msg, setMsg] = useState<{ tone: 'success' | 'danger'; text: string } | null>(null);
   if (q.isLoading) return <div className="page"><Loading /></div>;
@@ -100,7 +102,8 @@ export function GovernanceView({ clientId, canAnswer, header, crumbs }: { client
           </Card>
           <Card title={`${g.commitments.length} ${g.commitments.length === 1 ? 'commitment' : 'commitments'}`}>
             <ul className="small" style={{ margin: 0, paddingLeft: 18 }}>
-              {g.commitments.map((c) => <li key={c.id}>{c.description} <span className="muted">· {c.owner} · by {fmtDate(c.target_date)}</span></li>)}
+              {g.commitments.map((c) => <li key={c.id}>{c.description} <span className="muted">· {c.owner} · by {fmtDate(c.target_date)}</span>
+                {c.status === 'closed' ? <> <Badge tone="success">Closed</Badge></> : can(me, 'edit_policies') && <> <Link to={`/policies?commitment=${c.id}`}>Start from Futran template</Link></>}</li>)}
             </ul>
             <p className="small muted">Each "Will constitute" or "Will create" answer becomes a tracked commitment with its target date. Futran reports on it and follows it in remediation.</p>
           </Card>
