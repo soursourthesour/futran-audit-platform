@@ -135,3 +135,81 @@ def test_test_sends_are_rate_limited(client, db, w, live):
     client.app.state.webhook_sender = lambda *a: 200
     codes = [client.post(f"{API}/admin/api/webhooks/{hook_id}/test").status_code for _ in range(webhooks.TEST_SENDS_PER_MINUTE + 1)]
     assert codes[:-1] == [200] * webhooks.TEST_SENDS_PER_MINUTE and codes[-1] == 429
+
+
+# ---------------------------------------------------------------- no write lock is held while a receiver is slow
+def _file_db(tmp_path):
+    from sqlalchemy.orm import sessionmaker
+
+    import app.models_registry  # noqa: F401
+    from app.core.db import make_engine
+    from app.core.models import Base
+
+    path = tmp_path / "platform.db"
+    eng = make_engine(f"sqlite:///{path}")  # the production engine factory: a file database in WAL mode
+    Base.metadata.create_all(eng)
+    return str(path), eng, sessionmaker(bind=eng, expire_on_commit=False)
+
+
+def _other_writer(path, org_id, results):
+    """A write from another connection (another request thread), waiting at most one second for the lock."""
+    import sqlite3
+
+    def send(url, body, headers, timeout):
+        other = sqlite3.connect(path, timeout=1.0)
+        try:
+            other.execute("UPDATE organizations SET name = name WHERE id = ?", (org_id,))
+            other.commit()
+            results.append("write ok")
+        except sqlite3.OperationalError as exc:
+            results.append(f"write failed: {exc}")
+        finally:
+            other.close()
+        return 200
+    return send
+
+
+def test_the_delivery_tick_holds_no_write_lock_while_it_sends(tmp_path, settings):
+    path, eng, Session = _file_db(tmp_path)
+    settings.webhook_mode = "fake"
+    db = Session()
+    try:
+        org, _ = _hook(db, settings, url="https://hooks.abccorp.example/x")
+        for i in range(3):
+            webhooks.enqueue(db, org.id, "signoff.completed", {}, event_key=f"k{i}")
+        db.commit()
+        results: list[str] = []
+        webhooks.deliver_due(db, settings, utcnow(), sender=_other_writer(path, org.id, results))
+        db.commit()
+        assert results == ["write ok"] * 3
+        assert [d.status for d in db.scalars(select(WebhookDelivery))] == ["delivered"] * 3
+    finally:
+        db.close()
+        eng.dispose()
+
+
+def test_a_test_send_holds_no_write_lock_while_it_sends(tmp_path, settings, monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from app.main import create_app
+    from tests.factories import login_as, make_user
+
+    path, eng, Session = _file_db(tmp_path)
+    settings.database_url, settings.webhook_mode = f"sqlite:///{path}", "live"
+    monkeypatch.setattr(netguard, "resolve_host", lambda host: [PUBLIC_IP])
+    app = create_app(settings, engine=eng)
+    db = Session()
+    try:
+        org, h = _hook(db, settings, url="https://hooks.abccorp.example/x")
+        admin = make_user(db, org, roles=["client_admin"], name="Sam Okafor", email="sam@abc.test")
+        db.commit()
+        results: list[str] = []
+        with TestClient(app) as c:
+            login_as(c, db, admin)
+            c.app.state.webhook_sender = _other_writer(path, org.id, results)
+            r = c.post(f"{API}/admin/api/webhooks/{h.id}/test")
+        assert r.status_code == 200, r.text
+        assert r.json()["status"] == "delivered" and results == ["write ok"]
+    finally:
+        db.close()
+        eng.dispose()

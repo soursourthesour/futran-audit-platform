@@ -246,7 +246,11 @@ def test_hook(hook_id: str, request: Request, actor: Actor = Depends(current_act
     now = utcnow()
     d = webhooks.enqueue(db, h.organization_id, "ping", {"message": "Test delivery from the Futran Audit Platform.", "requested_by": actor.user.name},
                          event_key=f"ping:{now.isoformat()}", hooks=[h])[0]
-    webhooks.attempt(db, settings, d, now, webhooks.sender_for(settings, getattr(request.app.state, "webhook_sender", None)))
+    out = webhooks.claim(db, settings, d, now)
+    db.commit()  # no write transaction stays open while the receiver answers
+    if out is not None:
+        code, exc = webhooks.send(out, webhooks.sender_for(settings, getattr(request.app.state, "webhook_sender", None)))
+        webhooks.record(db, d, now, code, exc)
     if d.status == "retrying":  # a test is tried once
         d.status, d.next_attempt_at = "failed", None
     audit.record(db, actor_id=actor.id, action="webhook.tested", obj=h, request=actor.request, summary=f"Sent a test delivery to {h.url}: {d.status}"[:300])

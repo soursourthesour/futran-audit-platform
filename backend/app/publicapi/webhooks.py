@@ -19,6 +19,7 @@ import hmac
 import json
 import logging
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 
 from sqlalchemy import select
@@ -179,37 +180,67 @@ def run_event_scan(db: Session, settings, now: datetime) -> int:
 
 
 # ---------------------------------------------------------------- delivery
-def attempt(db: Session, settings, d: WebhookDelivery, now: datetime, sender: Sender) -> WebhookDelivery:
+# A delivery goes in three steps so no write transaction is open while a receiver answers (SQLite allows one writer at a
+# time; a 10-second send inside a transaction would stop every other request from saving): claim it and work out what to
+# send, commit; send with no transaction open; record the result in a short transaction of its own.
+CLAIM = timedelta(minutes=2)  # a claimed delivery whose result was never recorded (the process stopped) is tried again after this
+
+
+@dataclass
+class Outgoing:
+    delivery_id: str
+    url: str
+    body: bytes
+    headers: dict
+
+
+def claim(db: Session, settings, d: WebhookDelivery, now: datetime) -> Outgoing | None:
+    """Count the attempt and prepare the request. None when the delivery is settled without sending (hook paused or
+    removed, target blocked)."""
     h = db.get(Webhook, d.webhook_id)
     d.attempts += 1
     d.last_attempt_at = now
     d.last_status_code, d.last_error = None, None
     if h is None or h.deleted_at is not None or h.status != "active":
         d.status, d.last_error, d.next_attempt_at = "failed", "The webhook was paused or removed.", None
-        return d
+        return None
     try:
         netguard.check_url(h.url, offline=mode(settings) == "fake")
     except netguard.Unsafe as exc:
         d.status, d.last_error, d.next_attempt_at = "blocked", f"Not sent: {exc} (private or unknown address)"[:500], None
-        return d
+        return None
     body = json.dumps(d.payload, separators=(",", ":"), sort_keys=True).encode()
     ts = str(int(now.timestamp()))
     headers = {"Content-Type": "application/json", "User-Agent": USER_AGENT, "X-Futran-Event": d.event, "X-Futran-Delivery": d.id,
                "X-Futran-Timestamp": ts, "X-Futran-Signature": f"t={ts},v1={signature(open_secret(settings, h), ts, body)}"}
+    d.next_attempt_at = now + CLAIM
+    return Outgoing(d.id, h.url, body, headers)
+
+
+def send(out: Outgoing, sender: Sender) -> tuple[int | None, Exception | None]:
+    """The HTTP call. Run it with no database transaction open."""
     try:
-        code = sender(h.url, body, headers, TIMEOUT)
+        return sender(out.url, out.body, out.headers, TIMEOUT), None
+    except Exception as exc:  # network errors, timeouts, the sender's own address check
+        return None, exc
+
+
+def record(db: Session, d: WebhookDelivery, now: datetime, code: int | None, exc: Exception | None) -> WebhookDelivery:
+    if isinstance(exc, netguard.Unsafe):  # the sender's own check, just before it connects
+        d.status, d.last_error, d.next_attempt_at = "blocked", f"Not sent: {exc} (private or unknown address)"[:500], None
+        return d
+    if exc is not None:  # the server log keeps the detail, the delivery log a plain reason
+        ok = False
+        d.last_error = error_reason(exc)
+        log.info("Webhook delivery %s failed: %r", d.id, exc)
+    else:
         d.last_status_code = code
         ok = 200 <= code < 300
         if not ok:
             d.last_error = status_reason(code)
-    except netguard.Unsafe as exc:  # the sender's own check, just before it connects
-        d.status, d.last_error, d.next_attempt_at = "blocked", f"Not sent: {exc} (private or unknown address)"[:500], None
-        return d
-    except Exception as exc:  # network errors, timeouts: the log keeps the detail, the delivery log a plain reason
-        ok = False
-        d.last_error = error_reason(exc)
-        log.info("Webhook delivery %s failed: %r", d.id, exc)
-    h.last_delivery_at = now
+    h = db.get(Webhook, d.webhook_id)
+    if h is not None:
+        h.last_delivery_at = now
     if ok:
         d.status, d.delivered_at, d.next_attempt_at = "delivered", now, None
     elif d.attempts >= MAX_ATTEMPTS:
@@ -239,18 +270,24 @@ def error_reason(exc: Exception) -> str:
 
 
 def deliver_due(db: Session, settings, now: datetime, sender: Sender | None = None, limit: int = 100) -> int:
-    send = sender_for(settings, sender)
+    """Send what is due. Commits: the claims first, then each result on its own, with no transaction open during a send."""
+    sender = sender_for(settings, sender)
     rows = list(db.scalars(select(WebhookDelivery).where(WebhookDelivery.status.in_(("pending", "retrying")), WebhookDelivery.next_attempt_at <= now)
                            .order_by(WebhookDelivery.next_attempt_at).limit(limit)))
-    for d in rows:
-        attempt(db, settings, d, now, send)
-        db.flush()
+    claimed = [(d, claim(db, settings, d, now)) for d in rows]
+    db.commit()
+    for d, out in claimed:
+        if out is None:
+            continue
+        code, exc = send(out, sender)
+        record(db, d, now, code, exc)
+        db.commit()
     return len(rows)
 
 
 def run_tick(db: Session, settings, now: datetime) -> None:
     run_event_scan(db, settings, now)
-    db.flush()
+    db.commit()
     deliver_due(db, settings, now)
 
 
