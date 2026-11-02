@@ -256,7 +256,9 @@ def save_response(db: Session, actor: User, t: Target, code: str, body: dict, fu
         changed = (r.value, r.status, r.na_reason) != (value, status, na_reason)
         r.value, r.status, r.na_reason, r.detail, r.evidence_ids = value, status, na_reason, detail, evidence
         r.source_person_name, r.source_person_title = src_name, src_title
-        r.answered_by, r.answered_side, r.answered_at, r.source = actor.id, "futran", now, "auditor"
+        r.answered_by, r.answered_side, r.answered_at = actor.id, "futran", now
+        if changed or r.source != "ai_suggested_accepted":  # re-saving an accepted copilot answer unchanged (to verify it) keeps its source
+            r.source = "auditor"
         if verified:
             r.verified_by, r.verified_at = actor.id, now
         elif changed:

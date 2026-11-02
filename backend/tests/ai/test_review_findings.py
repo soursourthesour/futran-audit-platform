@@ -106,3 +106,24 @@ def test_questionnaire_answer_with_a_too_short_quote_is_unsupported(client, db, 
     fake.replies["questionnaire"] = {"answers": [{"item": "Q1", "answer": "Yes. We are ISO 42001 certified.", "source": "R1", "quote": "audit", "confidence": "high"}]}
     it = client.post(f"/api/v1/questionnaires/{q['id']}/draft").json()["items"][0]
     assert it["status"] == "unsupported" and it["audited_by_futran"] is False and it["citations"][0]["found"] is False
+
+
+# ---- G4: verifying an accepted AI answer keeps its source
+def test_verifying_an_accepted_ai_answer_keeps_its_source(client, db, ai_sys):
+    w = ai_sys
+    enable_ai(client, db, w)
+    upload_docs(client, db, w)
+    login_as(client, db, w.people["aud"])
+    x = _prefill(client, w, [_one()])["6.1.01"]
+    assert client.post(f"/api/v1/ai/interactions/{x['id']}/accept", json={}).status_code == 200
+    rid = db.get(AIInteraction, x["id"]).result_refs[0]["id"]
+    person = {"source_person_name": "Jane Roe", "source_person_title": "Head of Data Science"}
+    r = client.put(f"/api/v1/systems/{w.s.id}/responses/6.1.01", json={"status": "answered", "value": "mlops", "verified": True} | person)
+    assert r.status_code == 200, r.text
+    db.expire_all()
+    resp = db.get(Response, rid)
+    assert resp.source == "ai_suggested_accepted" and resp.verified_at is not None
+    other = next(str(o["value"]) for o in db.scalar(select(Question).where(Question.code == "6.1.01")).options if str(o["value"]) != "mlops")
+    assert client.put(f"/api/v1/systems/{w.s.id}/responses/6.1.01", json={"status": "answered", "value": other} | person).status_code == 200
+    db.expire_all()
+    assert db.get(Response, rid).source == "auditor"  # the auditor changed the answer: it is now their own
