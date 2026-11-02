@@ -1,3 +1,4 @@
+import { CarriedBanner } from '@/screens/wsk/Carried';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -19,6 +20,7 @@ export function SystemsPrefillList() {
   return (
     <div className="page">
       <PageHeader title="AI systems" subtitle="Describe each AI system in scope before fieldwork. The auditor checks your answers in interviews, so answer as things are today, not as planned." />
+      <CarriedBanner engagementId={d.engagement?.id} />
       {d.engagement?.locked && <Alert tone="info">Your answers were locked when management representation was signed. Ask the auditor if something must change.</Alert>}
       <Card>
         {d.systems.length === 0 ? <EmptyState>No AI systems are assigned to you yet.</EmptyState> : (

@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
 import { can, useMe } from '@/api/auth';
 import { Alert, Badge, Button, Card, EmptyState, Loading, PageHeader, fileUrl, fmtDate, fmtDateTime } from '@/components/ui';
+import { ClientInsightLinks } from '@/screens/wsk/Links';
 import { StageTracker } from '@/components/StageTracker';
 import { SignPanel } from '@/components/SignPanel';
 import { DocPreview } from '@/components/DocPreview';
@@ -116,6 +117,7 @@ export function ClientPage() {
               )}
             </div>
           </Card>
+          <ClientInsightLinks clientId={clientId} engagement={{ id: e.id, status: e.status, type_label: e.type_label }} />
           {p.sign_off_1 && p.sign_off_1.status !== 'approved' && (
             <Card title="Sign-off 1: engagement letter and scope"><SignPanel signOffId={p.sign_off_1.id} /></Card>
           )}

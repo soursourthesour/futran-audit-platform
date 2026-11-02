@@ -9,7 +9,7 @@ import { SEV_TONE } from '@/screens/futran/FieldworkUseCase';
 type Declaration = { kind: string; label: string; signed_by: string; signed_at: string; text: string; commitment: string | null; disputed_refs: string[] };
 export type ReportRow = { id: string; version: string; version_label: string; status: string; created_at: string; docx_file_id: string | null; pdf_file_id: string | null; released_to_client_at: string | null; signed_at: string | null; declarations: Declaration[] };
 type Roadmap = { id: string; ref: string; action: string; owner: string | null; priority: string; target_date: string | null; how_futran_can_help: string | null; finding_ids: string[]; finding_refs: string[] };
-type Ratio = { category: string; group: string; selection_rate: number | null; impact_ratio: number };
+type Ratio = { category: string; group: string; selection_rate: number | null; impact_ratio: number | null; applicants?: number; rate_kind?: string; excluded?: boolean; justification?: string };
 type Summary = { ai_system_id: string | null; tool_name: string | null; audit_date: string | null; distribution_date: string | null; data_source: string | null; notes: string | null; unknown_category_count: number | null; impact_ratios: Ratio[]; evidence_file_ids: string[] };
 type Data = {
   audit_ref: string; client: string; stage: number; my_name: string;
@@ -210,7 +210,8 @@ function PublicSummaryCard({ clientId, d, run }: { clientId: string; d: Data; ru
   const s = d.public_summary;
   const init = s.summary ?? { ai_system_id: null, tool_name: '', audit_date: '', distribution_date: '', data_source: '', notes: '', unknown_category_count: null, impact_ratios: [], evidence_file_ids: [] };
   const [v, setV] = useState<Summary>(init);
-  const [ratios, setRatios] = useState<{ category: string; group: string; selection_rate: string; impact_ratio: string }[]>(init.impact_ratios.map((r) => ({ category: r.category, group: r.group, selection_rate: r.selection_rate == null ? '' : String(r.selection_rate), impact_ratio: String(r.impact_ratio) })));
+  // rows from the bias calculator also carry applicants, the rate kind and, for an excluded category, the justification: kept as they are
+  const [ratios, setRatios] = useState<({ category: string; group: string; selection_rate: string; impact_ratio: string } & Omit<Ratio, 'category' | 'group' | 'selection_rate' | 'impact_ratio'>)[]>(init.impact_ratios.map((r) => ({ ...r, category: r.category, group: r.group, selection_rate: r.selection_rate == null ? '' : String(r.selection_rate), impact_ratio: r.impact_ratio == null ? '' : String(r.impact_ratio) })));
   const so = s.sign_off;
   const save = () => run(() => api.put(`/clients/${clientId}/public-summary`, { ...v, impact_ratios: ratios.filter((r) => r.category || r.group || r.impact_ratio).map((r) => ({ ...r, selection_rate: r.selection_rate === '' ? null : r.selection_rate })) }), 'Public summary saved.');
   return (
