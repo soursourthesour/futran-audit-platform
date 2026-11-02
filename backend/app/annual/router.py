@@ -41,7 +41,7 @@ def start(engagement_id: str, actor: Actor = Depends(current_actor), db: Session
     prior = _engagement(db, engagement_id)
     authorize(db, actor, Action.START_ANNUAL_REVIEW, engagement_id=prior.id)
     e = svc.start_annual_review(db, actor.user, prior)
-    return {"engagement_id": e.id, "client_id": e.client_id, "audit_ref": e.audit_ref, "status": e.status}
+    return {"engagement_id": e.id, "client_id": e.client_id, "audit_ref": e.audit_ref, "status": e.status, "notices": (e.wizard_state or {}).get("notices", [])}
 
 
 @router.get("/engagements/{engagement_id}/carried")

@@ -23,6 +23,7 @@ from app.audit_log import service as audit
 from app.core.clock import utcnow
 from app.core.errors import Conflict, NotFound
 from app.engagements.models import ClientContact, ClientRequirement, Engagement, EngagementTeam
+from app.engagements.team import LEAD_ROLE, check_lead_independence
 from app.engagements.service import create_engagement
 from app.questionnaire.models import ChecklistResult, Question, Response
 from app.scoring import scale
@@ -56,8 +57,16 @@ def start_annual_review(db: Session, actor: User, prior: Engagement) -> Engageme
     for c in db.scalars(select(ClientContact).where(ClientContact.engagement_id == prior.id, ClientContact.deleted_at.is_(None))):
         db.add(ClientContact(organization_id=c.organization_id, engagement_id=e.id, contact_role=c.contact_role, name=c.name, title=c.title, email=c.email, phone=c.phone,
                              not_appointed=c.not_appointed, user_id=c.user_id, created_by=actor.id))
+    notices = []
     for t in db.scalars(select(EngagementTeam).where(EngagementTeam.engagement_id == prior.id, EngagementTeam.deleted_at.is_(None))):
+        if t.role == LEAD_ROLE:  # independence rule (spec §21 F7): a policy author cannot lead this year's audit
+            try:
+                check_lead_independence(db, prior.client_id, t.user_id)
+            except Conflict as exc:
+                notices.append(f"{exc.detail} They were not copied in as Lead Auditor.")
+                continue
         db.add(EngagementTeam(organization_id=t.organization_id, engagement_id=e.id, user_id=t.user_id, role=t.role, created_by=actor.id))  # conflicts are confirmed again
+    e.wizard_state = e.wizard_state | {"notices": notices}
     sys_map: dict[str | None, str | None] = {None: None}
     for s in db.scalars(select(AISystem).where(AISystem.engagement_id == prior.id, AISystem.deleted_at.is_(None)).order_by(AISystem.reference_id)):
         n = AISystem(organization_id=s.organization_id, engagement_id=e.id, status="client_prefill", source="carried", use_case_ids=[], created_by=actor.id,

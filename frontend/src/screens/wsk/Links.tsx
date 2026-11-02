@@ -15,6 +15,7 @@ export function ClientInsightLinks({ clientId, engagement }: { clientId: string;
   const [ask, setAsk] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [notices, setNotices] = useState<string[] | null>(null);
   const live = !['draft', 'pending_approval'].includes(engagement.status);
   const canStart = engagement.status === 'completed' && can(me, 'start_annual_review');
   if (!live && !can(me, 'view_heatmap')) return null;
@@ -22,9 +23,10 @@ export function ClientInsightLinks({ clientId, engagement }: { clientId: string;
     if (busy) return;
     setBusy(true); setErr(null);
     try {
-      await api.post(`/engagements/${engagement.id}/annual-review`);
+      const out = await api.post<{ notices?: string[] }>(`/engagements/${engagement.id}/annual-review`);
       await qc.invalidateQueries({ queryKey: ['client-page', clientId] });
-      navigate(`/clients/${clientId}/setup/company`);
+      if (out.notices && out.notices.length) setNotices(out.notices);
+      else navigate(`/clients/${clientId}/setup/company`);
     } catch (e) { setErr(errorMessage(e)); } finally { setBusy(false); }
   }
   return (
@@ -37,10 +39,18 @@ export function ClientInsightLinks({ clientId, engagement }: { clientId: string;
       {canStart && <div className="row" style={{ gap: 8 }}><Button variant="primary" onClick={() => setAsk(true)}>Start annual review</Button><span className="small muted">Copies systems, answers and evidence links into a new draft engagement for next year.</span></div>}
       {ask && (
         <Dialog title="Start annual review" onClose={() => setAsk(false)}>
+          {notices ? (
+            <div className="stack">
+              <p className="small" style={{ margin: 0 }}>The draft engagement has been created.</p>
+              {notices.map((n) => <Alert key={n} tone="warn">{n}</Alert>)}
+              <div className="row" style={{ justifyContent: 'flex-end', gap: 8 }}><Button variant="primary" onClick={() => navigate(`/clients/${clientId}/setup/company`)}>Review the draft</Button></div>
+            </div>
+          ) : (
           <div className="stack">
-            <p className="small" style={{ margin: 0 }}>A new draft engagement is created for the next twelve months with the same scope, laws, contacts and team. Systems, answers and evidence links are carried forward: the client confirms each answer or updates it, and you re-test the evidence. Review the draft and submit it for approval as usual.</p>
+            <p className="small" style={{ margin: 0 }}>A new draft engagement is created for the next twelve months with the same scope, laws, contacts and team. Systems, the client's own answers and evidence links are carried forward: the client confirms each answer or updates it, and you answer, verify and re-test again. A Lead Auditor who helped write the client's policies is not copied in. Review the draft and submit it for approval as usual.</p>
             <div className="row" style={{ justifyContent: 'flex-end', gap: 8 }}><Button onClick={() => setAsk(false)}>Cancel</Button><Button variant="primary" disabled={busy} onClick={start}>{busy ? 'Starting…' : 'Start annual review'}</Button></div>
           </div>
+          )}
         </Dialog>
       )}
     </Card>

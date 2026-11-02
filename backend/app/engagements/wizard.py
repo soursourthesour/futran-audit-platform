@@ -581,6 +581,14 @@ def _validate_team(db: Session, e: Engagement) -> list[dict]:
         needed = {"chief_auditor": {"chief_auditor"}, "qa_reviewer": {"qa_reviewer", "chief_auditor"}}.get(t.role)
         if needed and not (_futran_roles(db, u) & needed):
             errs.append({"field": "scope.team", "message": f"{u.name} is not a {TEAM_ROLES[t.role]}."})
+        if t.role == "chief_auditor":  # independence rule (spec §21 F7), also for teams not saved through the wizard
+            from app.core.errors import Conflict
+            from app.engagements.team import check_lead_independence
+
+            try:
+                check_lead_independence(db, e.client_id, u.id)
+            except Conflict as exc:
+                errs.append({"field": "scope.team", "message": exc.detail})
     if len(by_role.get("chief_auditor", [])) != 1:
         errs.append({"field": "scope.team", "message": "Choose one Chief Auditor (Lead Auditor)."})
     if not by_role.get("engagement_manager"):
