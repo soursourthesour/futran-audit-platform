@@ -31,7 +31,9 @@ def test_demo_abc_completed_and_sys001_high(db, demo):
     row = latest(db, s)
     assert (row.inherent, row.maturity, row.residual, row.final_rating) == (76.0, 2.25, 58.2, "high")
     assert {x.reference_id for x in db.scalars(select(AISystem).where(AISystem.engagement_id == abc.id))} == {"SYS-001", "SYS-002", "SYS-003", "SYS-004"}
-    assert db.scalar(select(Engagement.id).where(Engagement.client_id == demo["abc"], Engagement.status != "completed")) is None  # one engagement per client in v1
+    # Besides the completed audit, ABC has only the annual review draft that carries it forward (§21 F16)
+    others = db.scalars(select(Engagement).where(Engagement.client_id == demo["abc"], Engagement.status != "completed")).all()
+    assert [(x.type, x.status, x.prior_engagement_id) for x in others] == [("annual_review", "draft", abc.id)]
     assert db.scalar(select(Engagement.status).where(Engagement.client_id == demo["northwind"])) == "pending_approval"
     internal = db.get(Organization, demo["internal"])
     assert internal.is_internal and db.scalar(select(Engagement.stage).where(Engagement.client_id == internal.id)) == 2
