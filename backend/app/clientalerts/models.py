@@ -7,7 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.core.clock import utcnow
 from app.core.models import Base, IdMixin
 
-TRIGGERS = ("law_change", "new_law", "effective_date", "case", "tracing_addon")
+TRIGGERS = ("law_change", "new_law", "effective_date", "case", "tracing_addon", "regulatory_update")
 APPROVALS = ("chief_auditor", "automatic", "sales_owner")
 
 

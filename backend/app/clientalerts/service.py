@@ -23,14 +23,15 @@ DEFAULT_RULES = [
     ("effective_date", "law_applies", ["AIComplianceTeam", "DeptHeads"], "Deadline reminder with to-do list", "automatic", [90, 30]),
     ("case", "similar_ai", ["AIComplianceTeam"], "Case briefing: what it means for you", "chief_auditor", []),
     ("tracing_addon", "untraced_systems", ["ChiefAIComplianceOfficer"], "Recommended add-on", "sales_owner", []),
+    ("regulatory_update", "update_matches", ["AIComplianceTeam"], "Regulatory update: what it means for you", "chief_auditor", []),  # wave 3 WS-H (F4)
 ]
 WHEN_LABELS = {
     "law_change": "Law change approved", "new_law": "New law in a client's geography", "effective_date": "Effective date in 90 and 30 days",
-    "case": "Relevant case added or updated", "tracing_addon": "Tracing add-on recommended",
+    "case": "Relevant case added or updated", "tracing_addon": "Tracing add-on recommended", "regulatory_update": "Regulatory update published",
 }
 AUDIENCE_LABELS = {
     "law_applies": "Every client where the law applies", "geography": "Clients in that geography", "similar_ai": "Clients using similar AI",
-    "untraced_systems": "Clients with Tier 3 or agent systems untraced",
+    "untraced_systems": "Clients with Tier 3 or agent systems untraced", "update_matches": "Clients the update matches",
 }
 APPROVAL_LABELS = {"chief_auditor": "Chief Auditor approves each send", "automatic": "Automatic", "sales_owner": "Sales Team owner approves"}
 GROUP_ROLES = {"AIComplianceTeam": {"caico", "dpo"}, "DeptHeads": {"dept_compliance_lead"}, "ChiefAIComplianceOfficer": {"caico"}}

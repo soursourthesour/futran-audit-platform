@@ -212,3 +212,105 @@ def condition_close(pid: str, cid: str, body: NoteIn, actor: Actor = Depends(cur
     authorize(db, actor, Action.DECIDE_PROJECT, org_id=ia.organization_id, department_id=ia.department_id)
     c = svc.close_condition(db, actor.user, ia, svc.get_condition(db, ia, cid), reopen=body.reopen, note=body.note)
     return {"id": c.id, "status": c.status}
+
+
+# ---------------------------------------------------------------- reassessment triggers (register record and client home)
+class TriggerIn(BaseModel):
+    type: str
+    detail: str | None = None
+
+
+def trigger_out(db: Session, t) -> dict:
+    from app.impact.triggers import SOURCE_LABELS, TYPE_LABELS
+    from app.register.models import RegisterSystem
+
+    s = db.get(RegisterSystem, t.register_system_id)
+    return {"id": t.id, "register_system_id": t.register_system_id, "system_reference": s.reference if s else None, "system_name": s.name if s else None,
+            "type": t.type, "type_label": TYPE_LABELS.get(t.type, t.type), "source": t.source, "source_label": SOURCE_LABELS.get(t.source, t.source), "detail": t.detail,
+            "detected_at": t.detected_at.isoformat(), "status": t.status, "reopened": t.reopened or [], "resolution_note": t.resolution_note,
+            "resolved_by_name": _name(db, t.resolved_by), "resolved_at": t.resolved_at.isoformat() if t.resolved_at else None}
+
+
+def _system(db: Session, actor: Actor, sid: str):
+    from app.register.router import load as load_system
+
+    s = load_system(db, actor, sid)
+    authorize(db, actor, Action.VIEW_REASSESSMENT, org_id=s.organization_id, department_id=None if s.company_wide else s.department_id)
+    return s
+
+
+@router.get("/register/{sid}/triggers")
+def system_triggers(sid: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+    from app.impact.models import ReassessmentTrigger
+    from app.impact.triggers import TYPE_LABELS
+
+    s = _system(db, actor, sid)
+    rows = db.scalars(select(ReassessmentTrigger).where(ReassessmentTrigger.register_system_id == s.id, ReassessmentTrigger.deleted_at.is_(None)).order_by(ReassessmentTrigger.detected_at.desc()))
+    return {"rows": [trigger_out(db, t) for t in rows], "can_manage": can(db, actor, Action.MANAGE_REASSESSMENT, None if s.company_wide else s.department_id),
+            "types": [{"value": k, "label": v} for k, v in TYPE_LABELS.items() if k not in ("failed_monitor_check", "regulatory_update", "twelve_months")]}
+
+
+@router.post("/register/{sid}/triggers")
+def raise_by_hand(sid: str, body: TriggerIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+    from app.core.errors import Invalid
+    from app.impact.triggers import raise_trigger
+
+    s = _system(db, actor, sid)
+    authorize(db, actor, Action.MANAGE_REASSESSMENT, org_id=s.organization_id, department_id=None if s.company_wide else s.department_id)
+    if body.type in ("failed_monitor_check", "regulatory_update", "twelve_months") or body.type not in svc_trigger_types():
+        raise Invalid(errors=[{"field": "type", "message": "Choose what changed."}])
+    t = raise_trigger(db, s.id, type=body.type, source="manual", detail=(body.detail or "").strip() or None, actor_id=actor.id)
+    if t is None:
+        from app.core.errors import Conflict
+
+        raise Conflict("A retired system is not reassessed.")
+    return trigger_out(db, t)
+
+
+def svc_trigger_types():
+    from app.impact.models import TRIGGER_TYPES
+
+    return TRIGGER_TYPES
+
+
+@router.get("/reassessment")
+def open_triggers(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+    """Open triggers for the client home."""
+    from app.impact.models import OPEN_TRIGGER, ReassessmentTrigger
+    from app.register.models import RegisterSystem
+
+    org = client_org(actor)
+    authorize(db, actor, Action.VIEW_REASSESSMENT, org_id=org.id, list_view=True)
+    depts = departments_for(actor, Action.VIEW_REASSESSMENT)
+    out = []
+    for t in db.scalars(select(ReassessmentTrigger).where(ReassessmentTrigger.organization_id == org.id, ReassessmentTrigger.status.in_(OPEN_TRIGGER),
+                                                          ReassessmentTrigger.deleted_at.is_(None)).order_by(ReassessmentTrigger.detected_at)):
+        s = db.get(RegisterSystem, t.register_system_id)
+        if s is None or s.deleted_at is not None or (depts is not None and not s.company_wide and s.department_id not in depts):
+            continue
+        out.append(trigger_out(db, t))
+    return {"rows": out}
+
+
+class ResolveIn(BaseModel):
+    note: str | None = None
+
+
+def _trigger(db: Session, actor: Actor, tid: str):
+    from app.impact.models import ReassessmentTrigger
+
+    org = client_org(actor)
+    t = db.get(ReassessmentTrigger, tid)
+    if t is None or t.organization_id != org.id or t.deleted_at is not None:
+        raise NotFound()
+    s = _system(db, actor, t.register_system_id)
+    authorize(db, actor, Action.MANAGE_REASSESSMENT, org_id=org.id, department_id=None if s.company_wide else s.department_id)
+    return t, s
+
+
+@router.post("/reassessment/{tid}/{action}")
+def act_on_trigger(tid: str, action: str, body: ResolveIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+    from app.impact.lifecycle import act
+
+    t, s = _trigger(db, actor, tid)
+    return trigger_out(db, act(db, actor.user, t, s, action, body.note))

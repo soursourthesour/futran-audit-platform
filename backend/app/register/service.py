@@ -398,6 +398,9 @@ def update_system(db: Session, actor: User, s: RegisterSystem, data: dict, *, re
     if s.risk_tier != tier_before:
         log_change(db, actor, s, "risk_tier", f"Tier {tier_before}" if tier_before else None, f"Tier {s.risk_tier}", "Recalculated from the system's data and decisions.", batch_id=batch_id, raw=True)
     if changed:
+        from app.impact.detect import detect  # wave 3 WS-H: reassessment triggers (§21 F8)
+
+        detect(db, actor.id, s, changed)
         audit.record(db, actor_id=actor.id, action="register.edit", obj=s, before={k: display(db, k, o) for k, (o, _) in changed.items()},
                      after={k: display(db, k, n) for k, (_, n) in changed.items()} | ({"reason": reason} if reason else {}), summary=f"Edited {s.reference} {s.name}")
     return changed
@@ -478,6 +481,9 @@ def add_law(db: Session, actor: User, s: RegisterSystem, regulation_id: str, *, 
     db.flush()
     log_change(db, actor, s, "laws", None, f"Added {reg.short_name}", reason, entity="RegisterSystemLaw", entity_id=link.id, batch_id=batch_id, raw=True)
     audit.record(db, actor_id=actor.id, action="register.law_add", obj=s, after={"regulation": reg.short_name}, summary=f"Added {reg.short_name} to {s.reference} {s.name}")
+    from app.impact.detect import detect_law_added  # wave 3 WS-H: a law from a new jurisdiction (§21 F8)
+
+    detect_law_added(db, actor.id, s, reg, link.id)
     after_laws_change(db, s)
     return link
 

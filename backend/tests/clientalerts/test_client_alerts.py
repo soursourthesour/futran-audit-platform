@@ -37,12 +37,12 @@ def law(db, lit):
 
 def test_default_rules_match_the_spec_table(db, lit):
     rules = {r.trigger: r for r in ensure_rules(db)}
-    assert set(rules) == {"law_change", "new_law", "effective_date", "case", "tracing_addon"}
+    assert set(rules) == {"law_change", "new_law", "effective_date", "case", "tracing_addon", "regulatory_update"}  # wave 3 WS-H: F4 updates
     assert rules["effective_date"].approval == "automatic"
     assert rules["tracing_addon"].approval == "sales_owner"
-    assert {rules[t].approval for t in ("law_change", "new_law", "case")} == {"chief_auditor"}
+    assert {rules[t].approval for t in ("law_change", "new_law", "case", "regulatory_update")} == {"chief_auditor"}
     assert rules["effective_date"].client_groups == ["AIComplianceTeam", "DeptHeads"]
-    assert ensure_rules(db) and db.query(AlertRule).count() == 5  # idempotent
+    assert ensure_rules(db) and db.query(AlertRule).count() == 6  # idempotent (wave 3 adds the regulatory update rule)
 
 
 def test_approved_change_waits_for_chief_auditor_with_systems_and_todos(db, lit, law, settings):
@@ -143,7 +143,7 @@ def test_sales_cannot_approve_chief_auditor_sends_but_owns_addon_sends(client, d
 def test_rules_grid_pause_and_turn_on(client, db, lit):
     login_as(client, db, lit["admin"])
     rules = client.get("/api/v1/alerts/rules").json()["rules"]
-    assert len(rules) == 5 and rules[0]["when_label"] == "Law change approved"
+    assert len(rules) == 6 and rules[0]["when_label"] == "Law change approved"
     ids = [r["id"] for r in rules[:2]]
     assert client.post("/api/v1/alerts/rules/bulk", json={"ids": ids, "active": False}).json()["changed"] == 2
     assert [r["active"] for r in client.get("/api/v1/alerts/rules").json()["rules"]][:2] == [False, False]

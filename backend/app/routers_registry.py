@@ -29,4 +29,4 @@ ROUTER_MODULES += ["biascalc.router", "insights.router", "annual.router"]
 ROUTER_MODULES += ["comments.router", "publicapi.admin_router", "tracing.agents_router", "platformtrust.router"]
 
 # Wave 3 WS-H: regulatory change alerts (screen 26) and new AI project impact assessment (screen 28)
-ROUTER_MODULES += ["impact.router"]
+ROUTER_MODULES += ["impact.router", "regupdates.router"]

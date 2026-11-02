@@ -295,3 +295,16 @@ def start_scheduler(app) -> None:
     sched.add_job(webhook_tick, "interval", minutes=1, id="webhooks", replace_existing=True, max_instances=1, coalesce=True)
     sched.start()
     app.state.scheduler = sched
+
+
+def _wsh(module: str, name: str):
+    """Wave 3 WS-H jobs: the weekly regulatory digest (once per week per client, claimed) and the 12-month reassessment."""
+    def job(db, settings, now):
+        import importlib
+
+        return getattr(importlib.import_module(module), name)(db, settings, _dt(now))
+
+    return job
+
+
+JOBS |= {"regulatory_digest": _wsh("app.regupdates.service", "run_weekly_digest"), "reassessment_schedule": _wsh("app.impact.schedule", "run_reassessment_schedule")}
