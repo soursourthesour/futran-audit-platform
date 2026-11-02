@@ -47,6 +47,7 @@ class Engagement(TimestampedTenantMixin, Base):
     ai_consent_note: Mapped[str | None] = mapped_column(Text)
     ai_enabled_by: Mapped[str | None] = mapped_column(String(36))
     ai_enabled_at: Mapped[datetime | None] = mapped_column(DateTime)
+    prior_engagement_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("engagements.id"))  # annual review: the closed engagement it carries forward (§21 F16)
 
 
 class EngagementTeam(TimestampedTenantMixin, Base):
