@@ -265,13 +265,16 @@ def oauth_test(provider: str, body: TestConsentIn, request: Request, db: Session
 
 
 @router.get("/connectors/test-consent-info")
-def test_consent_info(state: str, request: Request, db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
+def test_consent_info(state: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
+    """Test mode only: what the stand-in consent page shows. For the signed-in person who started the connection, in the
+    session they started it from."""
     if not use_fake(settings):
         raise NotFound()
+    org = _manage(db, actor)
     data = svc.load_state(settings, state)
     conn = db.get(Connector, data.get("c"))
-    if conn is None:
+    if conn is None or conn.organization_id != org.id or conn.deleted_at is not None:
         raise NotFound()
-    org = db.get(Organization, conn.organization_id)
+    svc.check_state_owner(data, session_id=actor.session.id if actor.session else None, user_id=actor.id)
     return {"type": conn.type, "label": LABELS[conn.type], "provider": PROVIDER_OF.get(conn.type), "organization": org.name if org else "",
             "scopes": get_adapter(settings, conn.type).scopes()}

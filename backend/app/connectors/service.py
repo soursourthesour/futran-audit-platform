@@ -161,6 +161,12 @@ def load_state(settings: Settings, state: str) -> dict:
         raise BadRequest("This sign-in response is not valid.") from exc
 
 
+def check_state_owner(data: dict, *, session_id: str | None, user_id: str | None) -> None:
+    """A sign-in state is used only in the browser session, and by the user, that started it."""
+    if not session_id or _h(session_id) != data.get("s") or not user_id or user_id != data.get("u"):
+        raise BadRequest("Finish connecting in the same browser you started from, signed in to the Futran Audit Platform as the person who started it.")
+
+
 def complete_consent(db: Session, settings: Settings, provider: str, params: dict, *, session_id: str | None, user_id: str | None) -> Connector:
     data = load_state(settings, params.get("state", ""))
     if data.get("p") != provider:
@@ -168,8 +174,7 @@ def complete_consent(db: Session, settings: Settings, provider: str, params: dic
     conn = db.get(Connector, data.get("c"))
     if conn is None or conn.oauth_state_hash is None or conn.oauth_state_hash != _h(data.get("n", "")):
         raise BadRequest("This sign-in response has already been used or was replaced by a newer request.")
-    if not session_id or _h(session_id) != data.get("s") or not user_id or user_id != data.get("u"):
-        raise BadRequest("Finish connecting in the same browser you started from, signed in to the Futran Audit Platform as the person who started it.")
+    check_state_owner(data, session_id=session_id, user_id=user_id)
     conn.oauth_state_hash = None  # single use, whatever happens next
     org = db.get(Organization, conn.organization_id)
     user = db.get(User, user_id)

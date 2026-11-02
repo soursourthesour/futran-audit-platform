@@ -125,3 +125,18 @@ def test_okta_credentials_through_the_api(w):
     w.as_(w.admin)
     r = w.client.post("/api/v1/integrations/okta/credentials", json={"domain": "abccorp.okta.com", "client_id": "cid", "client_secret": "s3cret"})
     assert r.status_code == 200 and r.json()["status"] == "connected" and "s3cret" not in r.text
+
+
+def test_the_test_consent_page_details_are_for_the_person_who_started_it(w):
+    w.as_(w.admin)
+    state = parse_qs(urlparse(w.client.post("/api/v1/integrations/entra_id/connect", json={}).json()["url"]).query)["state"][0]
+    assert w.client.get(f"/api/v1/connectors/test-consent-info?state={state}").status_code == 200
+    w.client.cookies.clear()
+    assert w.client.get(f"/api/v1/connectors/test-consent-info?state={state}").status_code == 401  # nobody signed in
+    w.as_(w.caico)  # signed in, same organisation, may not manage integrations
+    assert w.client.get(f"/api/v1/connectors/test-consent-info?state={state}").status_code == 403
+    w.as_(w.other_admin)  # another client's admin
+    assert w.client.get(f"/api/v1/connectors/test-consent-info?state={state}").status_code in (400, 403, 404)
+    login_as(w.client, w.db, w.admin)  # the same person in another session
+    r = w.client.get(f"/api/v1/connectors/test-consent-info?state={state}")
+    assert r.status_code == 400 and "same browser" in r.json()["detail"]
