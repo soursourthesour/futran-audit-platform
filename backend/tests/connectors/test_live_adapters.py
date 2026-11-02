@@ -95,8 +95,13 @@ def test_microsoft_365_reads_copilot_licences_and_usage(settings):
 def test_microsoft_admin_consent_proves_the_tenant_and_reads_its_domains(settings):
     settings.discovery_ms_client_id, settings.discovery_ms_client_secret = "cid", "sec"
 
+    import time
+
     def handler(req):
         u = str(req.url)
+        if "/organizations/oauth2/v2.0/token" in u:
+            claims = {"aud": "cid", "tid": "t9", "iss": "https://login.microsoftonline.com/t9/v2.0", "nonce": "n1", "exp": time.time() + 600}
+            return httpx.Response(200, json={"access_token": "u", "id_token": _id_token(claims)})
         if "/t9/oauth2/v2.0/token" in u:
             return httpx.Response(200, json={"access_token": "t"})
         if u.endswith("/organization?$select=displayName,verifiedDomains") or "/organization" in u:
@@ -106,7 +111,10 @@ def test_microsoft_admin_consent_proves_the_tenant_and_reads_its_domains(setting
     a = MicrosoftAdapter(settings, "entra_id", transport=httpx.MockTransport(handler))
     url = a.consent_url(state="s")
     assert "/adminconsent?" in url and "graph.microsoft.com%2F.default" in url and settings.discovery_ms_client_id in url
-    g = a.complete_consent(params={"tenant": "t9", "admin_consent": "True"})
+    assert a.consent_tenant(params={"tenant": "t9", "admin_consent": "True"}) == "t9"
+    q = parse_qs(urlparse(a.signin_url(state="s2", nonce="n1")).query)
+    assert q["scope"] == ["openid"] and q["nonce"] == ["n1"] and q["response_type"] == ["code"]
+    g = a.complete_consent(params={"code": "c"}, tenant="t9", nonce="n1")
     assert g["tenant"] == "t9" and g["domains"] == ["abccorp.example"]
 
 

@@ -5,7 +5,9 @@ Authorization of a connector:
   carries a nonce whose hash is kept on the connector (single use), and is bound to the browser session and the user
   that started it: the response is accepted only in that session, from that user, while they may still manage
   integrations. What the provider grants is checked, not trusted: the tenant must have verified one of the
-  organisation's own email domains (those of its users) and must not be connected to another organisation.
+  organisation's own email domains (those of its users who have signed in) and must not be connected to another
+  organisation. For Microsoft the tenant is proven by the administrator's sign-in after admin consent (the ID token's
+  tenant), never taken from the consent redirect (see adapters/microsoft.py).
 - Okta. The client's Okta admin installs Futran's API service integration with read scopes and gives the Client Admin a
   client ID and secret; the org's users must be in the organisation's own domains, and the Okta org must not be
   connected to another organisation.
@@ -70,10 +72,10 @@ def connector(db: Session, org: Organization, ctype: str, create: bool = True) -
 
 
 def own_domains(db: Session, org: Organization) -> set[str]:
-    """The organisation's own email domains: those of its users. Nothing typed into a form counts."""
-    from app.mail.connections import own_domains as mail_own
-
-    return mail_own(db, org, None)
+    """The organisation's own email domains: those of its users who have accepted their invitation and signed in. An
+    invited user's address was typed by the Client Admin and proves nothing; nor does anything else typed into a form."""
+    emails = db.scalars(select(User.email).where(User.organization_id == org.id, User.deleted_at.is_(None), User.status == "active"))
+    return {e.rsplit("@", 1)[1].lower() for e in emails if e and "@" in e}
 
 
 def _may_manage(db: Session, user: User, org: Organization) -> bool:
@@ -174,7 +176,9 @@ def check_state_owner(data: dict, *, session_id: str | None, user_id: str | None
         raise BadRequest("Finish connecting in the same browser you started from, signed in to the Futran Audit Platform as the person who started it.")
 
 
-def complete_consent(db: Session, settings: Settings, provider: str, params: dict, *, session_id: str | None, user_id: str | None) -> Connector:
+def complete_consent(db: Session, settings: Settings, provider: str, params: dict, *, session_id: str | None, user_id: str | None) -> Connector | str:
+    """Finish a provider's redirect. Returns the connected connector, or, after Microsoft's admin consent, the URL of the
+    administrator's sign-in that proves the tenant (the browser goes there next)."""
     data = load_state(settings, params.get("state", ""))
     if data.get("p") != provider:
         raise BadRequest("This sign-in response is not valid.")
@@ -188,8 +192,20 @@ def complete_consent(db: Session, settings: Settings, provider: str, params: dic
     if not _may_manage(db, user, org):
         _refuse(db, conn, user_id, "You no longer have permission to manage integrations for this organisation.")
     adapter = _adapter(settings, conn.type)
+    two_step = getattr(adapter, "proves_tenant_by_sign_in", False)
     try:
-        grant = adapter.complete_consent(params=params)
+        if two_step and data.get("ph") != "signin":
+            # Microsoft: the tenant in the admin-consent redirect is only a claim. Sign the administrator in next; the
+            # ID token's tenant must match it. The consented tenant travels in the signed state, bound like the first.
+            tenant = adapter.consent_tenant(params=params)
+            nonce = secrets.token_urlsafe(16)
+            conn.oauth_state_hash = _h(nonce)
+            state = _serializer(settings).dumps({"c": conn.id, "n": nonce, "u": user.id, "s": data["s"], "p": data["p"], "ph": "signin", "t": tenant})
+            audit.record(db, actor_id=user.id, action="connector.consent_given", obj=conn,
+                         summary=f"Admin consent given in {LABELS[conn.type]}; the administrator's sign-in confirms the tenant")
+            db.flush()
+            return adapter.signin_url(state=state, nonce=_h(nonce), login_hint=user.email)
+        grant = adapter.complete_consent(params=params, tenant=data.get("t"), nonce=_h(data.get("n", ""))) if two_step else adapter.complete_consent(params=params)
     except ConnectorError as exc:
         _refuse(db, conn, user_id, str(exc))
     domains = list(dict.fromkeys(d.lower() for d in grant.get("domains") or [] if d))

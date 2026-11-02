@@ -18,12 +18,22 @@ Microsoft 365 ("Copilot licences, app consents"):
                               report privacy setting, in which case people are counted without a department)
 - User.Read.All               GET /users (department)
 
+The tenant named in the admin-consent redirect is not trusted: anyone holding a valid state could edit it to another
+company's tenant that once consented to this shared multi-tenant app. After consent the platform signs the
+administrator in (OpenID Connect authorization code flow at /organizations, scope openid, with a nonce) and takes the
+tenant from the ID token's `tid`, which must equal the tenant that gave consent. The ID token comes straight from
+Microsoft's token endpoint over TLS in exchange for the code and the client secret, so its signature is not checked
+(OpenID Connect Core 1.0, section 3.1.3.7); its audience, issuer, tenant, nonce and expiry are. Guest accounts (an `idp`
+claim other than the issuer) are refused. The registration needs the delegated permission openid for this sign-in.
+
 Because admin consent with /.default grants every permission on the registration, one consent covers both connectors;
 each connector uses only its own permissions. Disconnecting deletes the stored tenant id and token; to remove the consent
 itself the client deletes the Futran enterprise application in Entra ID (the screen says so).
 
 Docs checked on 2 November 2026:
 - Admin consent: https://learn.microsoft.com/en-us/entra/identity-platform/v2-admin-consent
+- Authorization code flow and ID token claims: https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow ,
+  https://learn.microsoft.com/en-us/entra/identity-platform/id-token-claims-reference
 - List servicePrincipals: https://learn.microsoft.com/en-us/graph/api/serviceprincipal-list
 - List oauth2PermissionGrants: https://learn.microsoft.com/en-us/graph/api/oauth2permissiongrant-list
 - appRoleAssignedTo: https://learn.microsoft.com/graph/api/serviceprincipal-list-approleassignments
@@ -32,6 +42,9 @@ Docs checked on 2 November 2026:
 """
 from __future__ import annotations
 
+import base64
+import json
+import time
 from urllib.parse import quote, urlencode
 
 import httpx
@@ -49,6 +62,15 @@ PERMISSIONS = {
     "microsoft_365": ["LicenseAssignment.Read.All", "Reports.Read.All", "User.Read.All"],
 }
 COPILOT_SKUS = ("copilot",)
+SIGNIN_SCOPE = "openid"
+
+
+def id_token_claims(id_token: str | None) -> dict:
+    try:
+        part = (id_token or "").split(".")[1]
+        return json.loads(base64.urlsafe_b64decode(part + "=" * (-len(part) % 4)))
+    except Exception:  # malformed or missing
+        return {}
 
 
 class MicrosoftAdapter:
@@ -69,14 +91,50 @@ class MicrosoftAdapter:
             "client_id": self.s.discovery_ms_client_id, "client_secret": self.s.discovery_ms_client_secret, "grant_type": "client_credentials", "scope": APP_SCOPE}).json()
         return tok["access_token"]
 
-    def complete_consent(self, *, params: dict) -> dict:
+    # The service runs consent in two steps for this adapter: admin consent, then the administrator's sign-in.
+    proves_tenant_by_sign_in = True
+
+    def consent_tenant(self, *, params: dict) -> str:
+        """The tenant the admin-consent redirect names. Not trusted: the sign-in that follows must prove it."""
         if params.get("error"):
             raise ConnectorError(f"Microsoft did not grant access: {params.get('error_description') or params['error']}"[:400])
         tenant = str(params.get("tenant") or "")
         if not tenant or params.get("admin_consent") not in ("True", "true", True):
             raise ConnectorError("The consent response did not confirm admin consent.")
+        return tenant
+
+    def signin_url(self, *, state: str, nonce: str, login_hint: str | None = None) -> str:
+        q = {"client_id": self.s.discovery_ms_client_id, "response_type": "code", "redirect_uri": redirect_uri(self.s, "microsoft"), "response_mode": "query",
+             "scope": SIGNIN_SCOPE, "state": state, "nonce": nonce}
+        if login_hint:
+            q["login_hint"] = login_hint
+        return f"{LOGIN}/organizations/oauth2/v2.0/authorize?{urlencode(q)}"
+
+    def _signed_in_tenant(self, c: httpx.Client, params: dict, nonce: str) -> str:
+        if params.get("error"):
+            raise ConnectorError(f"Microsoft did not sign you in: {params.get('error_description') or params['error']}"[:400])
+        if not params.get("code"):
+            raise ConnectorError("The sign-in response had no authorisation code.")
+        tok = request(c, "POST", f"{LOGIN}/organizations/oauth2/v2.0/token", "Signing in to Microsoft", data={
+            "client_id": self.s.discovery_ms_client_id, "client_secret": self.s.discovery_ms_client_secret, "grant_type": "authorization_code",
+            "code": params["code"], "redirect_uri": redirect_uri(self.s, "microsoft"), "scope": SIGNIN_SCOPE}).json()
+        claims = id_token_claims(tok.get("id_token"))
+        tid = str(claims.get("tid") or "")
+        if (not tid or claims.get("aud") != self.s.discovery_ms_client_id or claims.get("iss") != f"{LOGIN}/{tid}/v2.0" or not nonce
+                or claims.get("nonce") != nonce or float(claims.get("exp") or 0) <= time.time()):
+            raise ConnectorError("Microsoft's sign-in response could not be verified. Start the connection again.")
+        if claims.get("idp") and claims["idp"] != claims["iss"]:
+            raise ConnectorError("Sign in with an administrator account of your organisation's own Microsoft tenant, not a guest account.")
+        return tid
+
+    def complete_consent(self, *, params: dict, tenant: str, nonce: str) -> dict:
+        """The administrator's sign-in after admin consent: `tenant` is the one that gave consent (kept with the signed
+        state), and the ID token's tenant must be the same."""
         with client(self.transport) as c:
-            # the tenant in the redirect is not trusted on its own: an app token for it proves the consent
+            if self._signed_in_tenant(c, params, nonce) != tenant:
+                raise ConnectorError("You signed in to a different Microsoft tenant from the one that gave consent. Sign in with an administrator account "
+                                     "of your organisation's own tenant.")
+            # an app token for the proven tenant shows the consent is in place
             token = self._app_token(c, tenant)
             org = request(c, "GET", f"{GRAPH}/organization?$select=displayName,verifiedDomains", "Reading the organization",
                           headers={"Authorization": f"Bearer {token}"}).json().get("value") or [{}]

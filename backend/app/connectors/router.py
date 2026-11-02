@@ -229,7 +229,7 @@ def _session(db: Session, settings, request: Request):
     return load_session(db, request.cookies.get(COOKIE_NAME), settings, touch=False)
 
 
-def _finish(db: Session, settings, provider: str, params: dict, request: Request) -> Connector:
+def _finish(db: Session, settings, provider: str, params: dict, request: Request) -> Connector | str:
     s = _session(db, settings, request)
     return svc.complete_consent(db, settings, provider, params, session_id=s.id if s else None, user_id=s.user_id if s else None)
 
@@ -241,6 +241,8 @@ def oauth_callback(provider: str, request: Request, db: Session = Depends(get_db
     try:
         conn = _finish(db, settings, provider, dict(request.query_params), request)
         db.commit()
+        if isinstance(conn, str):  # Microsoft: on to the administrator's sign-in that proves the tenant
+            return RedirectResponse(conn, status_code=302)
         return RedirectResponse(f"{settings.base_url}/integrations?connected={conn.type}", status_code=302)
     except AppError as exc:
         db.commit()
@@ -261,6 +263,8 @@ def oauth_test(provider: str, body: TestConsentIn, request: Request, db: Session
     except AppError:
         db.commit()
         raise
+    if isinstance(conn, str):
+        return {"redirect": conn}
     return {"redirect": f"/integrations?connected={conn.type}"}
 
 
