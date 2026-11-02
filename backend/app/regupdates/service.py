@@ -171,8 +171,39 @@ def withdraw(db: Session, actor: User, u: RegulatoryUpdate, reason: str | None) 
     if not reason:
         raise Invalid(errors=[{"field": "reason", "message": "Say why it is withdrawn."}])
     u.status, u.withdrawn_by, u.withdrawn_at, u.withdrawn_reason = "withdrawn", actor.id, utcnow(), reason[:1000]
-    audit.record(db, actor_id=actor.id, action="regupdate.withdraw", obj=u, organization_id=actor.organization_id, after={"reason": reason}, summary=f"Withdrew {u.reference}")
+    cancelled = _cancel_alerts(db, actor, u)
+    closed = _close_triggers(db, actor, u)
+    audit.record(db, actor_id=actor.id, action="regupdate.withdraw", obj=u, organization_id=actor.organization_id,
+                 after={"reason": reason, "alerts_cancelled": len(cancelled), "triggers_closed": len(closed)}, summary=f"Withdrew {u.reference}")
     return u
+
+
+def _cancel_alerts(db: Session, actor: User, u: RegulatoryUpdate) -> list:
+    """Client alerts for the update not yet sent are cancelled, so they can no longer be approved and sent."""
+    from app.clientalerts.models import AlertSend
+
+    out = []
+    for s in db.scalars(select(AlertSend).where(AlertSend.change_ref == f"update:{u.id}", AlertSend.status.in_(("waiting_approval", "held")))):
+        s.status = "cancelled"
+        audit.record(db, actor_id=actor.id, action="client_alert.cancel", obj=s, organization_id=s.organization_id, after={"reason": u.withdrawn_reason},
+                     summary=f"Cancelled client alert: {u.reference} was withdrawn"[:300])
+        out.append(s)
+    return out
+
+
+def _close_triggers(db: Session, actor: User, u: RegulatoryUpdate) -> list:
+    """Open reassessment triggers the update raised are dismissed with the withdrawal reason."""
+    from app.impact.models import OPEN_TRIGGER, ReassessmentTrigger
+
+    now, out = utcnow(), []
+    note = f"Regulatory update {u.reference} withdrawn: {u.withdrawn_reason}"[:4000]
+    for t in db.scalars(select(ReassessmentTrigger).where(ReassessmentTrigger.source == "regulatory_update", ReassessmentTrigger.source_ref == f"update:{u.id}",
+                                                          ReassessmentTrigger.status.in_(OPEN_TRIGGER), ReassessmentTrigger.deleted_at.is_(None))):
+        t.status, t.resolution_note, t.resolved_by, t.resolved_at, t.updated_by = "dismissed", note, actor.id, now, actor.id
+        audit.record(db, actor_id=actor.id, action="reassessment.dismiss", obj=t, organization_id=t.organization_id, after={"status": t.status, "note": note},
+                     summary=f"Reassessment trigger dismissed: {u.reference} was withdrawn"[:300])
+        out.append(t)
+    return out
 
 
 # ---------------------------------------------------------------- matching

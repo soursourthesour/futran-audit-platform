@@ -295,7 +295,8 @@ def client_updates(actor: Actor = Depends(current_actor), db: Session = Depends(
     depts = departments_for(actor, Action.VIEW_CLIENT_UPDATES)
     items = []
     pairs = db.execute(select(RegulatoryAlert, RegulatoryUpdate).join(RegulatoryUpdate, RegulatoryUpdate.id == RegulatoryAlert.update_id)
-                       .where(RegulatoryAlert.organization_id == org.id, RegulatoryAlert.deleted_at.is_(None), RegulatoryUpdate.status == "published", RegulatoryUpdate.watch.is_(False))
+                       .where(RegulatoryAlert.organization_id == org.id, RegulatoryAlert.deleted_at.is_(None), RegulatoryUpdate.status.in_(("published", "withdrawn")),
+                              RegulatoryUpdate.published_at.is_not(None), RegulatoryUpdate.watch.is_(False))
                        .order_by(RegulatoryUpdate.published_at.desc())).all()
     for a, u in pairs:
         systems = []
@@ -306,9 +307,12 @@ def client_updates(actor: Actor = Depends(current_actor), db: Session = Depends(
             systems.append({"id": s.id, "reference": s.reference, "name": s.name, "risk_tier": s.risk_tier})
         if depts is not None and not systems:
             continue  # a Department Compliance Lead sees the updates that touch their department's systems
+        withdrawn = u.status == "withdrawn"  # a client that was shown the update sees it withdrawn, with the reason, rather than losing it
         items.append({"id": u.id, "kind": "update", "change_label": svc.CHANGE_LABELS[u.change_type], "law_name": u.law_name, "jurisdiction_name": _jname(db, u.jurisdiction_id),
                       "title": u.title, "summary": u.summary, "effective_on": u.effective_on.isoformat() if u.effective_on else None, "source_url": u.source_url,
-                      "published_at": u.published_at.isoformat() if u.published_at else None, "systems": systems, "todos": svc.todos(db, u), "why": a.match_reason})
+                      "published_at": u.published_at.isoformat() if u.published_at else None, "systems": systems, "todos": [] if withdrawn else svc.todos(db, u),
+                      "why": a.match_reason, "status": u.status, "withdrawn_at": u.withdrawn_at.isoformat() if withdrawn and u.withdrawn_at else None,
+                      "withdrawn_reason": u.withdrawn_reason if withdrawn else None})
     items += _sent_law_changes(db, org.id, depts)
     cal = svc.calendar(db, [org.id])
     for r in cal:
