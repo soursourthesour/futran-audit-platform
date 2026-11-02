@@ -4,7 +4,10 @@ Detection is deterministic: XLSX by a header cell containing "question" (else th
 "?"), the answer going in the column headed answer/response/comment or the next column; DOCX by paragraphs and table
 cells ending in "?"; PDF by lines, joining wrapped lines, ending in "?". Drafting reads the client's answer library,
 its published policies (WS-I, when present) and its latest signed Futran report. Every quote is checked against its
-source; an answer drawn from the signed report is marked "Audited by Futran". The client's reviewer decides each one.
+source. A draft whose quote (of checked length) comes from the signed report itself is proposed for the "Audited by
+Futran" label; the label stays only when the client's approver confirms it on approval, and only a confirmed label
+reaches an export or the answer library. A quote can be real while the answer says more than it, so the model's say-so
+is never enough. The client's reviewer decides each one.
 Export writes the answers into the original file (XLSX: answer column; DOCX: an "Answer:" paragraph after each
 question, or the next table cell), and a PDF comes back as a Word document with a note.
 
@@ -254,7 +257,8 @@ def draft(db: Session, app_state, settings, actor: User, q: Questionnaire, engag
                         status="suggested" if supported else "unsupported", first=n == 0)
         rows.append(row)
         it.answer, it.status, it.citations, it.confidence = (answer or None), row.status, cite, row.confidence
-        it.audited_by_futran = bool(supported and src and src.get("audited"))
+        it.audited_by_futran = bool(supported and src and src["kind"] == "report")  # a proposal: the approver confirms it or it is dropped
+        it.audited_confirmed_by = it.audited_confirmed_at = None
         it.interaction_id, it.decided_by, it.decided_at, it.updated_by = row.id, None, None, actor.id
     ai.log_call(db, actor, c, rows, f"Drafted answers for {len(rows)} question{'s' if len(rows) != 1 else ''} of {q.title}", None, q.organization_id)
     return items(db, q)
@@ -267,22 +271,34 @@ def _grow_library(db: Session, actor: User, it: QuestionnaireItem) -> AnswerLibr
     if li is None:
         li = AnswerLibraryItem(organization_id=it.organization_id, question=it.question, answer=it.answer or "", tags=[], source="questionnaire", source_item_id=it.id, created_by=actor.id)
         db.add(li)
-    li.answer, li.audited_by_futran, li.citations, li.approved_by, li.approved_at, li.updated_by = it.answer or "", it.audited_by_futran, it.citations or [], actor.id, utcnow(), actor.id
+    li.answer, li.audited_by_futran, li.citations, li.approved_by, li.approved_at, li.updated_by = it.answer or "", _confirmed(it), it.citations or [], actor.id, utcnow(), actor.id
     db.flush()
     it.library_item_id = li.id
     return li
 
 
-def accept(db: Session, actor: User, it: QuestionnaireItem, answer: str | None) -> QuestionnaireItem:
+def _confirmed(it: QuestionnaireItem) -> bool:
+    return bool(it.audited_by_futran and it.audited_confirmed_at is not None)
+
+
+def accept(db: Session, actor: User, it: QuestionnaireItem, answer: str | None, confirm_audited: bool = False) -> QuestionnaireItem:
+    """Approve a draft. A proposed "Audited by Futran" label is kept only when the approver confirms it here."""
     if it.status == "unsupported":
         raise Conflict("This draft has no supporting passage in your sources, so it cannot be approved. Write the answer yourself.")
     if it.status != "suggested":
         raise Conflict("Only a drafted answer can be approved here.")
     i = db.get(AIInteraction, it.interaction_id)
     edited = answer is not None and " ".join(answer.split()) and answer.strip() != (it.answer or "")
+    if confirm_audited is True and (edited or not it.audited_by_futran):
+        raise Invalid(errors=[{"field": "confirm_audited", "message": "Only an unedited answer drawn from the signed Futran report can carry the Audited by Futran label."}])
     if edited:
         it.answer = answer.strip()[:8000]
-        it.audited_by_futran = False  # the reviewer's own words are no longer the audited fact
+    if confirm_audited is True:
+        it.audited_confirmed_by, it.audited_confirmed_at = actor.id, utcnow()
+        audit.record(db, actor_id=actor.id, action="questionnaire.audited_label", obj=it, after={"answer": it.answer, "citations": it.citations or []},
+                     summary=f"Confirmed the Audited by Futran label for: {it.question[:100]}")
+    else:
+        it.audited_by_futran = False  # not confirmed: the label is dropped
     it.status, it.decided_by, it.decided_at, it.updated_by = "edited" if edited else "accepted", actor.id, utcnow(), actor.id
     li = _grow_library(db, actor, it)
     if i is not None:
@@ -318,7 +334,7 @@ def answer_manually(db: Session, actor: User, it: QuestionnaireItem, answer) -> 
 def _final(it: QuestionnaireItem) -> str | None:
     if it.status not in ("accepted", "edited", "answered") or not it.answer:
         return None
-    return f"{it.answer} [{AUDITED}]" if it.audited_by_futran else it.answer
+    return f"{it.answer} [{AUDITED}]" if _confirmed(it) else it.answer
 
 
 def export(db: Session, settings, q: Questionnaire) -> tuple[bytes, str, str]:
@@ -383,7 +399,7 @@ def export(db: Session, settings, q: Questionnaire) -> tuple[bytes, str, str]:
 
 def item_out(it: QuestionnaireItem) -> dict:
     return {"id": it.id, "order": it.order, "locator": it.locator, "section": it.section, "question": it.question, "answer": it.answer, "status": it.status, "citations": it.citations or [],
-            "confidence": it.confidence, "audited_by_futran": it.audited_by_futran, "decided_at": it.decided_at.isoformat() if it.decided_at else None}
+            "confidence": it.confidence, "audited_by_futran": it.audited_by_futran, "audited_confirmed": _confirmed(it), "decided_at": it.decided_at.isoformat() if it.decided_at else None}
 
 
 def questionnaire_out(db: Session, q: Questionnaire, with_items: bool = True) -> dict:
@@ -392,7 +408,7 @@ def questionnaire_out(db: Session, q: Questionnaire, with_items: bool = True) ->
     out = {"id": q.id, "title": q.title, "customer_name": q.customer_name, "format": q.format, "status": q.status, "filename": f.filename if f else None,
            "due_date": q.due_date.isoformat() if q.due_date else None, "created_at": q.created_at.isoformat() if q.created_at else None,
            "counts": {"questions": len(rows), "approved": sum(r.status in ("accepted", "edited", "answered") for r in rows), "to_review": sum(r.status in ("suggested", "unsupported") for r in rows),
-                      "open": sum(r.status in ("open", "rejected") for r in rows), "audited": sum(r.audited_by_futran and r.status in ("accepted", "edited") for r in rows)}}
+                      "open": sum(r.status in ("open", "rejected") for r in rows), "audited": sum(_confirmed(r) and r.status in ("accepted", "edited") for r in rows)}}
     if with_items:
         out["items"] = [item_out(r) for r in rows]
     return out

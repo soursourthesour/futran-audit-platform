@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
-import { Alert, Badge, Button, Card, Dialog, EmptyState, Loading, PageHeader, TextArea, TextField, fmtDate } from '@/components/ui';
+import { Alert, Badge, Button, Card, Checkbox, Dialog, EmptyState, Loading, PageHeader, TextArea, TextField, fmtDate } from '@/components/ui';
 import { DataGrid, type GridColumn } from '@/components/ui/DataGrid';
 import { CONFIDENCE_LABEL, citeText, type LibraryItem, type QItem, type Questionnaire } from '@/api/ai';
 import { questionnaireHelp as H } from '@/help/ai';
@@ -120,6 +120,7 @@ export function Questionnaires() {
 function ItemRow({ qid, it, onDone }: { qid: string; it: QItem; onDone: () => void }) {
   const [answer, setAnswer] = useState(it.answer ?? '');
   const [editing, setEditing] = useState(false);
+  const [confirmAudited, setConfirmAudited] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [status, tone] = STATUS[it.status] ?? [it.status, 'muted'];
@@ -129,12 +130,13 @@ function ItemRow({ qid, it, onDone }: { qid: string; it: QItem; onDone: () => vo
     try { await fn(); setEditing(false); onDone(); } catch (e) { setErr(fieldErrors(e).answer ?? errorMessage(e)); } finally { setBusy(false); }
   }
   const draft = it.status === 'suggested';
+  const proposed = draft && it.audited_by_futran;  // the label is only a proposal until the approver confirms it
   const writable = editing || ['open', 'unsupported', 'rejected'].includes(it.status);
   return (
     <div className="qn-item" aria-label={it.question}>
       <div className="row" style={{ justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
         <span className="qn-q">{it.question}</span>
-        <span className="row" style={{ gap: 6 }}>{it.audited_by_futran && <Badge tone="success">Audited by Futran</Badge>}<Badge tone={tone}>{status}</Badge>{draft && it.confidence && <Badge tone="muted">{CONFIDENCE_LABEL[it.confidence]}</Badge>}</span>
+        <span className="row" style={{ gap: 6 }}>{it.audited_confirmed && <Badge tone="success">Audited by Futran</Badge>}{proposed && <Badge tone="muted">From your signed Futran report</Badge>}<Badge tone={tone}>{status}</Badge>{draft && it.confidence && <Badge tone="muted">{CONFIDENCE_LABEL[it.confidence]}</Badge>}</span>
       </div>
       {it.section && <div className="small muted">{it.section}</div>}
       {!writable && it.answer && <p style={{ margin: 0 }}>{it.answer}</p>}
@@ -142,9 +144,10 @@ function ItemRow({ qid, it, onDone }: { qid: string; it: QItem; onDone: () => vo
       {it.status === 'unsupported' && <div className="small muted">None of your sources answers this. Write the answer yourself.</div>}
       {writable && <TextArea label="Answer" help={H.answer} value={answer} onChange={(e) => setAnswer(e.target.value)} rows={3} error={err ?? undefined} />}
       {!writable && err && <Alert tone="danger">{err}</Alert>}
+      {proposed && !editing && <Checkbox label='Approve with the "Audited by Futran" label' help={H.confirmAudited} checked={confirmAudited} onChange={(e) => setConfirmAudited(e.target.checked)} />}
       <div className="row cp-actions">
         {draft && !editing && <>
-          <Button variant="primary" disabled={busy} onClick={() => go(() => api.post(`/questionnaires/${qid}/items/${it.id}/accept`, {}))}>Approve</Button>
+          <Button variant="primary" disabled={busy} onClick={() => go(() => api.post(`/questionnaires/${qid}/items/${it.id}/accept`, proposed && confirmAudited ? { confirm_audited: true } : {}))}>Approve</Button>
           <Button disabled={busy} onClick={() => { setAnswer(it.answer ?? ''); setEditing(true); }}>Edit</Button>
           <Button variant="danger" disabled={busy} onClick={() => go(() => api.post(`/questionnaires/${qid}/items/${it.id}/reject`, { reason: 'Not right for this customer.' }))}>Reject</Button>
         </>}
@@ -186,7 +189,7 @@ export function QuestionnaireDetail() {
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
       {d.format === 'pdf' && <Alert tone="info">PDF files cannot be edited in place, so the export is a Word document with each question and its answer, in order.</Alert>}
       <Card title={`Questions (${c.questions})`}>
-        <p className="small muted" style={{ marginTop: 0 }}>Drafts cite their source. Answers drawn from your signed Futran report are marked "Audited by Futran". Approved answers are added to your answer library.</p>
+        <p className="small muted" style={{ marginTop: 0 }}>Drafts cite their source. An answer drawn from your signed Futran report carries the "Audited by Futran" label only when you confirm it on approval. Approved answers are added to your answer library.</p>
         {(d.items ?? []).map((it) => <ItemRow key={it.id} qid={d.id} it={it} onDone={refresh} />)}
       </Card>
     </div>

@@ -122,7 +122,9 @@ class QuestionnaireItem(TimestampedTenantMixin, Base):
     status: Mapped[str] = mapped_column(String(12), default="open")  # open | suggested | unsupported | accepted | edited | rejected | answered
     citations: Mapped[list] = mapped_column(JSON, default=list)
     confidence: Mapped[str | None] = mapped_column(String(8))
-    audited_by_futran: Mapped[bool] = mapped_column(Boolean, default=False)
+    audited_by_futran: Mapped[bool] = mapped_column(Boolean, default=False)  # proposed by a draft; shown in an export only once confirmed
+    audited_confirmed_by: Mapped[str | None] = mapped_column(String(36))  # the approver who confirmed the "Audited by Futran" label
+    audited_confirmed_at: Mapped[datetime | None] = mapped_column(DateTime)
     interaction_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("ai_interactions.id"))
     decided_by: Mapped[str | None] = mapped_column(String(36))
     decided_at: Mapped[datetime | None] = mapped_column(DateTime)

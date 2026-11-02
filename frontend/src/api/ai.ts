@@ -44,7 +44,7 @@ export type Obligation = {
   confidence: string | null; status: 'suggested' | 'unsupported' | 'approved' | 'rejected'; approved_by: string | null; approved_at: string | null; rejected_reason: string | null;
 };
 
-export type QItem = { id: string; order: number; locator: Record<string, any>; section: string | null; question: string; answer: string | null; status: string; citations: Citation[]; confidence: string | null; audited_by_futran: boolean; decided_at: string | null };
+export type QItem = { id: string; order: number; locator: Record<string, any>; section: string | null; question: string; answer: string | null; status: string; citations: Citation[]; confidence: string | null; audited_by_futran: boolean; audited_confirmed?: boolean; decided_at: string | null };
 export type Questionnaire = {
   id: string; title: string; customer_name: string | null; format: 'xlsx' | 'docx' | 'pdf'; status: string; filename: string | null; due_date: string | null; created_at: string | null;
   counts: { questions: number; approved: number; to_review: number; open: number; audited: number }; items?: QItem[]; ai_enabled?: boolean;

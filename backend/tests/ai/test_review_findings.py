@@ -225,3 +225,68 @@ def test_using_a_summary_in_the_report_needs_confirmation_and_keeps_the_old_text
     row = next(x for x in db.scalars(select(AuditLog).where(AuditLog.action == "report.summary")) if (x.after or {}).get("narrative", "").startswith("ABC Corp"))
     assert row.before["narrative"] == hand
     assert set(row.before) >= {"narrative", "strengths", "immediate_actions", "most_significant_text", "most_significant_finding_id"}
+
+
+# ---- G2: "Audited by Futran" only when a person confirms it
+REPORT_LINE = "ABC Corp performs an independent bias audit of each hiring tool every year."
+
+
+def test_audited_by_futran_label_needs_the_approvers_confirmation(client, db, qn):
+    from openpyxl import load_workbook
+
+    from app.ai.models import AnswerLibraryItem
+
+    cid, e, maria, people, fake = qn
+    _signed_report(db, cid, e, f"# Audit report\n\n{REPORT_LINE}\n")
+    login_as(client, db, maria)
+    qs_ = ["Do you hold ISO 42001 certification for your AI management system?", "How often are your hiring tools audited for bias?"]
+    q = client.post("/api/v1/questionnaires", data={"customer_name": "X"}, files={"file": ("ddq.xlsx", _xlsx(qs_), XLSX_CT)}).json()
+    fake.replies["questionnaire"] = {"answers": [
+        {"item": "Q1", "answer": "Yes. We are ISO 42001 certified.", "source": "R1", "quote": REPORT_LINE, "confidence": "high"},  # the quote does not say this
+        {"item": "Q2", "answer": "Every year, by an independent auditor.", "source": "R1", "quote": REPORT_LINE, "confidence": "high"}]}
+    items = client.post(f"/api/v1/questionnaires/{q['id']}/draft").json()["items"]
+    iso, bias = items[0], items[1]
+    assert iso["status"] == "suggested" and iso["audited_by_futran"] is True and iso["audited_confirmed"] is False  # proposed only
+    # approved without confirming the label: the label is dropped
+    r = client.post(f"/api/v1/questionnaires/{q['id']}/items/{iso['id']}/accept", json={})
+    assert r.status_code == 200 and r.json()["audited_by_futran"] is False
+    # approved with the label confirmed
+    r = client.post(f"/api/v1/questionnaires/{q['id']}/items/{bias['id']}/accept", json={"confirm_audited": True})
+    assert r.status_code == 200 and r.json()["audited_by_futran"] is True and r.json()["audited_confirmed"] is True
+    ws = load_workbook(BytesIO(client.get(f"/api/v1/questionnaires/{q['id']}/export").content)).active
+    assert ws.cell(row=2, column=2).value == "Yes. We are ISO 42001 certified."
+    assert ws.cell(row=3, column=2).value == "Every year, by an independent auditor. [Audited by Futran]"
+    lib = {li.question: li for li in db.scalars(select(AnswerLibraryItem))}
+    assert lib[qs_[0]].audited_by_futran is False and lib[qs_[1]].audited_by_futran is True
+
+
+def test_audited_label_is_never_exported_without_a_confirmation(client, db, qn):
+    """An item flagged before confirmation existed (or by any other path) does not carry the label into an export."""
+    from openpyxl import load_workbook
+
+    from app.ai.models import QuestionnaireItem
+
+    cid, e, maria, people, fake = qn
+    login_as(client, db, maria)
+    q = client.post("/api/v1/questionnaires", data={"customer_name": "X"}, files={"file": ("ddq.xlsx", _xlsx(["How often are your hiring tools audited for bias?"]), XLSX_CT)}).json()
+    it = db.get(QuestionnaireItem, q["items"][0]["id"])
+    it.answer, it.status, it.audited_by_futran = "Every year.", "accepted", True
+    db.commit()
+    ws = load_workbook(BytesIO(client.get(f"/api/v1/questionnaires/{q['id']}/export").content)).active
+    assert ws.cell(row=2, column=2).value == "Every year."
+
+
+def test_library_answers_do_not_propose_the_audited_label(client, db, qn):
+    from app.ai.models import AnswerLibraryItem
+
+    cid, e, maria, people, fake = qn
+    login_as(client, db, maria)
+    client.post("/api/v1/answer-library", json={"question": "How often are your hiring tools audited for bias?", "answer": "Every year, by an independent auditor appointed by the board."})
+    li = db.scalar(select(AnswerLibraryItem))
+    li.audited_by_futran = True
+    db.commit()
+    q = client.post("/api/v1/questionnaires", data={"customer_name": "X"}, files={"file": ("ddq.xlsx", _xlsx(["How often are your hiring tools audited for bias?"]), XLSX_CT)}).json()
+    fake.replies["questionnaire"] = {"answers": [{"item": "Q1", "answer": "Every year, by an independent auditor appointed by the board.", "source": "L1",
+                                                  "quote": "Every year, by an independent auditor appointed by the board.", "confidence": "high"}]}
+    it = client.post(f"/api/v1/questionnaires/{q['id']}/draft").json()["items"][0]
+    assert it["status"] == "suggested" and it["audited_by_futran"] is False  # only the signed report itself can support the label

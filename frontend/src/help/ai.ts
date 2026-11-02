@@ -33,6 +33,7 @@ export const obligationHelp = {
 };
 
 export const questionnaireHelp = {
+  confirmAudited: 'Tick only after checking that the quoted passage from your signed Futran report supports everything the answer says. Without your confirmation the label is left off the answer, the export and the answer library.',
   file: 'The questionnaire your customer sent, as an Excel workbook (XLSX), Word document (DOCX) or PDF. Questions are found automatically.',
   customer: 'The customer who sent the questionnaire.',
   title: 'A name to find it by later. Leave blank to use the file name.',

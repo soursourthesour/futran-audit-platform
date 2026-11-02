@@ -91,7 +91,7 @@ def test_draft_review_and_library(client, db, qn):
     assert pen["status"] == "unsupported" and not pen["answer"]
     assert "Do you maintain an inventory" in fake.calls[-1]["prompt"] and REPORT_LINE in fake.calls[-1]["prompt"]
     # review
-    assert client.post(f"/api/v1/questionnaires/{q['id']}/items/{bias['id']}/accept", json={}).status_code == 200
+    assert client.post(f"/api/v1/questionnaires/{q['id']}/items/{bias['id']}/accept", json={"confirm_audited": True}).status_code == 200  # the approver confirms the label
     assert client.post(f"/api/v1/questionnaires/{q['id']}/items/{pen['id']}/accept", json={}).status_code == 409
     r = client.put(f"/api/v1/questionnaires/{q['id']}/items/{pen['id']}", json={"answer": "An external firm tests our models twice a year."})
     assert r.status_code == 200 and r.json()["status"] == "answered"

@@ -25,6 +25,7 @@ router = APIRouter(tags=["questionnaires"])
 
 class AnswerIn(BaseModel):
     answer: str | None = None
+    confirm_audited: bool = False  # the approver confirms the "Audited by Futran" label a draft proposed
 
 
 class ReasonIn(BaseModel):
@@ -96,7 +97,7 @@ def draft_answers(qid: str, request: Request, actor: Actor = Depends(current_act
 @router.post("/questionnaires/{qid}/items/{item_id}/accept")
 def accept_item(qid: str, item_id: str, body: AnswerIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     q = _q(db, actor, qid)
-    return qn.item_out(qn.accept(db, actor.user, _item(db, q, item_id), body.answer))
+    return qn.item_out(qn.accept(db, actor.user, _item(db, q, item_id), body.answer, body.confirm_audited))
 
 
 @router.post("/questionnaires/{qid}/items/{item_id}/reject")
