@@ -174,7 +174,12 @@ export function QuestionnaireDetail() {
   async function act(fn: () => Promise<unknown>, ok: string) {
     if (busy) return;
     setBusy(true); setMsg(null);
-    try { await fn(); await refresh(); setMsg({ tone: 'success', text: ok }); } catch (e) { setMsg({ tone: 'danger', text: errorMessage(e) }); } finally { setBusy(false); }
+    try {
+      const r = (await fn()) as { draft?: { message?: string | null } } | undefined;
+      await refresh();
+      const partly = r?.draft?.message;  // some batches of questions were not drafted
+      setMsg(partly ? { tone: 'danger', text: `${ok} ${partly}` } : { tone: 'success', text: ok });
+    } catch (e) { setMsg({ tone: 'danger', text: errorMessage(e) }); } finally { setBusy(false); }
   }
   const c = d.counts;
   return (

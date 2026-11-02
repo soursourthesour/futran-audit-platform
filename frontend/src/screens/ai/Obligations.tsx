@@ -83,7 +83,11 @@ export function ObligationsPanel({ lawId }: { lawId: string }) {
   async function extract() {
     if (busy) return;
     setBusy(true); setMsg(null);
-    try { const r = await api.post<{ obligations: Obligation[] }>(`/reg/laws/${lawId}/obligations/extract`); await refresh(); setMsg({ tone: 'success', text: `${r.obligations.length} obligation${r.obligations.length === 1 ? '' : 's'} proposed. None is used until a reviewer approves it.` }); }
+    try {
+      const r = await api.post<{ obligations: Obligation[]; message?: string | null }>(`/reg/laws/${lawId}/obligations/extract`);
+      await refresh();
+      setMsg({ tone: r.message ? 'danger' : 'success', text: `${r.obligations.length} obligation${r.obligations.length === 1 ? '' : 's'} proposed. None is used until a reviewer approves it.${r.message ? ` ${r.message}` : ''}` });
+    }
     catch (e) { setMsg({ tone: 'danger', text: errorMessage(e) }); } finally { setBusy(false); }
   }
   return (

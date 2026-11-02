@@ -229,39 +229,72 @@ def sources(db: Session, org_id: str) -> list[dict]:
 
 
 # ---- drafting and review
-def draft(db: Session, app_state, settings, actor: User, q: Questionnaire, engagement) -> list[QuestionnaireItem]:
+BATCH_ITEMS = 20  # questions per model call, so the drafted answers fit well inside the model's reply limit
+CUT_NOTE = "(Some source text was left out because the set is long. Do not answer from text you were not given.)"
+
+
+def _capped_sources(srcs: list[dict]) -> tuple[list[dict], bool]:
+    """The sources sent with every call, in order (library, policies, signed report), up to ai.MAX_PROMPT_CHARS of text.
+    A source that does not fit is left out (and the prompt says so); a later, shorter one may still fit."""
+    out, used, cut = [], 0, False
+    for s in srcs:
+        n = len(s["text"]) + len(s.get("question") or "")
+        if used + n > ai.MAX_PROMPT_CHARS:
+            cut = True
+            continue
+        out.append(s)
+        used += n
+    return out, cut
+
+
+def draft(db: Session, app_state, settings, actor: User, q: Questionnaire, engagement) -> dict:
+    """Draft answers BATCH_ITEMS questions per call. Answers from calls that succeed are kept even when another call
+    fails; the result says how many questions were not drafted. When every call fails nothing is saved (503)."""
     ai.require_ai(engagement)
     todo = [i for i in items(db, q) if i.status in ("open", "suggested", "unsupported", "rejected")]
     if not todo:
         raise Conflict("Every question already has an approved answer.")
-    srcs = sources(db, q.organization_id)
-    refs = {f"Q{n + 1}": it for n, it in enumerate(todo)}
+    srcs, cut = _capped_sources(sources(db, q.organization_id))
     src_text = "\n\n".join(f"[{s['ref']}] {s['label']}" + (f"\nQuestion: {s['question']}\nAnswer: {s['answer']}" if s["kind"] == "library" else f"\n{s['text']}") for s in srcs) or "(no sources)"
-    prompt = (f"Customer: {q.customer_name or 'not named'}\nQuestionnaire: {q.title}\n\nQuestions:\n" + "\n".join(f"- {k}: {it.question}" for k, it in refs.items()) +
-              f"\n\nSources:\n{src_text}")
-    c = ai.call(app_state, settings, task="questionnaire", prompt_version=P.QUESTIONNAIRE_VERSION, system=P.QUESTIONNAIRE_SYSTEM, prompt=prompt, schema=P.QUESTIONNAIRE_SCHEMA,
-                context={"items": [{"ref": k, "question": it.question} for k, it in refs.items()], "sources": srcs})
-    by_ref = {x.get("item"): x for x in c.reply.data.get("answers") or [] if isinstance(x, dict)}
+    if cut:
+        src_text += f"\n\n{CUT_NOTE}"
     by_src = {s["ref"]: s for s in srcs}
-    rows = []
-    for n, (k, it) in enumerate(refs.items()):
-        x = by_ref.get(k) or {}
-        src = by_src.get(x.get("source"))
-        quote = str(x.get("quote") or "").strip()
-        found = bool(src and quote and quote_in(src["text"] if src["kind"] != "library" else f"{src['question']} {src['answer']}", quote))
-        answer = str(x.get("answer") or "").strip()
-        supported = bool(answer) and found
-        cite = [{"source_type": src["kind"], "source_id": src["id"], "label": src["label"], "quote": quote[:2000], "found": found}] if src else []
-        row = ai.record(db, actor, c, organization_id=q.organization_id, feature="questionnaire", input_refs=[{"type": "questionnaire_item", "id": it.id}] + [{"type": s["kind"], "id": s["id"]} for s in srcs],
-                        target_type="questionnaire_item", target_id=it.id, target_code=k, output={"answer": answer or None}, citations=cite, confidence=x.get("confidence"),
-                        status="suggested" if supported else "unsupported", first=n == 0)
-        rows.append(row)
-        it.answer, it.status, it.citations, it.confidence = (answer or None), row.status, cite, row.confidence
-        it.audited_by_futran = bool(supported and src and src["kind"] == "report")  # a proposal: the approver confirms it or it is dropped
-        it.audited_confirmed_by = it.audited_confirmed_at = None
-        it.interaction_id, it.decided_by, it.decided_at, it.updated_by = row.id, None, None, actor.id
-    ai.log_call(db, actor, c, rows, f"Drafted answers for {len(rows)} question{'s' if len(rows) != 1 else ''} of {q.title}", None, q.organization_id)
-    return items(db, q)
+    refs_all = list({f"Q{n + 1}": it for n, it in enumerate(todo)}.items())
+    batches = [dict(refs_all[n:n + BATCH_ITEMS]) for n in range(0, len(refs_all), BATCH_ITEMS)]
+    failed, not_drafted, error = 0, 0, None
+    for refs in batches:
+        prompt = (f"Customer: {q.customer_name or 'not named'}\nQuestionnaire: {q.title}\n\nQuestions:\n" + "\n".join(f"- {k}: {it.question}" for k, it in refs.items()) +
+                  f"\n\nSources:\n{src_text}")
+        try:
+            c = ai.call(app_state, settings, task="questionnaire", prompt_version=P.QUESTIONNAIRE_VERSION, system=P.QUESTIONNAIRE_SYSTEM, prompt=prompt, schema=P.QUESTIONNAIRE_SCHEMA,
+                        context={"items": [{"ref": k, "question": it.question} for k, it in refs.items()], "sources": srcs})
+        except ai.AIUnavailable as ex:
+            failed, not_drafted, error = failed + 1, not_drafted + len(refs), ex
+            continue
+        by_ref = {x.get("item"): x for x in c.reply.data.get("answers") or [] if isinstance(x, dict)}
+        rows = []
+        for n, (k, it) in enumerate(refs.items()):
+            x = by_ref.get(k) or {}
+            src = by_src.get(x.get("source"))
+            quote = str(x.get("quote") or "").strip()
+            found = bool(src and quote and quote_in(src["text"] if src["kind"] != "library" else f"{src['question']} {src['answer']}", quote))
+            answer = str(x.get("answer") or "").strip()
+            supported = bool(answer) and found
+            cite = [{"source_type": src["kind"], "source_id": src["id"], "label": src["label"], "quote": quote[:2000], "found": found}] if src else []
+            row = ai.record(db, actor, c, organization_id=q.organization_id, feature="questionnaire", input_refs=[{"type": "questionnaire_item", "id": it.id}] + [{"type": s["kind"], "id": s["id"]} for s in srcs],
+                            target_type="questionnaire_item", target_id=it.id, target_code=k, output={"answer": answer or None}, citations=cite, confidence=x.get("confidence"),
+                            status="suggested" if supported else "unsupported", first=n == 0)
+            rows.append(row)
+            it.answer, it.status, it.citations, it.confidence = (answer or None), row.status, cite, row.confidence
+            it.audited_by_futran = bool(supported and src and src["kind"] == "report")  # a proposal: the approver confirms it or it is dropped
+            it.audited_confirmed_by = it.audited_confirmed_at = None
+            it.interaction_id, it.decided_by, it.decided_at, it.updated_by = row.id, None, None, actor.id
+        ai.log_call(db, actor, c, rows, f"Drafted answers for {len(rows)} question{'s' if len(rows) != 1 else ''} of {q.title}", None, q.organization_id)
+    if failed == len(batches) and error is not None:
+        raise error
+    message = (f"{not_drafted} question{'s were' if not_drafted != 1 else ' was'} not drafted because the model did not answer ({failed} of {len(batches)} batches). "
+               "Draft answers again to retry them.") if failed else None
+    return {"batches": len(batches), "failed_batches": failed, "not_drafted": not_drafted, "sources_cut": cut, "message": message}
 
 
 def _grow_library(db: Session, actor: User, it: QuestionnaireItem) -> AnswerLibraryItem:

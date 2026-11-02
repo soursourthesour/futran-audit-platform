@@ -290,3 +290,91 @@ def test_library_answers_do_not_propose_the_audited_label(client, db, qn):
                                                   "quote": "Every year, by an independent auditor appointed by the board.", "confidence": "high"}]}
     it = client.post(f"/api/v1/questionnaires/{q['id']}/draft").json()["items"][0]
     assert it["status"] == "suggested" and it["audited_by_futran"] is False  # only the signed report itself can support the label
+
+
+# ---- G5: long inputs go to the model in bounded batches, and partial results are kept
+class CappedAI:
+    """A fake model that fails, as a real one truncates, when given more than `max_items` questions or a prompt longer
+    than `max_chars`, and fails any call whose prompt contains `fail_on`."""
+
+    model, provider = "capped-fake", "fake"
+
+    def __init__(self, max_items=20, max_chars=10_000, fail_on=None):
+        from app.ai.client import FakeAIClient
+
+        self.inner, self.max_items, self.max_chars, self.fail_on, self.calls = FakeAIClient(), max_items, max_chars, fail_on, []
+
+    def complete(self, *, task, system, prompt, schema, context=None, max_tokens=8000):
+        from app.ai.client import AIError
+
+        self.calls.append({"task": task, "chars": len(prompt), "items": len((context or {}).get("items") or [])})
+        if len(prompt) > self.max_chars or len((context or {}).get("items") or []) > self.max_items:
+            raise AIError("The model's reply was cut off.")
+        if self.fail_on and self.fail_on in prompt:
+            raise AIError("The model could not be reached: Timeout.")
+        return self.inner.complete(task=task, system=system, prompt=prompt, schema=schema, context=context, max_tokens=max_tokens)
+
+
+def test_questionnaire_drafts_in_batches_with_capped_sources_and_keeps_partial_results(client, db, qn, app, monkeypatch):
+    from app.ai import service as ai_service
+
+    cid, e, maria, people, fake = qn
+    monkeypatch.setattr(ai_service, "MAX_PROMPT_CHARS", 4000)
+    capped = CappedAI(max_items=20, max_chars=4000 + 4500, fail_on="FAILING BATCH")
+    app.state.ai_client_factory = lambda s: capped
+    login_as(client, db, maria)
+    for n in range(12):  # about 9,600 characters of library answers: more than one call may carry
+        client.post("/api/v1/answer-library", json={"question": f"Do you review AI control number {n} each quarter?",
+                                                     "answer": f"Yes. Control {n} is reviewed every quarter by the AI governance committee. " + "Detail. " * 90})
+    questions = [f"Do you review AI control number {n} each quarter?" for n in range(45)]
+    questions[44] = "FAILING BATCH: do you review AI control number 44 each quarter?"
+    q = client.post("/api/v1/questionnaires", data={"customer_name": "X"}, files={"file": ("ddq.xlsx", _xlsx(questions), XLSX_CT)}).json()
+    assert len(q["items"]) == 45
+    r = client.post(f"/api/v1/questionnaires/{q['id']}/draft")
+    assert r.status_code == 200, r.text
+    d = r.json()
+    calls = [c for c in capped.calls if c["task"] == "questionnaire"]
+    assert len(calls) == 3 and max(c["items"] for c in calls) <= 20 and max(c["chars"] for c in calls) <= 8500
+    assert d["draft"]["failed_batches"] == 1 and d["draft"]["not_drafted"] == 5 and "5" in d["draft"]["message"]
+    by_q = {i["question"]: i for i in d["items"]}
+    assert by_q[questions[0]]["status"] == "suggested"  # drafted in a batch that succeeded
+    assert by_q[questions[44]]["status"] == "open" and by_q[questions[40]]["status"] == "open"  # the failed batch is left to draft again
+    # every call failing saves nothing and says so
+    capped.fail_on = "Questions:"
+    assert client.post(f"/api/v1/questionnaires/{q['id']}/draft").status_code == 503
+
+
+def test_obligation_extraction_splits_long_law_text_and_keeps_partial_results(client, db, seeded, law, app, monkeypatch):
+    from app.ai import obligations as ob
+
+    reg, legal, fake = law
+    monkeypatch.setattr(ob, "CHUNK_CHARS", 3000)
+    duties = [f"Duty {n}: the employer shall keep record number {n} of each automated employment decision tool for three years." for n in range(60)]
+    duties[55] = "FAILING PART: the employer shall publish summary number 55 of the bias audit on its website."
+    reg.full_text = "\n".join(duties)  # about 6,700 characters
+    db.commit()
+    capped = CappedAI(max_chars=3000 + 2500, fail_on="FAILING PART")
+    app.state.ai_client_factory = lambda s: capped
+    login_as(client, db, legal)
+    r = client.post(f"/api/v1/reg/laws/{reg.id}/obligations/extract")
+    assert r.status_code == 200, r.text
+    d = r.json()
+    calls = [c for c in capped.calls if c["task"] == "obligation_extract"]
+    assert len(calls) >= 3 and max(c["chars"] for c in calls) <= 5500
+    texts = " ".join(o["text"] for o in d["obligations"])
+    assert "record number 0 " in texts and "record number 30 " in texts  # read from different parts of the law
+    assert d["failed_parts"] == 1 and "1 of" in d["message"]
+    capped.fail_on = "Stored text of the law"
+    assert client.post(f"/api/v1/reg/laws/{reg.id}/obligations/extract").status_code == 503
+
+
+def test_a_truncated_model_reply_is_reported_not_parsed():
+    from types import SimpleNamespace as NS
+
+    from app.ai.client import AIError, AnthropicAIClient
+
+    msg = NS(content=[NS(type="text", text='{"answers": [{"item": "Q1", "answer": "Ye')], stop_reason="max_tokens", model="m", usage=NS(input_tokens=1, output_tokens=8000))
+    stub = NS(messages=NS(create=lambda **kw: msg))
+    c = AnthropicAIClient(NS(ai_model="m", claude_model="m", anthropic_api_key="k"), client=stub)
+    with pytest.raises(AIError, match="cut off"):
+        c.complete(task="questionnaire", system="s", prompt="p", schema={})

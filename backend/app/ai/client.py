@@ -63,6 +63,8 @@ class AnthropicAIClient:
                                               extra_body={"output_config": {"format": {"type": "json_schema", "schema": schema}}})
         except Exception as e:  # noqa: BLE001 - any SDK or network failure is reported the same way
             raise AIError(f"The model could not be reached: {type(e).__name__}.") from e
+        if getattr(msg, "stop_reason", None) == "max_tokens":  # half a JSON reply: say so rather than report a parse error
+            raise AIError("The model's reply was too long and was cut off.")
         texts = [getattr(b, "text", "") for b in getattr(msg, "content", []) if getattr(b, "type", "") == "text"]
         usage = getattr(msg, "usage", None)
         return AIReply(data=parse_json(texts[-1] if texts else ""), model=getattr(msg, "model", None) or self.model, provider=self.provider,

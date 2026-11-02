@@ -90,8 +90,8 @@ def get_questionnaire(qid: str, actor: Actor = Depends(current_actor), db: Sessi
 @router.post("/questionnaires/{qid}/draft")
 def draft_answers(qid: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     q = _q(db, actor, qid)
-    qn.draft(db, request.app.state, request.app.state.settings, actor.user, q, current_engagement(db, actor.organization))
-    return qn.questionnaire_out(db, q)
+    res = qn.draft(db, request.app.state, request.app.state.settings, actor.user, q, current_engagement(db, actor.organization))
+    return qn.questionnaire_out(db, q) | {"draft": res}
 
 
 @router.post("/questionnaires/{qid}/items/{item_id}/accept")

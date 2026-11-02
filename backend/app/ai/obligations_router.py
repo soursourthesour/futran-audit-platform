@@ -59,8 +59,8 @@ def law_obligations(law_id: str, actor: Actor = Depends(current_actor), db: Sess
 @router.post("/reg/laws/{law_id}/obligations/extract")
 def extract(law_id: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.EXTRACT_OBLIGATIONS)
-    rows = ob.extract(db, request.app.state, request.app.state.settings, actor.user, _law(db, law_id))
-    return {"obligations": [ob.obligation_out(db, o) for o in rows]}
+    rows, run = ob.extract(db, request.app.state, request.app.state.settings, actor.user, _law(db, law_id))
+    return {"obligations": [ob.obligation_out(db, o) for o in rows]} | run
 
 
 @router.get("/reg/obligations")
