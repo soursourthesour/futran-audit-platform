@@ -51,7 +51,7 @@ def carried(engagement_id: str, changed: bool = False, actor: Actor = Depends(cu
         authorize(db, actor, Action.VIEW_ENGAGEMENT, engagement_id=e.id)
         return svc.carried_items(db, e, changed_only=changed)
     authorize(db, actor, Action.CONFIRM_CARRIED_ANSWERS, engagement_id=e.id, list_view=True)
-    return svc.carried_items(db, e, system_ids=_client_systems(db, actor, e), changed_only=changed)
+    return svc.carried_items(db, e, system_ids=_client_systems(db, actor, e), changed_only=changed, client=True)
 
 
 @router.post("/responses/{response_id}/confirm-carried")

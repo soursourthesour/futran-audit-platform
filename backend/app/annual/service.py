@@ -4,9 +4,12 @@
 prior_engagement_id, for the next twelve months, copying the scope, laws, contacts, team, systems, answers and evidence
 links. The draft then goes through the usual wizard review, submission and Chief Auditor approval.
 
-Answers are copied as the client's own (Response.source = carried_forward, nothing verified). Once the engagement is
-live the client confirms each carried answer unchanged or updates it; an answer whose client value differs from the prior
-answer shows as changed for the auditor. Checklist evidence links are carried but unconfirmed, so the auditor re-tests.
+Only what the client itself answered last year, on questions the client answers, is carried: the client's own values
+(the client_* columns) become the new answer and the client's pre-fill (Response.source = carried_forward, nothing
+verified). Auditor-only questions, the auditor's corrections and the auditor's verification are not carried; the auditor
+answers and verifies again. Once the engagement is live the client confirms each carried answer unchanged or updates it;
+an answer whose client value differs from the prior answer shows as changed for the auditor. Checklist evidence links are
+carried but unconfirmed, so the auditor re-tests.
 """
 from __future__ import annotations
 
@@ -64,16 +67,18 @@ def start_annual_review(db: Session, actor: User, prior: Engagement) -> Engageme
         sys_map[s.id] = n.id
     now = utcnow()
     carried = 0
-    for r in db.scalars(select(Response).where(Response.engagement_id == prior.id, Response.deleted_at.is_(None), Response.status != "unanswered")):
-        if r.ai_system_id not in sys_map:
-            continue
-        n = Response(organization_id=r.organization_id, engagement_id=e.id, ai_system_id=sys_map[r.ai_system_id], question_id=r.question_id, value=r.value, detail=r.detail, status=r.status,
-                     na_reason=r.na_reason, evidence_ids=list(r.evidence_ids or []), answered_side="client", answered_at=now, source="carried_forward",
-                     client_value=r.value, client_detail=r.detail, client_status=r.status, client_na_reason=r.na_reason, client_evidence_ids=list(r.evidence_ids or []), created_by=actor.id)
+    client_qs = set(db.scalars(select(Question.id).where(Question.default_respondent == "client")))
+    for r in db.scalars(select(Response).where(Response.engagement_id == prior.id, Response.deleted_at.is_(None), Response.client_status.is_not(None), Response.client_status != "unanswered")):
+        if r.ai_system_id not in sys_map or r.question_id not in client_qs:
+            continue  # the client's own answers to the client's own questions only
+        ev = list(r.client_evidence_ids or [])
+        n = Response(organization_id=r.organization_id, engagement_id=e.id, ai_system_id=sys_map[r.ai_system_id], question_id=r.question_id, value=r.client_value, detail=r.client_detail,
+                     status=r.client_status, na_reason=r.client_na_reason, evidence_ids=ev, answered_side="client", answered_at=now, source="carried_forward",
+                     client_value=r.client_value, client_detail=r.client_detail, client_status=r.client_status, client_na_reason=r.client_na_reason, client_evidence_ids=list(ev), created_by=actor.id)
         db.add(n)
         db.flush()
-        db.add(CarriedAnswer(organization_id=r.organization_id, engagement_id=e.id, response_id=n.id, prior_response_id=r.id, prior_value=r.value, prior_status=r.status, prior_detail=r.detail,
-                             prior_evidence_ids=list(r.evidence_ids or []), created_by=actor.id))
+        db.add(CarriedAnswer(organization_id=r.organization_id, engagement_id=e.id, response_id=n.id, prior_response_id=r.id, prior_value=r.client_value, prior_status=r.client_status,
+                             prior_detail=r.client_detail, prior_evidence_ids=list(ev), created_by=actor.id))
         carried += 1
     links = 0
     for c in db.scalars(select(ChecklistResult).where(ChecklistResult.engagement_id == prior.id, ChecklistResult.deleted_at.is_(None))):
@@ -109,7 +114,7 @@ def _label(q: Question, value, status: str) -> str:
     return labels.get(str(value), str(value))
 
 
-def carried_items(db: Session, e: Engagement, *, system_ids: set[str] | None = None, changed_only: bool = False) -> dict:
+def carried_items(db: Session, e: Engagement, *, system_ids: set[str] | None = None, changed_only: bool = False, client: bool = False) -> dict:
     rows = db.execute(select(CarriedAnswer, Response, Question).join(Response, Response.id == CarriedAnswer.response_id).join(Question, Question.id == Response.question_id)
                       .where(CarriedAnswer.engagement_id == e.id, CarriedAnswer.deleted_at.is_(None)).order_by(Response.ai_system_id, Question.order)).all()
     systems = {s.id: s for s in db.scalars(select(AISystem).where(AISystem.engagement_id == e.id))}
@@ -119,6 +124,8 @@ def carried_items(db: Session, e: Engagement, *, system_ids: set[str] | None = N
     for ca, r, q in rows:
         if system_ids is not None and r.ai_system_id is not None and r.ai_system_id not in system_ids:
             continue
+        if client and q.default_respondent != "client":
+            continue  # the client never sees auditor questions
         st = _status(ca, r)
         counts["total"] += 1
         counts[st] += 1
@@ -134,7 +141,8 @@ def carried_items(db: Session, e: Engagement, *, system_ids: set[str] | None = N
 
 def _carried(db: Session, r: Response) -> CarriedAnswer:
     ca = db.scalar(select(CarriedAnswer).where(CarriedAnswer.response_id == r.id, CarriedAnswer.deleted_at.is_(None)))
-    if ca is None:
+    q = db.get(Question, r.question_id)
+    if ca is None or q is None or q.default_respondent != "client":
         raise NotFound("This answer was not carried forward.")
     return ca
 
@@ -153,7 +161,8 @@ def confirm(db: Session, actor: User, r: Response) -> dict:
 def confirm_unchanged(db: Session, actor: User, e: Engagement, system_ids: set[str] | None) -> int:
     n = 0
     now = utcnow()
-    for ca, r in db.execute(select(CarriedAnswer, Response).join(Response, Response.id == CarriedAnswer.response_id).where(CarriedAnswer.engagement_id == e.id, CarriedAnswer.deleted_at.is_(None))).all():
+    for ca, r in db.execute(select(CarriedAnswer, Response).join(Response, Response.id == CarriedAnswer.response_id).join(Question, Question.id == Response.question_id)
+                            .where(CarriedAnswer.engagement_id == e.id, CarriedAnswer.deleted_at.is_(None), Question.default_respondent == "client")).all():
         if system_ids is not None and r.ai_system_id is not None and r.ai_system_id not in system_ids:
             continue
         if _status(ca, r) == "pending":

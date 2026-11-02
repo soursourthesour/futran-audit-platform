@@ -7,9 +7,19 @@ from sqlalchemy import select
 from app.annual.models import CarriedAnswer
 from app.core.clock import utcnow
 from app.engagements.models import ClientRequirement, Engagement, EngagementTeam
-from app.questionnaire.models import ChecklistItem, ChecklistResult, Response
+from app.questionnaire.models import ChecklistItem, ChecklistResult, Question, Response
+from app.questionnaire.service import Target, save_response
 from app.systems.models import AISystem
 from tests.factories import login_as
+from tests.scoring.test_service import ATS_ANSWERS
+
+
+def _client_answers(db, maria, e, s):
+    """The client's own pre-fill for the client questions (the fixture's answers are the auditor's)."""
+    for code, v in ATS_ANSWERS.items():
+        if db.scalar(select(Question.default_respondent).where(Question.code == code)) == "client":
+            save_response(db, maria, Target(e, s), code, {"value": v, "status": "answered"}, futran=False)
+    db.commit()
 
 
 def _close(db, e):
@@ -34,6 +44,7 @@ def test_start_annual_review_copies_systems_answers_evidence_links_scope_and_tea
     f = upload(db, client.app.state.settings, people["aud"], data=b"%PDF-1.4", filename="bias.pdf", content_type=None, organization_id=cid, engagement_id=e.id, linked_type="evidence")
     db.add(ChecklistResult(organization_id=cid, engagement_id=e.id, ai_system_id=s.id, checklist_item_id=item.id, confirmed=True, evidence_ids=[f.id]))
     db.commit()
+    _client_answers(db, maria, e, s)
     login_as(client, db, people["chief"])
     assert client.post(f"/api/v1/engagements/{e.id}/annual-review").status_code == 409  # not closed yet
     prior = _close(db, e)
@@ -64,6 +75,7 @@ def test_start_annual_review_copies_systems_answers_evidence_links_scope_and_tea
 
 def test_the_client_confirms_unchanged_answers_and_changes_are_highlighted_for_the_auditor(client, db, ats, people):
     cid, e, maria, s = ats
+    _client_answers(db, maria, e, s)
     prior = _close(db, e)
     new = _start(client, db, people, prior)
     login_as(client, db, maria)

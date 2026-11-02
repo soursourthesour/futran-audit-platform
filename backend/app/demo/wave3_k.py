@@ -8,15 +8,17 @@
 - ABC's benchmarking consent, and seven demo peers for the comparison. Peers are organizations of type "demo_peer" named
   "Demo peer NN (demo data)": they never sign in, are not clients and appear in no client list. Their snapshots are
   written directly (no service: a peer exists only as the aggregate a signed audit would leave).
-- The annual review started from ABC's completed engagement, with its systems, answers and evidence links carried
-  forward. It stays a draft (the Chief Auditor reviews it in the wizard), so ABC's current engagement does not change.
+- ABC's own pre-fill on its completed engagement (the client's answers to the client questions, which the auditor's
+  answers of record matched; the base demo records only the auditor's side), then the annual review started from that
+  engagement, with its systems, the client's answers and evidence links carried forward. It stays a draft (the Chief
+  Auditor reviews it in the wizard), so ABC's current engagement does not change.
 - The heat map and lineage need nothing extra: they read ABC's scores, findings and remediation.
 """
 from __future__ import annotations
 
 from sqlalchemy import select
 
-from app.demo.seed_demo import Demo, DemoError
+from app.demo.seed_demo import ABC, Demo, DemoError
 
 # (sex, race/ethnicity as the client's file writes it) -> (applicants, selected)
 APPLICANTS = {("Male", "White"): (374, 170), ("Female", "White"): (33, 15), ("Male", "Hispanic or Latino"): (50, 19), ("Female", "Hispanic or Latino"): (50, 19),
@@ -106,6 +108,21 @@ def peers(m: Demo, abc_id: str) -> list[str]:
     return ids
 
 
+def client_prefill(m: Demo, e) -> None:
+    """ABC's pre-fill: the client answered its own questions as the auditor later recorded them. Only the client's answers
+    carry into an annual review, so the demo needs them; written directly, as the engagement is closed to the client."""
+    from app.questionnaire.models import Question, Response
+
+    maria = m.user(f"maria.lopez@{ABC}")
+    rows = m.db.execute(select(Response).join(Question, Question.id == Response.question_id).where(Response.engagement_id == e.id, Response.deleted_at.is_(None),
+                                                                                                     Response.status != "unanswered", Response.client_status.is_(None),
+                                                                                                     Question.default_respondent == "client")).scalars()
+    for r in rows:
+        r.client_value, r.client_detail, r.client_status, r.client_na_reason, r.client_evidence_ids = r.value, r.detail, r.status, r.na_reason, []
+        r.client_answered_by, r.client_answered_at = maria.id, r.answered_at
+    m.db.commit()
+
+
 def seed(m: Demo, ids: dict) -> dict:
     cid = ids["abc"]
     e = _abc_engagement(m, cid)
@@ -119,5 +136,6 @@ def seed(m: Demo, ids: dict) -> dict:
         record_snapshot(m.db, e)
         m.db.commit()
     peer_ids = peers(m, cid)
+    client_prefill(m, e)
     annual = m.post(f"/engagements/{e.id}/annual-review")
     return {"bias_run": run_id, "annual_review": annual["engagement_id"], "demo_peers": peer_ids}
