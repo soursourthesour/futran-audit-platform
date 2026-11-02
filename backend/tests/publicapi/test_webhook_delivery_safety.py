@@ -213,3 +213,27 @@ def test_a_test_send_holds_no_write_lock_while_it_sends(tmp_path, settings, monk
     finally:
         db.close()
         eng.dispose()
+
+
+# ---------------------------------------------------------------- the signature timestamp
+def test_the_signature_timestamp_is_unix_time_in_any_server_time_zone(db, settings):
+    import os
+    import time
+
+    settings.webhook_mode = "fake"
+    org, _ = _hook(db, settings, url="https://hooks.abccorp.example/x")
+    webhooks.enqueue(db, org.id, "signoff.completed", {}, event_key="tz-1")
+    db.commit()
+    seen: list[int] = []
+    old = os.environ.get("TZ")
+    os.environ["TZ"] = "America/New_York"  # the laptop's zone; utcnow() is naive UTC
+    time.tzset()
+    try:
+        webhooks.deliver_due(db, settings, utcnow(), sender=lambda url, body, headers, timeout: seen.append(int(headers["X-Futran-Timestamp"])) or 200)
+    finally:
+        if old is None:
+            os.environ.pop("TZ", None)
+        else:
+            os.environ["TZ"] = old
+        time.tzset()
+    assert len(seen) == 1 and abs(seen[0] - time.time()) < 60

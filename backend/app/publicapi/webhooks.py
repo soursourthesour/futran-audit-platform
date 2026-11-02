@@ -20,7 +20,7 @@ import json
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -210,7 +210,7 @@ def claim(db: Session, settings, d: WebhookDelivery, now: datetime) -> Outgoing 
         d.status, d.last_error, d.next_attempt_at = "blocked", f"Not sent: {exc} (private or unknown address)"[:500], None
         return None
     body = json.dumps(d.payload, separators=(",", ":"), sort_keys=True).encode()
-    ts = str(int(now.timestamp()))
+    ts = str(int(now.replace(tzinfo=timezone.utc).timestamp()))  # `now` is naive UTC; .timestamp() alone would read it as local time
     headers = {"Content-Type": "application/json", "User-Agent": USER_AGENT, "X-Futran-Event": d.event, "X-Futran-Delivery": d.id,
                "X-Futran-Timestamp": ts, "X-Futran-Signature": f"t={ts},v1={signature(open_secret(settings, h), ts, body)}"}
     d.next_attempt_at = now + CLAIM
