@@ -289,6 +289,8 @@ def oauth_callback(provider: str, request: Request, db: Session = Depends(get_db
     try:
         path = _finish(db, settings, provider, params, request)
         db.commit()
+        if isinstance(path, cx.SignInNext):  # Microsoft: on to the administrator's sign-in that proves the tenant
+            return RedirectResponse(str(path), status_code=302)
         return RedirectResponse(f"{settings.base_url}{cx.with_query(path, connected='1')}", status_code=302)
     except AppError as exc:
         db.commit()
@@ -304,7 +306,8 @@ def oauth_test_consent(provider: str, body: TestConsentIn, request: Request, db:
     params = {"state": body.state, "mailbox": body.mailbox, "admin_consent": "True", "code": "test-code"}
     if not body.approve:
         params["error"] = "access_denied"
-    return {"redirect": cx.with_query(_finish(db, settings, provider, params, request), connected="1")}
+    path = _finish(db, settings, provider, params, request)
+    return {"redirect": str(path) if isinstance(path, cx.SignInNext) else cx.with_query(path, connected="1")}
 
 
 @router.get("/mail/test-consent-info")

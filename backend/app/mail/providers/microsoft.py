@@ -1,6 +1,8 @@
 """Microsoft Graph adapter (Microsoft 365).
 
-Organisation mailbox (E1, E2): admin consent in Entra ID, then app-only tokens (client credentials) for that tenant.
+Organisation mailbox (E1, E2): admin consent in Entra ID, then the administrator's sign-in (OpenID Connect, scope openid),
+whose ID token must name the tenant that gave consent (app.core.ms_signin; the tenant in the consent redirect is not
+trusted), then app-only tokens (client credentials) for that tenant.
 Application permissions requested through `/.default`: Mail.Send, Mail.ReadWrite, User.Read.All, Group.Read.All,
 GroupMember.Read.All. IT limits the app to the one sending mailbox with RBAC for Applications in Exchange Online
 (see the README). User mailbox (§27.1): delegated authorization code flow with offline_access, Mail.Send,
@@ -14,6 +16,7 @@ from urllib.parse import quote, urlencode
 
 import httpx
 
+from app.core import ms_signin
 from app.core.config import Settings
 from app.mail.providers import DirectoryEntry, DirectoryGroupEntry, IncomingMessage, OutgoingMessage, ProviderError, SentMessage, redirect_uri
 from app.mail.providers.http import client, expired, expires_at, request
@@ -47,17 +50,38 @@ class MicrosoftGraphAdapter:
             q["login_hint"] = login_hint
         return f"{LOGIN}/organizations/oauth2/v2.0/authorize?{urlencode(q)}"
 
-    def complete_consent(self, *, kind: str, params: dict) -> dict:
+    # An organisation consent runs in two steps: admin consent, then the administrator's sign-in that proves the tenant.
+    proves_tenant_by_sign_in = True
+
+    def consent_tenant(self, *, params: dict) -> str:
+        """The tenant the admin-consent redirect names. Not trusted: the sign-in that follows must prove it."""
+        if params.get("error"):
+            raise ProviderError(f"Microsoft did not grant access: {params.get('error_description') or params['error']}"[:400])
+        tenant = str(params.get("tenant") or "")
+        if not tenant or params.get("admin_consent") not in ("True", "true", True):
+            raise ProviderError("The consent response did not confirm admin consent.")
+        return tenant
+
+    def signin_url(self, *, state: str, nonce: str, login_hint: str | None = None) -> str:
+        return ms_signin.authorize_url(client_id=self.s.ms_client_id, redirect_uri=redirect_uri(self.s, self.provider), state=state, nonce=nonce, login_hint=login_hint)
+
+    def complete_consent(self, *, kind: str, params: dict, tenant: str | None = None, nonce: str | None = None) -> dict:
+        """kind admin: the administrator's sign-in after admin consent; `tenant` is the one that gave consent (kept with
+        the signed state) and the ID token's tenant must be the same. kind user: a person's own mailbox."""
         from app.mail.tokens import Grant
 
         if params.get("error"):
             raise ProviderError(f"Microsoft did not grant access: {params.get('error_description') or params['error']}"[:400])
         with client(self.transport) as c:
             if kind == "admin":
-                tenant = str(params.get("tenant") or "")
-                if not tenant or params.get("admin_consent") not in ("True", "true", True):
-                    raise ProviderError("The consent response did not confirm admin consent.")
-                # The tenant in the response is not trusted on its own: getting an app token for it proves consent.
+                try:
+                    form = ms_signin.token_form(client_id=self.s.ms_client_id, client_secret=self.s.ms_client_secret, redirect_uri=redirect_uri(self.s, self.provider),
+                                                params=params)
+                    tok = request(c, "POST", ms_signin.TOKEN_URL, "Signing in", data=form).json()
+                    ms_signin.proven_tenant(tok.get("id_token"), client_id=self.s.ms_client_id, nonce=nonce or "", consented_tenant=tenant)
+                except ms_signin.TenantProofError as exc:
+                    raise ProviderError(str(exc)) from exc
+                # an app token for the proven tenant shows the consent is in place
                 g = Grant({"kind": "app", "tenant": tenant})
                 self._app_token(c, g)
                 org = request(c, "GET", f"{GRAPH}/organization", "Reading the organization", headers=self._auth(g)).json().get("value", [{}])

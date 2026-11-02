@@ -25,26 +25,16 @@ def _state(url: str) -> str:
     return parse_qs(urlparse(url).query)["state"][0]
 
 
-def _live_microsoft(monkeypatch, settings, tenants: dict[str, list[str]]):
-    """Live Microsoft mode against a mock Graph: `tenants` maps each tenant that has consented to its verified domains."""
-    settings.mail_provider_mode = "live"
-    settings.ms_client_id, settings.ms_client_secret = "cid", "secret"
+def _live_microsoft(monkeypatch, settings, tenants: dict[str, list[str]]) -> dict:
+    """Live Microsoft mode against a mock Graph: `tenants` maps each tenant that has consented to its verified domains, and
+    the administrator who signs in after consent belongs to the tenant that consented. Returns the box _admin_consent uses."""
+    return _live_microsoft_signin(monkeypatch, settings, tenants, signed_in_tid=None)[1]
 
-    def handler(req: httpx.Request) -> httpx.Response:
-        url = str(req.url)
-        if url.startswith("https://login.microsoftonline.com/") and url.endswith("/oauth2/v2.0/token"):
-            tenant = url.split("/")[3]
-            if tenant not in tenants:
-                return httpx.Response(400, json={"error": "invalid_client"})
-            return httpx.Response(200, json={"access_token": f"tok-{tenant}", "expires_in": 3600})
-        tenant = req.headers["Authorization"].split("tok-", 1)[1]
-        if url.endswith("/organization"):
-            return httpx.Response(200, json={"value": [{"displayName": tenant, "verifiedDomains": [{"name": d} for d in tenants[tenant]]}]})
-        return httpx.Response(404)
 
-    import app.mail.providers.microsoft as ms
-
-    monkeypatch.setattr(ms, "client", lambda transport=None: httpx.Client(transport=httpx.MockTransport(handler)))
+def _admin_consent(db, settings, url: str, tenant: str, box: dict):
+    """Both steps: admin consent naming `tenant`, then the administrator's sign-in."""
+    st = _consent_leg(db, settings, url, tenant, box)
+    return cx.complete_consent(db, settings, "microsoft365", {"state": st, "code": "the-code"})
 
 
 def _client_a(db):
@@ -56,39 +46,39 @@ def _client_a(db):
 
 # ---------------------------------------------------------------- C1: Microsoft admin consent
 def test_admin_consent_refuses_a_tenant_that_does_not_own_the_organisations_domain(db, settings, monkeypatch):
-    _live_microsoft(monkeypatch, settings, {"tenant-b": ["clientb.com"]})
+    box = _live_microsoft(monkeypatch, settings, {"tenant-b": ["clientb.com"]})
     a, admin = _client_a(db)
     conn = cx.org_connection(db, a, create=True)
     url = cx.start_consent(db, settings, admin, conn, provider="microsoft365", kind="admin", mailbox="ai@clienta.com")
     with pytest.raises(AppError) as exc:
-        cx.complete_consent(db, settings, "microsoft365", {"state": _state(url), "admin_consent": "True", "tenant": "tenant-b"})
+        _admin_consent(db, settings, url, "tenant-b", box)
     assert "clienta.com" in str(exc.value.errors or exc.value.detail)
     assert conn.status != "connected" and conn.tenant_id is None and conn.token_encrypted is None
     assert db.query(AdminLogEntry).filter_by(organization_id=a.id, action="consent_failed").count() == 1
 
 
 def test_admin_consent_stores_the_tenants_verified_domains(db, settings, monkeypatch):
-    _live_microsoft(monkeypatch, settings, {"tenant-a": ["clienta.com", "clienta.onmicrosoft.com"]})
+    box = _live_microsoft(monkeypatch, settings, {"tenant-a": ["clienta.com", "clienta.onmicrosoft.com"]})
     a, admin = _client_a(db)
     conn = cx.org_connection(db, a, create=True)
     url = cx.start_consent(db, settings, admin, conn, provider="microsoft365", kind="admin", mailbox="ai@clienta.com")
-    cx.complete_consent(db, settings, "microsoft365", {"state": _state(url), "admin_consent": "True", "tenant": "tenant-a"})
+    _admin_consent(db, settings, url, "tenant-a", box)
     assert conn.status == "connected" and conn.tenant_id == "tenant-a"
     assert conn.verified_domains == ["clienta.com", "clienta.onmicrosoft.com"]
 
 
 def test_admin_consent_refuses_a_sending_mailbox_outside_the_tenants_verified_domains(db, settings, monkeypatch):
-    _live_microsoft(monkeypatch, settings, {"tenant-a": ["clienta.com"]})
+    box = _live_microsoft(monkeypatch, settings, {"tenant-a": ["clienta.com"]})
     a, admin = _client_a(db)
     conn = cx.org_connection(db, a, create=True)
     url = cx.start_consent(db, settings, admin, conn, provider="microsoft365", kind="admin", mailbox="ceo@clientb.com")
     with pytest.raises(AppError):
-        cx.complete_consent(db, settings, "microsoft365", {"state": _state(url), "admin_consent": "True", "tenant": "tenant-a"})
+        _admin_consent(db, settings, url, "tenant-a", box)
     assert conn.status != "connected" and conn.token_encrypted is None
 
 
 def test_admin_consent_refuses_a_tenant_already_bound_to_another_organisation(db, settings, monkeypatch):
-    _live_microsoft(monkeypatch, settings, {"tenant-shared": ["clienta.com", "clientb.com"]})
+    box = _live_microsoft(monkeypatch, settings, {"tenant-shared": ["clienta.com", "clientb.com"]})
     a, admin = _client_a(db)
     b = make_org(db, name="Client B")
     make_user(db, b, roles=["client_admin"], email="it@clientb.com")
@@ -97,7 +87,7 @@ def test_admin_consent_refuses_a_tenant_already_bound_to_another_organisation(db
     conn = cx.org_connection(db, a, create=True)
     url = cx.start_consent(db, settings, admin, conn, provider="microsoft365", kind="admin", mailbox="ai@clienta.com")
     with pytest.raises(AppError) as exc:
-        cx.complete_consent(db, settings, "microsoft365", {"state": _state(url), "admin_consent": "True", "tenant": "tenant-shared"})
+        _admin_consent(db, settings, url, "tenant-shared", box)
     assert "another organisation" in str(exc.value.errors or exc.value.detail)
     assert conn.status != "connected" and conn.tenant_id is None
 
@@ -239,3 +229,104 @@ def test_personal_mailbox_callback_needs_the_session_cookie(client, db, settings
     assert r.status_code == 302 and "/mail/consent-result?error=" in r.headers["location"]
     db.expire_all()
     assert cx.user_connection(db, u).status != "connected"
+
+
+# ---------------------------------------------------------------- the consented tenant is proven by the administrator's sign-in
+def _id_token(claims: dict) -> str:
+    return "h." + base64.urlsafe_b64encode(json.dumps(claims).encode()).decode().rstrip("=") + ".s"
+
+
+def _live_microsoft_signin(monkeypatch, settings, tenants: dict[str, list[str]], signed_in_tid: str | None, **overrides):
+    """Live Microsoft against a mock: admin consent exists in each of `tenants`; the person who signs in belongs to
+    `signed_in_tid` (None: the tenant that consented). Returns the list of URLs called and a box holding the nonce the sign-in asked for."""
+    import time
+
+    settings.mail_provider_mode = "live"
+    settings.ms_client_id, settings.ms_client_secret = "cid", "secret"
+    calls, box = [], {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        url = str(req.url)
+        calls.append(url)
+        if url == "https://login.microsoftonline.com/organizations/oauth2/v2.0/token":
+            body = parse_qs(req.content.decode())
+            assert body["grant_type"] == ["authorization_code"] and body["code"] == ["the-code"]
+            tid = signed_in_tid or box["tid"]
+            claims = {"aud": "cid", "iss": f"https://login.microsoftonline.com/{tid}/v2.0", "tid": tid, "nonce": box.get("nonce"),
+                      "exp": int(time.time()) + 600, **overrides}
+            return httpx.Response(200, json={"access_token": "user-tok", "id_token": _id_token(claims)})
+        if url.startswith("https://login.microsoftonline.com/") and url.endswith("/oauth2/v2.0/token"):
+            tenant = url.split("/")[3]
+            if tenant not in tenants:
+                return httpx.Response(400, json={"error": "invalid_client"})
+            return httpx.Response(200, json={"access_token": f"tok-{tenant}", "expires_in": 3600})
+        tenant = req.headers["Authorization"].split("tok-", 1)[1]
+        if url.endswith("/organization"):
+            return httpx.Response(200, json={"value": [{"displayName": tenant, "verifiedDomains": [{"name": d} for d in tenants[tenant]]}]})
+        return httpx.Response(404)
+
+    import app.mail.providers.microsoft as ms
+
+    monkeypatch.setattr(ms, "client", lambda transport=None: httpx.Client(transport=httpx.MockTransport(handler)))
+    return calls, box
+
+
+def _consent_leg(db, settings, url: str, tenant: str, box: dict) -> str:
+    """Admin consent comes back naming `tenant`; the platform answers with the sign-in that proves it."""
+    nxt, _ = cx.complete_consent(db, settings, "microsoft365", {"state": _state(url), "admin_consent": "True", "tenant": tenant})
+    assert nxt.startswith("https://login.microsoftonline.com/organizations/oauth2/v2.0/authorize?")
+    q = {k: v[0] for k, v in parse_qs(urlparse(nxt).query).items()}
+    assert q["response_type"] == "code" and q["scope"] == "openid" and q["client_id"] == "cid" and q["nonce"]
+    box["nonce"], box["tid"] = q["nonce"], tenant
+    return q["state"]
+
+
+def test_admin_consent_for_a_tenant_edited_into_the_redirect_is_not_connected(db, settings, monkeypatch):
+    calls, box = _live_microsoft_signin(monkeypatch, settings, {"tenant-a": ["clienta.com"], "tenant-b": ["clientb.com"]}, signed_in_tid="tenant-a")
+    a, admin = _client_a(db)
+    make_user(db, a, roles=["contributor"], email="plant@clientb.com")
+    conn = cx.org_connection(db, a, create=True)
+    url = cx.start_consent(db, settings, admin, conn, provider="microsoft365", kind="admin")
+    st = _consent_leg(db, settings, url, "tenant-b", box)
+    assert conn.status != "connected" and conn.tenant_id is None
+    with pytest.raises(AppError) as exc:
+        cx.complete_consent(db, settings, "microsoft365", {"state": st, "code": "the-code", "tenant": "tenant-b"})
+    assert "different Microsoft tenant" in str(exc.value.errors or exc.value.detail)
+    assert conn.status != "connected" and conn.tenant_id is None and conn.token_encrypted is None
+    assert not any("/tenant-b/" in u for u in calls)
+
+
+def test_admin_consent_connects_the_tenant_the_administrator_signs_in_to(db, settings, monkeypatch):
+    _, box = _live_microsoft_signin(monkeypatch, settings, {"tenant-a": ["clienta.com"]}, signed_in_tid="tenant-a")
+    a, admin = _client_a(db)
+    conn = cx.org_connection(db, a, create=True)
+    url = cx.start_consent(db, settings, admin, conn, provider="microsoft365", kind="admin", mailbox="ai@clienta.com")
+    st = _consent_leg(db, settings, url, "tenant-a", box)
+    path, _ = cx.complete_consent(db, settings, "microsoft365", {"state": st, "code": "the-code"})
+    assert path == "/admin/email" and conn.status == "connected" and conn.tenant_id == "tenant-a" and conn.verified_domains == ["clienta.com"]
+    with pytest.raises(AppError):  # each step's state is used once
+        cx.complete_consent(db, settings, "microsoft365", {"state": st, "code": "the-code"})
+
+
+@pytest.mark.parametrize("bad", [{"aud": "someone-else"}, {"nonce": "replayed"}, {"iss": "https://login.microsoftonline.com/tenant-b/v2.0"}, {"exp": 1},
+                                 {"idp": "https://sts.windows.net/home-tenant/"}])
+def test_admin_consent_refuses_a_sign_in_whose_id_token_does_not_check_out(db, settings, monkeypatch, bad):
+    _, box = _live_microsoft_signin(monkeypatch, settings, {"tenant-a": ["clienta.com"]}, signed_in_tid="tenant-a", **bad)
+    a, admin = _client_a(db)
+    conn = cx.org_connection(db, a, create=True)
+    url = cx.start_consent(db, settings, admin, conn, provider="microsoft365", kind="admin")
+    st = _consent_leg(db, settings, url, "tenant-a", box)
+    with pytest.raises(AppError):
+        cx.complete_consent(db, settings, "microsoft365", {"state": st, "code": "the-code"})
+    assert conn.status != "connected" and conn.token_encrypted is None
+
+
+def test_the_admin_consent_callback_sends_the_browser_on_to_the_sign_in(client, db, settings, monkeypatch):
+    _live_microsoft_signin(monkeypatch, settings, {"tenant-a": ["clienta.com"]}, signed_in_tid="tenant-a")
+    a, admin = _client_a(db)
+    conn = cx.org_connection(db, a, create=True)
+    url = cx.start_consent(db, settings, admin, conn, provider="microsoft365", kind="admin")
+    db.commit()
+    cb = client.get(f"/api/v1/mail/oauth/microsoft365?state={_state(url)}&admin_consent=True&tenant=tenant-a", follow_redirects=False)
+    assert cb.status_code == 302 and cb.headers["location"].startswith("https://login.microsoftonline.com/organizations/oauth2/v2.0/authorize?")
+

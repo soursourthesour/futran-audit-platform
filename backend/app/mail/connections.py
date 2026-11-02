@@ -3,9 +3,10 @@
 Consent goes through the provider's own page. The `state` sent with it is signed, names the connection and carries a
 nonce whose hash is kept on the connection, so a consent response is accepted once and only for the connection that
 asked. The organisation callback needs no sign-in: the client's IT admin can approve from the link the Client Admin
-emails them. What the response grants is checked, not trusted: the tenant must have verified one of the organisation's
-own email domains and must not be connected to another organisation, and the sending mailbox must be in a verified
-domain. A personal mailbox (§27.1) is bound to the browser session that started it and must be the user's own address.
+emails them. What the response grants is checked, not trusted: for Microsoft the tenant is proven by the administrator's
+sign-in after admin consent (the ID token's tenant, app.core.ms_signin), never taken from the consent redirect; the
+tenant must have verified one of the organisation's own email domains and must not be connected to another
+organisation, and the sending mailbox must be in a verified domain. A personal mailbox (§27.1) is bound to the browser session that started it and must be the user's own address.
 """
 import hashlib
 import re
@@ -30,6 +31,10 @@ RETURN_PATHS = {"futran": "/staff/admin/email", "client": "/admin/email", "user"
 
 class BadRequest(AppError):
     status_code = 400
+
+
+class SignInNext(str):
+    """What complete_consent returns, in place of a return path, when the browser goes on to Microsoft's sign-in next."""
 
 
 class TestEmailFailed(Conflict):
@@ -171,7 +176,8 @@ def _refuse(db: Session, holder: MailConnection, message: str) -> None:
 
 
 def complete_consent(db: Session, settings: Settings, provider: str, params: dict, *, session_id: str | None = None) -> tuple[str, object]:
-    """Finish a consent from the provider's redirect. Returns (return path, holder). `session_id` is the signed-in
+    """Finish a consent from the provider's redirect. Returns (return path, holder), or, after Microsoft's admin consent,
+    (SignInNext(url of the administrator's sign-in that proves the tenant), holder). `session_id` is the signed-in
     session of the browser that brought the response back (None when there is none); a personal mailbox needs the
     session that started the consent."""
     data = _load_state(settings, params.get("state", ""))
@@ -187,8 +193,23 @@ def complete_consent(db: Session, settings: Settings, provider: str, params: dic
         raise BadRequest("Finish connecting your mailbox in the same browser you started from, while signed in to the Futran Audit Platform.")
     holder.oauth_state_hash = None  # single use, whatever happens next
     adapter = _check_provider(settings, provider)
+    two_step = data["t"] == "org" and data["k"] == "admin" and getattr(adapter, "proves_tenant_by_sign_in", False)
     try:
-        grant = adapter.complete_consent(kind=data["k"], params=params)
+        if two_step and data.get("ph") != "signin":
+            # Microsoft: the tenant in the admin-consent redirect is only a claim. The administrator signs in next and the ID
+            # token's tenant must match it. The consented tenant travels in a new signed, single-use state.
+            tenant = adapter.consent_tenant(params=params)
+            nonce = secrets.token_urlsafe(16)
+            holder.oauth_state_hash = _h(nonce)
+            state = _serializer(settings).dumps({**data, "n": nonce, "ph": "signin", "tn": tenant})
+            adminlog.write(db, organization_id=holder.organization_id, category="consent", action="consent_given", actor_name="IT admin",
+                           summary=f"Admin consent given in {PROVIDER_LABELS[provider]}; the administrator's sign-in confirms the tenant")
+            db.flush()
+            return SignInNext(adapter.signin_url(state=state, nonce=_h(nonce))), holder
+        if two_step:
+            grant = adapter.complete_consent(kind=data["k"], params=params, tenant=data.get("tn"), nonce=_h(data.get("n", "")))
+        else:
+            grant = adapter.complete_consent(kind=data["k"], params=params)
     except ProviderError as exc:
         if isinstance(holder, MailConnection):
             holder.status, holder.last_error = "error", str(exc)[:500]

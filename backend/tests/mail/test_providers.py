@@ -1,6 +1,7 @@
 """Token encryption and the provider adapters. Real adapters are exercised against httpx.MockTransport: no network."""
 import base64
 import json
+import time
 from urllib.parse import parse_qs, urlparse
 
 import httpx
@@ -77,8 +78,15 @@ def test_microsoft_admin_consent_url_asks_for_the_default_scope():
 def test_microsoft_admin_consent_is_confirmed_with_an_app_token_for_that_tenant():
     seen = []
 
+    tenant = "11111111-2222-3333-4444-555555555555"
+
     def handler(req: httpx.Request):
         seen.append(req.url.path)
+        if req.url.path == "/organizations/oauth2/v2.0/token":  # the administrator's sign-in after admin consent
+            body = parse_qs(req.content.decode())
+            assert body["grant_type"] == ["authorization_code"] and body["scope"] == ["openid"]
+            claims = {"aud": "cid", "tid": tenant, "iss": f"https://login.microsoftonline.com/{tenant}/v2.0", "nonce": "n1", "exp": time.time() + 600}
+            return httpx.Response(200, json={"access_token": "u", "id_token": "h." + base64.urlsafe_b64encode(json.dumps(claims).encode()).decode().rstrip("=") + ".s"})
         if req.url.path.endswith("/oauth2/v2.0/token"):
             body = parse_qs(req.content.decode())
             assert body["grant_type"] == ["client_credentials"] and body["scope"] == ["https://graph.microsoft.com/.default"]
@@ -87,7 +95,11 @@ def test_microsoft_admin_consent_is_confirmed_with_an_app_token_for_that_tenant(
             return httpx.Response(200, json={"value": [{"displayName": "Contoso", "verifiedDomains": [{"name": "contoso.com", "isDefault": True}]}]})
         return httpx.Response(404)
 
-    g = _ms(handler).complete_consent(kind="admin", params={"admin_consent": "True", "tenant": "11111111-2222-3333-4444-555555555555"})
+    a = _ms(handler)
+    assert a.consent_tenant(params={"admin_consent": "True", "tenant": tenant}) == tenant
+    q = parse_qs(urlparse(a.signin_url(state="s2", nonce="n1")).query)
+    assert q["scope"] == ["openid"] and q["nonce"] == ["n1"] and q["response_type"] == ["code"] and q["client_id"] == ["cid"]
+    g = a.complete_consent(kind="admin", params={"code": "c"}, tenant=tenant, nonce="n1")
     assert g["kind"] == "app" and g["tenant"] == "11111111-2222-3333-4444-555555555555"
     assert g["domains"] == ["contoso.com"]
     assert "/11111111-2222-3333-4444-555555555555/oauth2/v2.0/token" in seen
