@@ -141,3 +141,18 @@ def test_reassessment_overdue_check(db, lit):
     assert out["AIS-001 Résumé screening"].status == "failed" and out["AIS-001 Résumé screening"].register_system_id == lit["screening"].id
     assert out["AIS-002 Website chatbot"].status == "attention"
     assert check.fn(db, lit["nw"]) == []
+
+
+def test_the_change_listeners_are_registered_at_start_up_in_a_fresh_process():
+    """Without this, a system's first register edit in a new process would see laws recorded while adding it as changes."""
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    code = ("import sys, app.models_registry\n"
+            "from sqlalchemy import event\n"
+            "from sqlalchemy.orm import Session\n"
+            "m = sys.modules.get('app.impact.detect')\n"
+            "print(bool(m) and event.contains(Session, 'pending_to_persistent', m._note_created) and event.contains(Session, 'after_commit', m._forget_created))\n")
+    out = subprocess.run([sys.executable, "-c", code], cwd=Path(__file__).resolve().parents[2], capture_output=True, text=True, timeout=120)
+    assert out.stdout.strip() == "True", out.stderr

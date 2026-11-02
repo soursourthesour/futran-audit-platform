@@ -23,6 +23,9 @@ importlib.import_module("app.ai.models")
 # Wave 3 WS-H: regulatory change alerts (F4) and impact assessment with reassessment triggers (F8)
 for _mod in ["regupdates", "impact"]:
     importlib.import_module(f"app.{_mod}.models")
+# Its session listeners (systems added in this transaction are not changes) must be registered before the first request,
+# not when a register edit first imports the module.
+importlib.import_module("app.impact.detect")
 
 # wave 3 WS-K: bias calculator (F11), benchmarking (F15), annual carry-forward (F16)
 for _mod in ["biascalc", "insights", "annual"]:
