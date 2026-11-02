@@ -62,3 +62,38 @@ def test_wizard_team_refuses_the_author_as_lead_but_allows_another_role(client, 
     # the same person may still serve on the team in a role that does not lead the audit
     errors = _save_team(db, world["chief2"], e, [{"user_id": world["chief"].id, "role": "auditor"}, {"user_id": world["chief2"].id, "role": "chief_auditor"}])
     assert errors == []
+
+
+def _team(db, policy_id):
+    from app.policies.models import PolicyDocument
+
+    db.expire_all()
+    return list(db.get(PolicyDocument, policy_id).authored_by_futran_team or [])
+
+
+def test_a_chief_auditor_cannot_remove_themselves_from_the_authors(client, db, world, tailored):
+    login_as(client, db, world["chief"])
+    r = client.put(f"{API}/futran/policies/{tailored['id']}/team", json={"user_ids": [world["aud"].id], "reason": "I did not work on it."})
+    assert r.status_code == 409
+    assert "yourself" in r.json()["detail"] and "another Chief Auditor" in r.json()["detail"]
+    assert world["chief"].id in _team(db, tailored["id"])
+    r = client.put(f"{API}/futran/policies/{tailored['id']}/team", json={"user_ids": [], "reason": "Clearing the list."})
+    assert r.status_code == 409 and world["chief"].id in _team(db, tailored["id"])
+
+
+def test_removing_an_author_needs_a_reason_and_is_logged_with_before_and_after(client, db, world, tailored):
+    from app.audit_log.models import AuditLog
+
+    login_as(client, db, world["chief"])
+    r = client.put(f"{API}/futran/policies/{tailored['id']}/team", json={"user_ids": [world["chief"].id]})
+    assert r.status_code == 422 and r.json()["errors"][0]["field"] == "reason"
+    assert world["aud"].id in _team(db, tailored["id"])
+    r = client.put(f"{API}/futran/policies/{tailored['id']}/team", json={"user_ids": [world["chief"].id], "reason": "Alex only proofread the draft."})
+    assert r.status_code == 200 and _team(db, tailored["id"]) == [world["chief"].id]
+    log = db.scalars(select(AuditLog).where(AuditLog.action == "policy.futran_team").order_by(AuditLog.at.desc())).first()
+    assert set(log.before["team"]) == {world["chief"].id, world["aud"].id} and log.after["team"] == [world["chief"].id]
+    assert log.after["removed"] == [world["aud"].id] and log.after["reason"] == "Alex only proofread the draft."
+    # another Chief Auditor may remove Cara, with a reason
+    login_as(client, db, world["chief2"])
+    r = client.put(f"{API}/futran/policies/{tailored['id']}/team", json={"user_ids": [], "reason": "Recorded in error; Cara reviewed a different policy."})
+    assert r.status_code == 200 and _team(db, tailored["id"]) == []

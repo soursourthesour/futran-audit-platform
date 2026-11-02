@@ -45,6 +45,7 @@ class ApproveIn(BaseModel):
 
 class TeamIn(BaseModel):
     user_ids: list[str] = []
+    reason: str | None = None
 
 
 def _client(actor: Actor) -> Organization:
@@ -212,7 +213,7 @@ def futran_list(actor: Actor = Depends(current_actor), db: Session = Depends(get
 @router.put("/futran/policies/{policy_id}/team")
 def futran_team(policy_id: str, body: TeamIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     p = _futran_policy(db, actor, policy_id, Action.RECORD_POLICY_AUTHORS)
-    return svc.doc_out(db, svc.record_futran_team(db, actor.user, p, body.user_ids), full=False)
+    return svc.doc_out(db, svc.record_futran_team(db, actor.user, p, body.user_ids, body.reason), full=False)
 
 
 @router.get("/futran/policies/{policy_id}/pdf")

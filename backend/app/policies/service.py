@@ -341,8 +341,11 @@ def request_futran_review(db: Session, actor: User, p: PolicyDocument, note: str
     return p
 
 
-def record_futran_team(db: Session, actor: User, p: PolicyDocument, user_ids: list[str]) -> PolicyDocument:
-    """The Futran people who wrote or tailored this policy. They may not later be Lead Auditor for this client."""
+def record_futran_team(db: Session, actor: User, p: PolicyDocument, user_ids: list[str], reason: str | None = None) -> PolicyDocument:
+    """The Futran people who wrote or tailored this policy. They may not later be Lead Auditor for this client.
+
+    Adding people is free; removing anyone needs a reason, and nobody can remove themselves (otherwise an author could
+    take their own name off and then lead the client's audit). Another Chief Auditor has to do it."""
     from app.tenancy.models import Organization as Org
 
     ids = []
@@ -353,10 +356,19 @@ def record_futran_team(db: Session, actor: User, p: PolicyDocument, user_ids: li
             raise Invalid(errors=[{"field": "user_ids", "message": "Choose Futran team members."}])
         ids.append(uid)
     before = list(p.authored_by_futran_team or [])
+    removed = [i for i in before if i not in ids]
+    if actor.id in removed:
+        raise Conflict("You cannot remove yourself from the Futran team on this policy. Ask another Chief Auditor to do it. "
+                       "If you are the only Chief Auditor, your name stays on the record.")
+    reason = " ".join(str(reason or "").split())[:1000]
+    if removed and not reason:
+        raise Invalid(errors=[{"field": "reason", "message": "Say why you are removing people from the Futran team."}])
     p.authored_by_futran_team, p.futran_team_recorded_by, p.futran_team_recorded_at = ids, actor.id, utcnow()
     names = [db.get(User, i).name for i in ids]
-    audit.record(db, actor_id=actor.id, action="policy.futran_team", obj=p, before={"team": before}, after={"team": ids},
-                 summary=f"Recorded the Futran team that tailored {p.title}: {', '.join(names) or 'nobody'}")
+    after = {"team": ids} | ({"removed": removed, "reason": reason} if removed else {})
+    gone = [db.get(User, i).name for i in removed if db.get(User, i)]
+    summary = f"Recorded the Futran team that tailored {p.title}: {', '.join(names) or 'nobody'}" + (f". Removed {', '.join(gone)}: {reason}" if removed else "")
+    audit.record(db, actor_id=actor.id, action="policy.futran_team", obj=p, before={"team": before}, after=after, summary=summary[:500])
     return p
 
 
