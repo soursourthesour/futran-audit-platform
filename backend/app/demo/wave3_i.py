@@ -114,7 +114,7 @@ def _training(m: Demo, cid: str) -> None:
     now = utcnow()
     for (code, dept), group in by_group.items():
         share = DONE.get(dept, 0.5)
-        done = round(len(group) * share) if code != "human_oversight" else len(group) - 1
+        done = round(len(group) * share) if code != "human_oversight" else (0 if dept == "Sales & Marketing" else len(group))  # one lead still to do it
         quiz = M.library()[code]["quiz"]
         for i, a in enumerate(group):
             if i >= done:
