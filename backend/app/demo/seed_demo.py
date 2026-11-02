@@ -804,6 +804,9 @@ def run(db: Session, settings, client: TestClient | None = None) -> dict:
         out["meridian"] = meridian(m, extra_team=[("qa@futran.demo", "qa_reviewer"), (v061.LEGAL[1], "legal_reviewer")])
         out["internal"] = internal(m)
         out |= v061.seed(m, dict(out))  # v0.4–v0.6.1 screens; adds the WS-D litigation cases
+        from app.demo import wave3
+
+        out |= wave3.seed(m, dict(out))  # §21 extended features
     finally:
         client.cookies.clear()
         if own:
