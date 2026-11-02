@@ -167,11 +167,15 @@ def confirm(db: Session, actor: User, r: Response) -> dict:
     return {"response_id": r.id, "status": "confirmed"}
 
 
-def confirm_unchanged(db: Session, actor: User, e: Engagement, system_ids: set[str] | None) -> int:
+def confirm_unchanged(db: Session, actor: User, e: Engagement, system_ids: set[str] | None, *, org_wide: bool = True) -> int:
+    """Confirm every pending carried answer for the systems in `system_ids` (None = all) and, when `org_wide`, the
+    organization-wide answers."""
     n = 0
     now = utcnow()
     for ca, r in db.execute(select(CarriedAnswer, Response).join(Response, Response.id == CarriedAnswer.response_id).join(Question, Question.id == Response.question_id)
                             .where(CarriedAnswer.engagement_id == e.id, CarriedAnswer.deleted_at.is_(None), Question.default_respondent == "client")).all():
+        if r.ai_system_id is None and not org_wide:
+            continue
         if system_ids is not None and r.ai_system_id is not None and r.ai_system_id not in system_ids:
             continue
         if _status(ca, r) == "pending":

@@ -64,6 +64,8 @@ def confirm(response_id: str, actor: Actor = Depends(current_actor), db: Session
         authorize(db, actor, Action.VIEW_ENGAGEMENT, engagement_id=r.engagement_id)
         raise Forbidden("The client confirms its own carried-forward answers.")
     authorize(db, actor, Action.CONFIRM_CARRIED_ANSWERS, engagement_id=r.engagement_id, department_id=s.department_id if s else None, list_view=s is None)
+    if s is None and departments_for(actor, Action.CONFIRM_CARRIED_ANSWERS) is not None:
+        raise Forbidden("Organization-wide answers are confirmed by someone whose role covers the whole organization.")
     return svc.confirm(db, actor.user, r)
 
 
@@ -75,9 +77,11 @@ def confirm_unchanged(engagement_id: str, body: ScopeIn | None = None, actor: Ac
         raise Forbidden("The client confirms its own carried-forward answers.")
     authorize(db, actor, Action.CONFIRM_CARRIED_ANSWERS, engagement_id=e.id, list_view=True)
     allowed = _client_systems(db, actor, e)
+    org_wide = allowed is None  # organization-wide answers only for a role that covers the whole organization
     if body is not None and body.system_id:
         allowed = {body.system_id} if allowed is None or body.system_id in allowed else set()
-    return {"confirmed": svc.confirm_unchanged(db, actor.user, e, allowed)}
+        org_wide = False  # "confirm all for this system" confirms that system only
+    return {"confirmed": svc.confirm_unchanged(db, actor.user, e, allowed, org_wide=org_wide)}
 
 
 @router.get("/engagements/{engagement_id}/year-over-year")
