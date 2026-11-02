@@ -140,3 +140,31 @@ def test_the_test_consent_page_details_are_for_the_person_who_started_it(w):
     login_as(w.client, w.db, w.admin)  # the same person in another session
     r = w.client.get(f"/api/v1/connectors/test-consent-info?state={state}")
     assert r.status_code == 400 and "same browser" in r.json()["detail"]
+
+
+def test_names_are_for_auditors_on_the_clients_open_engagement_only(w):
+    from app.engagements.models import Engagement, EngagementTeam
+
+    w.as_(w.admin)
+    _upload(w)
+    tid = w.db.query(DiscoveredTool).filter_by(product="ChatGPT").one().id
+    w.engagement.status = "completed"  # Alex was on the earlier audit only
+    newer = Engagement(organization_id=w.org.id, client_id=w.org.id, name="Annual review", status="in_progress")
+    w.db.add(newer)
+    w.db.flush()
+    w.db.add(EngagementTeam(organization_id=w.org.id, engagement_id=newer.id, user_id=w.other_auditor.id, role="auditor"))
+    w.db.commit()
+    w.as_(w.auditor)
+    page = w.client.get(f"/api/v1/clients/{w.org.id}/integrations")
+    assert page.status_code == 200 and page.json()["can_view_people"] is False  # still reads the screen
+    r = w.client.get(f"/api/v1/clients/{w.org.id}/discovered-tools/{tid}/people")
+    assert r.status_code in (403, 404) and "Tier 2" not in r.text
+    for user in (w.other_auditor, w.chief):
+        w.as_(user)
+        assert w.client.get(f"/api/v1/clients/{w.org.id}/integrations").json()["can_view_people"] is True
+        r = w.client.get(f"/api/v1/clients/{w.org.id}/discovered-tools/{tid}/people")
+        assert r.status_code == 403 and "Tier 2" in r.json()["detail"]  # past the role check, stopped by the tier rule
+    newer.status = "archived"
+    w.db.commit()
+    w.as_(w.other_auditor)
+    assert w.client.get(f"/api/v1/clients/{w.org.id}/integrations").json()["can_view_people"] is False

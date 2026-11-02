@@ -37,6 +37,22 @@ def assigned_engagement_ids(db: Session, user_id: str) -> set[str]:
     )
 
 
+# Actions whose ASSIGNED scope means "on the client's open engagement now", not "on any engagement ever held for the
+# client": the names behind a discovered AI tool are for the auditors doing the current audit only.
+OPEN_ENGAGEMENT_ONLY = frozenset({Action.VIEW_DISCOVERY_PEOPLE})
+NOT_OPEN = ("draft", "pending_approval", "completed", "archived")
+
+
+def assigned_to_open_engagement(db: Session, user_id: str, client_id: str) -> bool:
+    return db.scalar(
+        select(EngagementTeam.id)
+        .join(Engagement, Engagement.id == EngagementTeam.engagement_id)
+        .where(EngagementTeam.user_id == user_id, EngagementTeam.deleted_at.is_(None), Engagement.client_id == client_id,
+               Engagement.deleted_at.is_(None), Engagement.status.not_in(NOT_OPEN))
+        .limit(1)
+    ) is not None
+
+
 def sees_all_engagements(actor: Actor) -> bool:
     return actor.is_futran and bool(actor.role_names & {"chief_auditor", "admin"})
 
@@ -104,7 +120,10 @@ def authorize(
             if scope == Scope.ALL:
                 granted = True
             elif scope == Scope.ASSIGNED:
-                if engagement is not None:
+                if action in OPEN_ENGAGEMENT_ONLY:
+                    client_id = engagement.client_id if engagement is not None else org_id
+                    granted = client_id is not None and assigned_to_open_engagement(db, actor.id, client_id)
+                elif engagement is not None:
                     granted = is_assigned(db, actor.id, engagement.id)
                 elif org_id is not None:
                     granted = True  # org already checked against visible_org_ids
