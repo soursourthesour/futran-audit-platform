@@ -98,6 +98,32 @@ def prefill(db: Session, app_state, settings, actor: User, t: qs.Target, sub_sec
     return rows
 
 
+def current_answer(db: Session, r) -> dict | None:
+    """The question's answer as it stands, for the suggestion card."""
+    if r is None or r.status == "unanswered":
+        return None
+    display = qs._display(db.get(Question, r.question_id), r.value) if r.value is not None else None
+    return {"value": r.value, "status": r.status, "display": display, "side": r.answered_side, "source": r.source, "verified": r.verified_at is not None}
+
+
+def suggestions_out(db: Session, t: qs.Target, rows: list[AIInteraction]) -> list[dict]:
+    """Pre-fill suggestions with the question's current answer, so the auditor sees what accepting would replace."""
+    resp = qs._responses(db, t)
+    return [ai.interaction_out(db, i) | {"current": current_answer(db, resp.get(i.target_id))} for i in rows]
+
+
+def _protected(existing, value) -> str | None:
+    """Why accepting would overwrite the auditor's own work, or None. A verified answer, or a different answer Futran
+    recorded, is only replaced when the auditor says so."""
+    if existing is None or existing.status == "unanswered":
+        return None
+    if existing.verified_at is not None:
+        return "This question already has a verified answer. Accepting the suggestion replaces it and clears the verification; confirm to replace it."
+    if existing.answered_side == "futran" and (existing.value != value or existing.status != "answered"):
+        return "An auditor has already recorded a different answer to this question. Confirm to replace it with the suggestion."
+    return None
+
+
 def _finding_text(d: dict) -> tuple[str, str]:
     parts = [f"{k.title()}: {str(d.get(k) or '').strip()}" for k in ("condition", "criteria", "cause", "effect") if str(d.get(k) or "").strip()]
     return "\n".join(parts), str(d.get("recommendation") or "").strip()
@@ -146,6 +172,9 @@ def accept(db: Session, actor: User, i: AIInteraction, body: dict) -> AIInteract
     citation = f"Copilot citation: {cite.get('filename')}, page {cite.get('page')}: \"{cite.get('quote')}\""
     detail = "\n".join(x for x in (str(detail or "").strip(), citation) if x)
     existing = qs._responses(db, t).get(q.id)
+    why = _protected(existing, value)
+    if why and body.get("override") is not True:
+        raise Conflict(why)
     evidence = list(existing.evidence_ids or []) if existing else []
     from app.files.models import FileObject
 
@@ -163,19 +192,24 @@ def accept(db: Session, actor: User, i: AIInteraction, body: dict) -> AIInteract
     return ai.decide(db, actor, i, "edited" if edited else "accepted", result_refs=refs)
 
 
-def accept_high(db: Session, actor: User, t: qs.Target, ids: list) -> int:
-    """The explicit "Accept all high-confidence" click: each supported high-confidence suggestion is accepted and logged."""
+def accept_high(db: Session, actor: User, t: qs.Target, ids: list) -> tuple[int, list[str]]:
+    """The explicit "Accept all high-confidence" click: each supported high-confidence suggestion is accepted and logged.
+    Questions with a verified answer, or a different answer an auditor recorded, are skipped and listed."""
     if not isinstance(ids, list) or not all(isinstance(x, str) for x in ids):
         raise Invalid(errors=[{"field": "ids", "message": "List the suggestions shown."}])
-    n = 0
+    n, skipped = 0, []
+    resp = qs._responses(db, t)
     for iid in dict.fromkeys(ids):
         i = db.get(AIInteraction, iid)
         if i is None or i.engagement_id != t.engagement.id or i.ai_system_id != t.system_id or i.feature != "copilot_prefill":
             continue
         if i.status == "suggested" and i.confidence == "high":
+            if _protected(resp.get(i.target_id), (i.output or {}).get("value")):
+                skipped.append(i.target_code)
+                continue
             accept(db, actor, i, {})
             n += 1
-    return n
+    return n, skipped
 
 
 def to_interview(db: Session, actor: User, i: AIInteraction) -> AIInteraction:

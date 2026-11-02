@@ -8,7 +8,10 @@ export type Interaction = {
   confidence: 'high' | 'medium' | 'low' | null; status: 'suggested' | 'unsupported' | 'accepted' | 'edited' | 'rejected'; decided_by: string | null; decided_at: string | null;
   reason: string | null; result_refs: { type: string; id: string }[]; follow_up: string | null; follow_up_ref: string | null; model: string; provider: string; prompt_version: string;
   created_at: string | null; requested_by: string | null; ai_system_id: string | null; system?: string | null;
+  /** Pre-fill only: the question's answer as it stands, so the card shows what accepting would replace. */
+  current?: CurrentAnswer | null;
 };
+export type CurrentAnswer = { value: unknown; status: string; display: string | null; side: string | null; source: string | null; verified: boolean };
 export type AISwitch = { enabled: boolean; consent_note?: string | null; enabled_by?: string | null; enabled_at?: string | null; can_manage?: boolean; can_use_copilot?: boolean; can_view_log?: boolean };
 export type CopilotPanel = { enabled: boolean; documents: { id: string; filename: string; pages: number; chars: number; error: string | null; is_evidence: boolean }[]; suggestions: Interaction[]; interview_list: Interaction[]; can_view_log: boolean };
 export type Completeness = {

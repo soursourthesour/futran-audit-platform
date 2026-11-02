@@ -87,7 +87,7 @@ def get_copilot(system_id: str, request: Request, section: str | None = None, ac
     ai.require_ai(t.engagement)
     settings = request.app.state.settings
     out = {"enabled": True, "documents": _documents(db, settings, t),
-           "suggestions": [ai.interaction_out(db, i) for i in cp.latest(db, t, "copilot_prefill", section)] if section else [],
+           "suggestions": cp.suggestions_out(db, t, cp.latest(db, t, "copilot_prefill", section)) if section else [],
            "interview_list": [ai.interaction_out(db, i) for i in cp.latest(db, t, "copilot_prefill") if i.follow_up == "interview" and i.status in ("suggested", "unsupported")],
            "can_view_log": ai._can(db, actor, Action.VIEW_AI_LOG, t.engagement)}
     return out
@@ -98,7 +98,7 @@ def post_prefill(system_id: str, body: PrefillIn, request: Request, actor: Actor
     t = system_target(db, actor, system_id)
     authorize(db, actor, Action.VERIFY_SYSTEM_ANSWERS, engagement_id=t.engagement.id)
     rows = cp.prefill(db, request.app.state, request.app.state.settings, actor.user, t, body.sub_section, body.file_ids)
-    return {"suggestions": [ai.interaction_out(db, i) for i in rows]}
+    return {"suggestions": cp.suggestions_out(db, t, rows)}
 
 
 @router.post("/systems/{system_id}/copilot/accept-high")
@@ -106,7 +106,8 @@ def post_accept_high(system_id: str, body: IdsIn, actor: Actor = Depends(current
     t = system_target(db, actor, system_id)
     ai.require_ai(t.engagement)
     authorize(db, actor, Action.VERIFY_SYSTEM_ANSWERS, engagement_id=t.engagement.id)
-    return {"accepted": cp.accept_high(db, actor.user, t, body.ids)}
+    n, skipped = cp.accept_high(db, actor.user, t, body.ids)
+    return {"accepted": n, "skipped": skipped}
 
 
 @router.post("/ai/interactions/{interaction_id}/accept")

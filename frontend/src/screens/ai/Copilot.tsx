@@ -99,8 +99,14 @@ function SuggestionCard({ i, locked, onChanged }: { i: Interaction; locked: bool
   const [requesting, setRequesting] = useState(false);
   const label = (i.output.question as { label: string } | undefined)?.label;
   const draft = i.output.draft_finding as { title: string; severity: string } | null;
+  const [replace, setReplace] = useState(false);
   const open = i.status === 'suggested' && !locked;
-  const accept = (body: Record<string, unknown>) => run(async () => { await api.post(`/ai/interactions/${i.id}/accept`, body); onChanged(); });
+  const cur = i.current ?? null;
+  // a verified answer, or a different one an auditor recorded, is only replaced when the auditor ticks the box
+  const guarded = !!cur && (cur.verified || (cur.side === 'futran' && (cur.status !== 'answered' || JSON.stringify(cur.value) !== JSON.stringify(i.output.value))));
+  const blocked = guarded && !replace;
+  const withOverride = (body: Record<string, unknown>) => (guarded ? { ...body, override: true } : body);
+  const accept = (body: Record<string, unknown>) => run(async () => { await api.post(`/ai/interactions/${i.id}/accept`, withOverride(body)); onChanged(); });
   return (
     <article className={`cp-card cp-${i.status}`} aria-label={`Suggestion for ${i.target_code}`}>
       <div className="cp-head"><strong>{i.target_code} · {label}</strong><StatusBadge i={i} /></div>
@@ -108,16 +114,28 @@ function SuggestionCard({ i, locked, onChanged }: { i: Interaction; locked: bool
         <>
           <div className="small muted">Suggested answer:</div>
           <div className="cp-answer">{i.output.display ?? String(i.output.value ?? '')}</div>
+          {cur && (
+            <div className="small" aria-label="Current answer">
+              <span className="muted">Current answer:</span> {cur.status === 'answered' ? (cur.display ?? String(cur.value ?? '')) : cur.status === 'na' ? 'Not applicable' : cur.status === 'not_yet_in_place' ? `Not yet in place${cur.display ? ` (${cur.display})` : ''}` : cur.status}
+              {' '}<Badge tone={cur.verified ? 'success' : 'muted'}>{cur.verified ? 'Verified' : cur.side === 'futran' ? 'Recorded by an auditor' : 'Client answer'}</Badge>
+            </div>
+          )}
           {i.citations.map((c, n) => <Quote key={n} c={c} />)}
           {draft && <div className="cp-draft"><span className="small muted">Suggested draft finding ({draft.severity}):</span> {draft.title}</div>}
           {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
+          {open && guarded && (
+            <label className="small row" style={{ gap: 6, alignItems: 'center' }}>
+              <input type="checkbox" checked={replace} onChange={(e) => setReplace(e.target.checked)} />
+              {cur?.verified ? 'Replace the verified answer (its verification is cleared)' : 'Replace the answer an auditor recorded'}
+            </label>
+          )}
           {open && (
             <div className="row cp-actions">
               {draft ? <>
-                <Button variant="primary" disabled={busy} onClick={() => accept({})}>Accept answer</Button>
-                <Button disabled={busy} onClick={() => accept({ create_finding: true })}>Accept answer + create draft finding</Button>
-              </> : <Button variant="primary" disabled={busy} onClick={() => accept({})}>Accept</Button>}
-              <Button disabled={busy} onClick={() => setEditing(true)}>Edit</Button>
+                <Button variant="primary" disabled={busy || blocked} onClick={() => accept({})}>Accept answer</Button>
+                <Button disabled={busy || blocked} onClick={() => accept({ create_finding: true })}>Accept answer + create draft finding</Button>
+              </> : <Button variant="primary" disabled={busy || blocked} onClick={() => accept({})}>Accept</Button>}
+              <Button disabled={busy || blocked} onClick={() => setEditing(true)}>Edit</Button>
               <Button variant="danger" disabled={busy} onClick={() => setRejecting(true)}>Reject</Button>
             </div>
           )}
@@ -139,7 +157,7 @@ function SuggestionCard({ i, locked, onChanged }: { i: Interaction; locked: bool
         </>
       )}
       {i.reason && <div className="small muted">Reason: {i.reason}</div>}
-      {editing && <EditDialog i={i} onClose={() => setEditing(false)} onSave={async (b) => { await api.post(`/ai/interactions/${i.id}/accept`, b); onChanged(); }} />}
+      {editing && <EditDialog i={i} onClose={() => setEditing(false)} onSave={async (b) => { await api.post(`/ai/interactions/${i.id}/accept`, withOverride(b)); onChanged(); }} />}
       {rejecting && <RejectDialog title={`Reject the suggestion for ${i.target_code}`} onClose={() => setRejecting(false)} onReject={async (reason) => { await api.post(`/ai/interactions/${i.id}/reject`, { reason }); onChanged(); }} />}
       {requesting && <EvidenceRequestDialog i={i} onClose={() => setRequesting(false)} onDone={onChanged} />}
     </article>
@@ -151,7 +169,7 @@ export function CopilotSuggestions({ systemId, section, title, locked, onAnswers
   const qc = useQueryClient();
   const key = ['copilot', systemId, section];
   const q = useQuery({ queryKey: key, queryFn: () => api.get<CopilotPanel>(`/systems/${systemId}/copilot?section=${encodeURIComponent(section)}`) });
-  const { busy, msg, run } = useBusy();
+  const { busy, msg, setMsg, run } = useBusy();
   if (!q.data) return q.error ? <Alert tone="danger">{errorMessage(q.error)}</Alert> : null;
   const d = q.data;
   const changed = () => { qc.invalidateQueries({ queryKey: ['copilot', systemId] }); onAnswersChanged(); };
@@ -161,7 +179,12 @@ export function CopilotSuggestions({ systemId, section, title, locked, onAnswers
     <Card className="cp-panel" title={`Copilot suggestions: §${section} ${title}`}
       actions={<div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
         {!locked && <Button disabled={busy || docs.length === 0} onClick={() => run(async () => { await api.post(`/systems/${systemId}/copilot/prefill`, { sub_section: section }); changed(); })}>{busy ? 'Reading documents…' : d.suggestions.length ? 'Read the documents again' : 'Suggest answers from documents'}</Button>}
-        {!locked && high.length > 0 && <Button variant="primary" disabled={busy} onClick={() => run(async () => { const r = await api.post<{ accepted: number }>(`/systems/${systemId}/copilot/accept-high`, { ids: high.map((h) => h.id) }); changed(); return r; }, `${high.length} high-confidence suggestion${high.length === 1 ? '' : 's'} accepted. Each acceptance is logged; verify the answers as usual.`)}>Accept all high-confidence ({high.length})</Button>}
+        {!locked && high.length > 0 && <Button variant="primary" disabled={busy} onClick={() => run(async () => {
+          const r = await api.post<{ accepted: number; skipped: string[] }>(`/systems/${systemId}/copilot/accept-high`, { ids: high.map((h) => h.id) });
+          changed();
+          const kept = r.skipped?.length ? ` ${r.skipped.join(', ')} kept ${r.skipped.length === 1 ? 'its' : 'their'} current answer${r.skipped.length === 1 ? '' : 's'}, which ${r.skipped.length === 1 ? 'is' : 'are'} verified or recorded by an auditor; accept ${r.skipped.length === 1 ? 'it' : 'them'} one at a time to replace.` : '';
+          setMsg({ tone: 'success', text: `${r.accepted} high-confidence suggestion${r.accepted === 1 ? '' : 's'} accepted. Each acceptance is logged; verify the answers as usual.${kept}` });
+        })}>Accept all high-confidence ({high.length})</Button>}
       </div>}>
       <p className="small muted" style={{ marginTop: 0 }} title={H.documents}>
         Read from {docs.length} uploaded document{docs.length === 1 ? '' : 's'} · nothing is saved until you accept · every action is logged

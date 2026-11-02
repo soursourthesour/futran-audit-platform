@@ -141,3 +141,57 @@ def test_an_answer_hidden_in_a_term_meaning_is_replaced(client, db, ai_sys):
     assert d["terms"] and all("answer is" not in t["meaning"].lower() for t in d["terms"])
     row = db.scalar(select(AIInteraction).where(AIInteraction.feature == "explain"))
     assert row.status == "rejected" and row.output["proposed_an_answer"] is True
+
+
+# ---- G3: accepting a suggestion never silently replaces the auditor's answer
+def _opts(db, code):
+    return [str(o["value"]) for o in db.scalar(select(Question).where(Question.code == code)).options or []]
+
+
+def _response(db, w, code):
+    db.expire_all()
+    return db.scalar(select(Response).join(Question, Question.id == Response.question_id).where(Response.ai_system_id == w.s.id, Question.code == code))
+
+
+def test_accepting_does_not_replace_a_verified_or_different_auditor_answer(client, db, ai_sys):
+    w = ai_sys
+    enable_ai(client, db, w)
+    upload_docs(client, db, w)
+    login_as(client, db, w.people["aud"])
+    other = [o for o in _opts(db, "6.1.01") if o != "mlops"][0]
+    person = {"source_person_name": "Jane Roe", "source_person_title": "Head of Data Science"}
+    assert client.put(f"/api/v1/systems/{w.s.id}/responses/6.1.01", json={"status": "answered", "value": other, "verified": True} | person).status_code == 200
+    yn = [o for o in _opts(db, "6.1.02") if o in ("yes", "no")]
+    assert client.put(f"/api/v1/systems/{w.s.id}/responses/6.1.02", json={"status": "answered", "value": yn[0]} | person).status_code == 200  # unverified Futran answer
+    s = _prefill(client, w, [_one(), _one(code="6.1.02", answer=yn[1], quote="Validation is performed by the model owner before each release.", page=3)])
+    a, b = s["6.1.01"], s["6.1.02"]
+    # the card shows what is there now
+    assert a["current"]["value"] == other and a["current"]["verified"] is True and a["current"]["display"]
+    assert b["current"]["value"] == yn[0] and b["current"]["verified"] is False
+    panel = {x["target_code"]: x for x in client.get(f"/api/v1/systems/{w.s.id}/copilot?section=6.1").json()["suggestions"]}
+    assert panel["6.1.01"]["current"]["verified"] is True and panel["6.1.03"]["current"] is None
+    # accept all high-confidence skips both
+    r = client.post(f"/api/v1/systems/{w.s.id}/copilot/accept-high", json={"ids": [a["id"], b["id"]]})
+    assert r.status_code == 200 and r.json()["accepted"] == 0 and sorted(r.json()["skipped"]) == ["6.1.01", "6.1.02"]
+    resp = _response(db, w, "6.1.01")
+    assert resp.value == other and resp.verified_at is not None and resp.source == "auditor"
+    # a single accept needs an explicit override
+    r = client.post(f"/api/v1/ai/interactions/{a['id']}/accept", json={})
+    assert r.status_code == 409 and "verified" in r.json()["detail"]
+    assert client.post(f"/api/v1/ai/interactions/{b['id']}/accept", json={}).status_code == 409
+    assert _response(db, w, "6.1.01").verified_at is not None
+    r = client.post(f"/api/v1/ai/interactions/{a['id']}/accept", json={"override": True})
+    assert r.status_code == 200, r.text
+    resp = _response(db, w, "6.1.01")
+    assert resp.value == "mlops" and resp.verified_at is None and resp.source == "ai_suggested_accepted"
+
+
+def test_accept_high_still_accepts_where_the_answer_is_the_same_or_empty(client, db, ai_sys):
+    w = ai_sys
+    enable_ai(client, db, w)
+    upload_docs(client, db, w)
+    login_as(client, db, w.people["aud"])
+    assert client.put(f"/api/v1/systems/{w.s.id}/responses/6.1.01", json={"status": "answered", "value": "mlops"}).status_code == 200
+    a = _prefill(client, w, [_one()])["6.1.01"]
+    r = client.post(f"/api/v1/systems/{w.s.id}/copilot/accept-high", json={"ids": [a["id"]]})
+    assert r.json()["accepted"] == 1 and r.json()["skipped"] == []
