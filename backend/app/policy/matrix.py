@@ -396,6 +396,21 @@ for _role, _grants in _WS_L.items():
     MATRIX.setdefault(_role, {}).update(_grants)
 
 
+# ---- wave 3 WS-G: AI copilot (F1), obligations (F5), questionnaires (F10). The Lead Auditor is the engagement's Chief
+# Auditor. QA reads the AI log; clients never see Futran's copilot. The Legal/Compliance Reviewer approves obligations
+# from their own queue (they hold no other regulatory-master permission).
+_WS_G: dict[R, dict[A, S]] = {
+    R.CHIEF_AUDITOR: {A.MANAGE_AI_FEATURES: S.ALL, A.USE_COPILOT: S.ALL, A.VIEW_AI_LOG: S.ALL, A.EXTRACT_OBLIGATIONS: S.ALL, A.APPROVE_OBLIGATIONS: S.ALL},
+    R.AUDITOR: {A.USE_COPILOT: S.ASSIGNED},
+    R.QA_REVIEWER: {A.VIEW_AI_LOG: S.ASSIGNED},
+    R.LEGAL_REVIEWER: {A.EXTRACT_OBLIGATIONS: S.ALL, A.APPROVE_OBLIGATIONS: S.ALL},
+    R.CAICO: {A.USE_QUESTIONNAIRES: S.ORG},
+    R.CLIENT_ADMIN: {A.USE_QUESTIONNAIRES: S.ORG},
+}
+for _role, _grants in _WS_G.items():
+    MATRIX.setdefault(_role, {}).update(_grants)
+
+
 def actions_for(roles: set[str]) -> list[str]:
     """Every action any of `roles` holds at some scope (the union for a person with several roles)."""
     out: set[str] = set()

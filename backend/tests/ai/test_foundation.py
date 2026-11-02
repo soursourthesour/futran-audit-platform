@@ -79,3 +79,13 @@ def test_fake_returns_canned_replies_and_records_calls():
     assert r.data == {"answer": "From the canned reply."} and r.provider == "fake" and fake.calls[0]["task"] == "ask"
     fn = FakeAIClient(replies={"ask": lambda ctx: {"answer": ctx["question"].upper()}})
     assert fn.complete(task="ask", system="s", prompt="p", schema=SCHEMA, context={"question": "why"}).data == {"answer": "WHY"}
+
+
+def test_auto_uses_the_fake_only_in_test_mode_without_a_key():
+    from app.ai.client import AnthropicAIClient, FakeAIClient, client_for
+
+    demo = Settings(secret_key="x" * 40, ai_client="auto", mfa_required=False, email_mode="outbox")
+    assert isinstance(client_for(NS(), demo), FakeAIClient)
+    assert isinstance(client_for(NS(), demo.model_copy(update={"anthropic_api_key": "k"})), AnthropicAIClient)
+    live = Settings(secret_key="x" * 40, ai_client="auto", mfa_required=True, email_mode="smtp")
+    assert client_for(NS(), live) is None

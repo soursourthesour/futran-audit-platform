@@ -93,8 +93,8 @@ class FakeAIClient:
 
 
 def client_for(app_state, settings: Settings) -> AIClient | None:
-    """An injected factory (pytest), the fake (AI_CLIENT=fake: demo and browser tests), else Anthropic when a key is set.
-    None when no model is available."""
+    """An injected factory (pytest), the fake (AI_CLIENT=fake: demo and browser tests), else Anthropic when a key is set,
+    else (AI_CLIENT=auto in test mode) the fake. None when no model is available. The fake's rows record provider "fake"."""
     factory = getattr(app_state, "ai_client_factory", None) if app_state is not None else None
     if factory is not None:
         return factory(settings)
@@ -102,4 +102,6 @@ def client_for(app_state, settings: Settings) -> AIClient | None:
         return FakeAIClient()
     if settings.anthropic_api_key:
         return AnthropicAIClient(settings)
+    if settings.ai_client == "auto" and settings.test_mode:  # the demo laptop with no key: the demonstration model
+        return FakeAIClient()
     return None

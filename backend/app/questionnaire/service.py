@@ -256,7 +256,7 @@ def save_response(db: Session, actor: User, t: Target, code: str, body: dict, fu
         changed = (r.value, r.status, r.na_reason) != (value, status, na_reason)
         r.value, r.status, r.na_reason, r.detail, r.evidence_ids = value, status, na_reason, detail, evidence
         r.source_person_name, r.source_person_title = src_name, src_title
-        r.answered_by, r.answered_side, r.answered_at = actor.id, "futran", now
+        r.answered_by, r.answered_side, r.answered_at, r.source = actor.id, "futran", now, "auditor"
         if verified:
             r.verified_by, r.verified_at = actor.id, now
         elif changed:
@@ -266,7 +266,7 @@ def save_response(db: Session, actor: User, t: Target, code: str, body: dict, fu
         r.client_answered_by, r.client_answered_at = actor.id, now
         if r.answered_side != "futran" and r.verified_at is None:  # the client's answer stands until Futran records its own
             r.value, r.status, r.na_reason, r.detail, r.evidence_ids = value, status, na_reason, detail, evidence
-            r.answered_by, r.answered_side, r.answered_at = actor.id, "client", now
+            r.answered_by, r.answered_side, r.answered_at, r.source = actor.id, "client", now, "client"
     r.updated_by = actor.id
     db.flush()
     db.add(ResponseVersion(organization_id=r.organization_id, response_id=r.id, side="futran" if futran else "client", value=value, detail=detail, status=status, na_reason=na_reason,

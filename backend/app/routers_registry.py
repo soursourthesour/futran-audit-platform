@@ -30,3 +30,6 @@ ROUTER_MODULES += ["comments.router", "publicapi.admin_router", "tracing.agents_
 
 # Wave 3 WS-H: regulatory change alerts (screen 26) and new AI project impact assessment (screen 28)
 ROUTER_MODULES += ["impact.router", "regupdates.router"]
+
+# wave 3 WS-G: AI copilot and the engagement AI switch (F1, screen 25)
+ROUTER_MODULES += ["ai.router", "ai.explain_router", "ai.obligations_router", "ai.questionnaires_router"]

@@ -23,7 +23,9 @@ class Settings(BaseSettings):
     anthropic_api_key: str | None = None
     claude_model: str = "claude-sonnet-5-5"
     claude_web_search_tool: str = "web_search_20250305"
-    ai_client: str = "anthropic"  # anthropic | fake (demo and browser tests); the copilot, obligations and questionnaires (§21)
+    # the copilot, obligations and questionnaires (§21): auto (Anthropic when a key is set, the in-process demonstration
+    # model in test mode, else off), anthropic, or fake (demo and browser tests)
+    ai_client: str = "auto"
     ai_model: str | None = None  # blank: CLAUDE_MODEL
     refresh_client: str = "anthropic"  # anthropic | fake (demo and browser tests; never calls the network)
     refresh_max_searches: int = 8  # web searches per jurisdiction
