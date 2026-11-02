@@ -100,10 +100,10 @@ def _domain_of(address: str | None) -> str | None:
 
 
 def own_domains(db: Session, org: Organization, mailbox: str | None) -> set[str]:
-    """The email domains that are the organisation's own: those of its users. For Futran, whose admin runs the
-    platform, the requested sending mailbox's domain counts too. A client's requested mailbox does not count: the
-    Client Admin types it, so it proves nothing."""
-    emails = db.scalars(select(User.email).where(User.organization_id == org.id, User.deleted_at.is_(None), User.status != "disabled"))
+    """The email domains that are the organisation's own: those of its users who have accepted their invitation and
+    signed in. For Futran, whose admin runs the platform, the requested sending mailbox's domain counts too. An invited
+    user's address and a client's requested mailbox do not count: the Client Admin types them, so they prove nothing."""
+    emails = db.scalars(select(User.email).where(User.organization_id == org.id, User.deleted_at.is_(None), User.status == "active"))
     out = {d for d in (_domain_of(e) for e in emails) if d}
     if org.type == "futran" and _domain_of(mailbox):
         out.add(_domain_of(mailbox))

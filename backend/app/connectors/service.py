@@ -72,10 +72,11 @@ def connector(db: Session, org: Organization, ctype: str, create: bool = True) -
 
 
 def own_domains(db: Session, org: Organization) -> set[str]:
-    """The organisation's own email domains: those of its users who have accepted their invitation and signed in. An
-    invited user's address was typed by the Client Admin and proves nothing; nor does anything else typed into a form."""
-    emails = db.scalars(select(User.email).where(User.organization_id == org.id, User.deleted_at.is_(None), User.status == "active"))
-    return {e.rsplit("@", 1)[1].lower() for e in emails if e and "@" in e}
+    """The organisation's own email domains: those of its users who have accepted their invitation and signed in (the
+    email integration's rule). Nothing typed into a form counts."""
+    from app.mail.connections import own_domains as mail_own
+
+    return mail_own(db, org, None)
 
 
 def _may_manage(db: Session, user: User, org: Organization) -> bool:

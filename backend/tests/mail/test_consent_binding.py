@@ -330,3 +330,14 @@ def test_the_admin_consent_callback_sends_the_browser_on_to_the_sign_in(client, 
     cb = client.get(f"/api/v1/mail/oauth/microsoft365?state={_state(url)}&admin_consent=True&tenant=tenant-a", follow_redirects=False)
     assert cb.status_code == 302 and cb.headers["location"].startswith("https://login.microsoftonline.com/organizations/oauth2/v2.0/authorize?")
 
+
+def test_invited_users_who_never_signed_in_do_not_make_a_domain_the_organisations(db, settings):
+    a, admin = _client_a(db)
+    make_user(db, a, roles=["contributor"], email="plant@clientb.com", status="invited")
+    assert cx.own_domains(db, a, None) == {"clienta.com"}
+    FAKE.add_tenant("fake-tenant-b", ["clientb.com"])
+    conn = cx.org_connection(db, a, create=True)
+    url = cx.start_consent(db, settings, admin, conn, provider="microsoft365", kind="admin")
+    with pytest.raises(AppError):
+        cx.complete_consent(db, settings, "microsoft365", {"state": _state(url), "admin_consent": "True", "tenant": "fake-tenant-b", "mailbox": "ai@clientb.com"})
+    assert conn.status != "connected"
