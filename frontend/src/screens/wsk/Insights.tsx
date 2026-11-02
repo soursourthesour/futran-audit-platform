@@ -33,10 +33,9 @@ export function Insights() {
           <Card title={chief ? 'Practice view: most common findings' : 'Practice view: most common findings across clients'}>
             {practice.isLoading ? <Loading /> : practice.error ? <Alert tone="danger">{errorMessage(practice.error)}</Alert> : practice.data && (
               practice.data.themes.length === 0 ? <EmptyState>{practice.data.note ?? 'No findings to show yet.'}</EmptyState> : (
-                <div className="table-wrap"><table className="table">
-                  <thead><tr><th>Finding</th><th className="num">Clients</th><th>Service</th></tr></thead>
-                  <tbody>{practice.data.themes.map((t) => <tr key={t.code}><td>{t.label}</td><td className="num">{t.clients} of {practice.data.clients}</td><td className="small">{t.service}</td></tr>)}</tbody>
-                </table></div>
+                <ul className="data-list">{practice.data.themes.map((t) => (
+                  <li key={t.code}><div><strong>{t.label}</strong><div className="small muted">Service: {t.service}</div></div><span className="small">{t.clients} of {practice.data!.clients} clients</span></li>
+                ))}</ul>
               )
             )}
             <p className="small muted" style={{ margin: 0 }}>Counts only clients who consented to benchmarking. Client names and scores are never shown in this view.</p>

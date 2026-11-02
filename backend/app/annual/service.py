@@ -102,6 +102,8 @@ def _label(q: Question, value, status: str) -> str:
     if value in (None, "", []):
         return "Not answered"
     labels = {str(o["value"]): o["label"] for o in q.options or []}
+    if isinstance(value, dict):  # a person (name and title) or another structured answer
+        return ", ".join(str(v) for v in value.values() if v not in (None, "")) or "Not answered"
     if isinstance(value, list):
         return ", ".join(labels.get(str(v), str(v)) for v in value)
     return labels.get(str(value), str(value))
@@ -110,7 +112,9 @@ def _label(q: Question, value, status: str) -> str:
 def carried_items(db: Session, e: Engagement, *, system_ids: set[str] | None = None, changed_only: bool = False) -> dict:
     rows = db.execute(select(CarriedAnswer, Response, Question).join(Response, Response.id == CarriedAnswer.response_id).join(Question, Question.id == Response.question_id)
                       .where(CarriedAnswer.engagement_id == e.id, CarriedAnswer.deleted_at.is_(None)).order_by(Response.ai_system_id, Question.order)).all()
-    names = {s.id: f"{s.reference_id} {s.name}" for s in db.scalars(select(AISystem).where(AISystem.engagement_id == e.id))}
+    systems = {s.id: s for s in db.scalars(select(AISystem).where(AISystem.engagement_id == e.id))}
+    names = {k: f"{s.reference_id} {s.name}" for k, s in systems.items()}
+    rows = sorted(rows, key=lambda x: (systems[x[1].ai_system_id].reference_id if x[1].ai_system_id in systems else "", x[2].order))  # organization-wide first, then by system
     items, counts = [], {"total": 0, "pending": 0, "confirmed": 0, "changed": 0}
     for ca, r, q in rows:
         if system_ids is not None and r.ai_system_id is not None and r.ai_system_id not in system_ids:
