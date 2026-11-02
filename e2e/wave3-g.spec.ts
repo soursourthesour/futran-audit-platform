@@ -64,6 +64,8 @@ async function shoot(page: Page, name: string, phone = true) {
   await page.setViewportSize({ width: 1280, height: 900 });
 }
 
+const slow = { timeout: 30_000 };  // model calls and refetches on a loaded test machine
+
 test.describe.serial('AI copilot, obligations and questionnaires', () => {
   let systemId = '';
   let engagementId = '';
@@ -73,13 +75,13 @@ test.describe.serial('AI copilot, obligations and questionnaires', () => {
     const { meridian } = late();
     await page.goto(`/clients/${meridian}`);
     const card = page.getByRole('heading', { name: 'AI features' }).locator('xpath=ancestor::section[contains(@class,"card")][1]');
-    await expect(card.getByText('Off', { exact: true })).toBeVisible();
+    await expect(card.getByText('Off', { exact: true })).toBeVisible(slow);
     await card.getByRole('button', { name: 'Turn on AI features' }).click();
     await card.getByRole('button', { name: 'Turn on', exact: true }).click();
     await expect(card.getByText(/Record where the client consented/)).toBeVisible();  // the consent note is required
     await card.getByLabel('Where the client consented', { exact: true }).fill('Engagement letter clause 11.3, signed by Katrin Vogel.');
     await card.getByRole('button', { name: 'Turn on', exact: true }).click();
-    await expect(card.getByText('On', { exact: true })).toBeVisible();
+    await expect(card.getByText('On', { exact: true })).toBeVisible(slow);
     await shoot(page, 'client-page-ai-switch', false);
     const page_ = await api(page, 'GET', `/clients/${meridian}`);
     engagementId = page_.engagement.id;
@@ -97,27 +99,31 @@ test.describe.serial('AI copilot, obligations and questionnaires', () => {
     await page.goto(`/systems/${systemId}/assess`);
     await page.getByRole('button', { name: /§6\.1 Model development/ }).click();
     const panel = page.locator('.cp-panel');
-    await expect(panel.getByText('Copilot suggestions: §6.1 Model development process')).toBeVisible();
+    await expect(panel.getByText('Copilot suggestions: §6.1 Model development process')).toBeVisible(slow);
     await panel.getByRole('button', { name: 'Suggest answers from documents' }).click();
     const method = page.getByRole('article', { name: 'Suggestion for 6.1.01' });
-    await expect(method.getByText('MLOps pipeline', { exact: true })).toBeVisible();
-    await expect(method.getByText(/All credit models are developed and deployed through the MLOps pipeline/)).toBeVisible();
-    await expect(method.getByText(/Model_Risk_Management_Standard_v3\.txt · page 1/)).toBeVisible();
-    await expect(page.getByRole('article', { name: 'Suggestion for 6.1.07' }).getByText('Unsupported')).toBeVisible();
+    await expect(method.getByText('MLOps pipeline', { exact: true })).toBeVisible(slow);
+    await expect(method.getByText(/All credit models are developed and deployed through the MLOps pipeline/)).toBeVisible(slow);
+    await expect(method.getByText(/Model_Risk_Management_Standard_v3\.txt · page 1/)).toBeVisible(slow);
+    await expect(page.getByRole('article', { name: 'Suggestion for 6.1.07' }).getByText('Unsupported', { exact: true })).toBeVisible(slow);
     await shoot(page, 'screen25-copilot-suggestions');
     // reject one with a reason, accept all high-confidence, route an unsupported one to the interview list
     const tuning = page.getByRole('article', { name: 'Suggestion for 6.1.05' });
     await tuning.getByRole('button', { name: 'Reject' }).click();
     await page.getByRole('dialog').getByLabel('Reason', { exact: true }).fill('Confirmed in interview: tuning changed in version 4.2.');
     await page.getByRole('dialog').getByRole('button', { name: 'Reject' }).click();
-    await expect(tuning.getByText(/Rejected/)).toBeVisible();
+    await expect(tuning.getByText(/Rejected/)).toBeVisible(slow);
     await panel.getByRole('button', { name: /Accept all high-confidence \(\d+\)/ }).click();
-    await expect(panel.getByText(/high-confidence suggestions? accepted/)).toBeVisible();
-    await expect(method.getByText(/Accepted · /)).toBeVisible();
+    await expect(panel.getByText(/high-confidence suggestions? accepted/)).toBeVisible(slow);
+    await expect(method.getByText(/Accepted · /)).toBeVisible(slow);
     await page.getByRole('article', { name: 'Suggestion for 6.1.07' }).getByRole('button', { name: 'Add to interview list' }).click();
-    await expect(page.getByRole('article', { name: 'Suggestion for 6.1.07' }).getByText('On the interview list')).toBeVisible();
+    await expect(page.getByRole('article', { name: 'Suggestion for 6.1.07' }).getByText('On the interview list')).toBeVisible(slow);
     // the accepted answer is the auditor's own, unverified, with the citation
-    await expect(page.getByText(/Copilot citation: Model_Risk_Management_Standard_v3\.txt/).first()).toBeVisible();
+    const a = await api(page, 'GET', `/systems/${systemId}/assessment`);
+    const q01 = a.questions.find((q: { code: string }) => q.code === '6.1.01').response;
+    expect(q01.value).toBe('mlops');
+    expect(q01.verified).toBe(false);
+    expect(q01.detail).toContain('Copilot citation: Model_Risk_Management_Standard_v3.txt');
   });
 
   test('completeness review, ask the copilot, and the AI log', async ({ page }) => {
@@ -125,28 +131,29 @@ test.describe.serial('AI copilot, obligations and questionnaires', () => {
     await page.goto(`/systems/${systemId}/assess`);
     await page.getByRole('button', { name: /Copilot review/ }).click();
     await page.getByRole('button', { name: 'Run completeness review' }).click();
-    await expect(page.getByText('8.2.05 · contradiction')).toBeVisible();
-    await expect(page.getByText(/Drift monitoring for the credit scorecard runs monthly/).first()).toBeVisible();
+    await expect(page.getByText('8.2.05 · contradiction')).toBeVisible(slow);
+    await expect(page.getByText(/Drift monitoring for the credit scorecard runs monthly/).first()).toBeVisible(slow);
     await page.getByLabel('Question', { exact: true }).fill('Who validates the credit scorecard before release, and is that validation independent?');
     await page.getByRole('button', { name: 'Ask a question' }).click();
-    await expect(page.getByText(/Validation is performed by the model owner/).first()).toBeVisible();
+    await expect(page.getByText(/Validation is performed by the model owner/).first()).toBeVisible(slow);
     await shoot(page, 'screen25-completeness-and-ask');
     await expect(page.getByRole('link', { name: 'view AI interaction log' })).toHaveCount(0);  // the auditor does not read the log
     await signIn(page, 'chief@futran.demo', true);
     await page.goto(`/engagements/${engagementId}/ai-log`);
-    await expect(page.getByRole('heading', { name: 'AI interaction log' })).toBeVisible();
-    await expect(page.getByRole('cell', { name: 'Document pre-fill' }).first()).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'AI interaction log' })).toBeVisible(slow);
+    await expect(page.getByRole('cell', { name: 'Document pre-fill' }).first()).toBeVisible(slow);
     await shoot(page, 'ai-interaction-log', false);
   });
 
   test('the client sees "Explain this question" and never the copilot', async ({ page }) => {
     await signIn(page, `katrin.vogel@${MERIDIAN}`, false);
+    if (!systemId) systemId = (await api(page, 'GET', '/me/systems')).systems.find((s: { name: string }) => s.name === 'Credit risk scoring model').id;
     await page.goto(`/systems/${systemId}`);
     await page.getByRole('button', { name: /§7\.1/ }).click();
     await expect(page.locator('.cp-panel')).toHaveCount(0);
     await page.getByRole('button', { name: 'Explain this question' }).nth(1).click();
-    await expect(page.getByRole('note')).toContainText('This question asks about');
-    await expect(page.getByRole('note')).toContainText('Human oversight');
+    await expect(page.locator('.ai-explain [role=note]')).toContainText('This question asks', slow);
+    await expect(page.locator('.ai-explain [role=note]')).toContainText('Human oversight', slow);
     await shoot(page, 'client-explain-this-question');
   });
 
@@ -156,12 +163,12 @@ test.describe.serial('AI copilot, obligations and questionnaires', () => {
     const ll144 = laws.groups.flatMap((g: { laws: { id: string; short_name: string }[] }) => g.laws).find((l: { short_name: string }) => /144/.test(l.short_name));
     await page.goto(`/reg/${ll144.id}`);
     await page.getByRole('button', { name: 'Extract obligations' }).click();
-    await expect(page.getByText(/obligations? proposed/)).toBeVisible();
+    await expect(page.getByText(/obligations? proposed/)).toBeVisible(slow);
     const grid = page.getByRole('table', { name: 'Proposed obligations' });
     await grid.getByRole('button', { name: /Actions for|More actions|⋯/ }).first().click();
     await page.getByRole('menuitem', { name: 'Approve' }).click();
     await page.getByRole('dialog').getByRole('button', { name: 'Approve' }).click();
-    await expect(page.getByText(/Approved by Cara|Approved by/).first()).toBeVisible();
+    await expect(page.getByText(/Approved by Cara|Approved by/).first()).toBeVisible(slow);
     await shoot(page, 'law-record-obligations', false);
   });
 
@@ -179,13 +186,13 @@ test.describe.serial('AI copilot, obligations and questionnaires', () => {
     await page.getByLabel('Questionnaire file', { exact: true }).setInputFiles({ name: 'Northwind_AI_DDQ.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: xlsx });
     await page.getByLabel('Customer', { exact: true }).fill('Northwind Bank');
     await page.getByRole('button', { name: 'Upload and find questions' }).click();
-    await expect(page.getByRole('heading', { level: 1 })).toContainText('Northwind');
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Northwind', slow);
     await page.getByRole('button', { name: 'Draft answers' }).click();
-    await expect(page.getByText('Draft to review').first()).toBeVisible();
+    await expect(page.getByText('Draft to review').first()).toBeVisible(slow);
     await noSidewaysScroll(page, 'questionnaire detail');
     await page.getByRole('button', { name: 'Approve', exact: true }).first().click();
-    await expect(page.getByText('Approved', { exact: true }).first()).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Export XLSX' })).toBeVisible();
+    await expect(page.getByText('Approved', { exact: true }).first()).toBeVisible(slow);
+    await expect(page.getByRole('link', { name: 'Export XLSX' })).toBeVisible(slow);
     await shoot(page, 'client-questionnaire');
   });
 });

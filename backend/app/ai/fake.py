@@ -187,7 +187,7 @@ def summary(ctx: dict) -> dict:
 
 def explain(ctx: dict) -> dict:
     q = ctx.get("question") or {}
-    text = (f"This question asks about {q.get('label', '').rstrip('?').lower()}. " + (q.get("help") or "") +
+    text = (f"This question asks: \"{q.get('label', '')}\" " + (q.get("help") or "") +
             " The auditor asks it to understand how this part of the AI system is run in practice. Answer from what your team actually does, and say who gave the answer;"
             " if you are unsure, say so rather than guessing.")
     return {"explanation": " ".join(text.split()), "terms": [{"term": t["term"], "meaning": t["meaning"]} for t in ctx.get("glossary") or []]}

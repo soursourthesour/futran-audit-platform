@@ -24,7 +24,7 @@ def test_fake_explain_never_suggests_an_answer():
     out = answer("explain", {"question": {"label": "Can a human override the AI?", "help": "Whether a person can change the outcome."},
                              "glossary": [{"term": "Human oversight", "meaning": "A person reviews and can change the outcome."}]})
     text = out["explanation"].lower()
-    assert "human override" in text or "override" in text
+    assert "can a human override the ai?" in text
     assert not any(p in text for p in ("you should answer", "the answer is", "choose yes", "choose no", "select "))
     assert out["terms"][0]["term"] == "Human oversight"
 
