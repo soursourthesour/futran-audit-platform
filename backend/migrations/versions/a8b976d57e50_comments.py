@@ -1,7 +1,7 @@
 """comments
 
 Revision ID: a8b976d57e50
-Revises: 715250bf7d9d
+Revises: a812517322b2
 Create Date: 2026-11-02 10:09:22.913739
 """
 from alembic import op
@@ -9,7 +9,7 @@ import sqlalchemy as sa
 
 
 revision = 'a8b976d57e50'
-down_revision = '715250bf7d9d'
+down_revision = 'a812517322b2'
 branch_labels = None
 depends_on = None
 

@@ -27,7 +27,6 @@ export const FUTRAN_NAV: NavEntry[] = [
   { to: '/admin/log', label: 'Email log', requires: ['view_mail_log'] },
   { to: '/admin/settings', label: 'Settings', requires: ['view_platform_settings'] },
   { to: '/insights', label: 'Insights', requires: ['view_benchmarks', 'view_practice_insights'] }, // WS-K screen 34
-
   { to: '/staff/admin/trust', label: 'Platform trust', requires: ['view_platform_trust'] },
   // Wave 3 (spec §21, mockups 25–35) adds one entry each when its screen exists, for example:
   // { to: '/copilot', label: 'Copilot', requires: ['use_copilot'] }, bias calculator 29, heat map 35, benchmarking 34.
@@ -61,7 +60,6 @@ export const CLIENT_NAV: NavEntry[] = [
   { to: '/admin/groups', label: 'Groups', requires: ['view_client_groups'] },
   { to: '/admin/log', label: 'Email log', requires: ['view_mail_log'] },
   { to: '/bias-data', label: 'Bias test data', requires: ['keep_bias_data'] }, // WS-K: keep or delete raw applicant data
-
   { to: '/admin/api', label: 'API and webhooks', requires: ['view_api_clients'] },
   // Wave 3 adds one entry each when its screen exists: policy builder 27, integrations 30, monitoring 31, training 33.
 ];
