@@ -59,7 +59,19 @@ def _ids(db, abc_org_id: str) -> dict:
         # wave 3 WS-L: comments, webhooks and agent decision samples on ABC's data (Futran's SOC 2 controls are Futran's own)
         "comment_id": one(Comment, org(Comment)), "hook_id": one(Webhook, org(Webhook)), "sample_id": one(AgentDecisionSample, org(AgentDecisionSample)),
         ("/admin/api/clients", "client_id"): one(ApiClient, org(ApiClient)), "control_id": one(SocControl, SocControl.organization_id != abc_org_id),
+        **_wsi_ids(db, one, org),
     }
+
+
+def _wsi_ids(db, one, org) -> dict:
+    """Wave 3 WS-I: policies, training assignments and Trust Center items (from app.demo.wave3_i)."""
+    from app.policies.models import PolicyDocument
+    from app.training.models import TrainingAssignment
+    from app.trust.models import TrustCenterItem
+
+    return {"policy_id": one(PolicyDocument, org(PolicyDocument)), ("/trust/items", "item_id"): one(TrustCenterItem, org(TrustCenterItem)),
+            ("/learn", "assignment_id"): one(TrainingAssignment, org(TrainingAssignment)),
+            ("/training/assignments", "assignment_id"): one(TrainingAssignment, org(TrainingAssignment))}
 
 
 def _resolve(ids: dict, path: str, param: str):
