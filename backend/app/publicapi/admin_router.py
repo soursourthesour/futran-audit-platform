@@ -236,7 +236,13 @@ def rotate_hook_secret(hook_id: str, actor: Actor = Depends(current_actor), db: 
 
 @router.post("/admin/api/webhooks/{hook_id}/test")
 def test_hook(hook_id: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
+    from app.core.ratelimit import TooManyRequests, limiter
+
     h = _hook(db, actor, hook_id)
+    try:
+        limiter(request, "webhook_test_send", webhooks.TEST_SENDS_PER_MINUTE).check(h.id)
+    except TooManyRequests:
+        raise TooManyRequests("Too many test deliveries to this webhook. Wait a minute and try again.") from None
     now = utcnow()
     d = webhooks.enqueue(db, h.organization_id, "ping", {"message": "Test delivery from the Futran Audit Platform.", "requested_by": actor.user.name},
                          event_key=f"ping:{now.isoformat()}", hooks=[h])[0]

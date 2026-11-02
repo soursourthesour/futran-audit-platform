@@ -46,6 +46,13 @@ def check_url(url: str, *, offline: bool = False) -> str:
 
     `offline` (WEBHOOK_MODE=fake: nothing is ever sent) accepts the reserved example names without a DNS lookup, so demo
     and test data can use them. Every other rule still applies, and in live mode those names fail to resolve and are refused."""
+    return vet(url, offline=offline)[0]
+
+
+def vet(url: str, *, offline: bool = False) -> tuple[str, list[str]]:
+    """check_url, also returning the public addresses the host resolved to. The sender connects to one of these addresses
+    and never resolves the name again, so a name that changes between the check and the connection (DNS rebinding) cannot
+    reach an internal address. Empty only for a reserved example name in offline mode."""
     try:
         parts = urlsplit((url or "").strip())
         port = parts.port
@@ -66,11 +73,11 @@ def check_url(url: str, *, offline: bool = False) -> str:
         addrs = [str(ipaddress.ip_address(host))]
     except ValueError:
         if offline and host.endswith(RESERVED_SUFFIXES):
-            return host
+            return host, []
         try:
             addrs = resolve_host(host)
         except Unresolvable as exc:
             raise Unresolvable("The host name could not be found.") from exc
     if not addrs or not all(is_public(a) for a in addrs):
         raise Unsafe("The address points to a private network. Webhooks go only to public internet addresses.")
-    return host
+    return host, addrs

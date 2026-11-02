@@ -6,8 +6,10 @@ where hex = HMAC-SHA256(signing secret, "<timestamp>." + raw body). The receiver
 Events are found by a scan that runs every minute with the email tick: sign-offs completed since the hook was added,
 remediation items past their due date, and regulatory updates published to the client. Each event goes to a hook once
 (`event_key` is unique per hook). A failed delivery is tried again after 1 minute, 5 minutes, 30 minutes, 2 hours and
-12 hours, then marked failed. The target is checked again before every attempt (app.publicapi.netguard), redirects are
-not followed, and the request times out after 10 seconds.
+12 hours, then marked failed. The target is checked again before every attempt (app.publicapi.netguard), the connection
+goes to the address that passed the check, redirects are not followed, and the request times out after 10 seconds. The
+delivery log keeps a plain reason for a failure (could not connect, timed out, the receiver's status class), never the
+exception text.
 
 WEBHOOK_MODE: auto (the in-process fake while the platform is in test mode, else live), fake or live. The fake records the
 delivery as sent and never touches the network.
@@ -35,11 +37,27 @@ USER_AGENT = "FutranAuditPlatform-Webhooks/1"
 Sender = Callable[[str, bytes, dict, float], int]
 
 
+TEST_SENDS_PER_MINUTE = 5  # per webhook, from the admin screen
+
+
 def http_sender(url: str, body: bytes, headers: dict, timeout: float) -> int:
+    """Check the target again and connect to the address that passed the check. The name is not resolved a second time,
+    so it cannot be switched to an internal address in between (DNS rebinding). The request still carries the host name
+    (Host header and TLS server name), and the certificate is verified for that name. Environment proxies are not used."""
+    from urllib.parse import urlsplit, urlunsplit
+
     import httpx
 
-    with httpx.Client(follow_redirects=False, timeout=timeout) as c:
-        return c.post(url, content=body, headers=headers).status_code
+    host, addrs = netguard.vet(url)
+    if not addrs:
+        raise netguard.Unresolvable("The host name could not be found.")
+    parts = urlsplit(url.strip())
+    ip = addrs[0]
+    netloc = (f"[{ip}]" if ":" in ip else ip) + (f":{parts.port}" if parts.port else "")
+    pinned = urlunsplit((parts.scheme, netloc, parts.path or "/", parts.query, ""))
+    host_header = (f"[{host}]" if ":" in host else host) + (f":{parts.port}" if parts.port not in (None, 443) else "")
+    with httpx.Client(follow_redirects=False, timeout=timeout, trust_env=False) as c:
+        return c.post(pinned, content=body, headers={**headers, "Host": host_header}, extensions={"sni_hostname": host}).status_code
 
 
 def fake_sender(url: str, body: bytes, headers: dict, timeout: float) -> int:
@@ -183,10 +201,14 @@ def attempt(db: Session, settings, d: WebhookDelivery, now: datetime, sender: Se
         d.last_status_code = code
         ok = 200 <= code < 300
         if not ok:
-            d.last_error = f"The receiver answered {code}." + (" Redirects are not followed." if 300 <= code < 400 else "")
-    except Exception as exc:  # network errors, timeouts
+            d.last_error = status_reason(code)
+    except netguard.Unsafe as exc:  # the sender's own check, just before it connects
+        d.status, d.last_error, d.next_attempt_at = "blocked", f"Not sent: {exc} (private or unknown address)"[:500], None
+        return d
+    except Exception as exc:  # network errors, timeouts: the log keeps the detail, the delivery log a plain reason
         ok = False
-        d.last_error = f"{type(exc).__name__}: {exc}"[:500]
+        d.last_error = error_reason(exc)
+        log.info("Webhook delivery %s failed: %r", d.id, exc)
     h.last_delivery_at = now
     if ok:
         d.status, d.delivered_at, d.next_attempt_at = "delivered", now, None
@@ -195,6 +217,25 @@ def attempt(db: Session, settings, d: WebhookDelivery, now: datetime, sender: Se
     else:
         d.status, d.next_attempt_at = "retrying", now + BACKOFF[d.attempts - 1]
     return d
+
+
+def status_reason(code: int) -> str:
+    if 300 <= code < 400:
+        return "Receiver returned a redirect. Redirects are not followed."
+    if 400 <= code < 500:
+        return "Receiver returned 4xx."
+    if code >= 500:
+        return "Receiver returned 5xx."
+    return "Receiver returned an unexpected status."
+
+
+def error_reason(exc: Exception) -> str:
+    """A plain reason for the delivery log; never the exception text, which can name internal addresses."""
+    import httpx
+
+    if isinstance(exc, (TimeoutError, httpx.TimeoutException)):
+        return "Timed out."
+    return "Could not connect."
 
 
 def deliver_due(db: Session, settings, now: datetime, sender: Sender | None = None, limit: int = 100) -> int:
