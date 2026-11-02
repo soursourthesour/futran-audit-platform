@@ -162,3 +162,27 @@ def test_policies_older_than_12_months_fail(w):
     out = {o.object_id: o for o in _run(w, "policy_older_than_12_months")}
     assert out[old.id].status == "failed" and out[soon.id].status == "attention" and out[fresh.id].status == "healthy"
     assert charter.id not in out and out[old.id].action == "open"
+
+
+@pytest.mark.parametrize("closed", ["completed", "archived"])
+def test_request_new_report_never_reopens_a_closed_engagements_record(w, settings, closed):
+    from app.docrequests.models import DocumentRequest
+    from app.monitoring import service as mon
+    from app.monitoring.models import MonitorResult
+
+    b = _soc2(w, -5)
+    b.received_at = datetime(2026, 2, 1)
+    expires = b.expires_on
+    w.engagement.status = closed  # between audits: the only engagement is the signed one
+    w.db.flush()
+    mon.set_plan(w.db, w.fadmin, w.org, "monitor")
+    run = mon.run(w.db, settings, w.org, "manual", "manual:x")
+    res = w.db.query(MonitorResult).filter_by(run_id=run.id, object_id=b.id).one()
+    with pytest.raises(AppError) as exc:
+        mon.act(w.db, settings, w.caico, w.org, res.id)
+    assert "next" in str(exc.value.detail).lower() and "engagement" in str(exc.value.detail).lower()
+    w.db.refresh(b)
+    assert b.status == "received" and b.received_at == datetime(2026, 2, 1) and b.expires_on == expires
+    assert w.db.query(DocumentRequest).count() == 1
+    w.db.refresh(res)
+    assert res.action_taken is None

@@ -12,6 +12,7 @@ SOC2_WARN_DAYS = 30
 POLICY_MAX_DAYS = 365
 POLICY_WARN_DAYS = 30
 SOC2_CODE = "DR-603"
+NOT_OPEN = ("draft", "pending_approval", "completed", "archived")
 
 
 def _d(v) -> str:
@@ -97,19 +98,32 @@ def _same_system(db, engagement_id: str, old_system_id: str | None) -> str | Non
     return hit.id if hit else None
 
 
+def _open_engagement(db, org):
+    """The client's newest engagement that is under way. A completed or archived engagement's records are signed."""
+    from app.engagements.models import Engagement
+
+    return db.scalar(select(Engagement).where(Engagement.client_id == org.id, Engagement.deleted_at.is_(None), Engagement.status.not_in(NOT_OPEN))
+                     .order_by(Engagement.created_at.desc()).limit(1))
+
+
 def request_new_report(db, settings, user, org, result) -> str:
-    """Ask for the new report on the client's current engagement: a pending document request due in 30 days. The register
-    holds one request per engagement, item and system, so when the current engagement already has this row it is asked
-    again (pending, new due date, expiry cleared) and keeps the earlier report's files."""
+    """Ask for the new report on the client's open engagement: a pending document request due in 30 days. The register
+    holds one request per engagement, item and system, so when the open engagement already has this row it is asked
+    again (pending, new due date, expiry cleared) and keeps the earlier report's files. A completed or archived
+    engagement's register is never changed: with no engagement under way nothing is written, and the person is told the
+    report is requested with the next engagement's documents."""
     from app.audit_log import service as audit
+    from app.core.errors import Conflict
     from app.docrequests.models import DocumentRequest
-    from app.tenancy.people import current_engagement
 
     old = db.get(DocumentRequest, result.object_id)
     if old is None or old.organization_id != org.id:
         raise ValueError("The report this result refers to no longer exists.")
-    e = current_engagement(db, org)
-    eid = e.id if e is not None else old.engagement_id
+    e = _open_engagement(db, org)
+    if e is None:
+        raise Conflict("No engagement is under way, and a completed audit's document register stays as it was signed. Ask the vendor for its current "
+                       "SOC 2 report now; Futran requests it with the documents for your next engagement, and you upload it then.")
+    eid = e.id
     system_id = old.ai_system_id if eid == old.engagement_id else _same_system(db, eid, old.ai_system_id)
     q = select(DocumentRequest).where(DocumentRequest.engagement_id == eid, DocumentRequest.catalog_item_id == old.catalog_item_id, DocumentRequest.deleted_at.is_(None))
     q = q.where(DocumentRequest.ai_system_id.is_(None) if system_id is None else DocumentRequest.ai_system_id == system_id)
