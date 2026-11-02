@@ -193,3 +193,53 @@ def test_agentic_question_set_is_added_once_and_applies_to_agents(db):
     assert not is_applicable(rule, {"3.2.01": ["ml"]}, SystemContext(), facts)
     kill = [q for q in qs if q.label.lower().startswith("kill switch")][0]
     assert evaluate_finding(kill.finding_rule, "no", "answered", {}, SystemContext(agent=True), facts) is not None
+
+
+# ---------------------------------------------------------------- autonomy: the register row and the registration agree
+def _alerted(db, user_id):
+    return len(list(db.scalars(select(Notification).where(Notification.kind == "agent_permissions_changed", Notification.user_id == user_id))))
+
+
+def _reg_log(db, s_id, entity, field):
+    return list(db.scalars(select(ChangeLog).where(ChangeLog.register_system_id == s_id, ChangeLog.entity == entity, ChangeLog.field == field)))
+
+
+def test_autonomy_changed_in_the_registration_is_logged_on_the_register(client, db, trc, eng):
+    trc.as_(trc.caico)
+    client.put(f"{API}/register/{trc.agent.id}/agent", json=REG)
+    assert client.put(f"{API}/register/{trc.agent.id}/agent", json=REG | {"autonomy_level": "autonomous"}).status_code == 200
+    db.expire_all()
+    assert db.get(RegisterSystem, trc.agent.id).autonomy == "autonomous"
+    lines = _reg_log(db, trc.agent.id, "RegisterSystem", "autonomy")
+    assert len(lines) == 1 and lines[0].new_value and "own" in lines[0].new_value
+
+
+def test_autonomy_changed_on_the_register_updates_the_registration_and_alerts(client, db, trc, eng):
+    trc.as_(trc.caico)
+    client.put(f"{API}/register/{trc.agent.id}/agent", json=REG)
+    trc.as_(trc.fin_lead)
+    r = client.patch(f"{API}/register/{trc.agent.id}", json={"autonomy": "autonomous"})
+    assert r.status_code == 200, r.text
+    reg = client.get(f"{API}/register/{trc.agent.id}/agent").json()["registration"]
+    assert reg["autonomy_level"] == "autonomous" and reg["version"] == 2
+    lines = [c for c in _reg_log(db, trc.agent.id, "AgentRegistration", "autonomy_level") if c.reason == "Changed on the register"]
+    assert len(lines) == 1 and lines[0].new_value == "Acts on its own"
+    assert _alerted(db, trc.caico.id) == 1 and _alerted(db, trc.auditor.id) == 1 and _alerted(db, trc.fin_lead.id) == 0
+    client.patch(f"{API}/register/{trc.agent.id}", json={"purpose": "Approves invoices under 2,000 USD"})
+    assert _alerted(db, trc.caico.id) == 1  # other fields are not a permission change
+
+
+def test_autonomy_changed_through_the_public_api_updates_the_registration_and_alerts(client, db, trc, eng):
+    from tests.publicapi.test_publicapi import bearer, make_client, token
+
+    trc.as_(trc.caico)
+    client.put(f"{API}/register/{trc.agent.id}/agent", json=REG)
+    ns = type("W", (), {"as_": trc.as_, "cadmin": trc.admin})
+    t = token(client, make_client(client, ns, scopes=["inventory:write", "inventory:read"]))
+    r = client.patch(f"/api/public/v1/inventory/systems/{trc.agent.id}", headers=bearer(t), json={"autonomy": "suggest_only"})
+    assert r.status_code == 200, r.text
+    db.expire_all()
+    from app.tracing.agents import registration
+
+    assert registration(db, db.get(RegisterSystem, trc.agent.id)).autonomy_level == "suggest_only"
+    assert _alerted(db, trc.caico.id) == 1 and _alerted(db, trc.auditor.id) == 1

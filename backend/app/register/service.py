@@ -379,7 +379,8 @@ def create_system(db: Session, actor: User, org: Organization, data: dict, *, or
     return s
 
 
-def update_system(db: Session, actor: User, s: RegisterSystem, data: dict, *, reason: str | None = None, batch_id: str | None = None, cleaned: dict | None = None) -> dict:
+def update_system(db: Session, actor: User, s: RegisterSystem, data: dict, *, reason: str | None = None, batch_id: str | None = None, cleaned: dict | None = None,
+                  settings=None) -> dict:
     """Apply an edit and log each changed field. Returns {field: (old, new)} of what changed."""
     org = db.get(Organization, s.organization_id)
     v = cleaned if cleaned is not None else clean(db, org, data, current=s)
@@ -395,6 +396,10 @@ def update_system(db: Session, actor: User, s: RegisterSystem, data: dict, *, re
         log_change(db, actor, s, k, old, new, reason, batch_id=batch_id)
     if set(changed) & ENGINE_FACTS or ("stage" in changed and "retired" in changed["stage"]):
         _engine_facts_changed(db, s)
+    if "autonomy" in changed:  # wave 3 WS-L (F14): the agent registration follows, and the change is alerted
+        from app.tracing.agents import register_autonomy_changed
+
+        register_autonomy_changed(db, settings, actor, s, *changed["autonomy"])
     if s.risk_tier != tier_before:
         log_change(db, actor, s, "risk_tier", f"Tier {tier_before}" if tier_before else None, f"Tier {s.risk_tier}", "Recalculated from the system's data and decisions.", batch_id=batch_id, raw=True)
     if changed:

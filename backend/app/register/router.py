@@ -159,12 +159,12 @@ def get_system(system_id: str, actor: Actor = Depends(current_actor), db: Sessio
 
 
 @router.patch("/register/{system_id}")
-def patch_system(system_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+def patch_system(system_id: str, data: dict, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     s = load(db, actor, system_id)
     check(db, actor, Action.EDIT_REGISTER, s)
     check_edit_payload(db, actor, data, s)
     reason = " ".join(str(data.get("reason") or "").split()) or None
-    svc.update_system(db, actor.user, s, {k: v for k, v in data.items() if k != "reason"}, reason=reason)
+    svc.update_system(db, actor.user, s, {k: v for k, v in data.items() if k != "reason"}, reason=reason, settings=request.app.state.settings)
     return system_out(db, s, actor, full=True)
 
 

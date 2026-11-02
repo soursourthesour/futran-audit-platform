@@ -121,8 +121,9 @@ def save(db: Session, settings, actor, s: RegisterSystem, data: dict) -> AgentRe
         return r
     r.version = (r.version or 0) + 1
     r.updated_by = actor.id
-    if s.autonomy != v["autonomy_level"]:
-        s.autonomy = v["autonomy_level"]  # the register row and the registration say the same
+    if s.autonomy != v["autonomy_level"]:  # the register row and the registration say the same
+        old_autonomy, s.autonomy = s.autonomy, v["autonomy_level"]
+        log_change(db, actor.user, s, "autonomy", old_autonomy, s.autonomy, "Changed in the agent registration")
     db.flush()
     for k in changed:
         log_change(db, actor.user, s, CHANGE_FIELDS[k], _display(k, before.get(k)), _display(k, v[k]), "Agent registration" if first else None,
@@ -134,6 +135,24 @@ def save(db: Session, settings, actor, s: RegisterSystem, data: dict) -> AgentRe
     if perm and not first:
         alert_permission_change(db, settings, actor, s, perm)
     return r
+
+
+def register_autonomy_changed(db: Session, settings, user: User, s: RegisterSystem, old: str | None, new: str | None) -> None:
+    """The register row's autonomy was edited (register screen, bulk edit or the public API). The registration follows, with
+    its own change-log line, and the change is alerted like any other change to what the agent may do."""
+    from app.register.service import log_change
+
+    if s.type != "agent" or new is None or old == new:
+        return
+    r = registration(db, s)
+    if r is not None and r.autonomy_level != new:
+        before = r.autonomy_level
+        r.autonomy_level, r.version, r.updated_by = new, (r.version or 0) + 1, user.id
+        db.flush()
+        log_change(db, user, s, CHANGE_FIELDS["autonomy_level"], _display("autonomy_level", before), _display("autonomy_level", new), "Changed on the register",
+                   entity="AgentRegistration", entity_id=r.id, raw=True)
+    if r is not None or old is not None:
+        alert_permission_change(db, settings, user, s, ["autonomy_level"])
 
 
 def _caicos(db: Session, org_id: str) -> list[User]:
@@ -153,11 +172,12 @@ def _audit_team(db: Session, org_id: str) -> list[User]:
 def alert_permission_change(db: Session, settings, actor, s: RegisterSystem, fields: list[str]) -> None:
     from app.notifications.service import notify
 
+    who = getattr(actor, "user", actor)  # an Actor (the agent screen) or a User (register edits, the public API)
     what = ", ".join({"tools": "tools", "permissions": "permissions", "approval_points": "approval points", "autonomy_level": "autonomy", "rate_limits": "rate limits"}[f] for f in fields)
     owner = db.get(User, s.owner_user_id) if s.owner_user_id else None
     client_people = [u for u in [*_caicos(db, s.organization_id), owner] if u is not None and u.id != actor.id]
     title = f"Agent {s.reference} {s.name}: {what} changed"
-    body = f"{actor.user.name} changed what the agent may do. Check the change log and confirm the change was approved."
+    body = f"{who.name} changed what the agent may do. Check the change log and confirm the change was approved."
     notify(db, client_people, "agent_permissions_changed", title, body, f"/register/{s.id}/agent", settings=settings, email_template="notification")
     team = [u for u in _audit_team(db, s.organization_id) if u.id != actor.id]
     notify(db, team, "agent_permissions_changed", f"{title} (client change)", body, f"/clients/{s.organization_id}/agents", settings=settings)

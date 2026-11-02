@@ -129,7 +129,7 @@ def patch_system(system_id: str, data: dict, c: Caller = Depends(caller), db: Se
     s = _own_system(db, c, system_id)
     if s.stage == "retired":
         raise Conflict("A retired system cannot be edited.")
-    reg.update_system(db, c.owner(db), s, _writable(data), reason=f"Through API client {c.client.name}")
+    reg.update_system(db, c.owner(db), s, _writable(data), reason=f"Through API client {c.client.name}", settings=c.request.app.state.settings)
     return _system_out(db, s)
 
 
