@@ -20,6 +20,7 @@ def abc(db, lit):
     p = {
         "org": org, "hr": hr, "cs": cs, "maria": lit["maria"],
         "dana": make_user(db, org, roles=[("dept_compliance_lead", "department", cs.id)], name="Dana Lead", email="dana@abc.test"),
+        "cole": make_user(db, org, roles=[("contributor", "department", cs.id)], name="Cole Contributor", email="cole@abc.test"),
         "hal": make_user(db, org, roles=[("dept_compliance_lead", "department", hr.id)], name="Hal Lead", email="hal@abc.test"),
         "priya": make_user(db, org, roles=["dpo"], name="Priya Privacy", email="priya@abc.test"),
         "ian": make_user(db, org, roles=["client_admin"], name="Ian Admin", email="ian@abc.test"),
@@ -43,7 +44,7 @@ def screener(abc, **kw):
                    jurisdiction_ids=[abc["geo"]["US-NYC"]]) | kw
 
 
-def _submit(client, db, abc, body, who="dana"):
+def _submit(client, db, abc, body, who="cole"):  # a contributor; the department lead reviews
     login_as(client, db, abc[who])
     r = client.post("/api/v1/projects", json=body)
     assert r.status_code == 200, r.text

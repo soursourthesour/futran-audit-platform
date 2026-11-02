@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.audit_log import service as audit
 from app.core.clock import utcnow
-from app.core.errors import Conflict, Invalid, NotFound
+from app.core.errors import Conflict, Forbidden, Invalid, NotFound
 from app.impact.assess import assess
 from app.impact.models import DECISIONS, RECOMMENDATIONS, REVIEW_STEPS, ImpactAssessment, ImpactCondition, ImpactReview
 from app.tenancy.models import Department, Organization, User
@@ -143,7 +143,17 @@ def update(db: Session, actor: User, ia: ImpactAssessment, data: dict) -> Impact
             setattr(ia, k, v[k])
     ia.intake, ia.updated_by = v["intake"], actor.id
     recompute(db, ia)
+    audit.record(db, actor_id=actor.id, action="impact.edit", obj=ia, organization_id=ia.organization_id, summary=f"Edited {ia.reference} {ia.project_name}")
     return ia
+
+
+def preparers(db: Session, ia: ImpactAssessment) -> set[str]:
+    """Everyone who started, edited or submitted the project. None of them may review or decide it (spec §6 rule 2)."""
+    from app.audit_log.models import AuditLog
+
+    ids = {ia.created_by, ia.submitted_by}
+    ids |= set(db.scalars(select(AuditLog.actor_id).where(AuditLog.object_id == ia.id, AuditLog.action.in_(("impact.create", "impact.edit", "impact.submit")))))
+    return {i for i in ids if i}
 
 
 def submit(db: Session, actor: User, ia: ImpactAssessment) -> ImpactAssessment:
@@ -195,6 +205,8 @@ def review(db: Session, actor: User, ia: ImpactAssessment, step: str, recommenda
         raise Invalid(errors=[{"field": "step", "message": "Choose the department or DPO review."}])
     if recommendation not in RECOMMENDATIONS:
         raise Invalid(errors=[{"field": "recommendation", "message": "Choose approve, approve with conditions or reject."}])
+    if actor.id in preparers(db, ia):
+        raise Forbidden("You prepared this project, so another reviewer must review it.")
     comment = " ".join(str(comment or "").split()) or None
     if recommendation != "approve" and not comment:
         raise Invalid(errors=[{"field": "comment", "message": "Say what the conditions are, or why it should be rejected."}])
@@ -221,7 +233,7 @@ def decide(db: Session, actor: User, ia: ImpactAssessment, decision: str, note: 
         raise Conflict("The Department Compliance Lead's review is needed before the decision.")
     if dpo_required(db, ia) and "dpo" not in done:
         raise Conflict("The Data Protection Officer's review is needed before the decision.")
-    assert_not_self_approval(actor.id, ia.submitted_by)
+    assert_not_self_approval(actor.id, *preparers(db, ia))
     errs = []
     if decision not in DECISIONS:
         errs.append({"field": "decision", "message": "Choose approved, approved with conditions or rejected."})

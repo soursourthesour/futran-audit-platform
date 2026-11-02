@@ -9,6 +9,7 @@ const PW = 'Demo-Password-2026';
 const ABC = 'abccorp.example';
 const MARIA = `maria.lopez@${ABC}`;
 const MARCO = `marco.diaz@${ABC}`;
+const OWEN = `owen.hart@${ABC}`;
 const DANIEL = `daniel.kim@${ABC}`;
 const SHOTS = process.env.WSH_SHOTS || '/mnt/user-data/outputs/wave3/ws-h';
 mkdirSync(SHOTS, { recursive: true });
@@ -111,7 +112,7 @@ test('screen 26: a Legal Reviewer drafts, a second reviewer publishes, impact fo
 
 test('screen 28: intake with a live tier, reviews, a conditional approval and the register system it becomes', async ({ page }) => {
   test.setTimeout(240_000);
-  await signIn(page, '/login', MARCO);
+  await signIn(page, '/login', OWEN); // a contributor submits; the department lead reviews (never their own submission)
   await page.goto('/projects/new');
   await expect(page.getByRole('heading', { name: 'New AI project: assess before go-live' })).toBeVisible();
   await page.getByLabel('Project name *', { exact: true }).fill('Website sales assistant');
@@ -135,6 +136,9 @@ test('screen 28: intake with a live tier, reviews, a conditional approval and th
   await page.getByRole('button', { name: 'Submit for review' }).click();
   await expect(page.getByText('Submitted for review.')).toBeVisible();
   const pid = page.url().split('/').pop()!;
+  await expect(page.getByRole('button', { name: 'Record my review' })).toHaveCount(0);
+  await signIn(page, '/login', MARCO);
+  await page.goto(`/projects/${pid}`);
   await page.getByRole('button', { name: 'Record my review' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Record review' }).click();
   await expect(page.getByText('Review recorded.')).toBeVisible();

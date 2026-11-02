@@ -94,8 +94,8 @@ def update_out(db: Session, actor: Actor, u: RegulatoryUpdate) -> dict:
         "status_label": svc.STATUS_LABELS[u.status], "author_name": _name(db, u.created_by), "reviewed_by_name": _name(db, u.reviewed_by), "review_note": u.review_note,
         "published_at": u.published_at.isoformat() if u.published_at else None, "created_at": u.created_at.isoformat(),
         "client_count": len(orgs), "clients": _org_names(db, orgs), "proposed_change_id": u.proposed_change_id, "read_only": False,
-        "can_edit": manage and u.status == "draft", "can_submit": manage and u.status == "draft",
-        "can_review": manage and u.status == "awaiting_review" and actor.id not in {u.created_by, u.submitted_by},
+        "can_edit": manage and u.status == "draft" and actor.id == u.created_by, "can_submit": manage and u.status == "draft",
+        "can_review": manage and u.status == "awaiting_review" and actor.id not in svc.preparers(db, u),
         "can_act": act and u.status == "published" and not u.watch, "can_propose_law_change": act and u.status == "published" and bool(u.regulation_id) and u.change_type in svc.PC_TYPES,
         "can_withdraw": manage and u.status == "published",
     }

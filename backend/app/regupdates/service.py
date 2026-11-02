@@ -116,10 +116,24 @@ def create(db: Session, actor: User, data: dict) -> RegulatoryUpdate:
 def update(db: Session, actor: User, u: RegulatoryUpdate, data: dict) -> RegulatoryUpdate:
     if u.status != "draft":
         raise Conflict("Only a draft can be edited. Ask the reviewer to send it back.")
-    for k, val in clean(db, data, current=u).items():
+    if actor.id != u.created_by:
+        raise Forbidden("Only the author edits a draft. Send your changes to the author, or review it when it is submitted.")
+    changes = clean(db, data, current=u)
+    for k, val in changes.items():
         setattr(u, k, val)
     u.updated_by = actor.id
+    audit.record(db, actor_id=actor.id, action="regupdate.edit", obj=u, organization_id=actor.organization_id, after={"fields": sorted(changes)},
+                 summary=f"Edited regulatory update {u.reference}")
     return u
+
+
+def preparers(db: Session, u: RegulatoryUpdate) -> set[str]:
+    """Everyone who wrote, edited or submitted the update. None of them may review it (spec §6 rule 2)."""
+    from app.audit_log.models import AuditLog
+
+    ids = {u.created_by, u.submitted_by}
+    ids |= set(db.scalars(select(AuditLog.actor_id).where(AuditLog.object_id == u.id, AuditLog.action.in_(("regupdate.create", "regupdate.edit", "regupdate.submit")))))
+    return {i for i in ids if i}
 
 
 def submit(db: Session, actor: User, u: RegulatoryUpdate) -> RegulatoryUpdate:
@@ -146,8 +160,8 @@ def review(db: Session, settings, actor: User, u: RegulatoryUpdate, approve: boo
     """The expert in the loop: a second reviewer publishes or sends back. The author never publishes their own update."""
     if u.status != "awaiting_review":
         raise Conflict("This update is not waiting for review.")
-    if actor.id in {u.created_by, u.submitted_by}:
-        raise Forbidden("You wrote this update, so another reviewer must publish it.")
+    if actor.id in preparers(db, u):
+        raise Forbidden("You wrote, edited or submitted this update, so another reviewer must publish it.")
     note = (note or "").strip() or None
     if not approve and not note:
         raise Invalid(errors=[{"field": "note", "message": "Say what needs to change."}])

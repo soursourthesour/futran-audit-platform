@@ -119,14 +119,16 @@ def projects(m: Demo, cid: str) -> dict:
     d = _depts(m, cid)
     ny, il, ca, nyc = _jur(m, "US-NY"), _jur(m, "US-IL"), _jur(m, "US-CA"), _jur(m, "US-NYC")
     marco, daniel, maria, priya = (m.user(f"{x}@{ABC}") for x in ("marco.diaz", "daniel.kim", "maria.lopez", "priya.shah"))
-    # 1. Approved with conditions: a public sales assistant (Tier 2)
-    m.as_(marco)
+    owen, lee = m.user(f"owen.hart@{ABC}"), m.user(f"lee.park@{ABC}")
+    # 1. Approved with conditions: a public sales assistant (Tier 2), submitted by Sales Operations and reviewed by the department lead
+    m.as_(owen)
     p1 = m.post("/projects", {
         "project_name": "Website sales assistant", "department_id": d["Sales & Marketing"], "tool_or_vendor": "Intercom Fin AI agent", "system_type": "genai_chat_tool",
         "sourcing": "vendor", "planned_go_live": m.d(75), "jurisdiction_ids": [ny, il, ca],
         "purpose": "Answers visitors' questions about products and pricing on the website and passes qualified leads to the sales team. A person takes over on request.",
         "data_categories": ["personal"], "data_subjects": ["customers", "public"], "decision_impact": "informs", "public_facing": True})
     m.post(f"/projects/{p1['id']}/submit")
+    m.as_(marco)
     m.post(f"/projects/{p1['id']}/reviews", {"step": "department", "recommendation": "approve", "comment": "Hand-off to a sales representative on request is configured; answers come from the product catalogue only."})
     m.as_(daniel)
     m.post(f"/projects/{p1['id']}/reviews", {"step": "dpo", "recommendation": "approve_with_conditions",
@@ -138,14 +140,15 @@ def projects(m: Demo, cid: str) -> dict:
                        {"text": "Complete a data protection impact assessment covering chat transcripts and retention", "owner_user_id": daniel.id, "due_on": m.d(45)}]})
     m.as_(marco)
     m.post(f"/projects/{p1['id']}/conditions/{p1['conditions'][0]['id']}/met", {"note": "Notice text approved by Legal on 28 October; shown on the staging site before the first message."})
-    # 2. In review: a Tier 3 interview screening module for New York City and Chicago roles
-    m.as_(priya)
+    # 2. In review: a Tier 3 interview screening module for New York City and Chicago roles, submitted by HR Systems
+    m.as_(lee)
     p2 = m.post("/projects", {
         "project_name": "Interview screening module", "department_id": d["HR"], "tool_or_vendor": "ScreenRank Interview", "system_type": "vendor_app", "sourcing": "vendor",
         "planned_go_live": m.d(120), "jurisdiction_ids": [nyc, il],
         "purpose": "Scores recorded first-round interview answers and ranks candidates for recruiter review for New York City and Chicago roles.",
         "data_categories": ["personal", "sensitive"], "data_subjects": ["candidates"], "decision_impact": "consequential", "public_facing": False})
     m.post(f"/projects/{p2['id']}/submit")
+    m.as_(priya)
     m.post(f"/projects/{p2['id']}/reviews", {"step": "department", "recommendation": "approve_with_conditions",
                                              "comment": "Only with an independent bias audit before it is used for New York City roles, and candidate notices ten business days before use."})
     m.as_(maria)

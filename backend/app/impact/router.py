@@ -86,6 +86,7 @@ def project_out(db: Session, actor: Actor, ia: ImpactAssessment, full: bool = Tr
     a = assess(db, svc._intake_for_assess(db, ia)) if ia.status == "draft" else None
     s = db.get(RegisterSystem, ia.register_system_id) if ia.register_system_id else None
     dept_id = ia.department_id
+    prepared = actor.id in svc.preparers(db, ia)
     out |= {
         "intake": i, "jurisdictions": [{"id": j.id, "name": j.name} for j in (db.get(Jurisdiction, x) for x in i.get("jurisdiction_ids") or []) if j],
         "depth_sections": ia.depth_sections or [], "depth_text": depth_for(ia.proposed_tier or 1, i)[2],
@@ -103,9 +104,9 @@ def project_out(db: Session, actor: Actor, ia: ImpactAssessment, full: bool = Tr
                         "can_mark_met": c.status == "open" and (c.owner_user_id == actor.id or can(db, actor, Action.DECIDE_PROJECT, dept_id)),
                         "can_close": c.status == "met" and can(db, actor, Action.DECIDE_PROJECT, dept_id)} for c in svc.conditions_of(db, ia)],
         "can_edit": ia.status == "draft" and can(db, actor, Action.SUBMIT_PROJECT, dept_id),
-        "can_review_department": ia.status == "in_review" and can(db, actor, Action.REVIEW_PROJECT_DEPARTMENT, dept_id),
-        "can_review_dpo": ia.status == "in_review" and can(db, actor, Action.REVIEW_PROJECT_DPO, dept_id),
-        "can_decide": ia.status == "in_review" and can(db, actor, Action.DECIDE_PROJECT, dept_id) and ia.submitted_by != actor.id,
+        "can_review_department": ia.status == "in_review" and not prepared and can(db, actor, Action.REVIEW_PROJECT_DEPARTMENT, dept_id),
+        "can_review_dpo": ia.status == "in_review" and not prepared and can(db, actor, Action.REVIEW_PROJECT_DPO, dept_id),
+        "can_decide": ia.status == "in_review" and not prepared and can(db, actor, Action.DECIDE_PROJECT, dept_id),
         "can_request_opinion": ia.proposed_tier == 3 and ia.status != "withdrawn" and not ia.opinion_opportunity_id and can(db, actor, Action.SUBMIT_PROJECT, dept_id),
     }
     return out
