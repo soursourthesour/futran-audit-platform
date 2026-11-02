@@ -75,7 +75,7 @@ def test_assign_by_role_and_by_group(client, db, world):
 
 
 def _token(db, email):
-    msgs = [m for m in db.scalars(select(OutboxMessage).order_by(OutboxMessage.created_at)) if email in (m.to or []) and m.template_key == "training_ai_literacy"]
+    msgs = [m for m in db.scalars(select(OutboxMessage).order_by(OutboxMessage.created_at)) if email in (m.to or []) and m.template_key == "training_module"]
     return re.search(r"/m/([A-Za-z0-9_\-]+)", msgs[-1].body_text).group(1)
 
 

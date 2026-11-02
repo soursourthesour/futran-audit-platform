@@ -31,7 +31,7 @@ from app.training import modules as M
 from app.training.models import TrainingAssignment, TrainingCampaign, TrainingModule, TrainingProgram
 
 CAMPAIGN = "training"
-TEMPLATE_KEY = "training_ai_literacy"
+TEMPLATE_KEY = "training_module"  # registered in app.training.mail_links
 DEFAULT_TARGET = 80
 
 
@@ -178,7 +178,7 @@ def assign(db: Session, settings, actor: User, org: Organization, body: dict) ->
             s = sending.send_to_groups(db, settings, actor, organization_id=org.id, group_ids=group_ids, department_ids=dept_ids, template_key=TEMPLATE_KEY,
                                        exclude_responded=True, campaign=(CAMPAIGN, c.id), mode="personal",
                                        reminder_days=[3, 7] if days is None else [int(d) for d in days if str(d).isdigit()] or None,
-                                       link_days=int(body.get("link_days") or 30), context={"Module": M.for_client(mod.content, org.name)["title"]}, related=c)
+                                       link_days=int(body.get("link_days") or 30), context={"Module": M.for_client(mod.content, org.name)["title"], **({"Due date": f"{due.day} {due:%B %Y}"} if due else {})}, related=c)
             c.send_id = s.id
         total += len(new)
         campaigns.append(c.id)

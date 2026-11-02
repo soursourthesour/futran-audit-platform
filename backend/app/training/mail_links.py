@@ -3,11 +3,22 @@ module player without sign-in; it resolves to that person's assignment only."""
 from sqlalchemy.orm import Session
 
 from app.core.errors import NotFound
-from app.mail import sending
+from app.mail import library, sending
 from app.mail.models import MailRecipient, MailSend
 from app.tenancy.models import Organization
 from app.training import modules as M
 from app.training import service as svc
+
+
+TEMPLATE = {
+    "key": svc.TEMPLATE_KEY, "name": "Training: assigned AI literacy module", "purpose": "training", "default_mode": "personal",
+    "subject": "AI training to complete by [Due date]: [Module]", "button_label": "Start the module",
+    "body": "Hi [First name],\n\n[Organization] has assigned you a short AI literacy module from Futran: [Module]. It works on a phone or a computer "
+            "and ends with a short quiz. You don't need to sign in.\n\n[Link]\n\nThis link is just for you. Please finish by [Due date]. Questions? Reply to this email.\n\n[Sender name]",
+}
+if TEMPLATE["key"] not in library.DEFAULT_KEYS:
+    library.DEFAULTS.append(TEMPLATE)
+    library.DEFAULT_KEYS.add(TEMPLATE["key"])
 
 
 def assignment_for(db: Session, r: MailRecipient, s: MailSend):
