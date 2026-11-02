@@ -9,6 +9,7 @@ import { requirementHelp as H } from '@/help/regmaster';
 import { RegTabs, canReviewLaws } from './LawLibrary';
 import { can, useMe } from '@/api/auth';
 import { LawCases } from '@/screens/litigation/LawCases';
+import { ObligationsPanel } from '@/screens/ai/Obligations';
 import '@/styles/regmaster.css';
 
 const LEVEL_LABEL: Record<string, string> = { required: 'Required', recommended: 'Recommended', no_longer_required: 'No longer required' };
@@ -110,6 +111,7 @@ export function LawRecord() {
           {d.committees.map((c) => <p key={c.committee_type} className="small" style={{ marginTop: 12 }}><strong>{c.title}</strong> · {c.level === 'required' ? 'Required' : 'Recommended'}{c.basis ? ` · ${c.basis}` : ''}{c.condition ? `. ${c.condition}.` : ''}</p>)}
           <p className="reg-note">Change a role's level from <Link to="/reg/roles">Roles and committees</Link>.</p>
         </Card>
+        <ObligationsPanel lawId={d.id} />
         {can(me, 'view_litigation') && <section id="cases" aria-label="Related cases"><LawCases regulationId={d.id} /></section>}
         <section id="history">
           <Card title="Version history">

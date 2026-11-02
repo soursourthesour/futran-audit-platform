@@ -15,6 +15,7 @@ export const FUTRAN_NAV: NavEntry[] = [
   { to: '/reg', label: 'Regulatory master', requires: ['view_reg_master'] },
   // the second-review queue: the Legal/Compliance Reviewer holds no other regulatory-master permission
   { to: '/reg/refresh', label: 'Refresh and review', requires: ['view_reg_changes'] },
+  { to: '/reg/obligations', label: 'Obligations to review', requires: ['approve_obligations'] },
   { to: '/litigation', label: 'Litigation', requires: ['view_litigation'] },
   { to: '/opportunities', label: 'Opportunities', requires: ['view_opportunities'] },
   { to: '/alerts', label: 'Client alerts', requires: ['manage_client_alerts'] },
@@ -61,6 +62,7 @@ export const CLIENT_NAV: NavEntry[] = [
   { to: '/admin/log', label: 'Email log', requires: ['view_mail_log'] },
   { to: '/bias-data', label: 'Bias test data', requires: ['keep_bias_data'] }, // WS-K: keep or delete raw applicant data
   { to: '/admin/api', label: 'API and webhooks', requires: ['view_api_clients'] },
+  { to: '/questionnaires', label: 'Customer questionnaires', requires: ['use_questionnaires'] },
   // Wave 3 adds one entry each when its screen exists: policy builder 27, integrations 30, monitoring 31, training 33.
 ];
 

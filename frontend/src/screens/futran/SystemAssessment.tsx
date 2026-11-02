@@ -6,6 +6,7 @@ import { Alert, Badge, Button, ButtonLink, Card, Loading, PageHeader, TextField,
 import { scoringHelp } from '@/help/fieldwork';
 import { QuestionCard, type DraftFinding, type FileRef, type QuestionView, type SaveBody } from '@/components/QuestionCard';
 import { RegisterRecord } from './RegisterRecord';
+import { AIUseFooter, CopilotSuggestions, CopilotTab, EvidenceCheck, useCopilotAllowed } from '@/screens/ai/Copilot';
 
 export type Section = { code: string; title: string; answered: number; applicable: number; note?: string | null };
 type ChecklistRow = { code: string; section: string; section_title: string; text: string; maturity_domain: string; pending_review: boolean; confirmed: boolean; evidence: FileRef[]; auditor_note: string | null };
@@ -24,6 +25,7 @@ export function SystemAssessment() {
   const key = ['assessment', base];
   const qc = useQueryClient();
   const q = useQuery({ queryKey: key, queryFn: () => api.get<Assessment>(`${base}/assessment`) });
+  const cp = useCopilotAllowed(q.data?.target.engagement_id);  // screen 25: only when AI is on and this person may use it
   const [section, setSection] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ tone: 'success' | 'danger'; text: string } | null>(null);
   if (q.isLoading) return <div className="page"><Loading /></div>;
@@ -34,7 +36,8 @@ export function SystemAssessment() {
   const nav = [...d.sections.map((x) => ({ key: x.code, label: `§${x.code} ${x.title}`, count: `${x.answered}/${x.applicable}` })),
     ...(checklistSections.length ? [{ key: 'checklists', label: `Checklists ${checklistSections.join(', ')}`, count: `${(d.checklists ?? []).filter((c) => c.confirmed).length}/${(d.checklists ?? []).length}` }] : []),
     { key: 'drafts', label: 'Draft findings', count: String(d.draft_findings?.length ?? 0) },
-    ...(s ? [{ key: 'register', label: "Client's register record", count: '' }] : [])];
+    ...(s ? [{ key: 'register', label: "Client's register record", count: '' }] : []),
+    ...(s && cp.on ? [{ key: 'copilot', label: 'Copilot review', count: '' }] : [])];
   const current = section ?? d.sections[0]?.code ?? 'checklists';
   const sec = d.sections.find((x) => x.code === current);
   const refresh = () => qc.invalidateQueries({ queryKey: key });
@@ -67,14 +70,17 @@ export function SystemAssessment() {
             <>
               <h2 style={{ margin: '0 0 8px' }}>§{sec.code} {sec.title}</h2>
               {sec.note && <div className="intern-note" style={{ marginBottom: 12 }}><strong>Intern note:</strong> {sec.note}</div>}
+              {s && cp.on && <div style={{ marginBottom: 12 }}><CopilotSuggestions systemId={s.id} section={sec.code} title={sec.title} locked={d.locked} onAnswersChanged={refresh} /></div>}
               {d.questions.filter((x) => x.sub_section === current).map((x) => (
                 <QuestionCard key={x.id} q={x} futran locked={d.locked} evidenceFiles={d.evidence_files ?? []} drafts={d.draft_findings ?? []} onSave={save(x.code)} onVerify={verify} onUpload={upload} />
               ))}
             </>
           )}
+          {current === 'checklists' && s && cp.on && <div style={{ marginBottom: 12 }}><EvidenceCheck systemId={s.id} sections={checklistSections} locked={d.locked} onChanged={refresh} /></div>}
           {current === 'checklists' && <Checklists base={base} rows={d.checklists ?? []} files={d.evidence_files ?? []} locked={d.locked} onUpload={upload} onDone={refresh} />}
           {current === 'drafts' && <Drafts rows={d.draft_findings ?? []} onDone={refresh} />}
           {current === 'register' && s && <RegisterRecord systemId={s.id} />}
+          {current === 'copilot' && s && cp.on && <CopilotTab systemId={s.id} onOpen={(code) => { setSection(code); window.scrollTo(0, 0); }} />}
           <div className="row" style={{ justifyContent: 'space-between', marginTop: 16 }}>
             <span />
             <div className="row" style={{ gap: 8 }}>
@@ -82,6 +88,7 @@ export function SystemAssessment() {
               {next && <Button variant="primary" onClick={() => { setSection(next.key); setMsg(null); window.scrollTo(0, 0); }}>Next: {next.label}</Button>}
             </div>
           </div>
+          {s && cp.on && <AIUseFooter engagementId={d.target.engagement_id} />}
         </div>
       </div>
     </div>

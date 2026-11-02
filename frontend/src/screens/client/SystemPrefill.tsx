@@ -1,11 +1,13 @@
 import { CarriedBanner } from '@/screens/wsk/Carried';
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
 import { useMe } from '@/api/auth';
 import { Alert, Badge, Button, Card, EmptyState, Loading, PageHeader, Progress } from '@/components/ui';
 import { QuestionCard, type FileRef, type SaveBody } from '@/components/QuestionCard';
+import { ExplainQuestion } from '@/screens/ai/Explain';
+import { useAISwitch } from '@/api/ai';
 import type { Assessment } from '@/screens/futran/SystemAssessment';
 
 type MySystems = { systems: { id: string; reference_id: string; name: string; status: string; answered: number; applicable: number; pct: number }[]; engagement: { id: string; audit_ref: string; locked: boolean; can_answer_governance_questions: boolean } | null };
@@ -50,6 +52,7 @@ export function SystemPrefill() {
   const key = ['prefill', base];
   const qc = useQueryClient();
   const q = useQuery({ queryKey: key, queryFn: () => api.get<Assessment>(`${base}/assessment`), enabled: !engagementLevel || !!me });
+  const aiOn = !!useAISwitch(q.data?.target.engagement_id).data?.enabled;  // "Explain this question" only when AI is on for the engagement
   const [section, setSection] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ tone: 'success' | 'danger'; text: string } | null>(null);
   if (q.isLoading || !q.data) return <div className="page">{q.error ? <Alert tone="danger">{errorMessage(q.error)}</Alert> : <Loading />}</div>;
@@ -77,7 +80,10 @@ export function SystemPrefill() {
         </nav>
         <div>
           {d.questions.filter((x) => x.sub_section === current).map((x) => (
-            <QuestionCard key={x.id} q={x} futran={false} locked={d.locked} evidenceFiles={[]} drafts={[]} onSave={save(x.code)} onUpload={upload} />
+            <Fragment key={x.id}>
+              <QuestionCard q={x} futran={false} locked={d.locked} evidenceFiles={[]} drafts={[]} onSave={save(x.code)} onUpload={upload} />
+              {aiOn && <ExplainQuestion base={base} code={x.code} />}
+            </Fragment>
           ))}
           <div className="row" style={{ justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
             {idx >= 0 && idx < d.sections.length - 1 ? <Button variant="primary" onClick={() => { setSection(d.sections[idx + 1].code); window.scrollTo(0, 0); }}>Next: §{d.sections[idx + 1].code}</Button>

@@ -12,6 +12,7 @@ import { DocEditDialog } from '@/components/DocEditDialog';
 import { StageDetail } from '@/components/StageDetail';
 import { formatPhone } from '@/lib/phone';
 import { ClientEmailStatus } from '@/screens/email/ClientEmailStatus';
+import { AIFeaturesCard } from '@/screens/ai/AILog';
 import '@/styles/staff-forms.css';
 
 type PackageDoc = {
@@ -121,6 +122,7 @@ export function ClientPage() {
           {p.sign_off_1 && p.sign_off_1.status !== 'approved' && (
             <Card title="Sign-off 1: engagement letter and scope"><SignPanel signOffId={p.sign_off_1.id} /></Card>
           )}
+          <AIFeaturesCard engagementId={e.id} />
           {p.package && (
             <Card title="Documents at this stage">
               <PackageDocs pkg={p.package} onView={setPreview} onEdit={setEditing} />

@@ -30,12 +30,20 @@ def _passages(documents: list[dict], refs: list[str] | None = None):
                 yield d, p["page"], s
 
 
-def best(documents: list[dict], text: str, refs: list[str] | None = None, minimum: int = 2):
-    """(document, page, sentence, score) with the most words in common with `text`, or None."""
+GENERIC = {"model", "models", "system", "data", "proces", "use", "used", "using", "docume", "method", "place", "exists", "yes", "unknow", "always", "inform"}
+
+
+def best(documents: list[dict], text: str, refs: list[str] | None = None, minimum: int = 2, key: str | None = None):
+    """(document, page, sentence, score) with the most words in common with `text`, or None. With `key`, the passage must
+    also share a distinctive word with it (the question's own label or option), and those words count twice."""
     want = words(text)
+    must = words(key) - GENERIC if key is not None else set()
     top = None
     for d, page, s in _passages(documents, refs):
-        score = len(want & words(s))
+        ws = words(s)
+        if key is not None and not must & ws:
+            continue
+        score = len(want & ws) + len(must & ws)
         if score >= minimum and (top is None or score > top[3]):
             top = (d, page, s, score)
     return top
@@ -78,15 +86,18 @@ def _value(q: dict, s: str):
 def prefill(ctx: dict) -> dict:
     out = []
     for q in ctx.get("questions") or []:
-        hit = best(ctx.get("documents") or [], f"{q['label']} {q.get('help') or ''} " + " ".join(o["label"] for o in q.get("options") or []))
+        opts = " ".join(o["label"] for o in q.get("options") or [] if o["value"] not in ("yes", "no", "unknown", "na", "none"))
+        hit = best(ctx.get("documents") or [], f"{q['label']} {q.get('help') or ''} {opts}", key=f"{q['label']} {opts}")
         value = _value(q, hit[2]) if hit else None
+        if hit and q["type"] in ("text", "long_text") and (hit[3] < 3 or not hit[2].endswith((".", "?", "!"))):
+            value = None  # a weak match or a heading is no answer to a free-text question
         if not hit or value is None:
             out.append({"code": q["code"], "answer": None, "detail": None, "document": None, "page": None, "quote": None, "confidence": "low",
                         "not_found_note": "No passage in the uploaded documents answers this question.", "draft_finding": None})
             continue
         d, page, s, score = hit
         hedge = bool(HEDGE.search(s))
-        conf = "medium" if hedge else ("high" if score >= 3 else "low")
+        conf = "medium" if hedge else ("high" if score >= 4 else "medium" if score >= 3 else "low")
         draft = None
         if hedge:
             draft = {"title": f"{q['label']}: documentation incomplete", "severity": "medium",
@@ -102,6 +113,13 @@ def prefill(ctx: dict) -> dict:
 def evidence_check(ctx: dict) -> dict:
     out = []
     for it in ctx.get("items") or []:
+        if "independent" in it["text"].lower():  # who did the work: the cue an auditor looks for first
+            own = [(d, p, s) for d, p, s in _passages(ctx.get("documents") or [], it.get("documents")) if re.search(r"model owner|same team|own team", s, re.I) and words(it["text"]) & words(s)]
+            if own:
+                d, page, s = own[0]
+                out.append({"code": it["code"], "verdict": "does_not_support", "reason": "The linked file says the work is done by the model owner's own team, which is not independent of development.",
+                            "document": d["ref"], "page": page, "quote": s, "confidence": "high"})
+                continue
         hit = best(ctx.get("documents") or [], it["text"], it.get("documents"))
         if hit is None:
             out.append({"code": it["code"], "verdict": "does_not_support", "reason": "None of the linked files addresses this item.", "document": None, "page": None, "quote": None, "confidence": "medium"})

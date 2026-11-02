@@ -1,0 +1,30 @@
+/* Screen 25 copilot and the other AI screens (spec §21 F1, F5, F10). */
+.cp-panel { border-left: 3px solid var(--navy); }
+.cp-card { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 12px 14px; background: var(--surface); display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.cp-card.cp-unsupported { border-style: dashed; border-color: var(--danger-line); background: var(--danger-bg); }
+.cp-card.cp-accepted, .cp-card.cp-edited { border-color: var(--success-line); }
+.cp-card.cp-rejected { opacity: 0.7; }
+.cp-head { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; flex-wrap: wrap; }
+.cp-answer { font-weight: 600; overflow-wrap: anywhere; }
+.cp-quote blockquote { margin: 2px 0; padding: 6px 10px; border-left: 3px solid var(--line); background: var(--bg); font-style: italic; overflow-wrap: anywhere; }
+.cp-draft { padding: 6px 10px; background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: var(--radius-sm); }
+.cp-actions { gap: 8px; flex-wrap: wrap; }
+.cp-actions .btn, .cp-actions button { min-height: 44px; }
+.cp-list { list-style: none; margin: 8px 0 0; padding: 0; }
+.cp-list > li { padding: 8px 0; border-top: 1px solid var(--line-soft); overflow-wrap: anywhere; }
+.cp-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-bottom: 10px; }
+.cp-tile { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 10px; }
+.cp-tile.warn { background: var(--warn-bg); border-color: var(--warn-line); }
+.cp-tile.danger { background: var(--danger-bg); border-color: var(--danger-line); }
+.cp-tile.ok { background: var(--success-bg); border-color: var(--success-line); }
+.cp-n { font-size: 1.6rem; font-weight: 700; line-height: 1.1; }
+.cp-ask { gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+.cp-footer { border-top: 1px solid var(--line-soft); padding-top: 8px; margin-top: 16px; }
+.ai-explain { margin: -4px 0 12px; }
+.ai-explain .cp-card { background: var(--info-bg); border-color: var(--info-line); }
+.qn-item { border-top: 1px solid var(--line-soft); padding: 12px 0; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.qn-q { font-weight: 600; overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+  .cp-ask > * { flex-basis: 100%; }
+  .cp-tiles { grid-template-columns: 1fr 1fr; }
+}

@@ -148,7 +148,6 @@ class Action(StrEnum):
     SET_BENCHMARK_CONSENT = "set_benchmark_consent"  # record the engagement letter's benchmarking consent
     START_ANNUAL_REVIEW = "start_annual_review"  # a new engagement carrying forward a closed one
     CONFIRM_CARRIED_ANSWERS = "confirm_carried_answers"  # the client confirms or updates a carried-forward answer
-<<<<<<< HEAD
 
     # wave 3 WS-L: public API and webhooks (F17), AI agent oversight (F14), platform trust (F19)
     VIEW_API_CLIENTS = "view_api_clients"  # Admin > API and webhooks (CAICO reads)
@@ -170,7 +169,6 @@ class Action(StrEnum):
     DECIDE_PROJECT = "decide_project"
     VIEW_REASSESSMENT = "view_reassessment"  # reassessment triggers on the register and the client home
     MANAGE_REASSESSMENT = "manage_reassessment"  # raise by hand, start, resolve or dismiss a trigger
-=======
     # wave 3 WS-G: AI copilot (F1), obligation extraction (F5), questionnaire automation (F10); spec §21 AI rules
     MANAGE_AI_FEATURES = "manage_ai_features"  # the Chief Auditor turns AI on for an engagement, recording the client's consent
     USE_COPILOT = "use_copilot"  # pre-fill, evidence check, completeness review, ask, draft finding text, summaries
@@ -178,4 +176,3 @@ class Action(StrEnum):
     EXTRACT_OBLIGATIONS = "extract_obligations"
     APPROVE_OBLIGATIONS = "approve_obligations"
     USE_QUESTIONNAIRES = "use_questionnaires"  # client: customer questionnaires and the answer library
->>>>>>> d2d18cd (AI copilot, obligation extraction and questionnaire automation (backend))

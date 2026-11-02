@@ -5,6 +5,7 @@ import { api, errorMessage, fieldErrors } from '@/api/client';
 import { Alert, Badge, Button, Card, Dialog, Loading, PageHeader, SelectField, TextArea, TextField, fileUrl, fmtDate } from '@/components/ui';
 import { CommentsToggle } from '@/components/Comments';
 import { evidenceRequestHelp, findingHelp, tierHelp } from '@/help/fieldwork';
+import { FieldworkAsk } from '@/screens/ai/Copilot';
 
 export type FindingRow = {
   id: string; ref: string; title: string; severity: string; status: string; description: string | null; recommended_remediation: string | null; control_refs: string[];
@@ -84,6 +85,7 @@ export function FieldworkUseCase() {
             </dl>
             {d.systems.map((s) => <p key={s.id} className="small" style={{ marginBottom: 0 }}><Link to={`/systems/${s.id}/assess`}>{s.reference_id} {s.name}: assessment</Link></p>)}
           </Card>
+          <FieldworkAsk clientId={d.client_id} />
         </div>
       </div>
       {asking && <RequestEvidence useCaseId={useCaseId} onClose={() => setAsking(false)} onDone={() => { setAsking(false); setMsg({ tone: 'success', text: 'Request sent to the client.' }); refresh(); }} />}
