@@ -43,6 +43,7 @@ import { wskClientRoutes, wskFutranRoutes } from '@/routes.wsk';
 import { wsgClientRoutes, wsgFutranRoutes } from '@/routes.wsg';
 import { clientHomeRoutes, futranHomeRoutes } from '@/routes.wsf';
 import { wslClientRoutes, wslFutranRoutes } from '@/routes.wsl';
+import { wsjClientRoutes, wsjFutranRoutes, wsjPublicRoutes } from '@/routes.wsj';
 import { FutranEmail } from '@/screens/email/FutranEmail';
 import { ClientEmailSetup } from '@/screens/email/ClientEmailSetup';
 import { ClientGroupsForFutran, GroupsScreen } from '@/screens/email/Groups';
@@ -61,6 +62,7 @@ export const futranRoutes: RouteObject[] = [
   ...wsgFutranRoutes,
   ...wsiFutranRoutes,
   ...futranHomeRoutes,
+  ...wsjFutranRoutes,
   { path: '/admin/users', element: <UsersAdmin /> },
   { path: '/staff/admin/email', element: <FutranEmail /> },
   { path: '/clients/:clientId/groups', element: <ClientGroupsForFutran /> },
@@ -96,7 +98,7 @@ export const futranRoutes: RouteObject[] = [
   { path: '/reg/:lawId/edit', element: <LawEdit /> },
   { path: '/clients/:clientId/applicability', element: <Applicability /> },
 ];
-export const clientRoutes: RouteObject[] = [...clientHomeRoutes, ...wskClientRoutes, ...wslClientRoutes, ...wsgClientRoutes, ...wsiClientRoutes, { path: '/admin/email', element: <ClientEmailSetup /> }, { path: '/admin/groups', element: <GroupsScreen /> }, { path: '/people', element: <Navigate to="/people/departments" replace /> }, { path: '/people/departments', element: <UsersDepartments tab="departments" /> }, { path: '/people/users', element: <UsersDepartments tab="users" /> }, { path: '/users', element: <Navigate to="/people/users" replace /> }, { path: '/governance', element: <Governance /> }, { path: '/attestation', element: <AttestationTracker /> }, { path: '/my-attestation', element: <MyAttestation /> }, { path: '/inventory', element: <Inventory /> }, { path: '/inventory/new', element: <UseCaseForm /> }, { path: '/inventory/:useCaseId', element: <UseCaseForm /> }, { path: '/systems', element: <SystemsPrefillList /> }, { path: '/systems/:systemId', element: <SystemPrefill /> }, { path: '/documents', element: <DocumentUploads /> }, { path: '/review', element: <InventoryReview /> }, { path: '/report', element: <ClientReport /> }, { path: '/responses', element: <ManagementResponse /> }, { path: '/remediation', element: <Remediation /> },
+export const clientRoutes: RouteObject[] = [...clientHomeRoutes, ...wskClientRoutes, ...wslClientRoutes, ...wsgClientRoutes, ...wsiClientRoutes, ...wsjClientRoutes, { path: '/admin/email', element: <ClientEmailSetup /> }, { path: '/admin/groups', element: <GroupsScreen /> }, { path: '/people', element: <Navigate to="/people/departments" replace /> }, { path: '/people/departments', element: <UsersDepartments tab="departments" /> }, { path: '/people/users', element: <UsersDepartments tab="users" /> }, { path: '/users', element: <Navigate to="/people/users" replace /> }, { path: '/governance', element: <Governance /> }, { path: '/attestation', element: <AttestationTracker /> }, { path: '/my-attestation', element: <MyAttestation /> }, { path: '/inventory', element: <Inventory /> }, { path: '/inventory/new', element: <UseCaseForm /> }, { path: '/inventory/:useCaseId', element: <UseCaseForm /> }, { path: '/systems', element: <SystemsPrefillList /> }, { path: '/systems/:systemId', element: <SystemPrefill /> }, { path: '/documents', element: <DocumentUploads /> }, { path: '/review', element: <InventoryReview /> }, { path: '/report', element: <ClientReport /> }, { path: '/responses', element: <ManagementResponse /> }, { path: '/remediation', element: <Remediation /> },
   // AI system register (spec §24, §27.2)
   { path: '/register', element: <RegisterGrid /> }, { path: '/register/new', element: <RegisterNew /> },
   { path: '/register/:systemId', element: <RegisterSystemPage tab="details" /> }, { path: '/register/:systemId/roles', element: <RegisterSystemPage tab="roles" /> },
@@ -106,6 +108,6 @@ export const clientRoutes: RouteObject[] = [...clientHomeRoutes, ...wskClientRou
   // tracing add-on (spec §27.3): R8 requests and the Executive Sponsor's approval
   { path: '/addons', element: <AddonsPage /> },
   { path: '/governance/roles', element: <CompanyRoles /> }];
-export const publicRoutes: RouteObject[] = [...wsiPublicRoutes, { path: '/m/s/:token', element: <LinkLanding shared /> }, { path: '/m/:token', element: <LinkLanding /> }, { path: '/mail/test-consent', element: <TestConsent /> }, { path: '/mail/consent-result', element: <ConsentResult /> }, { path: '/welcome/mailbox', element: <MailboxPrompt /> }, { path: '/attest/:token', element: <PhoneAttestation /> }, { path: '/confirm/:token', element: <NamedUserConfirm /> }];
+export const publicRoutes: RouteObject[] = [...wsiPublicRoutes, ...wsjPublicRoutes, { path: '/m/s/:token', element: <LinkLanding shared /> }, { path: '/m/:token', element: <LinkLanding /> }, { path: '/mail/test-consent', element: <TestConsent /> }, { path: '/mail/consent-result', element: <ConsentResult /> }, { path: '/welcome/mailbox', element: <MailboxPrompt /> }, { path: '/attest/:token', element: <PhoneAttestation /> }, { path: '/confirm/:token', element: <NamedUserConfirm /> }];
 /** Screens in both portals (spec §26.10: E4 and E5 are in the client and the Futran shell). */
 export const sharedRoutes: RouteObject[] = [{ path: '/send', element: <SendToGroups /> }, { path: '/admin/log', element: <EmailLog /> }];

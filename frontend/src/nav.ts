@@ -72,6 +72,8 @@ export const CLIENT_NAV: NavEntry[] = [
   { to: '/my-training', label: 'My training', requires: ['complete_own_training'] },
   { to: '/trust', label: 'Trust Center', requires: ['view_trust_center'], end: true },
   // Wave 3 adds one entry each when its screen exists: policy builder 27, integrations 30, monitoring 31, training 33.
+  { to: '/integrations', label: 'Integrations', requires: ['view_integrations'] },
+  { to: '/monitoring', label: 'Monitoring', requires: ['view_monitoring'] },
 ];
 
 export function navFor(me: Me, entries: NavEntry[]): NavEntry[] {

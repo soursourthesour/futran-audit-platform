@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
-import { Alert, Badge, Button, Card, EmptyState, FieldHelp, Loading, PageHeader, TextArea, fileUrl, fmtDate } from '@/components/ui';
+import { Alert, Badge, Button, Card, EmptyState, FieldHelp, Loading, PageHeader, TextArea, TextField, fileUrl, fmtDate } from '@/components/ui';
 import { documentHelp as H } from '@/help/client';
 import { CommentsToggle } from '@/components/Comments';
 import { DocumentUploadsList, type DocRequest } from '@/screens/futran/DocumentRegister';
@@ -24,6 +24,7 @@ export function DocumentUploads() {
       <div className="stack">
         {evidence.length > 0 && <Card title={`Evidence requests from the auditor · ${evidence.filter((r) => r.status === 'outstanding').length} outstanding`}>{evidence.map((r) => <EvidenceItem key={r.id} r={r} onDone={() => qc.invalidateQueries({ queryKey: ['me-evidence'] })} />)}</Card>}
         {d.requests.length === 0 ? <EmptyState>Futran has not requested any documents from you yet.</EmptyState> : <DocumentUploadsList rows={d.requests} onDone={() => qc.invalidateQueries({ queryKey: ['me-documents'] })} />}
+        <ReportExpiry rows={d.requests} onDone={() => qc.invalidateQueries({ queryKey: ['me-documents'] })} />
       </div>
     </div>
   );
@@ -50,6 +51,32 @@ function EvidenceItem({ r, onDone }: { r: EvidenceReq; onDone: () => void }) {
         </>
       )}
       <CommentsToggle objectType="evidence_request" objectId={r.id} label={r.ref} />
+    </div>
+  );
+}
+
+/** When each received vendor SOC 2 report expires (DR-603). Continuous monitoring warns 30 days ahead (§21 F3). */
+function ReportExpiry({ rows, onDone }: { rows: DocRequest[]; onDone: () => void }) {
+  const reports = (rows as (DocRequest & { expires_on?: string | null })[]).filter((r) => r.code === 'DR-603' && r.status === 'received');
+  if (!reports.length) return null;
+  return <Card title="When vendor security reports expire">{reports.map((r) => <ExpiryRow key={r.id} r={r} onDone={onDone} />)}<p className="small muted" style={{ marginBottom: 0 }}>{H.expiry}</p></Card>;
+}
+
+function ExpiryRow({ r, onDone }: { r: DocRequest & { expires_on?: string | null }; onDone: () => void }) {
+  const [v, setV] = useState(r.expires_on ?? '');
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  async function save() {
+    if (busy) return;
+    setBusy(true); setMsg(null);
+    try { await api.put(`/document-requests/${r.id}/expiry`, { expires_on: v || null }); setMsg({ ok: true, text: 'Saved.' }); onDone(); } catch (e) { setMsg({ ok: false, text: errorMessage(e) }); } finally { setBusy(false); }
+  }
+  const label = `Expires on: ${r.title}${r.system ? ` (${r.system})` : ''}`;
+  return (
+    <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 8 }}>
+      <TextField label={label} help={H.expiry} type="date" value={v} onChange={(e) => setV(e.target.value)} />
+      <Button size="sm" disabled={busy} onClick={save} style={{ minHeight: 44 }}>Save date</Button>
+      {msg && <span className={`small ${msg.ok ? '' : 'field-error'}`}>{msg.text}</span>}
     </div>
   );
 }

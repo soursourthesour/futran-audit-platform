@@ -130,6 +130,7 @@ export const toolHelp = {
 };
 
 export const documentHelp = {
+  expiry: 'The date the report stops being valid, as printed on it. Continuous monitoring warns you 30 days before.',
   upload: 'Upload the current approved version. PDF, Word, Excel, PowerPoint, text and image files are accepted; upload several files if the document is in parts.',
   notAvailableNote: 'Say whether it exists in another form or when it will be ready. The auditor records a missing document as a finding.',
   evidenceAnswer: 'Answer in writing when the evidence is not a document, for example how a check is done in practice.',

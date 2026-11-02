@@ -1,0 +1,43 @@
+/* Wave 3 WS-J: integrations and AI discovery (screen 30), continuous monitoring (screen 31). */
+.dsc-page { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.dsc-h2 { font-size: 17px; margin: 0; }
+
+/* connector tiles */
+.dsc-conns { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.dsc-conn { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.dsc-conn-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px; }
+.dsc-conn-reads { margin: 0; }
+.dsc-conn-actions { flex-wrap: wrap; margin-top: auto; }
+.dsc-conn-actions .btn { min-height: 44px; }
+.dsc-error { color: var(--danger); margin: 0; overflow-wrap: anywhere; }
+
+/* discovered tools */
+.dsc-tools-head { flex-wrap: wrap; gap: 8px; }
+.dsc-undeclared { color: var(--danger); font-weight: 600; font-size: 14px; }
+.dsc-decide { flex-wrap: wrap; gap: 6px; }
+.dsc-decide .btn { min-height: 44px; }
+.dsc-clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; max-width: 260px; }
+tr.dsc-focus td { background: #fff7e0; }
+.dsc-people { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+
+/* monitoring */
+.dsc-review { margin: 0; font-size: 14px; }
+.dsc-kpis .tile { min-width: 0; }
+.dsc-kpi-healthy .value { color: var(--success); }
+.dsc-kpi-attention .value { color: var(--warn); }
+.dsc-kpi-failed .value { color: var(--danger); }
+.dsc-kpi-not_started .value { color: var(--muted); }
+.dsc-needs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.dsc-need { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; background: var(--surface); }
+.dsc-need-failed { border-color: var(--danger-line); }
+.dsc-need-text { display: flex; flex-direction: column; gap: 2px; flex: 1 1 260px; min-width: 0; overflow-wrap: anywhere; }
+.dsc-need-act { display: flex; gap: 8px; }
+.dsc-need-act .btn { min-height: 44px; display: inline-flex; align-items: center; }
+.dsc-offers { margin: 0 0 8px; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+.dsc-plan-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 16px; }
+
+@media (max-width: 640px) {
+  .dsc-conns { grid-template-columns: 1fr; }
+  .dsc-need-act { width: 100%; }
+  .dsc-need-act .btn { flex: 1; justify-content: center; }
+}

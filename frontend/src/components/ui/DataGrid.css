@@ -35,4 +35,5 @@ th[aria-sort='none'] .dg-sort-ind { opacity: 0.35; }
   .dg-filter, .dg-filter.dg-search { max-width: none; flex-basis: 100%; }
   .dg-menu [role='menuitem'] { min-height: 44px; }
   .dg-menu-btn { width: 44px; height: 44px; }
+  .dg-sort { min-height: 44px; } /* column sort buttons are touch targets too */
 }
