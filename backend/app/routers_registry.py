@@ -18,3 +18,6 @@ ROUTER_MODULES += ["tracing.router"]
 
 # v0.6.1 WS-F: role home screens (§13.1)
 ROUTER_MODULES += ["homes.router"]
+
+# wave 3 WS-I: policy builder (F7), AI literacy training (F12) and Trust Center (F9)
+ROUTER_MODULES += ["policies.router"]

@@ -378,6 +378,15 @@ def _save_team(db: Session, actor: User, e: Engagement, team: Any) -> list[dict]
         if _futran_roles(db, user) <= {"admin"}:
             errors.append({"field": f"{p}.user_id", "message": f"{user.name} is an administrator and cannot be on an audit team."})
             continue
+        if role == "chief_auditor":  # wave 3 WS-I: independence rule for the Lead Auditor (spec §21 F7)
+            from app.core.errors import Conflict
+            from app.engagements.team import check_lead_independence
+
+            try:
+                check_lead_independence(db, e.client_id, user.id)
+            except Conflict as exc:
+                errors.append({"field": f"{p}.user_id", "message": exc.detail})
+                continue
         row = current.get((user.id, role))
         if row is None:
             row = EngagementTeam(organization_id=e.client_id, engagement_id=e.id, user_id=user.id, role=role, created_by=actor.id)

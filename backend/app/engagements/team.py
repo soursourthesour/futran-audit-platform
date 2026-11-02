@@ -58,3 +58,22 @@ def team_by_person(db: Session, e: Engagement) -> list[dict]:
             "unconfirmed_roles": [r for r in roles if r not in confirmed],
         })
     return sorted(out, key=lambda p: (ROLE_ORDER.index(p["roles"][0]) if p["roles"][0] in ROLE_ORDER else len(ROLE_ORDER), p["name"]))
+
+
+LEAD_ROLE = "chief_auditor"  # the team role shown as "Chief Auditor (Lead Auditor)"
+
+
+def check_lead_independence(db: Session, client_id: str, user_id: str) -> None:
+    """Independence rule (spec §21 F7, §21.1): a Futran person recorded as having written or tailored one of this client's
+    policies cannot be Lead Auditor on a later engagement for the client. Raises Conflict naming the policy.
+    Every path that puts someone on an engagement team as Lead Auditor calls this (the new-client wizard; an annual review
+    that copies a team must call it too)."""
+    from app.core.errors import Conflict
+    from app.policies.service import tailored_by
+
+    hits = tailored_by(db, client_id, user_id)
+    if hits:
+        u = db.get(User, user_id)
+        titles = join_words(sorted({p.title for p in hits}))
+        raise Conflict(f"{u.name if u else 'This person'} helped Futran write this client's {titles}, so they cannot be Lead Auditor on its audit. "
+                       "Choose a different Lead Auditor.")

@@ -371,3 +371,21 @@ def actions_for(roles: set[str]) -> list[str]:
         except ValueError:
             continue
     return sorted(out)
+
+
+# ---- wave 3 WS-I: policy builder (F7, screen 27), AI literacy training (F12, screen 33) and Trust Center (F9, screen 32).
+# The AI literacy and training owner, a governance role rather than a platform role, is also granted training work in
+# app.training.access (as the AI incident response lead is for tracing).
+_WS_I: dict[R, dict[A, S]] = {
+    R.CAICO: {A.VIEW_POLICIES: S.ORG, A.EDIT_POLICIES: S.ORG, A.APPROVE_POLICIES: S.ORG, A.VIEW_TRAINING: S.ORG, A.MANAGE_TRAINING: S.ORG,
+              A.VIEW_TRUST_CENTER: S.ORG, A.EDIT_TRUST_CENTER: S.ORG},
+    R.CLIENT_ADMIN: {A.VIEW_POLICIES: S.ORG, A.EDIT_POLICIES: S.ORG, A.VIEW_TRAINING: S.ORG, A.MANAGE_TRAINING: S.ORG, A.VIEW_TRUST_CENTER: S.ORG},
+    R.DPO: {A.VIEW_POLICIES: S.ORG, A.EDIT_POLICIES: S.ORG},
+    R.EXEC_SPONSOR: {A.VIEW_POLICIES: S.ORG, A.VIEW_TRAINING: S.ORG},
+    R.DEPT_COMPLIANCE_LEAD: {A.VIEW_POLICIES: S.ORG},
+    R.CHIEF_AUDITOR: {A.VIEW_CLIENT_POLICIES: S.ALL, A.RECORD_POLICY_AUTHORS: S.ALL, A.CONFIRM_TRUST_ITEMS: S.ALL},
+}
+for _role in (R.CAICO, R.CLIENT_ADMIN, R.DPO, R.EXEC_SPONSOR, R.DEPT_COMPLIANCE_LEAD, R.CONTRIBUTOR):
+    _WS_I.setdefault(_role, {})[A.COMPLETE_OWN_TRAINING] = S.ORG
+for _role, _grants in _WS_I.items():
+    MATRIX.setdefault(_role, {}).update(_grants)

@@ -27,3 +27,7 @@ for _mod in ["regupdates", "impact"]:
 # wave 3 WS-K: bias calculator (F11), benchmarking (F15), annual carry-forward (F16)
 for _mod in ["biascalc", "insights", "annual"]:
     importlib.import_module(f"app.{_mod}.models")
+
+# wave 3 WS-I: policy builder (F7), AI literacy training (F12) and Trust Center (F9)
+for _mod in ["policies"]:
+    importlib.import_module(f"app.{_mod}.models")

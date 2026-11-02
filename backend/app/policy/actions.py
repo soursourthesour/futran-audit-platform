@@ -124,3 +124,15 @@ class Action(StrEnum):
     VIEW_DPO_HOME = "view_dpo_home"
     VIEW_DEPARTMENT_HOME = "view_department_home"
     VIEW_MY_TASKS = "view_my_tasks"  # Contributor
+    # wave 3 WS-I: policy builder (F7), AI literacy training (F12) and Trust Center (F9)
+    VIEW_POLICIES = "view_policies"  # client policies and the Futran template library
+    EDIT_POLICIES = "edit_policies"  # start from a template, answer, edit, send for approval, ask Futran for a review
+    APPROVE_POLICIES = "approve_policies"  # approve and publish, return, send acknowledgments, start a new version
+    VIEW_CLIENT_POLICIES = "view_client_policies"  # Futran: policies a client asked Futran to review
+    RECORD_POLICY_AUTHORS = "record_policy_authors"  # Futran: the team that tailored a client's policy (independence rule)
+    VIEW_TRAINING = "view_training"
+    MANAGE_TRAINING = "manage_training"  # assign modules, targets, reminders, SCORM export, evidence
+    COMPLETE_OWN_TRAINING = "complete_own_training"
+    VIEW_TRUST_CENTER = "view_trust_center"
+    EDIT_TRUST_CENTER = "edit_trust_center"  # the CAICO edits and approves items
+    CONFIRM_TRUST_ITEMS = "confirm_trust_items"  # Futran Chief Auditor: the item matches the signed report
