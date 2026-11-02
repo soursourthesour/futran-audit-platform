@@ -93,3 +93,14 @@ def test_admin_keeps_the_register_and_others_read_or_see_nothing(client, db):
     new = client.post(f"{API}/staff/admin/trust/controls", json={"code": "CC9.9", "criterion": "security", "title": "Vendor SOC 2 reports reviewed each year"})
     assert new.status_code == 200 and new.json()["code"] == "CC9.9"
     assert client.post(f"{API}/staff/admin/trust/controls", json={"code": "CC9.9", "criterion": "security", "title": "Duplicate"}).status_code == 409
+
+
+def test_futrans_own_trust_center_page_is_linked_when_live(client, db):
+    from app.trust.models import TrustCenterPage
+
+    f, admin, *_ = _world(db)
+    login_as(client, db, admin)
+    assert client.get(f"{API}/staff/admin/trust").json()["trust_center"] is None
+    db.add(TrustCenterPage(organization_id=f.id, slug="futran", title="Futran Audit Platform trust", live=True))
+    db.commit()
+    assert client.get(f"{API}/staff/admin/trust").json()["trust_center"] == {"link": "/trust/futran"}

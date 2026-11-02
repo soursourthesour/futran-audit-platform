@@ -1,6 +1,5 @@
 """Futran Admin > Platform trust (`/staff/admin/trust`, spec §21 F19): the SOC 2 readiness register and the platform's own
 AI systems. The Futran Admin edits; the Chief Auditor and QA Reviewer read. Every endpoint calls `authorize`."""
-import importlib
 import re
 from datetime import date
 
@@ -72,14 +71,13 @@ def _system_out(s: RegisterSystem) -> dict:
 
 
 def _trust_center(db: Session, org_id: str) -> dict | None:
-    """Futran's own Trust Center page, when WS-I's Trust Center (app.trust) is installed and offers a public link."""
+    """Futran's own public Trust Center page (WS-I, app.trust), when one is set up for Futran's organization and live."""
     try:
-        mod = importlib.import_module("app.trust.service")
+        from app.trust.service import page_for
     except ModuleNotFoundError:
         return None
-    fn = getattr(mod, "public_link_for", None)
-    link = fn(db, org_id) if fn else None
-    return {"link": link} if link else None
+    p = page_for(db, org_id)
+    return {"link": f"/trust/{p.slug}"} if p is not None and p.live else None
 
 
 @router.get("/staff/admin/trust")
