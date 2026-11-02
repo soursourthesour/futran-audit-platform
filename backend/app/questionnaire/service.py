@@ -287,6 +287,18 @@ def save_response(db: Session, actor: User, t: Target, code: str, body: dict, fu
     return r
 
 
+def response_for_comments(db: Session, actor: User, t: Target, code: str, futran: bool) -> Response:
+    """The response row a question's comments hang on (spec §21 F18: comments on any question). For a question nobody has
+    answered yet it is created empty: status unanswered, no answer on either side, so completion does not change."""
+    q = _question(db, t, code, futran)
+    r = db.scalar(select(Response).where(Response.engagement_id == t.engagement.id, Response.question_id == q.id, Response.ai_system_id.is_(None) if t.system is None else Response.ai_system_id == t.system.id))
+    if r is None:
+        r = Response(organization_id=t.engagement.client_id, engagement_id=t.engagement.id, ai_system_id=t.system_id, question_id=q.id, status="unanswered", evidence_ids=[], client_evidence_ids=[], created_by=actor.id)
+        db.add(r)
+        db.flush()
+    return r
+
+
 def verify(db: Session, actor: User, r: Response) -> Response:
     e = db.get(Engagement, r.engagement_id)
     t = Target(e, db.get(AISystem, r.ai_system_id) if r.ai_system_id else None)

@@ -42,6 +42,7 @@ export function SystemAssessment() {
   const sec = d.sections.find((x) => x.code === current);
   const refresh = () => qc.invalidateQueries({ queryKey: key });
   const save = (code: string) => async (body: SaveBody) => { await api.put(`${base}/responses/${code}`, body); await refresh(); };
+  const thread = (code: string) => async () => (await api.post<{ id: string }>(`${base}/responses/${code}/thread`)).id;
   const verify = async (id: string) => { await api.post(`/responses/${id}/verify`); await refresh(); };
   const upload = async (file: File) => { const form = new FormData(); form.append('file', file); const f = await api.upload<FileRef>(`${base}/evidence`, form); await refresh(); return f; };
   async function verifySection() {
@@ -72,7 +73,7 @@ export function SystemAssessment() {
               {sec.note && <div className="intern-note" style={{ marginBottom: 12 }}><strong>Intern note:</strong> {sec.note}</div>}
               {s && cp.on && <div style={{ marginBottom: 12 }}><CopilotSuggestions systemId={s.id} section={sec.code} title={sec.title} locked={d.locked} onAnswersChanged={refresh} /></div>}
               {d.questions.filter((x) => x.sub_section === current).map((x) => (
-                <QuestionCard key={x.id} q={x} futran locked={d.locked} evidenceFiles={d.evidence_files ?? []} drafts={d.draft_findings ?? []} onSave={save(x.code)} onVerify={verify} onUpload={upload} />
+                <QuestionCard key={x.id} q={x} futran locked={d.locked} evidenceFiles={d.evidence_files ?? []} drafts={d.draft_findings ?? []} onSave={save(x.code)} onVerify={verify} onUpload={upload} onThread={thread(x.code)} />
               ))}
             </>
           )}

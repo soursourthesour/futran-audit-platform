@@ -61,6 +61,7 @@ export function SystemPrefill() {
   const idx = d.sections.findIndex((x) => x.code === current);
   const refresh = () => Promise.all([qc.invalidateQueries({ queryKey: key }), qc.invalidateQueries({ queryKey: ['me-systems'] })]);
   const save = (code: string) => async (body: SaveBody) => { await api.put(`${base}/responses/${code}`, body); await refresh(); };
+  const thread = (code: string) => async () => (await api.post<{ id: string }>(`${base}/responses/${code}/thread`)).id;
   const upload = engagementLevel ? undefined : async (file: File) => { const form = new FormData(); form.append('file', file); return api.upload<FileRef>(`${base}/evidence`, form); };
   async function submit() {
     setMsg(null);
@@ -81,7 +82,7 @@ export function SystemPrefill() {
         <div>
           {d.questions.filter((x) => x.sub_section === current).map((x) => (
             <Fragment key={x.id}>
-              <QuestionCard q={x} futran={false} locked={d.locked} evidenceFiles={[]} drafts={[]} onSave={save(x.code)} onUpload={upload} />
+              <QuestionCard q={x} futran={false} locked={d.locked} evidenceFiles={[]} drafts={[]} onSave={save(x.code)} onUpload={upload} onThread={thread(x.code)} />
               {aiOn && <ExplainQuestion base={base} code={x.code} />}
             </Fragment>
           ))}

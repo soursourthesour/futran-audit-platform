@@ -71,9 +71,11 @@ function ValueInput({ q, value, onChange, error, disabled }: { q: QuestionView; 
 
 /** One question with the template's golden rules: N/A needs a reason, "we plan to" is saved as not yet in place,
  * and an auditor's verified interview answer names its source person. */
-export function QuestionCard({ q, futran, locked, evidenceFiles, drafts, onSave, onVerify, onUpload }: {
+export function QuestionCard({ q, futran, locked, evidenceFiles, drafts, onSave, onVerify, onUpload, onThread }: {
   q: QuestionView; futran: boolean; locked: boolean; evidenceFiles: FileRef[]; drafts: DraftFinding[];
   onSave: (body: SaveBody) => Promise<void>; onVerify?: (responseId: string) => Promise<void>; onUpload?: (file: File) => Promise<FileRef>;
+  /** Returns the response id comments hang on, creating an empty one for an unanswered question. */
+  onThread?: () => Promise<string>;
 }) {
   const r = q.response as FutranResponse | ClientResponse | null;
   const fr = futran ? (r as FutranResponse | null) : null;
@@ -161,8 +163,29 @@ export function QuestionCard({ q, futran, locked, evidenceFiles, drafts, onSave,
             {saved && <span className="small muted" role="status">Saved</span>}
           </div>
         )}
-        {r?.id && <CommentsToggle objectType="response" objectId={r.id} label={`question ${q.code}`} />}
+        <QuestionComments id={r?.id} code={q.code} onThread={onThread} />
       </div>
+    </div>
+  );
+}
+
+/** Comments on any question. An unanswered question has no response yet: the first click asks the server for one (empty,
+ *  still unanswered) and opens the thread on it. */
+function QuestionComments({ id, code, onThread }: { id?: string; code: string; onThread?: () => Promise<string> }) {
+  const [created, setCreated] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const threadId = id ?? created;
+  if (threadId) return <CommentsToggle objectType="response" objectId={threadId} label={`question ${code}`} defaultOpen={!id} />;
+  if (!onThread) return null;
+  async function open() {
+    setBusy(true); setErr(null);
+    try { setCreated(await onThread!()); } catch (e) { setErr(errorMessage(e)); } finally { setBusy(false); }
+  }
+  return (
+    <div className="cmt-toggle">
+      <button type="button" className="linklike small" aria-expanded={false} disabled={busy} onClick={open}>Comments<span className="sr-only"> on question {code}</span></button>
+      {err && <div className="small" style={{ color: 'var(--danger)' }}>{err}</div>}
     </div>
   );
 }

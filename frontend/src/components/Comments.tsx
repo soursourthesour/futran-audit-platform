@@ -47,8 +47,8 @@ export function Comments({ objectType, objectId, title = 'Comments' }: Props) {
 }
 
 /** "Comments (n)" button that opens the thread in place, for rows in lists. */
-export function CommentsToggle({ objectType, objectId, count, label }: Props & { count?: number; label?: string }) {
-  const [open, setOpen] = useState(false);
+export function CommentsToggle({ objectType, objectId, count, label, defaultOpen = false }: Props & { count?: number; label?: string; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="cmt-toggle">
       <button type="button" className="linklike small" aria-expanded={open} onClick={() => setOpen(!open)}>

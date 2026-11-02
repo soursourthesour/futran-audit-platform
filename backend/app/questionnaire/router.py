@@ -131,6 +131,12 @@ def put_response(system_id: str, code: str, body: dict, actor: Actor = Depends(c
     return {"id": r.id, "response": futran_response(db, r) if actor.is_futran else client_response(db, r), "completion": {k: v for k, v in qs.completion(db, t, actor.is_futran).items() if k != "sections"}}
 
 
+@router.post("/systems/{system_id}/responses/{code}/thread")
+def response_thread(system_id: str, code: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+    """The response id to hang comments on, for a question that may not be answered yet. Same access as reading the assessment."""
+    return {"id": qs.response_for_comments(db, actor.user, _system_target(db, actor, system_id), code, actor.is_futran).id}
+
+
 @router.put("/systems/{system_id}/checklist/{code}")
 def put_checklist(system_id: str, code: str, body: ChecklistIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     t = _system_target(db, actor, system_id, write=True)
@@ -189,6 +195,11 @@ def put_engagement_response(client_id: str, code: str, body: dict, actor: Actor 
     t = _engagement_target(db, actor, client_id, write=True)
     r = qs.save_response(db, actor.user, t, code, body, actor.is_futran)
     return {"id": r.id, "response": futran_response(db, r) if actor.is_futran else client_response(db, r)}
+
+
+@router.post("/clients/{client_id}/responses/{code}/thread")
+def engagement_response_thread(client_id: str, code: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+    return {"id": qs.response_for_comments(db, actor.user, _engagement_target(db, actor, client_id), code, actor.is_futran).id}
 
 
 @router.put("/clients/{client_id}/checklist/{code}")
