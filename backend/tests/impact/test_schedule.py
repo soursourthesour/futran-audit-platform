@@ -77,3 +77,34 @@ def test_the_audit_entry_records_whose_verification_a_trigger_cleared(db, lit, a
     entry = db.scalar(select(AuditLog).where(AuditLog.action == "reassessment.trigger", AuditLog.object_id == t.id))
     assert entry.before == {"verified": [{"response_id": r.id, "ai_system_id": audited["system"].id, "verified_by": lit["aud"].id,
                                           "verified_at": was.isoformat()}]}
+
+
+def test_a_dismissed_twelve_month_trigger_is_not_raised_again_the_next_day(db, lit, settings):
+    from app.impact.lifecycle import act
+
+    s = lit["screening"]
+    s.live_since = date(2025, 6, 1)
+    db.commit()
+    try:
+        set_now(datetime(2026, 11, 2, 10))
+        assert run_reassessment_schedule(db, settings, datetime(2026, 11, 2, 10)) == 1
+        act(db, lit["maria"], _triggers(db, s.id)[0], s, "dismiss", "Reviewed in the current audit")
+        db.commit()
+        set_now(datetime(2026, 11, 3, 10))
+        assert run_reassessment_schedule(db, settings, datetime(2026, 11, 3, 10)) == 0
+        assert run_reassessment_schedule(db, settings, datetime(2027, 11, 2, 10)) == 1  # the next cycle: 12 months after the dismissal
+    finally:
+        set_now(None)
+    assert len(_triggers(db, s.id)) == 2
+
+
+def test_a_twelve_month_trigger_closed_without_a_date_still_counts_for_its_cycle(db, lit, settings):
+    s = lit["screening"]
+    s.live_since = date(2025, 6, 1)
+    db.commit()
+    assert run_reassessment_schedule(db, settings, datetime(2026, 11, 2, 10)) == 1
+    t = _triggers(db, s.id)[0]
+    t.status, t.resolution_note = "dismissed", "Reviewed in the current audit"
+    db.commit()
+    assert run_reassessment_schedule(db, settings, datetime(2026, 11, 3, 10)) == 0
+    assert len(_triggers(db, s.id)) == 1

@@ -42,8 +42,9 @@ def _engagement_dates(db: Session, s) -> list:
 
 
 def last_assessed(db: Session, s) -> date | None:
-    """The latest of: go-live, an impact assessment or reassessment in the history log, a resolved trigger, an
-    approved pre-deployment assessment, and a Futran engagement that assessed the system."""
+    """The latest of: go-live, an impact assessment or reassessment in the history log, a resolved trigger, a 12-month
+    trigger resolved or dismissed (handled for its cycle: the next one is due 12 months later), an approved
+    pre-deployment assessment, and a Futran engagement that assessed the system."""
     from app.impact.models import ImpactAssessment, ReassessmentTrigger
     from app.register.models import HistoryEntry
 
@@ -51,6 +52,9 @@ def last_assessed(db: Session, s) -> date | None:
     dates.append(db.scalar(select(func.max(HistoryEntry.occurred_on)).where(HistoryEntry.register_system_id == s.id, HistoryEntry.type == "impact_assessment",
                                                                          HistoryEntry.deleted_at.is_(None))))
     for v in (db.scalar(select(func.max(ReassessmentTrigger.resolved_at)).where(ReassessmentTrigger.register_system_id == s.id, ReassessmentTrigger.status == "resolved")),
+              db.scalar(select(func.max(func.coalesce(ReassessmentTrigger.resolved_at, ReassessmentTrigger.detected_at)))
+                        .where(ReassessmentTrigger.register_system_id == s.id, ReassessmentTrigger.type == "twelve_months",
+                               ReassessmentTrigger.status.in_(("resolved", "dismissed")), ReassessmentTrigger.deleted_at.is_(None))),
               db.scalar(select(func.max(ImpactAssessment.decided_at)).where(ImpactAssessment.register_system_id == s.id, ImpactAssessment.decision != "rejected")),
               *_engagement_dates(db, s)):
         dates.append(v.date() if isinstance(v, datetime) else v)
