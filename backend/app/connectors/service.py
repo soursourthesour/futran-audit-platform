@@ -99,8 +99,15 @@ def _adapter(settings: Settings, ctype: str):
 
 
 def _refuse(db: Session, conn: Connector, actor_id: str | None, message: str, field: str | None = None):
-    conn.status, conn.error = "error", message[:500]
-    audit.record(db, actor_id=actor_id, action="connector.refused", obj=conn, summary=f"{LABELS[conn.type]} not connected: {message[:200]}")
+    """A connection attempt that failed. A connector already connected keeps its stored access, which still works: the
+    failed attempt is logged and shown on the connector, and the next successful sync clears it."""
+    if conn.status == "connected" and conn.token_encrypted:
+        conn.error = f"The latest attempt to connect again failed: {message} The existing connection still works."[:500]
+        audit.record(db, actor_id=actor_id, action="connector.refused", obj=conn,
+                     summary=f"{LABELS[conn.type]} reconnection failed; the existing connection was kept: {message[:200]}")
+    else:
+        conn.status, conn.error = "error", message[:500]
+        audit.record(db, actor_id=actor_id, action="connector.refused", obj=conn, summary=f"{LABELS[conn.type]} not connected: {message[:200]}")
     db.flush()
     if field:
         raise Invalid(errors=[{"field": field, "message": message}])

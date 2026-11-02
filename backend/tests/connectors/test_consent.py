@@ -148,3 +148,28 @@ def test_disconnect_deletes_the_token_and_logs_it(w, settings):
     assert conn.status == "disconnected" and conn.token_encrypted is None and conn.token_ref is None and conn.tenant_id is None
     assert FAKE.revoked and FAKE.revoked[0]["type"] == "google_workspace"
     assert w.db.query(AuditLog).filter(AuditLog.action == "connector.disconnected").count() == 1
+
+
+def test_a_failed_reconnect_keeps_the_working_connection(w, settings):
+    st = _start(w, settings)
+    conn = svc.complete_consent(w.db, settings, "microsoft", {"state": st, "domain": "abccorp.example", "admin_consent": "True"}, session_id="sess-1", user_id=w.admin.id)
+    token, tenant = conn.token_encrypted, conn.tenant_id
+    st = _start(w, settings)  # the admin starts again, then cancels on the provider's page
+    with pytest.raises(AppError):
+        svc.complete_consent(w.db, settings, "microsoft", {"state": st, "error": "access_denied"}, session_id="sess-1", user_id=w.admin.id)
+    FAKE.tenants["tenant-other"] = ["otherco.example"]
+    st = _start(w, settings)  # or signs in to the wrong tenant
+    with pytest.raises(AppError):
+        svc.complete_consent(w.db, settings, "microsoft", {"state": st, "tenant": "tenant-other"}, session_id="sess-1", user_id=w.admin.id)
+    assert conn.status == "connected" and conn.token_encrypted == token and conn.tenant_id == tenant
+    assert "still" in (conn.error or "") and w.db.query(AuditLog).filter(AuditLog.action == "connector.refused").count() == 2
+    assert svc.sync(w.db, settings, conn, w.admin).status == "completed" and conn.error is None
+
+
+def test_a_mistyped_okta_secret_keeps_the_working_connection(w, settings):
+    conn = svc.connect_okta(w.db, settings, w.admin, w.org, "abccorp.okta.com", "cid", "s3cret")
+    token = conn.token_encrypted
+    with pytest.raises(AppError):
+        svc.connect_okta(w.db, settings, w.admin, w.org, "abccorp.okta.com", "cid", "wrong")
+    assert conn.status == "connected" and conn.token_encrypted == token and "still" in conn.error
+    assert svc.sync(w.db, settings, conn, w.admin).status == "completed"
