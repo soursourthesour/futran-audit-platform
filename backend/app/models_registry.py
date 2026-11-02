@@ -29,5 +29,5 @@ for _mod in ["biascalc", "insights", "annual"]:
     importlib.import_module(f"app.{_mod}.models")
 
 # wave 3 WS-I: policy builder (F7), AI literacy training (F12) and Trust Center (F9)
-for _mod in ["policies", "training"]:
+for _mod in ["policies", "training", "trust"]:
     importlib.import_module(f"app.{_mod}.models")

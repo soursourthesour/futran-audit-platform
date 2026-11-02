@@ -61,6 +61,9 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
     def api_not_found(rest: str):
         return JSONResponse(status_code=404, content={"detail": "Not found.", "errors": []})
 
+    from app.trust.public import install_robots  # wave 3 WS-I: the public Trust Center is noindex unless the client opts in
+
+    install_robots(app)
     _mount_spa(app)
     if settings.seed_on_start:
         from app.regmaster.startup import seed_if_empty
