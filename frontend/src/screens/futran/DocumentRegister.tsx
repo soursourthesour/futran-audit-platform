@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
 import { Alert, Badge, Button, Card, Dialog, EmptyState, FieldHelp, Loading, PageHeader, SelectField, TextField, fileUrl, fmtDate } from '@/components/ui';
+import { CommentsToggle } from '@/components/Comments';
 import { documentHelp } from '@/help/client';
 
 export type DocRequest = {
@@ -96,7 +97,7 @@ function Category({ title, rows, onChase }: { title: string; rows: DocRequest[];
       <tr><th colSpan={7} style={{ background: 'var(--bg, #f5f7fa)' }}>{title}</th></tr>
       {rows.map((r) => (
         <tr key={r.id}>
-          <td>{r.title}{r.files.length > 0 && <div className="small">{r.files.map((f) => <a key={f.id} className="file-link" href={fileUrl(f.id)} style={{ marginRight: 8 }}>{f.filename}</a>)}</div>}{r.not_available_note && <div className="small muted">Client: {r.not_available_note}</div>}</td>
+          <td>{r.title}{r.files.length > 0 && <div className="small">{r.files.map((f) => <a key={f.id} className="file-link" href={fileUrl(f.id)} style={{ marginRight: 8 }}>{f.filename}</a>)}</div>}{r.not_available_note && <div className="small muted">Client: {r.not_available_note}</div>}<CommentsToggle objectType="document_request" objectId={r.id} label={r.title} /></td>
           <td>{r.system_ref ?? '—'}</td>
           <td>{r.received_at ? fmtDate(r.received_at) : '—'}</td>
           <td><Badge tone={r.escalate ? 'danger' : STATUS[r.status].tone}>{STATUS[r.status].label}{r.escalate ? ' · escalate' : ''}</Badge></td>
@@ -145,6 +146,7 @@ export function DocumentUploadsList({ rows, onDone }: { rows: DocRequest[]; onDo
                     {r.status === 'pending' && <Button size="sm" variant="ghost" onClick={() => setNa(r)}>We don't have this</Button>}
                   </div>
                 </div>
+                <CommentsToggle objectType="document_request" objectId={r.id} label={r.title} />
               </li>
             ))}
           </ul>

@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
 import { Alert, Badge, Button, Card, Dialog, Loading, PageHeader, SelectField, TextArea, TextField, fileUrl, fmtDate } from '@/components/ui';
+import { CommentsToggle } from '@/components/Comments';
 import { evidenceRequestHelp, findingHelp, tierHelp } from '@/help/fieldwork';
 
 export type FindingRow = {
@@ -51,7 +52,7 @@ export function FieldworkUseCase() {
               <ul className="list-rows">
                 {d.evidence_requests.map((r) => (
                   <li key={r.id}>
-                    <div><span className="small muted">{r.ref}</span> {r.description}{r.answer && <div className="small muted">Answer: {r.answer}</div>}{r.files.length > 0 && <div className="small">{r.files.map((f) => <a key={f.id} href={fileUrl(f.id)} style={{ marginRight: 8 }}>{f.filename}</a>)}</div>}</div>
+                    <div><span className="small muted">{r.ref}</span> {r.description}{r.answer && <div className="small muted">Answer: {r.answer}</div>}{r.files.length > 0 && <div className="small">{r.files.map((f) => <a key={f.id} href={fileUrl(f.id)} style={{ marginRight: 8 }}>{f.filename}</a>)}</div>}<CommentsToggle objectType="evidence_request" objectId={r.id} label={r.ref} /></div>
                     <span className="small" style={{ whiteSpace: 'nowrap', color: r.overdue ? 'var(--danger)' : undefined }}><Badge tone={ER_TONE[r.status]}>{r.status === 'outstanding' ? `Outstanding · due ${fmtDate(r.due_date)}` : r.status === 'received' ? `Received · ${r.files.length} file${r.files.length === 1 ? '' : 's'}` : r.status[0].toUpperCase() + r.status.slice(1)}</Badge></span>
                   </li>
                 ))}

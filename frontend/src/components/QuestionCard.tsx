@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { errorMessage, fieldErrors } from '@/api/client';
 import { Alert, Badge, Button, Checkbox, FieldHelp, SelectField, TextArea, TextField, WithHelp, fileUrl } from '@/components/ui';
 import { questionHelp as H, questionTypeHelp } from '@/help/questionnaire';
+import { CommentsToggle } from '@/components/Comments';
 
 export type Option = { value: string; label: string };
 export type FileRef = { id: string; filename: string };
-export type ClientResponse = { value: unknown; status: string; na_reason: string | null; detail: string | null; evidence: FileRef[] };
+export type ClientResponse = { id?: string; value: unknown; status: string; na_reason: string | null; detail: string | null; evidence: FileRef[] };
 export type FutranResponse = ClientResponse & {
   id: string; source_person_name: string | null; source_person_title: string | null; answered_by: string | null; answered_side: 'client' | 'futran' | null; answered_at: string | null;
   verified: boolean; verified_by: string | null; client_value: unknown; client_status: string | null; client_detail: string | null; client_na_reason: string | null;
@@ -160,6 +161,7 @@ export function QuestionCard({ q, futran, locked, evidenceFiles, drafts, onSave,
             {saved && <span className="small muted" role="status">Saved</span>}
           </div>
         )}
+        {r?.id && <CommentsToggle objectType="response" objectId={r.id} label={`question ${q.code}`} />}
       </div>
     </div>
   );

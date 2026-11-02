@@ -1,0 +1,27 @@
+/* Comments and mentions (spec §21 F18) */
+.cmt { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--line-soft); padding-top: 12px; margin-top: 8px; min-width: 0; }
+.cmt-h { font-size: 15px; margin: 0; }
+.cmt-list, .cmt-replies { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.cmt-replies { margin: 8px 0 0 20px; padding-left: 12px; border-left: 2px solid var(--line-soft); }
+.cmt-item { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 10px 12px; min-width: 0; }
+.cmt-internal { background: var(--warn-bg); border-color: var(--warn-line); }
+.cmt-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.cmt-body { margin: 6px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.cmt-mention { color: var(--navy); }
+.cmt-actions { gap: 16px; }
+.cmt .linklike { min-height: 44px; }
+.cmt-reply { margin-left: 4px; }
+.cmt-composer { display: flex; flex-direction: column; gap: 8px; }
+.cmt-composer-reply { margin: 8px 0 0 20px; }
+.cmt-input { position: relative; }
+.cmt-input textarea { width: 100%; min-height: 80px; border: 1px solid var(--input-line); border-radius: var(--radius-sm); padding: 10px 12px; font: inherit; font-size: 15px; resize: vertical; }
+.cmt-input textarea:focus { border-color: var(--blue); box-shadow: var(--focus); outline: none; }
+.cmt-help { margin: 4px 0 0; }
+.cmt-suggest { position: absolute; z-index: 20; left: 0; right: 0; top: 100%; max-width: 420px; margin: 2px 0 0; padding: 4px 0; list-style: none; background: #fff;
+  border: 1px solid var(--line); border-radius: var(--radius-sm); box-shadow: 0 6px 20px rgba(22, 35, 58, 0.15); }
+.cmt-suggest li { padding: 10px 12px; min-height: 44px; cursor: pointer; }
+.cmt-suggest li.active, .cmt-suggest li:hover { background: #eef3fb; }
+.cmt-vis { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; }
+.cmt-vis label { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; font-size: 14px; }
+.cmt-toggle { min-width: 0; }
+.cmt-toggle > .linklike { min-height: 44px; }

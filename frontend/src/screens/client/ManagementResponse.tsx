@@ -7,6 +7,7 @@ import { Alert, Badge, Button, Card, EmptyState, FieldGroup, Loading, PageHeader
 import { responseHelp as H } from '@/help/client';
 import { adequacyHelp } from '@/help/fieldwork';
 import { SignPanel, type SignOffView } from '@/components/SignPanel';
+import { CommentsToggle } from '@/components/Comments';
 import { SEV_TONE } from '@/screens/futran/FieldworkUseCase';
 
 type Row = {
@@ -120,6 +121,7 @@ function ResponseCard({ n, r, people, futran, run }: { n: number; r: Row; people
             </div>
           </div>
         )}
+        <CommentsToggle objectType="finding" objectId={f.id} label={f.ref} />
       </div>
     </Card>
   );

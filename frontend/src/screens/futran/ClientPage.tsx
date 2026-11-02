@@ -261,6 +261,7 @@ function PackageDocs({ pkg, onView, onEdit }: { pkg: NonNullable<Page['package']
 export const WORK_AREAS = [
   ['governance', 'AI governance structure'], ['attestation', 'Employee attestation'], ['inventory', 'AI inventory and tiers'], ['systems', 'AI systems in scope'],
   ['documents', 'Document requests'], ['findings', 'Findings'], ['report', 'Report'], ['responses', 'Responses'], ['remediation', 'Remediation'],
+  ['agents', 'Agent oversight'],
 ] as const;
 
 function WorkAreas({ clientId }: { clientId: string }) {

@@ -12,10 +12,11 @@ import { LawSearch } from './LawSearch';
 import { RolesTab } from './RolesTab';
 import { FirstEntryQuestions, HistoryTab } from './HistoryTab';
 import { TracingTab } from '@/screens/tracing/TracingTab';
+import { AgentTab } from '@/screens/wsl/AgentTab';
 import { Lock } from './RegisterGrid';
 import './register.css';
 
-export type Tab = 'details' | 'roles' | 'history' | 'tracing' | 'evidence' | 'changes';
+export type Tab = 'details' | 'roles' | 'history' | 'agent' | 'tracing' | 'evidence' | 'changes';
 
 export function RegisterSystemPage({ tab }: { tab: Tab }) {
   const { systemId = '' } = useParams();
@@ -37,6 +38,7 @@ export function RegisterSystemPage({ tab }: { tab: Tab }) {
     ['details', 'Details', `/register/${s.id}`],
     ['roles', 'Governance roles', `/register/${s.id}/roles`],
     ['history', 'History and requirements', `/register/${s.id}/history`],
+    ...(s.type === 'agent' ? [['agent', 'Agent', `/register/${s.id}/agent`] as [Tab, string, string]] : []),
     ['tracing', 'Tracing', `/register/${s.id}/tracing`],
     ['evidence', 'Evidence', `/register/${s.id}/evidence`],
     ['changes', 'Change history', `/register/${s.id}/changes`],
@@ -76,6 +78,7 @@ export function RegisterSystemPage({ tab }: { tab: Tab }) {
       {tab === 'details' && !reg.data && <Loading />}
       {tab === 'roles' && <RolesTab s={s} onChanged={refresh} />}
       {tab === 'history' && <HistoryTab s={s} onChanged={refresh} />}
+      {tab === 'agent' && <AgentTab systemId={s.id} />}
       {tab === 'tracing' && <TracingTab s={s} />}
       {tab === 'evidence' && <EvidenceTab s={s} />}
       {tab === 'changes' && <ChangesTab s={s} />}

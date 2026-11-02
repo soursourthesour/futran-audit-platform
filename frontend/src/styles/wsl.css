@@ -1,0 +1,20 @@
+/* Wave 3 WS-L: notification filters (F18), API and webhooks (F17), agent oversight (F14), platform trust (F19) */
+.bell-filters { display: flex; gap: 4px; padding: 6px 10px; border-bottom: 1px solid var(--line-soft); }
+.bell-filter { min-height: 44px; padding: 0 12px; border: 1px solid transparent; border-radius: var(--radius-sm); background: none; font: inherit; font-size: 14px; color: var(--muted); cursor: pointer; }
+.bell-filter.active { border-color: var(--navy); color: var(--navy); font-weight: 600; background: #eef3fb; }
+.wsl-secret { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.wsl-secret code { padding: 10px 12px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius-sm); font-size: 14px; overflow-wrap: anywhere; word-break: break-all; flex: 1 1 260px; min-width: 0; }
+.wsl-scopes { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 0 16px; }
+.wsl-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.wsl-trend { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; align-items: end; }
+.wsl-trend .bar-wrap { height: 80px; display: flex; align-items: flex-end; background: var(--bg); border-radius: var(--radius-sm); overflow: hidden; }
+.wsl-trend .bar { width: 100%; background: var(--navy); min-height: 2px; }
+.wsl-trend .bar.empty { background: transparent; }
+.wsl-trend .m { font-size: 12px; color: var(--muted); text-align: center; margin-top: 4px; }
+.wsl-trend .v { font-size: 13px; font-weight: 600; text-align: center; }
+.wsl-tools { width: 100%; border-collapse: collapse; }
+.wsl-tools td, .wsl-tools th { padding: 6px 8px; border-bottom: 1px solid var(--line-soft); text-align: left; vertical-align: top; font-size: 14px; }
+.wsl-tool-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr) minmax(0, 1fr) auto auto; gap: 8px; align-items: end; }
+@media (max-width: 720px) { .wsl-tool-row { grid-template-columns: minmax(0, 1fr); } .wsl-trend { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.wsl-verdict { display: flex; flex-wrap: wrap; gap: 6px; }
+.wsl-criterion { margin-top: 16px; }

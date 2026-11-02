@@ -6,6 +6,7 @@ import { Alert, Badge, Button, ButtonLink, Card, EmptyState, Loading, PageHeader
 import { SignPanel, type SignOffView } from '@/components/SignPanel';
 import { FindingForm, SEV_TONE, type FindingRow } from '@/screens/futran/FieldworkUseCase';
 import { findingHelp } from '@/help/fieldwork';
+import { Comments } from '@/components/Comments';
 
 type Data = { findings: (FindingRow & { review_role?: string | null; origin?: string })[]; stage: number; audit_ref: string; client: string; control_options: string[]; sign_off_5: SignOffView | null; approved: number; total: number; can_approve_as: string[]; me: string };
 
@@ -97,6 +98,7 @@ export function FindingsQA() {
             </div>
           )}
           {f && (f.status === 'draft' || f.status === 'returned') && <div style={{ marginTop: 16 }}><FindingForm key={f.id} clientId={clientId} controls={d.control_options} initial={{}} prefill={null} existing={f} onDone={(t) => { setMsg({ tone: 'success', text: t }); refresh(); }} /></div>}
+          {f && <div className="card" style={{ marginTop: 16, padding: '0 16px 16px' }}><Comments key={f.id} objectType="finding" objectId={f.id} title={`Comments on ${f.ref}`} /></div>}
         </div>
       </div>
     </div>

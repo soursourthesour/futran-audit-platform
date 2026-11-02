@@ -5,6 +5,7 @@ import { api } from '@/api/client';
 import { fmtDateTime } from '@/components/ui';
 import { useMe } from '@/api/auth';
 import { staffAlerts, type StaffAlert } from '@/api/monitoring';
+import '@/styles/wsl.css';
 
 type Item = { id: string; kind: string; title: string; body: string | null; link: string | null; at: string; read: boolean };
 
@@ -13,8 +14,9 @@ export function NotificationBell() {
   const qc = useQueryClient();
   const nav = useNavigate();
   const [open, setOpen] = useState(false);
+  const [filter, setFilter] = useState<'all' | 'mentions' | 'unread'>('all');
   const ref = useRef<HTMLDivElement>(null);
-  const q = useQuery({ queryKey: ['notifications'], queryFn: () => api.get<{ unread: number; items: Item[] }>('/me/notifications'), refetchInterval: 60_000 });
+  const q = useQuery({ queryKey: ['notifications', filter], queryFn: () => api.get<{ unread: number; mentions_unread: number; items: Item[] }>(`/me/notifications?filter=${filter}`), refetchInterval: 60_000 });
   useEffect(() => {
     const close = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
     document.addEventListener('mousedown', close);
@@ -55,7 +57,12 @@ export function NotificationBell() {
             <strong>Notifications</strong>
             {unread > 0 && <button type="button" className="linklike small" onClick={readAll}>Mark all read</button>}
           </div>
-          {waiting.length > 0 && (
+          <div className="bell-filters" role="tablist" aria-label="Show">
+            {([['all', 'All'], ['mentions', `Mentions${q.data?.mentions_unread ? ` (${q.data.mentions_unread})` : ''}`], ['unread', 'Unread']] as const).map(([k, label]) => (
+              <button key={k} type="button" role="tab" aria-selected={filter === k} className={`bell-filter${filter === k ? ' active' : ''}`} onClick={() => setFilter(k)}>{label}</button>
+            ))}
+          </div>
+          {filter === 'all' && waiting.length > 0 && (
             <div className="bell-section">
               <div className="row bell-section-head"><strong className="small">Refresh alerts</strong><button type="button" className="linklike small" onClick={() => { setOpen(false); nav('/staff/alerts'); }}>All alerts and settings</button></div>
               <ul>
@@ -71,7 +78,7 @@ export function NotificationBell() {
               </ul>
             </div>
           )}
-          {(q.data?.items ?? []).length === 0 && !waiting.length ? <p className="small muted" style={{ padding: 14, margin: 0 }}>Nothing yet.</p> : (
+          {(q.data?.items ?? []).length === 0 && (filter !== 'all' || !waiting.length) ? <p className="small muted" style={{ padding: 14, margin: 0 }}>{filter === 'mentions' ? 'No one has mentioned you yet.' : filter === 'unread' ? 'Nothing unread.' : 'Nothing yet.'}</p> : (
             <ul>
               {(q.data?.items ?? []).map((n) => (
                 <li key={n.id} className={n.read ? '' : 'unread'}>

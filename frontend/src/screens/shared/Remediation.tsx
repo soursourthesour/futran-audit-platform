@@ -6,6 +6,7 @@ import { useMe } from '@/api/auth';
 import { Alert, Badge, Button, Card, EmptyState, Loading, PageHeader, TextArea, fmtDate, fmtDateTime } from '@/components/ui';
 import { SEV_TONE } from '@/screens/futran/FieldworkUseCase';
 import { remediationHelp } from '@/help/client';
+import { Comments } from '@/components/Comments';
 import { remediationReviewHelp } from '@/help/fieldwork';
 
 type Item = {
@@ -92,6 +93,7 @@ export function Remediation() {
                 </div>
               )}
               {it.can_close && <div><Button variant="primary" onClick={() => run(() => api.post(`/remediation/${it.id}/close`), 'Item closed.')}>Close item</Button></div>}
+              <Comments key={it.id} objectType="remediation" objectId={it.id} />
             </div>
           )}
         </div>

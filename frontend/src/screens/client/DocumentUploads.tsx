@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
 import { Alert, Badge, Button, Card, EmptyState, FieldHelp, Loading, PageHeader, TextArea, fileUrl, fmtDate } from '@/components/ui';
 import { documentHelp as H } from '@/help/client';
+import { CommentsToggle } from '@/components/Comments';
 import { DocumentUploadsList, type DocRequest } from '@/screens/futran/DocumentRegister';
 
 type EvidenceReq = { id: string; ref: string; description: string; status: string; due_date: string; answer: string | null; use_case: string | null; files: { id: string; filename: string }[]; overdue: boolean };
@@ -48,6 +49,7 @@ function EvidenceItem({ r, onDone }: { r: EvidenceReq; onDone: () => void }) {
           <div className="row" style={{ gap: 8 }}><Button size="sm" onClick={answer}>Send answer</Button><label className="btn btn-sm">Upload a file<input type="file" hidden onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} /></label><FieldHelp label={`uploading evidence for ${r.ref}`}>{H.upload}</FieldHelp></div>
         </>
       )}
+      <CommentsToggle objectType="evidence_request" objectId={r.id} label={r.ref} />
     </div>
   );
 }
