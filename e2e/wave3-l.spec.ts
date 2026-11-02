@@ -93,6 +93,8 @@ test('comments: internal and shared threads, an @mention from the suggestions, a
   await expect(bell.getByText(/mentioned you on finding/)).toBeVisible();
   await page.setViewportSize({ width: 375, height: 812 });
   await noSidewaysScroll(page, 'bell at 375px');
+  const panel = await bell.boundingBox();
+  expect(panel && panel.x >= 0 && panel.x + panel.width <= 375, 'bell panel inside the screen at 375px').toBeTruthy();
   await page.screenshot({ path: `${SHOTS}/f18-bell-mentions-375.png` });
   await page.setViewportSize({ width: 1280, height: 900 });
 });
@@ -187,7 +189,7 @@ test('agents: the client registers an agent, the auditor samples its decisions a
   const sd = page.getByRole('dialog', { name: 'Decision sample' });
   await expect(sd.getByText(/random.Random\(7\)/)).toBeVisible();
   for (let i = 0; i < 3; i += 1) {
-    await sd.getByRole('group', { name: 'Verdict' }).nth(i).getByRole('button', { name: 'Appropriate' }).click();
+    await sd.getByRole('group', { name: 'Verdict' }).nth(i).getByRole('button', { name: 'Appropriate', exact: true }).click();
     await expect(sd.getByRole('listitem').nth(i).getByText('Appropriate').first()).toBeVisible();
   }
   await sd.getByLabel('Conclusion', { exact: true }).fill('All three decisions within the registration.');

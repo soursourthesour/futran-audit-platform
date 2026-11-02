@@ -9,6 +9,7 @@ import { agentHelp as H } from '@/help/wsl';
 import { Trend } from './AgentTab';
 import '@/styles/wsl.css';
 
+const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
 const VTONE: Record<string, 'success' | 'danger' | 'warn'> = { appropriate: 'success', inappropriate: 'danger', needs_follow_up: 'warn' };
 
 /** Agent oversight `/clients/:clientId/agents` (spec §21 F14), for the audit team: each agent's registration, its
@@ -34,7 +35,7 @@ export function AgentOversight() {
           actions={<Button variant="primary" onClick={() => setDrawing(a)} disabled={a.decisions === 0}>Sample decisions</Button>}>
           <div className="stack">
             {!a.registration && <Alert tone="warn">The client has not registered this agent's tools and permissions.</Alert>}
-            {a.registration && <p className="small" style={{ margin: 0 }}><strong>{a.registration.autonomy_label}</strong> · {a.registration.tools.length} tools ({a.registration.tools.filter((t) => t.access === 'act').length} that act) · {a.registration.approval_points.length} approval points · kill switch {a.registration.kill_switch ? 'recorded' : 'not recorded'}</p>}
+            {a.registration && <p className="small" style={{ margin: 0 }}><strong>{a.registration.autonomy_label}</strong> · {plural(a.registration.tools.length, 'tool')} ({a.registration.tools.filter((t) => t.access === 'act').length} that act{a.registration.tools.filter((t) => t.access === 'act').length === 1 ? 's' : ''}) · {plural(a.registration.approval_points.length, 'approval point')} · kill switch {a.registration.kill_switch ? 'recorded' : 'not recorded'}</p>}
             {a.unregistered_tools.length > 0 && <Alert tone="warn">Used but not registered: {a.unregistered_tools.join(', ')}.</Alert>}
             {a.flags.map((f) => <Alert key={f} tone="warn">{f}</Alert>)}
             <p className="small muted" style={{ margin: 0 }}>{a.decisions} decisions on record.</p>

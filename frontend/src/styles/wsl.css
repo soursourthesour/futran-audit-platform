@@ -18,3 +18,5 @@
 @media (max-width: 720px) { .wsl-tool-row { grid-template-columns: minmax(0, 1fr); } .wsl-trend { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .wsl-verdict { display: flex; flex-wrap: wrap; gap: 6px; }
 .wsl-criterion { margin-top: 16px; }
+/* On a phone the bell sits left of the menu button, so a panel anchored to it would run off the left edge. */
+@media (max-width: 600px) { .bell-panel { position: fixed; left: 16px; right: 16px; top: 64px; width: auto; } }
