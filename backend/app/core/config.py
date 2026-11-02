@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     anthropic_api_key: str | None = None
     claude_model: str = "claude-sonnet-5-5"
     claude_web_search_tool: str = "web_search_20250305"
+    ai_client: str = "anthropic"  # anthropic | fake (demo and browser tests); the copilot, obligations and questionnaires (§21)
+    ai_model: str | None = None  # blank: CLAUDE_MODEL
     refresh_client: str = "anthropic"  # anthropic | fake (demo and browser tests; never calls the network)
     refresh_max_searches: int = 8  # web searches per jurisdiction
     claude_input_usd_per_mtok: float = 3.0  # for the refresh cost log and cap; set to the model's current price

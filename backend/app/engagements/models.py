@@ -42,6 +42,11 @@ class Engagement(TimestampedTenantMixin, Base):
     departments_confirmed_at: Mapped[datetime | None] = mapped_column(DateTime)  # cleared when the list changes during setup
     client_answers_locked_at: Mapped[datetime | None] = mapped_column(DateTime)  # set when the stage 4 snapshot locks the pre-fill
     completed_at: Mapped[datetime | None] = mapped_column(DateTime)
+    # §21 AI rule 4: off unless the Chief Auditor turns it on, recording the client's consent in the engagement letter
+    ai_features_enabled: Mapped[bool | None] = mapped_column(Boolean, default=False)
+    ai_consent_note: Mapped[str | None] = mapped_column(Text)
+    ai_enabled_by: Mapped[str | None] = mapped_column(String(36))
+    ai_enabled_at: Mapped[datetime | None] = mapped_column(DateTime)
 
 
 class EngagementTeam(TimestampedTenantMixin, Base):

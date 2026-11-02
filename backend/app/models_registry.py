@@ -16,3 +16,6 @@ importlib.import_module("app.tracing.models")
 # wave 3 WS-J: integrations and AI discovery (F2), continuous monitoring (F3)
 for _mod in ["monitoring"]:
     importlib.import_module(f"app.{_mod}.models")
+
+# Wave 3 WS-G: AI interactions, obligations, extracted document text, questionnaires and the answer library (§21)
+importlib.import_module("app.ai.models")

@@ -104,6 +104,8 @@ class Response(TimestampedTenantMixin, Base):
     client_evidence_ids: Mapped[list] = mapped_column(JSON, default=list)
     client_answered_by: Mapped[str | None] = mapped_column(String(36))
     client_answered_at: Mapped[datetime | None] = mapped_column(DateTime)
+    # §21.1: client | auditor | ai_suggested_accepted (WS-G) | carried_forward (WS-K); null on answers saved before wave 3
+    source: Mapped[str | None] = mapped_column(String(24))
 
 
 class ResponseVersion(TimestampedTenantMixin, Base):
