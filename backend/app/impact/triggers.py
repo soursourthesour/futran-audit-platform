@@ -64,17 +64,23 @@ def raise_trigger(db: Session, register_system_id: str, type: str, source: str, 
                             detail=(detail or None) and detail[:4000], detected_at=utcnow(), status="open", reopened=[], created_by=actor_id)
     db.add(t)
     db.flush()
-    t.reopened = reopen_sections(db, s, type)
+    cleared: list[dict] = []
+    t.reopened = reopen_sections(db, s, type, cleared)
     audit.record(db, actor_id=actor_id, action="reassessment.trigger", obj=t, organization_id=s.organization_id,
-                 after={"type": type, "source": source, "detail": t.detail, "reopened": t.reopened},
+                 before={"verified": cleared} if cleared else None, after={"type": type, "source": source, "detail": t.detail, "reopened": t.reopened},
                  summary=f"Reassessment trigger on {s.reference} {s.name}: {TYPE_LABELS[type]}")
     _notify(db, s, t)
     return t
 
 
-def reopen_sections(db: Session, s, type: str) -> list[dict]:
+def reopen_sections(db: Session, s, type: str, cleared: list[dict] | None = None) -> list[dict]:
     """Clear the auditor's verification of the answers in the affected sections, in each current engagement that audits
-    this register system. Returns what was reopened."""
+    this register system. Returns what was reopened; each cleared verification (response, verifier, time) is appended to
+    `cleared` so the audit entry can restore it.
+
+    The 12-month trigger reopens nothing: a current engagement that audits the system is the reassessment."""
+    if type == "twelve_months":
+        return []
     from app.engagements.models import Engagement
     from app.questionnaire.models import Question, Response
     from app.systems.models import AISystem
@@ -95,6 +101,8 @@ def reopen_sections(db: Session, s, type: str) -> list[dict]:
         for r, sub in db.execute(q).all():
             sections.add(sub)
             if r.verified_at is not None:
+                if cleared is not None:
+                    cleared.append({"response_id": r.id, "ai_system_id": system.id, "verified_by": r.verified_by, "verified_at": r.verified_at.isoformat()})
                 r.verified_by = r.verified_at = None
                 n += 1
         if system.status == "scored":
