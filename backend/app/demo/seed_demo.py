@@ -758,6 +758,9 @@ def e2e_late(db: Session, settings) -> dict:
     m = Demo(db, settings, client)
     try:
         m.futran_staff()
+        from app.demo.v061 import legal_reviewer
+
+        legal_reviewer(m)  # wave 3 WS-H: a second reviewer for regulatory updates (screen 26)
         abc_id = abc(m, until_stage6=True)
         mid = meridian(m)
         katrin, aarav = m.user("katrin.vogel@meridian.example"), m.user("aarav.menon@meridian.example")
