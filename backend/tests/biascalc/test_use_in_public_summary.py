@@ -57,3 +57,17 @@ def test_long_text_is_refused_with_a_message_not_cut_short(client, db, ats, peop
     r = client.put(f"/api/v1/clients/{cid}/public-summary", json=body)
     assert r.status_code == 422 and r.json()["errors"][0]["field"] == "notes" and "4,000" in r.json()["errors"][0]["message"]
 
+
+
+def test_a_table_with_no_positive_rate_is_still_published(client, db, ats, people):
+    """§ 5-304: the applicants and rates are published even when no impact ratio can be calculated."""
+    cid, e, maria, s = ats
+    login_as(client, db, people["aud"])
+    rid = run(client, s.id, applicant_csv({("Male", "White"): (50, 0), ("Female", "Hispanic or Latino"): (50, 0)})).json()["id"]
+    assert _use(client, rid).status_code == 200
+    ps = _summary(db, e)
+    groups = {(r["category"], r["group"]) for r in ps.impact_ratios}
+    assert {("Sex", "Male"), ("Sex", "Female"), ("Race/ethnicity", "White (not Hispanic or Latino)"), ("Race/ethnicity", "Hispanic or Latino")} <= groups
+    assert all(r["impact_ratio"] is None and r["not_calculable"] is True and r["applicants"] == 50 and r["selection_rate"] == 0 for r in ps.impact_ratios)
+    text = summary_text(ps)
+    assert "- Sex · Male: 50 applicants, selection rate 0.00, impact ratio not calculable. No category has a positive rate, so impact ratios cannot be calculated." in text

@@ -9,7 +9,7 @@ import { SEV_TONE } from '@/screens/futran/FieldworkUseCase';
 type Declaration = { kind: string; label: string; signed_by: string; signed_at: string; text: string; commitment: string | null; disputed_refs: string[] };
 export type ReportRow = { id: string; version: string; version_label: string; status: string; created_at: string; docx_file_id: string | null; pdf_file_id: string | null; released_to_client_at: string | null; signed_at: string | null; declarations: Declaration[] };
 type Roadmap = { id: string; ref: string; action: string; owner: string | null; priority: string; target_date: string | null; how_futran_can_help: string | null; finding_ids: string[]; finding_refs: string[] };
-type Ratio = { category: string; group: string; selection_rate: number | null; impact_ratio: number | null; applicants?: number; rate_kind?: string; excluded?: boolean; justification?: string };
+type Ratio = { category: string; group: string; selection_rate: number | null; impact_ratio: number | null; applicants?: number; rate_kind?: string; excluded?: boolean; justification?: string; not_calculable?: boolean; reason?: string };
 type Summary = { ai_system_id: string | null; tool_name: string | null; audit_date: string | null; distribution_date: string | null; data_source: string | null; notes: string | null; unknown_category_count: number | null; impact_ratios: Ratio[]; evidence_file_ids: string[] };
 type Data = {
   audit_ref: string; client: string; stage: number; my_name: string;

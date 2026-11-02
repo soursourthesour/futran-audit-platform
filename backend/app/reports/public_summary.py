@@ -43,9 +43,10 @@ def _ratios(rows, errs: list) -> list[dict]:
         row = row if isinstance(row, dict) else {}
         category, group = " ".join(str(row.get("category") or "").split())[:80], " ".join(str(row.get("group") or "").split())[:120]
         excluded = row.get("excluded") is True  # § 5-301(d): a small category left out of the impact ratios, still reported
+        not_calculable = not excluded and row.get("not_calculable") is True  # § 5-304: no positive rate in the table, still reported
         try:
             rate = float(row.get("selection_rate")) if row.get("selection_rate") not in (None, "") else None
-            ratio = None if excluded and row.get("impact_ratio") in (None, "") else float(row.get("impact_ratio"))
+            ratio = None if (excluded or not_calculable) and row.get("impact_ratio") in (None, "") else float(row.get("impact_ratio"))
         except (TypeError, ValueError):
             errs.append({"field": f"impact_ratios.{i}", "message": f"Row {i + 1}: enter the impact ratio as a number."})
             continue
@@ -71,6 +72,13 @@ def _ratios(rows, errs: list) -> list[dict]:
             elif len(why) > 1000:
                 errs.append({"field": f"impact_ratios.{i}", "message": f"Row {i + 1}: keep the justification to 1,000 characters."})
             item |= {"impact_ratio": None, "excluded": True, "justification": why}
+        elif not_calculable and ratio is None:
+            reason = " ".join(str(row.get("reason") or "").split())
+            if "applicants" not in item or rate is None or not reason:
+                errs.append({"field": f"impact_ratios.{i}", "message": f"Row {i + 1}: give the number of applicants, the rate and why the impact ratio cannot be calculated."})
+            elif len(reason) > 1000:
+                errs.append({"field": f"impact_ratios.{i}", "message": f"Row {i + 1}: keep the reason to 1,000 characters."})
+            item |= {"not_calculable": True, "reason": reason}
         out.append(item)
     return out
 
@@ -131,6 +139,8 @@ def summary_text(s: PublicSummary) -> str:
         rate = f"{r.get('rate_kind') or 'selection'} rate {r['selection_rate']:.2f}, " if r.get("selection_rate") is not None else ""
         if r.get("excluded"):
             lines.append(f"- {r['category']} · {r['group']}: {applicants}{rate}excluded from the impact ratio calculation. Justification: {r.get('justification')}")
+        elif r.get("impact_ratio") is None:
+            lines.append(f"- {r['category']} · {r['group']}: {applicants}{rate}impact ratio not calculable. {r.get('reason') or ''}".rstrip())
         else:
             lines.append(f"- {r['category']} · {r['group']}: {applicants}{rate}impact ratio {r['impact_ratio']:.2f}")
     return "\n".join(lines)

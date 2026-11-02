@@ -194,7 +194,7 @@ function ContentView({ kind, c }: { kind: string; c: Record<string, any> }) {
       <span className="small">{c.tool_name} · audit {fmtDate(c.audit_date)} · by {c.auditor}{c.distribution_date ? ` · in use since ${fmtDate(c.distribution_date)}` : ''}</span>
       {c.data_source && <span className="small muted">Data: {c.data_source}</span>}
       <div className="table-wrap"><table className="tc-ratios"><thead><tr><th>Category</th><th>Group</th><th>Selection rate</th><th>Impact ratio</th></tr></thead>
-        <tbody>{(c.impact_ratios ?? []).map((r: any, i: number) => <tr key={i}><td>{r.category}</td><td>{r.group}</td><td>{r.selection_rate ?? '—'}</td><td>{r.impact_ratio}</td></tr>)}</tbody></table></div>
+        <tbody>{(c.impact_ratios ?? []).map((r: any, i: number) => <tr key={i}><td>{r.category}</td><td>{r.group}</td><td>{r.selection_rate ?? '—'}</td><td>{r.excluded ? 'Excluded' : r.impact_ratio ?? 'Not calculable'}</td></tr>)}</tbody></table></div>
       {c.unknown_category_count !== null && c.unknown_category_count !== undefined && <span className="small muted">{c.unknown_category_count} records with an unknown category were not included.</span>}
     </div>
   );

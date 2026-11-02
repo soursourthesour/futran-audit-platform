@@ -38,3 +38,15 @@ def test_an_excluded_category_is_listed_with_its_count_rate_and_the_justificatio
     errs = []
     _ratios([{"category": "Sex", "group": "Male", "impact_ratio": None, "excluded": True}], errs)
     assert errs == [{"field": "impact_ratios.0", "message": "Row 1: give the number of applicants, the rate and the justification for an excluded category."}]
+
+
+def test_a_not_calculable_row_keeps_its_applicants_rate_and_reason():
+    """§ 5-304: applicants and rates are published even when the table has no positive rate (no impact ratio)."""
+    errs: list = []
+    rows = _ratios([{"category": "Sex", "group": "Male", "applicants": 50, "selection_rate": 0, "impact_ratio": "", "not_calculable": True,
+                     "reason": "No category has a positive rate, so impact ratios cannot be calculated.", "rate_kind": "selection"}], errs)
+    assert errs == [] and rows[0]["impact_ratio"] is None and rows[0]["not_calculable"] is True and rows[0]["applicants"] == 50
+    assert "- Sex · Male: 50 applicants, selection rate 0.00, impact ratio not calculable. No category has a positive rate" in summary_text(PublicSummary(tool_name="T", impact_ratios=rows))
+    errs = []
+    _ratios([{"category": "Sex", "group": "Male", "impact_ratio": None, "not_calculable": True}], errs)
+    assert errs == [{"field": "impact_ratios.0", "message": "Row 1: give the number of applicants, the rate and why the impact ratio cannot be calculated."}]

@@ -242,16 +242,21 @@ LEGACY_EXCLUSION_NOTE = "Excluded from the impact ratio calculations because"  #
 
 
 def summary_rows(run: BiasTestRun) -> tuple[list[dict], list[dict]]:
-    """Every category in table order; an excluded category is a row marked excluded (and also listed in `excluded`)."""
+    """Every category in table order; an excluded category is a row marked excluded (and also listed in `excluded`). A
+    category whose table has no impact ratios (no positive rate) is still a row, marked not calculable with the reason:
+    § 5-304 publishes the applicants and rates whatever the ratios."""
     rows, excluded = [], []
     for dim, title in stats.DIMENSIONS.items():
-        for c in (run.results.get("tables", {}).get(dim) or {}).get("categories", []):
+        table = run.results.get("tables", {}).get(dim) or {}
+        for c in table.get("categories", []):
             item = {"category": title, "group": c["label"], "applicants": c["applicants"], "selection_rate": round(c["rate"], 4), "rate_kind": "scoring" if run.method == "scoring_rate" else "selection"}
             if c.get("excluded"):
                 excluded.append(item)
                 rows.append(item | {"impact_ratio": None, "excluded": True})
             elif c.get("impact_ratio") is not None:
                 rows.append(item | {"impact_ratio": round(c["impact_ratio"], 4)})
+            else:
+                rows.append(item | {"impact_ratio": None, "not_calculable": True, "reason": table.get("note") or "No impact ratio could be calculated for this table."})
     return rows, excluded
 
 
