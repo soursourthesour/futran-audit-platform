@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
 import { can, useMe } from '@/api/auth';
-import { Alert, Button, Card, Checkbox, Dialog, EmptyState, Loading, PageHeader, fmtDate } from '@/components/ui';
+import { Alert, Badge, Button, Card, Dialog, EmptyState, Loading, PageHeader, fmtDate } from '@/components/ui';
 import type { ClientBiasData } from '@/api/wsk';
 
 /** On the Futran client page: heat map and lineage, the annual review, and changes since the prior audit. */
@@ -62,17 +62,19 @@ export function BiasData() {
   }
   return (
     <div className="page">
-      <PageHeader title="Bias test data" subtitle="Applicant data your auditor used for bias tests. It stays in your organization’s storage and is deleted at the end of the engagement retention period unless you keep it. The results are always kept." />
+      <PageHeader title="Bias test data" subtitle="Applicant data your auditor used for bias tests. It stays in your organization’s storage and is deleted at the end of the engagement retention period unless you keep it, for example for a regulator’s request. The results are always kept." />
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
       <Card>
         {q.data.runs.length === 0 ? <EmptyState>No bias test data has been uploaded.</EmptyState> : (
           <div className="table-wrap"><table className="table">
-            <thead><tr><th>System</th><th>File</th><th>Tested</th><th>Raw data</th><th>Keep after the retention period</th></tr></thead>
+            <thead><tr><th>System</th><th>File</th><th>Tested</th><th>Raw data</th><th>After the retention period</th></tr></thead>
             <tbody>{q.data.runs.map((r) => (
               <tr key={r.id}>
                 <td>{r.system}</td><td className="small">{r.dataset_filename}</td><td className="small">{fmtDate(r.run_at)}</td>
                 <td className="small">{r.raw_deleted_at ? `Deleted ${fmtDate(r.raw_deleted_at)}` : r.raw_delete_on ? `Deleted on ${fmtDate(r.raw_delete_on)} unless kept` : 'Kept until the engagement retention period ends'}</td>
-                <td>{r.raw_deleted_at ? '—' : <Checkbox label={`Keep ${r.dataset_filename ?? 'this file'}`} help="Keeps the raw rows after the retention period, for example for a regulator’s request. Untick to have them deleted on the date shown." checked={r.keep_raw_data} disabled={busy} onChange={(e) => void keep(r.id, e.target.checked)} />}</td>
+                <td>{r.raw_deleted_at ? '—' : r.keep_raw_data
+                  ? <><Badge tone="navy">Kept</Badge> <Button size="sm" disabled={busy} onClick={() => void keep(r.id, false)} aria-label={`Let ${r.dataset_filename ?? 'this file'} be deleted at the end of the retention period`}>Let it be deleted</Button></>
+                  : <Button size="sm" disabled={busy} onClick={() => void keep(r.id, true)} aria-label={`Keep ${r.dataset_filename ?? 'this file'} after the retention period`}>Keep</Button>}</td>
               </tr>
             ))}</tbody>
           </table></div>
