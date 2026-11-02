@@ -1,0 +1,73 @@
+code: acceptable_use
+version: "1.0"
+title: "AI acceptable use at {company}"
+minutes: 12
+audience: All staff
+summary: "What the company's AI acceptable use policy asks of you: which tools you may use, what you must never type into them, and what to do when something goes wrong."
+pass_mark: 80
+pages:
+  - title: Why the company has rules for AI
+    paragraphs:
+      - "AI tools can save time on writing, research and analysis. They can also leak information, produce confident mistakes and treat people unfairly. {company}'s AI acceptable use policy sets out how to get the benefit without those risks."
+      - "The rules apply to every AI tool you use for work: chat assistants, AI features inside other software, and agents that take actions for you."
+  - title: Use approved tools only
+    paragraphs:
+      - "Use only the AI tools the company has approved, with your company account. Approved tools have been checked for how they handle data and are covered by a contract that stops the vendor training on what you type."
+      - "If you need a tool that is not approved, ask for it to be reviewed. Do not sign up for it yourself with a work email or a personal account."
+  - title: Information you must never enter
+    paragraphs:
+      - "Some information must never go into an AI tool unless the tool has been approved for it in writing. The policy lists the categories; the most common are:"
+    points:
+      - Client or customer data
+      - Personal information about applicants and employees
+      - Source code, passwords and other credentials
+      - Information marked confidential or restricted
+  - title: You stay responsible for the result
+    paragraphs:
+      - "AI output can be wrong while sounding certain. Check facts, figures, quotations and code before you rely on them or send them on."
+      - "No AI output may be the only basis for a decision about a person, such as hiring, promotion or discipline. A trained person reviews each recommendation and can override it."
+  - title: When something goes wrong
+    paragraphs:
+      - "Report it straight away if an AI tool produced harmful or clearly wrong output that someone relied on, if information went into a tool that was not approved for it, or if you think a tool is being misused."
+      - "Reports made in good faith are never held against you. Reporting early is what limits the damage."
+quiz:
+  - id: q1
+    question: "A colleague recommends a free AI summariser that is not on the approved list. What should you do?"
+    options:
+      - {id: a, text: "Use it with your personal account, since it is free"}
+      - {id: b, text: "Ask for the tool to be reviewed and use an approved tool meanwhile"}
+      - {id: c, text: "Use it, but only for internal documents"}
+    answer: b
+    explanation: "Only approved tools may be used for work. A new tool is reviewed for data handling and security before anyone uses it."
+  - id: q2
+    question: "Which of these may you paste into an approved AI tool without written approval for that information?"
+    options:
+      - {id: a, text: "A customer's account details"}
+      - {id: b, text: "An applicant's CV"}
+      - {id: c, text: "The text of the company's published press release"}
+    answer: c
+    explanation: "Published information is public. Customer data and applicants' personal information are in the categories you must never enter without approval."
+  - id: q3
+    question: "An AI tool ranks job applicants. What does the policy require before a candidate is rejected?"
+    options:
+      - {id: a, text: "Nothing, if the tool's score is low enough"}
+      - {id: b, text: "A trained person reviews the recommendation and can override it"}
+      - {id: c, text: "The candidate is told their score"}
+    answer: b
+    explanation: "No AI output may be the only basis for a decision about a person. A trained reviewer decides."
+  - id: q4
+    question: "You realise you pasted confidential figures into a tool that is not approved for them. What now?"
+    options:
+      - {id: a, text: "Delete the chat and say nothing"}
+      - {id: b, text: "Report it straight away"}
+      - {id: c, text: "Wait to see whether anything happens"}
+    answer: b
+    explanation: "Report it at once. Deleting the chat does not undo what the vendor may have kept, and early reports limit the damage."
+  - id: q5
+    question: "Who is responsible for a report you wrote with help from an AI tool?"
+    options:
+      - {id: a, text: "You are"}
+      - {id: b, text: "The AI vendor"}
+      - {id: c, text: "The IT team that approved the tool"}
+    answer: a
+    explanation: "You are responsible for work you produce with AI help, including checking it before it is used."

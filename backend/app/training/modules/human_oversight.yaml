@@ -1,0 +1,62 @@
+code: human_oversight
+version: "1.0"
+title: Human oversight for reviewers
+minutes: 20
+audience: Named reviewers of Tier 3 AI systems
+summary: "For people named as reviewers of AI systems that support decisions about people: what a real review involves, automation bias, overriding and stopping a system."
+pass_mark: 80
+pages:
+  - title: Why you are a named reviewer
+    paragraphs:
+      - "Some AI systems at {company} support decisions that matter to people: who is interviewed, which invoice is held, which customer is contacted. For these systems a named person reviews the output before anyone acts on it."
+      - "Under the EU AI Act, deployers of high-risk AI systems must give human oversight to people with the competence, training and authority to carry it out (Art. 26(2)). The same principle applies at {company} wherever AI supports decisions about people."
+  - title: What a real review involves
+    points:
+      - Look at the information the system used, not only its score or label
+      - Compare the output with your own judgement and the other information you have
+      - Ask whether the output makes sense for this person or case
+      - Override it when it is wrong or unfair, and record why
+  - title: Automation bias
+    paragraphs:
+      - "People tend to accept automated recommendations, especially when they are busy or the system is usually right. This is automation bias, and the EU AI Act names it as something overseers must stay aware of (Art. 14(4)(b))."
+      - "Warning signs: you have not overridden the system for months; you skim the recommendation and click accept; you feel you need a reason to disagree but not to agree."
+  - title: Overriding and stopping
+    paragraphs:
+      - "Your override is not a failure. It is the reason you are there. Record the reason briefly so patterns can be spotted and the system improved."
+      - "If the system starts producing output that looks wrong or harmful across many cases, you may stop using it and switch to the manual process. Then report it under the AI incident response procedure."
+  - title: How your reviews are checked
+    paragraphs:
+      - "The human oversight lead re-checks a sample of reviewed decisions and watches the override rate. A rate close to zero is a reason to look closer, not a sign that all is well."
+quiz:
+  - id: q1
+    question: "The system ranks a candidate low. Their CV shows experience the job advert asks for. What do you do?"
+    options:
+      - {id: a, text: "Accept the ranking; the system has seen more CVs than you have"}
+      - {id: b, text: "Override the ranking and record the reason"}
+      - {id: c, text: "Ask the candidate to apply again"}
+    answer: b
+    explanation: "Reviewers override output that is wrong and record why. That is the purpose of the review."
+  - id: q2
+    question: "Which is a warning sign of automation bias?"
+    options:
+      - {id: a, text: "You have not overridden the system in six months"}
+      - {id: b, text: "You check the information the system used"}
+      - {id: c, text: "You record a reason when you override"}
+    answer: a
+    explanation: "An override rate close to zero often means outputs are being accepted without real review."
+  - id: q3
+    question: "Many outputs this morning look plainly wrong. What may you do?"
+    options:
+      - {id: a, text: "Keep going until the vendor confirms a problem"}
+      - {id: b, text: "Stop using the system, switch to the manual process and report it"}
+      - {id: c, text: "Accept the outputs but add a note"}
+    answer: b
+    explanation: "Named reviewers may stop a system when its output looks wrong, then report it as an incident."
+  - id: q4
+    question: "What does the EU AI Act require of people who oversee a high-risk AI system?"
+    options:
+      - {id: a, text: "A technical degree"}
+      - {id: b, text: "Competence, training and authority to carry out oversight"}
+      - {id: c, text: "Approval from the AI vendor"}
+    answer: b
+    explanation: "Art. 26(2) requires deployers to assign oversight to people with the necessary competence, training and authority."

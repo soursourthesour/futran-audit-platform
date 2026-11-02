@@ -1,0 +1,62 @@
+code: shadow_ai
+version: "1.0"
+title: Shadow AI and data leakage
+minutes: 10
+audience: All staff
+summary: "How unapproved AI tools and personal accounts put company and client information at risk, and the safe alternatives."
+pass_mark: 80
+pages:
+  - title: What shadow AI is
+    paragraphs:
+      - "Shadow AI is any AI tool used for work without the company knowing about it or approving it: a free chatbot on a personal account, a browser extension that summarises pages, or an AI feature switched on inside another app."
+      - "It usually starts with good intentions: someone wants to work faster. The risk is that information leaves {company} without anyone noticing."
+  - title: Where your words go
+    paragraphs:
+      - "Free AI tools on personal accounts may keep what you type, and some use it to train their models. Anything you paste could leave {company} and cannot be recalled."
+      - "Company accounts on approved tools are covered by contracts that keep data inside the company and stop it being used for training."
+  - title: Common leaks
+    points:
+      - Pasting a client contract into a personal chatbot to summarise it
+      - Uploading a spreadsheet of customer or employee data to get a chart
+      - Letting a browser extension read every page you open, including internal systems
+      - Connecting an AI agent to your work email or calendar without approval
+  - title: The safe alternative
+    paragraphs:
+      - "Use the approved tools with your company account. If they cannot do what you need, ask for a tool to be reviewed; the review checks where data goes, how long it is kept and who can see it."
+      - "When you are unsure whether information can be used, treat it as if it cannot, and ask."
+  - title: Discovery and declaration
+    paragraphs:
+      - "The company asks staff from time to time which AI tools they use, and may see AI services in its sign-in and expense records. Declaring a tool is never a disciplinary matter; it lets the company bring it under control or offer a safe alternative."
+quiz:
+  - id: q1
+    question: "A client sends a contract. Can you paste it into ChatGPT on your personal account to summarise it?"
+    options:
+      - {id: a, text: "Yes, if I delete the chat afterwards"}
+      - {id: b, text: "No. Use the approved tool with my company account"}
+      - {id: c, text: "Yes, if I remove the client's name"}
+    answer: b
+    explanation: "Personal accounts may keep what you type. Deleting the chat or removing a name does not make it safe. The approved company tool keeps data inside the company."
+  - id: q2
+    question: "Which of these is shadow AI?"
+    options:
+      - {id: a, text: "An unapproved browser extension that summarises the pages you visit"}
+      - {id: b, text: "The approved assistant, used with your company account"}
+      - {id: c, text: "A spell checker that does not use AI"}
+    answer: a
+    explanation: "An unapproved extension that reads your pages is shadow AI: it can see internal systems and send their content elsewhere."
+  - id: q3
+    question: "You have been using an unapproved tool. The company asks which AI tools you use. What should you do?"
+    options:
+      - {id: a, text: "Leave it out to avoid trouble"}
+      - {id: b, text: "Declare it, so it can be reviewed or replaced"}
+      - {id: c, text: "Uninstall it and say nothing"}
+    answer: b
+    explanation: "Declaring a tool is never a disciplinary matter. It lets the company find out what data may have left and offer a safe alternative."
+  - id: q4
+    question: "Why are approved company accounts safer than free personal ones?"
+    options:
+      - {id: a, text: "They are faster"}
+      - {id: b, text: "The company's contract controls how data is kept and stops it being used for training"}
+      - {id: c, text: "They never make mistakes"}
+    answer: b
+    explanation: "The difference is the contract and settings that control the data. Approved tools still make mistakes, so you check their output."

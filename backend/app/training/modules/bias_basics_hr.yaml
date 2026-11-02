@@ -1,0 +1,65 @@
+code: bias_basics_hr
+version: "1.0"
+title: Bias basics for HR
+minutes: 15
+audience: Human Resources
+summary: "How AI hiring tools can treat groups of people differently, how bias is measured, and what NYC Local Law 144 and similar laws require."
+pass_mark: 80
+pages:
+  - title: How AI hiring tools can be unfair
+    paragraphs:
+      - "An AI tool learns from past data. If past decisions favoured some groups, the tool can repeat that pattern, even when it never sees sex or race. Other information, such as gaps in employment, college names or postcodes, can stand in for them."
+      - "Unfair outcomes harm candidates and expose {company} to discrimination claims, whether the decision was made by a person or with an AI tool's help."
+  - title: How bias is measured
+    paragraphs:
+      - "A common measure compares selection rates. The selection rate of a group is the share of its applicants that the tool moves forward. The impact ratio divides a group's selection rate by the rate of the most selected group."
+      - "An impact ratio below 0.80, the four-fifths rule of thumb, is a signal to investigate. It is a screening threshold, not a legal safe harbour, and a ratio above it does not prove the tool is fair."
+  - title: NYC Local Law 144
+    paragraphs:
+      - "In New York City an employer may use an automated employment decision tool for candidates or employees only if:"
+    points:
+      - an independent auditor completed a bias audit of the tool no more than one year before its use;
+      - a summary of the audit results is published on the employer's website;
+      - candidates and employees are told at least 10 business days before the tool is used, and can ask for an alternative selection process or an accommodation.
+  - title: Other laws to know
+    paragraphs:
+      - "Since 1 January 2026 the Illinois Human Rights Act requires employers to give notice when they use AI in recruitment, hiring, promotion and other employment decisions, and prohibits using AI in a way that discriminates or using zip codes as a proxy for a protected class."
+      - "In the EU, AI used in recruitment and the management of workers is high-risk under the EU AI Act, and workers' representatives and affected workers must be informed before it is put into use at work."
+  - title: What you do day to day
+    points:
+      - Use only the approved hiring tools, and only for the roles they were assessed for
+      - Review each recommendation; never reject a candidate on the tool's output alone
+      - Pass on any request for an alternative process or accommodation the same day
+      - Report results that look skewed against a group
+quiz:
+  - id: q1
+    question: "The tool advances 30% of men and 21% of women. What is the impact ratio for women?"
+    options:
+      - {id: a, text: "0.70"}
+      - {id: b, text: "0.90"}
+      - {id: c, text: "0.09"}
+    answer: a
+    explanation: "21% ÷ 30% = 0.70. That is below 0.80, so the result should be investigated."
+  - id: q2
+    question: "Under NYC Local Law 144, how recent must the bias audit be?"
+    options:
+      - {id: a, text: "No more than one year before the tool is used"}
+      - {id: b, text: "Within three years"}
+      - {id: c, text: "Only before the first use"}
+    answer: a
+    explanation: "The audit must have been done no more than one year before each use, so it is repeated at least yearly."
+  - id: q3
+    question: "A candidate asks not to be assessed by the AI tool. What do you do?"
+    options:
+      - {id: a, text: "Tell them the tool is required"}
+      - {id: b, text: "Pass the request on the same day so an alternative process or accommodation can be considered"}
+      - {id: c, text: "Withdraw their application"}
+    answer: b
+    explanation: "Candidates must be able to ask for an alternative selection process or accommodation. Pass the request on promptly."
+  - id: q4
+    question: "The tool never sees race. Can it still produce racially skewed results?"
+    options:
+      - {id: a, text: "No"}
+      - {id: b, text: "Yes, through information that stands in for race, such as postcodes"}
+    answer: b
+    explanation: "Other data can act as a proxy. That is why outcomes are measured by group."

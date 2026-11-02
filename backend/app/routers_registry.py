@@ -20,4 +20,4 @@ ROUTER_MODULES += ["tracing.router"]
 ROUTER_MODULES += ["homes.router"]
 
 # wave 3 WS-I: policy builder (F7), AI literacy training (F12) and Trust Center (F9)
-ROUTER_MODULES += ["policies.router"]
+ROUTER_MODULES += ["policies.router", "training.router"]

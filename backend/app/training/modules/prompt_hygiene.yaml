@@ -1,0 +1,47 @@
+code: prompt_hygiene
+version: "1.0"
+title: GenAI prompt hygiene
+minutes: 10
+audience: All staff who use generative AI
+summary: "Practical habits for writing prompts that get good results without exposing information, and for checking what comes back."
+pass_mark: 80
+pages:
+  - title: Share the minimum
+    paragraphs:
+      - "Give the tool what it needs for the task and nothing more. Describe the situation in general terms instead of pasting whole documents, and leave out names, account numbers and other identifiers unless the tool is approved for them."
+  - title: Be clear about the task
+    points:
+      - Say who the output is for and what it will be used for
+      - Give the format you want, such as a short email or a table
+      - Ask the tool to say when it is unsure or lacks information
+      - Ask for sources you can check, then check them
+  - title: Watch for prompt injection
+    paragraphs:
+      - "Text the tool reads, such as a web page, an email or a document, can contain hidden instructions. If an AI tool or agent suddenly tries to send information, follow links or change settings you did not ask for, stop and report it."
+  - title: Check before you use
+    paragraphs:
+      - "Generative AI can invent facts, quotations and references that look real. Check anything you will rely on, especially figures, legal or medical statements, and anything that will reach a customer."
+      - "Label AI-generated content where the law, a contract or the reader's reasonable expectation requires it."
+quiz:
+  - id: q1
+    question: "You want help drafting a reply to a customer complaint. What is the best prompt approach in an approved tool?"
+    options:
+      - {id: a, text: "Paste the whole email thread with the customer's details"}
+      - {id: b, text: "Describe the complaint in general terms and ask for a polite reply you can then complete"}
+      - {id: c, text: "Forward the email to a personal AI account"}
+    answer: b
+    explanation: "Share the minimum needed. You can add the specifics yourself afterwards."
+  - id: q2
+    question: "An AI agent reading a web page suddenly tries to email a file to an outside address. What is happening?"
+    options:
+      - {id: a, text: "Normal behaviour"}
+      - {id: b, text: "Possibly prompt injection: stop and report it"}
+    answer: b
+    explanation: "Hidden instructions in content the tool reads can hijack it. Stop and report it."
+  - id: q3
+    question: "The tool cites a regulation and a page number. What should you do before using it?"
+    options:
+      - {id: a, text: "Check the source yourself"}
+      - {id: b, text: "Trust it if the tone is confident"}
+    answer: a
+    explanation: "Generative AI can invent references. Check them before you rely on them."
