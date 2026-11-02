@@ -17,6 +17,7 @@ export const copilotHelp = {
   summaryKind: 'An engagement summary covers this audit; a client summary is written for the client as a whole.',
   summaryEdit: 'Edit the text before using it. It replaces the overall narrative in the executive summary.',
   useInReport: 'Writes the accepted text into the report as the overall assessment narrative. Possible until the client draft is released.',
+  replaceNarrative: 'Leave this unticked to keep a narrative someone has already written; accepting then stops and says so. The replaced text is kept in the audit log.',
   checklist: 'The checklist whose linked evidence the copilot reads.',
 };
 

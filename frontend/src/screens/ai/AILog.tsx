@@ -117,6 +117,7 @@ function EngagementSummary({ engagementId }: { engagementId: string }) {
   const [s, setS] = useState<Interaction | null>(null);
   const [text, setText] = useState('');
   const [useInReport, setUseInReport] = useState(true);
+  const [replaceNarrative, setReplaceNarrative] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   async function write() {
@@ -136,7 +137,8 @@ function EngagementSummary({ engagementId }: { engagementId: string }) {
         {s.status === 'suggested' ? <>
           <TextArea label="Summary text" help={copilotHelp.summaryEdit} value={text} onChange={(e) => setText(e.target.value)} rows={5} />
           <Checkbox label="Use it as the executive summary narrative of the report" help={copilotHelp.useInReport} checked={useInReport} onChange={(e) => setUseInReport(e.target.checked)} />
-          <DecideRow i={s} body={{ use_in_report: useInReport, summary: text }} onDone={setS} />
+          {useInReport && <Checkbox label="Replace the narrative already written for the report" help={copilotHelp.replaceNarrative} checked={replaceNarrative} onChange={(e) => setReplaceNarrative(e.target.checked)} />}
+          <DecideRow i={s} body={{ use_in_report: useInReport, summary: text, replace_narrative: useInReport && replaceNarrative }} onDone={setS} />
         </> : <p style={{ margin: 0 }}>{s.output.summary}</p>}
         {s.status === 'unsupported' && <p className="small" style={{ color: 'var(--danger)', margin: 0 }}>The summary relies on records that do not exist. Write it again or write your own.</p>}
       </div>}

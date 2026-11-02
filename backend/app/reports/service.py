@@ -127,13 +127,15 @@ def save_narrative(db: Session, actor: User, e: Engagement, data: dict) -> Repor
         f = db.get(Finding, fid) if isinstance(fid, str) else None
         if f is None or f.engagement_id != e.id or f.deleted_at is not None:
             raise Invalid(errors=[{"field": "most_significant_finding_id", "message": "Choose a finding from this engagement."}])
-    before = {"strengths": n.strengths}
+    fields = ("most_significant_finding_id", "most_significant_text", "strengths", "immediate_actions", "narrative")
+    before = {k: getattr(n, k) for k in fields}  # the full text before and after, so nothing written is lost
     n.most_significant_finding_id = fid
     for key, limit in (("most_significant_text", 6000), ("strengths", 6000), ("immediate_actions", 6000), ("narrative", 8000)):
         setattr(n, key, (str(data.get(key) or "").strip()[:limit]) or None)
     n.updated_by = actor.id
     db.flush()
-    audit.record(db, actor_id=actor.id, action="report.summary", obj=n, before=before, after={"strengths": n.strengths}, summary=f"Updated the executive summary for {e.audit_ref}")
+    after = {k: getattr(n, k) for k in fields}
+    audit.record(db, actor_id=actor.id, action="report.summary", obj=n, before=before, after=after, summary=f"Updated the executive summary for {e.audit_ref}")
     return n
 
 

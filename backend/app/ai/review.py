@@ -280,6 +280,9 @@ def accept(db: Session, actor: Actor, i: AIInteraction, body: dict) -> AIInterac
             n = narrative(db, e)
             keep = {k: getattr(n, k) for k in ("most_significant_finding_id", "most_significant_text", "strengths", "immediate_actions")} if n else {}
             text = str(body.get("summary") or (i.output or {}).get("summary") or "")
+            # a narrative someone already wrote is replaced only on an explicit "replace" (the audit log keeps the old text)
+            if n is not None and (n.narrative or "").strip() and n.narrative.strip() != text.strip() and body.get("replace_narrative") is not True:
+                raise Conflict("The report already has a written narrative. Confirm that the summary should replace it; the current text is kept in the audit log.")
             n = save_narrative(db, user, e, keep | {"narrative": text})
             refs.append({"type": "report_narrative", "id": n.id})
         edited = bool(body.get("summary")) and body["summary"] != (i.output or {}).get("summary")

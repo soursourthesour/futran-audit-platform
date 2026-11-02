@@ -195,3 +195,33 @@ def test_accept_high_still_accepts_where_the_answer_is_the_same_or_empty(client,
     a = _prefill(client, w, [_one()])["6.1.01"]
     r = client.post(f"/api/v1/systems/{w.s.id}/copilot/accept-high", json={"ids": [a["id"]]})
     assert r.json()["accepted"] == 1 and r.json()["skipped"] == []
+
+
+# ---- G7: using a summary in the report never loses a hand-written narrative
+def test_using_a_summary_in_the_report_needs_confirmation_and_keeps_the_old_text_in_the_log(client, db, ai_sys):
+    from app.audit_log.models import AuditLog
+    from app.reports.models import ReportNarrative
+    from tests.ai.test_review import _ready
+
+    w = ai_sys
+    _ready(client, db, w)
+    client.put(f"/api/v1/systems/{w.s.id}/responses/6.2.01", json={"status": "answered", "value": "no"})  # raises F-001
+    login_as(client, db, w.people["chief"])
+    hand = "Written by the lead auditor after the closing meeting. The HR team has a mature review process."
+    r = client.put(f"/api/v1/clients/{w.cid}/report/summary", json={"narrative": hand, "strengths": "Clear ownership.", "immediate_actions": "Run a bias test."})
+    assert r.status_code == 200, r.text
+    w.fake.replies["summary"] = {"summary": "ABC Corp's HireScore deployment was reviewed. Finding F-001 is the most significant.", "sources": ["F-001", "6.2.01"], "confidence": "medium"}
+    s = client.post(f"/api/v1/engagements/{w.e.id}/copilot/summary", json={"kind": "engagement"}).json()
+    r = client.post(f"/api/v1/ai/interactions/{s['id']}/accept", json={"use_in_report": True})
+    assert r.status_code == 409 and "narrative" in r.json()["detail"].lower()
+    db.expire_all()
+    assert db.scalar(select(ReportNarrative).where(ReportNarrative.engagement_id == w.e.id)).narrative == hand
+    assert db.get(AIInteraction, s["id"]).status == "suggested"  # nothing decided yet
+    r = client.post(f"/api/v1/ai/interactions/{s['id']}/accept", json={"use_in_report": True, "replace_narrative": True})
+    assert r.status_code == 200, r.text
+    db.expire_all()
+    n = db.scalar(select(ReportNarrative).where(ReportNarrative.engagement_id == w.e.id))
+    assert n.narrative.startswith("ABC Corp") and n.strengths == "Clear ownership." and n.immediate_actions == "Run a bias test."
+    row = next(x for x in db.scalars(select(AuditLog).where(AuditLog.action == "report.summary")) if (x.after or {}).get("narrative", "").startswith("ABC Corp"))
+    assert row.before["narrative"] == hand
+    assert set(row.before) >= {"narrative", "strengths", "immediate_actions", "most_significant_text", "most_significant_finding_id"}
