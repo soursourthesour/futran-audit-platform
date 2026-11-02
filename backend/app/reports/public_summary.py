@@ -65,9 +65,11 @@ def _ratios(rows, errs: list) -> list[dict]:
         if row.get("rate_kind") in ("selection", "scoring"):
             item["rate_kind"] = row["rate_kind"]
         if excluded:
-            why = " ".join(str(row.get("justification") or "").split())[:1000]
+            why = " ".join(str(row.get("justification") or "").split())
             if "applicants" not in item or rate is None or not why:
                 errs.append({"field": f"impact_ratios.{i}", "message": f"Row {i + 1}: give the number of applicants, the rate and the justification for an excluded category."})
+            elif len(why) > 1000:
+                errs.append({"field": f"impact_ratios.{i}", "message": f"Row {i + 1}: keep the justification to 1,000 characters."})
             item |= {"impact_ratio": None, "excluded": True, "justification": why}
         out.append(item)
     return out
@@ -91,6 +93,9 @@ def save_summary(db: Session, actor: User, e: Engagement, data: dict) -> PublicS
     files = [db.get(FileObject, i) for i in ids] if isinstance(ids, list) and all(isinstance(i, str) for i in ids) else None
     if files is None or any(f is None or f.engagement_id != e.id or f.deleted_at is not None for f in files):
         errs.append({"field": "evidence_file_ids", "message": "Link evidence from this engagement."})
+    for k in ("data_source", "notes"):
+        if len(str(data.get(k) or "").strip()) > 4000:
+            errs.append({"field": k, "message": f"Keep {'the data description' if k == 'data_source' else 'the notes'} to 4,000 characters. Nothing is cut short."})
     unknown = data.get("unknown_category_count")
     if unknown not in (None, "") and (not str(unknown).isdigit()):
         errs.append({"field": "unknown_category_count", "message": "Enter a whole number."})

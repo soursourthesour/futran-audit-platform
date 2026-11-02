@@ -237,21 +237,34 @@ def draft_findings(db: Session, actor: User, run: BiasTestRun) -> list[str]:
     return [f.id]
 
 
+JUSTIFICATION_MAX = 1000  # as the public summary keeps it
+LEGACY_EXCLUSION_NOTE = "Excluded from the impact ratio calculations because"  # the note earlier versions wrote into the summary's notes
+
+
 def summary_rows(run: BiasTestRun) -> tuple[list[dict], list[dict]]:
+    """Every category in table order; an excluded category is a row marked excluded (and also listed in `excluded`)."""
     rows, excluded = [], []
     for dim, title in stats.DIMENSIONS.items():
         for c in (run.results.get("tables", {}).get(dim) or {}).get("categories", []):
             item = {"category": title, "group": c["label"], "applicants": c["applicants"], "selection_rate": round(c["rate"], 4), "rate_kind": "scoring" if run.method == "scoring_rate" else "selection"}
             if c.get("excluded"):
                 excluded.append(item)
+                rows.append(item | {"impact_ratio": None, "excluded": True})
             elif c.get("impact_ratio") is not None:
                 rows.append(item | {"impact_ratio": round(c["impact_ratio"], 4)})
     return rows, excluded
 
 
+def _hand_written(notes: str | None) -> str | None:
+    """The summary's notes without the exclusion text earlier versions generated into them."""
+    kept = [line for line in (notes or "").splitlines() if not line.startswith(LEGACY_EXCLUSION_NOTE)]
+    return "\n".join(kept).strip() or None
+
+
 def use_in_public_summary(db: Session, actor: User, run: BiasTestRun, justification: str | None) -> dict:
     """Write the run's tables into the LL144 public summary (§ 5-303): applicants, rates and impact ratios for every
-    category, the unknown count and the data source. An excluded category needs the auditor's justification (§ 5-301(d))."""
+    category, the unknown count and the data source. An excluded category needs the auditor's justification (§ 5-301(d)),
+    which goes on its own row, so each use replaces it and the summary's hand-written notes are left as they are."""
     from app.reports.public_summary import current_summary, save_summary, summary_out
 
     s, e = _system(db, run)
@@ -259,15 +272,13 @@ def use_in_public_summary(db: Session, actor: User, run: BiasTestRun, justificat
     justification = " ".join(str(justification or "").split())
     if excluded and not justification:
         raise Invalid(errors=[{"field": "justification", "message": "Give the justification for excluding categories under the small-category share. The rule requires it in the summary."}])
+    if len(justification) > JUSTIFICATION_MAX:
+        raise Invalid(errors=[{"field": "justification", "message": f"Keep the justification to {JUSTIFICATION_MAX:,} characters. It is published in the summary as written."}])
+    rows = [r | {"justification": justification} if r.get("excluded") else r for r in rows]
     cur = current_summary(db, e)
-    notes = []
-    if excluded:
-        kind = "scoring" if run.method == "scoring_rate" else "selection"
-        listed = "; ".join(f"{x['category']} · {x['group']}: {x['applicants']} applicants, {kind} rate {x['selection_rate']:.2f}" for x in excluded)
-        notes.append(f"Excluded from the impact ratio calculations because each is under {run.settings.get('small_share', 0.02) * 100:g}% of the data: {listed}. Justification: {justification}")
     body = {"ai_system_id": s.id, "tool_name": (cur.tool_name if cur and cur.tool_name else s.name), "audit_date": run.run_at.date().isoformat(),
             "distribution_date": cur.distribution_date.isoformat() if cur and cur.distribution_date else None, "data_source": run.data_source or (cur.data_source if cur else None),
-            "unknown_category_count": run.unknown_count, "impact_ratios": rows, "evidence_file_ids": list(cur.evidence_file_ids or []) if cur else [], "notes": "\n".join(notes) or (cur.notes if cur else None)}
+            "unknown_category_count": run.unknown_count, "impact_ratios": rows, "evidence_file_ids": list(cur.evidence_file_ids or []) if cur else [], "notes": _hand_written(cur.notes if cur else None)}
     save_summary(db, actor, e, body)
     run.public_summary_at, run.public_summary_by = utcnow(), actor.id
     audit.record(db, actor_id=actor.id, action="bias_test.public_summary", obj=run, after={"rows": len(rows), "excluded": len(excluded)}, summary=f"Used a bias calculator run in the public summary for {e.audit_ref}")
