@@ -26,6 +26,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.clock import utcnow
+from app.mail.tokens import TokenError
 from app.publicapi import netguard
 from app.publicapi.models import EVENTS, Webhook, WebhookDelivery
 
@@ -211,8 +212,14 @@ def claim(db: Session, settings, d: WebhookDelivery, now: datetime) -> Outgoing 
         return None
     body = json.dumps(d.payload, separators=(",", ":"), sort_keys=True).encode()
     ts = str(int(now.replace(tzinfo=timezone.utc).timestamp()))  # `now` is naive UTC; .timestamp() alone would read it as local time
+    try:
+        secret = open_secret(settings, h)
+    except TokenError:  # this hook only (for example, the encryption key was replaced); the others still go
+        d.status, d.last_error, d.next_attempt_at = "failed", "Not sent: the signing secret cannot be read. Issue a new signing secret for this webhook.", None
+        log.warning("Webhook %s: the signing secret cannot be read with the current key", h.id)
+        return None
     headers = {"Content-Type": "application/json", "User-Agent": USER_AGENT, "X-Futran-Event": d.event, "X-Futran-Delivery": d.id,
-               "X-Futran-Timestamp": ts, "X-Futran-Signature": f"t={ts},v1={signature(open_secret(settings, h), ts, body)}"}
+               "X-Futran-Timestamp": ts, "X-Futran-Signature": f"t={ts},v1={signature(secret, ts, body)}"}
     d.next_attempt_at = now + CLAIM
     return Outgoing(d.id, h.url, body, headers)
 

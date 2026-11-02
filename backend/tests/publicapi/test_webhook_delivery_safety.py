@@ -237,3 +237,25 @@ def test_the_signature_timestamp_is_unix_time_in_any_server_time_zone(db, settin
             os.environ["TZ"] = old
         time.tzset()
     assert len(seen) == 1 and abs(seen[0] - time.time()) < 60
+
+
+# ---------------------------------------------------------------- one unreadable signing secret
+def test_an_unreadable_signing_secret_fails_that_delivery_only(db, settings):
+    settings.webhook_mode = "fake"
+    org, bad = _hook(db, settings, url="https://hooks.abccorp.example/bad")
+    ref, enc = webhooks.seal_secret(settings, "whsec_good")
+    good = Webhook(organization_id=org.id, url="https://hooks.abccorp.example/good", events=["signoff.completed"], secret_encrypted=enc, secret_ref=ref, status="active")
+    db.add(good)
+    db.flush()
+    bad.secret_encrypted = "not-a-fernet-token"  # for example, encrypted under a key that has since been replaced
+    for i in range(2):
+        webhooks.enqueue(db, org.id, "signoff.completed", {}, event_key=f"key-{i}")
+    db.commit()
+    sent: list[str] = []
+    assert webhooks.deliver_due(db, settings, utcnow(), sender=lambda url, *a: sent.append(url) or 200) == 4
+    rows = {(d.webhook_id, d.event_key): d for d in db.scalars(select(WebhookDelivery))}
+    assert {d.status for (hid, _), d in rows.items() if hid == good.id} == {"delivered"}
+    failed = [d for (hid, _), d in rows.items() if hid == bad.id]
+    assert {d.status for d in failed} == {"failed"} and all(d.next_attempt_at is None for d in failed)
+    assert all(d.last_error == "Not sent: the signing secret cannot be read. Issue a new signing secret for this webhook." for d in failed)
+    assert sorted(sent) == ["https://hooks.abccorp.example/good"] * 2
