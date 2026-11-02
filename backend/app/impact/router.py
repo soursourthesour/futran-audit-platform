@@ -125,7 +125,9 @@ def list_projects(actor: Actor = Depends(current_actor), db: Session = Depends(g
             "can_submit": can(db, actor, Action.SUBMIT_PROJECT, None) or bool(departments_for(actor, Action.SUBMIT_PROJECT)),
             "departments": [{"id": d.id, "name": d.name} for d in db.scalars(select(Department).where(Department.organization_id == org.id, Department.deleted_at.is_(None)).order_by(Department.name))
                             if can(db, actor, Action.SUBMIT_PROJECT, d.id)],
-            "register_systems": [{"id": s.id, "label": f"{s.reference} {s.name}"} for s in systems] if can(db, actor, Action.DECIDE_PROJECT, None) else []}
+            "register_systems": [{"id": s.id, "label": f"{s.reference} {s.name}"} for s in systems] if can(db, actor, Action.DECIDE_PROJECT, None) else [],
+            "people": [{"id": u.id, "name": u.name} for u in db.scalars(select(User).where(User.organization_id == org.id, User.deleted_at.is_(None), User.status != "disabled").order_by(User.name))]
+            if can(db, actor, Action.DECIDE_PROJECT, None) else []}
 
 
 @router.post("/projects/assess")

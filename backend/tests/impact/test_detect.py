@@ -51,11 +51,27 @@ def test_a_law_from_a_new_jurisdiction_raises_a_trigger(client, db, lit):
     from app.laws.publish import current_regulations
 
     sid = lit["screening"].id
-    nyc = next(r for r in current_regulations(db) if r.short_name == "NYC Local Law 144")
+    regs = current_regulations(db)
+    nyc = next(r for r in regs if r.short_name == "NYC Local Law 144")
+    il = next(r for r in regs if r.short_name.startswith("HB 3773"))
     login_as(client, db, lit["maria"])
     assert client.post(f"/api/v1/register/{sid}/laws", json={"regulation_id": nyc.id}).status_code == 200
+    assert not _triggers(db, sid)  # the first law recorded on a system is filling in the record, not a change
+    assert client.post(f"/api/v1/register/{sid}/laws", json={"regulation_id": il.id}).status_code == 200
     t = _triggers(db, sid)
-    assert [x.type for x in t] == ["new_jurisdiction"] and "NYC Local Law 144" in t[0].detail
+    assert [x.type for x in t] == ["new_jurisdiction"] and "HB 3773" in t[0].detail and "Illinois" in t[0].detail
+
+
+def test_laws_recorded_when_a_system_is_added_raise_no_trigger(client, db, lit):
+    from app.laws.publish import current_regulations
+
+    regs = current_regulations(db)
+    ids = [next(r for r in regs if r.short_name == "NYC Local Law 144").id, next(r for r in regs if r.short_name.startswith("HB 3773")).id]
+    login_as(client, db, lit["maria"])
+    r = client.post("/api/v1/register", json={"name": "Interview scheduler", "type": "vendor_app", "sourcing": "vendor", "stage": "ready_for_go_live", "company_wide": True,
+                                              "decision_impact": "informs", "regulation_ids": ids})
+    assert r.status_code == 200, r.text
+    assert not _triggers(db, r.json()["id"])
 
 
 def test_a_proposed_system_gets_triggers_only_after_its_impact_assessment_is_approved(client, db, lit):

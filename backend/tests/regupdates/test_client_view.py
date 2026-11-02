@@ -90,3 +90,12 @@ def test_the_digest_is_sent_once_a_week_and_only_with_something_new(client, db, 
     assert run_weekly_digest(db, settings, datetime(2026, 11, 9, 10, 0)) == 0  # next week, nothing new
     runs = db.scalars(select(UpdateDigestRun).order_by(UpdateDigestRun.week_start)).all()
     assert [r.status for r in runs] == ["sent", "nothing_new"]
+
+
+def test_a_withdrawn_update_needs_a_reason_and_disappears_for_the_client(client, db, world):
+    d = publish(client, db, world, nyc_enforcement(world))
+    assert client.post(f"/api/v1/reg/updates/{d['id']}/withdraw", json={}).status_code == 422
+    r = client.post(f"/api/v1/reg/updates/{d['id']}/withdraw", json={"reason": "The audit figures were misquoted."})
+    assert r.status_code == 200 and r.json()["status"] == "withdrawn"
+    login_as(client, db, world["maria"])
+    assert client.get("/api/v1/updates").json()["items"] == []

@@ -6,12 +6,32 @@ Only systems whose assessment can go out of date are watched: in development, re
 system once its pre-deployment impact assessment is approved. First answers (a field that was empty) are not changes;
 removals (a data type no longer used) do not ask for a reassessment.
 """
-from sqlalchemy import select
+from sqlalchemy import event, select
 from sqlalchemy.orm import Session
 
 from app.impact.triggers import raise_trigger
 
 IN_USE = ("in_development", "ready_for_go_live", "live")
+CREATED_KEY = "wsh_register_systems_created"
+
+
+@event.listens_for(Session, "pending_to_persistent")
+def _note_created(session: Session, instance) -> None:
+    """Systems added in this transaction: what is recorded while adding them fills in the record, it is not a change."""
+    from app.register.models import RegisterSystem
+
+    if isinstance(instance, RegisterSystem):
+        session.info.setdefault(CREATED_KEY, set()).add(instance.id)
+
+
+@event.listens_for(Session, "after_commit")
+@event.listens_for(Session, "after_rollback")
+def _forget_created(session: Session) -> None:
+    session.info.pop(CREATED_KEY, None)
+
+
+def created_now(db: Session, s) -> bool:
+    return s.id in db.info.get(CREATED_KEY, set())
 
 
 def watched(db: Session, s) -> bool:
@@ -33,7 +53,7 @@ def _labels(db: Session, field: str, values) -> str:
 
 def detect(db: Session, actor_id: str | None, s, changed: dict) -> list:
     """`changed` is {field: (old, new)} from update_system."""
-    if not changed or not watched(db, s):
+    if not changed or created_now(db, s) or not watched(db, s):
         return []
     found: list[tuple[str, str]] = []
     for f, label in (("model_version", "Model version"), ("model_name", "Model")):
@@ -63,17 +83,18 @@ def detect(db: Session, actor_id: str | None, s, changed: dict) -> list:
 
 
 def detect_law_added(db: Session, actor_id: str | None, s, regulation, link_id: str):
-    """A law from a jurisdiction none of the system's other laws covers means the system now reaches a new place."""
+    """A law from a jurisdiction none of the system's other laws covers means the system now reaches a new place. The
+    first law recorded on a system, and laws recorded while the system is added, are not changes."""
     from app.reference.models import Jurisdiction
     from app.register.models import RegisterSystemLaw
     from app.laws.models import Regulation
 
-    if not watched(db, s):
+    if created_now(db, s) or not watched(db, s):
         return None
-    others = db.scalars(select(Regulation.jurisdiction_id).join(RegisterSystemLaw, RegisterSystemLaw.regulation_id == Regulation.id)
+    others = set(db.scalars(select(Regulation.jurisdiction_id).join(RegisterSystemLaw, RegisterSystemLaw.regulation_id == Regulation.id)
                         .where(RegisterSystemLaw.register_system_id == s.id, RegisterSystemLaw.id != link_id, RegisterSystemLaw.status == "active",
-                               RegisterSystemLaw.deleted_at.is_(None)))
-    if regulation.jurisdiction_id in set(others):
+                               RegisterSystemLaw.deleted_at.is_(None))))
+    if not others or regulation.jurisdiction_id in others:  # the first law recorded is filling in the record
         return None
     j = db.get(Jurisdiction, regulation.jurisdiction_id)
     return raise_trigger(db, s.id, type="new_jurisdiction", source="register_edit", detail=f"Law added: {regulation.short_name}" + (f" ({j.name})" if j else ""), actor_id=actor_id)
