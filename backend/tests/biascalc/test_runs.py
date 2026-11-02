@@ -169,3 +169,36 @@ def test_a_file_the_client_uploaded_to_the_engagement_can_be_used(client, db, at
     assert r.json()["dataset_filename"] == "our-applicants.csv"
     r = client.post(f"/api/v1/systems/{s.id}/bias-tests", data={"method": "selection_rate", "file_id": other.id})
     assert r.status_code == 422 and r.json()["errors"][0]["field"] == "file_id"
+
+
+def test_an_unreadable_csv_is_refused_with_a_message(client, db, ats, people):
+    import csv as _csv
+
+    cid, e, maria, s = ats
+    login_as(client, db, people["aud"])
+    big = "x" * (_csv.field_size_limit() + 10)
+    r = run(client, s.id, f'id,selected,sex,race\n1,yes,male,white\n2,no,female,"{big}"\n'.encode())
+    assert r.status_code == 422 and r.json()["errors"][0]["field"] == "file"
+    assert db.scalar(select(BiasTestRun)) is None
+
+
+def test_the_upload_size_is_checked_while_reading(client, db, ats, people, monkeypatch):
+    from starlette.datastructures import UploadFile
+
+    from app.biascalc import service
+
+    cid, e, maria, s = ats
+    login_as(client, db, people["aud"])
+    asked: list = []
+    orig = UploadFile.read
+
+    async def read(self, size=-1):
+        asked.append(size)
+        return await orig(self, size)
+
+    monkeypatch.setattr(UploadFile, "read", read)
+    monkeypatch.setattr(service, "MAX_FILE_MB", 1)
+    r = run(client, s.id, b"id,selected,sex,race\n" + b"1,yes,male,white\n" * 70_000)  # about 1.1 MB
+    assert r.status_code == 422 and r.json()["errors"][0] == {"field": "file", "message": "Data files can be up to 1 MB. Split the data by period or role."}
+    assert asked and all(isinstance(n, int) and 0 < n <= 1024 * 1024 + 1 for n in asked)  # never the whole upload at once
+    assert db.scalar(select(BiasTestRun)) is None

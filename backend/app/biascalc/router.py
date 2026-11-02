@@ -9,7 +9,7 @@ from app.biascalc import register  # noqa: F401  retention job and monitoring ch
 from app.biascalc import service as svc
 from app.biascalc.models import BiasTestRun
 from app.core.db import get_db
-from app.core.errors import Forbidden, NotFound
+from app.core.errors import Forbidden, Invalid, NotFound
 from app.engagements.models import Engagement
 from app.policy.actions import Action
 from app.policy.authorize import authorize
@@ -71,7 +71,14 @@ async def post_run(system_id: str, request: Request, file: UploadFile | None = F
                    file_id: str | None = Form(None), exclude_small: str | None = Form(None), actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     s = get_system(db, system_id)
     authorize(db, actor, Action.RUN_BIAS_TEST, engagement_id=s.engagement_id)
-    data = await file.read() if file is not None else None
+    data = None
+    if file is not None:  # read in chunks so an oversized upload is refused before it is all in memory
+        limit, buf = svc.MAX_FILE_MB * 1024 * 1024, bytearray()
+        while chunk := await file.read(1024 * 1024):
+            buf += chunk
+            if len(buf) > limit:
+                raise Invalid(errors=[{"field": "file", "message": f"Data files can be up to {svc.MAX_FILE_MB} MB. Split the data by period or role."}])
+        data = bytes(buf)
     settings = request.app.state.settings
     run = svc.run_test(db, settings, actor.user, s, data=data, filename=file.filename if file is not None else None, file_id=file_id, method=method,
                        data_source=data_source, exclude_small=exclude_small)

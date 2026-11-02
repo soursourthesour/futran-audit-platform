@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import csv
 import io
+import math
 import re
 from collections import Counter
 from dataclasses import dataclass, field
@@ -126,7 +127,14 @@ def parse(data: bytes) -> Parsed:
     p.report["has_labels"] = "label" in cols
     seen: set[str] = set()
     outside = Counter()
-    for line_no, rec in enumerate(reader, start=2):
+
+    def records():
+        try:
+            yield from enumerate(reader, start=2)
+        except csv.Error as exc:  # an unclosed quote or a value longer than the CSV reader accepts
+            err(reader.line_num, "file", f"Row {reader.line_num}: the file could not be read as CSV from this row on ({exc}). Check for an unclosed quote or a very long value.")
+
+    for line_no, rec in records():
         if not any(v.strip() for v in rec):
             continue
         p.report["rows_read"] += 1
@@ -154,6 +162,8 @@ def parse(data: bytes) -> Parsed:
         if "score" in cols:
             try:
                 row.score = float(get("score").replace(",", ""))
+                if not math.isfinite(row.score):  # nan or infinity would corrupt the median and the scoring rates
+                    raise ValueError
             except ValueError:
                 err(line_no, "score", f"Row {line_no}: enter the score as a number.")
                 bad = True

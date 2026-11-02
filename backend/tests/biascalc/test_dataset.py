@@ -77,3 +77,20 @@ def test_an_unrecognised_ethnicity_is_an_error_and_a_single_ethnicity_column_sti
     assert not p.ok and p.report["errors"][0]["row"] == 2 and p.report["errors"][0]["field"] == "ethnicity"
     p = dataset.parse(csv("id,selected,sex,ethnicity", "1,yes,male,White", "2,no,female,Hispanic or Latino"))
     assert p.ok and [x.race for x in p.rows] == ["white", "hispanic_latino"]
+
+
+def test_non_finite_scores_are_errors_with_row_numbers():
+    p = dataset.parse(csv("id,score,sex,race", "1,71.5,male,white", "2,nan,female,white", "3,inf,male,asian", "4,-Infinity,female,asian"))
+    assert not p.ok
+    assert [(e["row"], e["field"]) for e in p.report["errors"]] == [(3, "score"), (4, "score"), (5, "score")]
+    assert p.report["errors"][0]["message"] == "Row 3: enter the score as a number."
+
+
+def test_a_field_over_the_csv_limit_is_a_validation_error_not_a_crash():
+    import csv as _csv
+
+    big = "x" * (_csv.field_size_limit() + 10)
+    p = dataset.parse(csv("id,selected,sex,race", "1,yes,male,white", f'2,no,female,"{big}"', "3,yes,male,white"))
+    assert not p.ok
+    e = p.report["errors"][0]
+    assert e["field"] == "file" and e["row"] == 3 and "could not be read" in e["message"]
