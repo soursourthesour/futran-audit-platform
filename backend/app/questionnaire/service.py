@@ -59,7 +59,18 @@ def facts_for(db: Session, e: Engagement) -> EngagementFacts:
 
 
 def system_context(s: AISystem | None) -> SystemContext:
-    return SystemContext(built_by=s.built_by if s else None, depth=s.assessment_depth if s else "full")  # type: ignore[arg-type]
+    return SystemContext(built_by=s.built_by if s else None, depth=s.assessment_depth if s else "full", agent=_is_agent(s))  # type: ignore[arg-type]
+
+
+def _is_agent(s: AISystem | None) -> bool:
+    """Is the client's register row for this audited system an agent? (spec §21 F14)"""
+    from sqlalchemy.orm import object_session
+
+    from app.register.models import RegisterSystem
+
+    db = object_session(s) if s is not None and s.register_system_id else None
+    reg = db.get(RegisterSystem, s.register_system_id) if db is not None else None
+    return reg is not None and reg.type == "agent"
 
 
 def _responses(db: Session, t: Target) -> dict[str, Response]:

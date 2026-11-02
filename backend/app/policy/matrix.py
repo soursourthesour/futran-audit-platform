@@ -381,6 +381,21 @@ for _role, _grants in _WS_K.items():
     MATRIX.setdefault(_role, {}).update(_grants)
 
 
+# ---- wave 3 WS-L: public API and webhooks (F17: the Client Admin sets them up, the CAICO reads); agent decision samples
+# (F14: the audit team on the engagement draws and judges them, the Chief Auditor on any); platform trust (F19: Futran Admin
+# keeps the SOC 2 readiness register, the Chief Auditor and QA Reviewer read it).
+_WS_L: dict[R, dict[A, S]] = {
+    R.CLIENT_ADMIN: {A.VIEW_API_CLIENTS: S.ORG, A.MANAGE_API_CLIENTS: S.ORG},
+    R.CAICO: {A.VIEW_API_CLIENTS: S.ORG},
+    R.AUDITOR: {A.REVIEW_AGENT_DECISIONS: S.ASSIGNED},
+    R.CHIEF_AUDITOR: {A.REVIEW_AGENT_DECISIONS: S.ALL, A.VIEW_PLATFORM_TRUST: S.ALL},
+    R.QA_REVIEWER: {A.VIEW_PLATFORM_TRUST: S.ALL},
+    R.ADMIN: {A.MANAGE_PLATFORM_TRUST: S.ALL, A.VIEW_PLATFORM_TRUST: S.ALL},
+}
+for _role, _grants in _WS_L.items():
+    MATRIX.setdefault(_role, {}).update(_grants)
+
+
 def actions_for(roles: set[str]) -> list[str]:
     """Every action any of `roles` holds at some scope (the union for a person with several roles)."""
     out: set[str] = set()

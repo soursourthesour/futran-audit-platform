@@ -148,3 +148,10 @@ class Action(StrEnum):
     SET_BENCHMARK_CONSENT = "set_benchmark_consent"  # record the engagement letter's benchmarking consent
     START_ANNUAL_REVIEW = "start_annual_review"  # a new engagement carrying forward a closed one
     CONFIRM_CARRIED_ANSWERS = "confirm_carried_answers"  # the client confirms or updates a carried-forward answer
+
+    # wave 3 WS-L: public API and webhooks (F17), AI agent oversight (F14), platform trust (F19)
+    VIEW_API_CLIENTS = "view_api_clients"  # Admin > API and webhooks (CAICO reads)
+    MANAGE_API_CLIENTS = "manage_api_clients"  # create, rotate and revoke API clients and webhooks (Client Admin)
+    REVIEW_AGENT_DECISIONS = "review_agent_decisions"  # draw and judge a decision sample on an agent in the audit (Futran)
+    MANAGE_PLATFORM_TRUST = "manage_platform_trust"  # SOC 2 readiness register and the platform's own AI systems (Futran Admin)
+    VIEW_PLATFORM_TRUST = "view_platform_trust"

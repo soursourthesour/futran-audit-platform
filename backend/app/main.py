@@ -57,6 +57,10 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
     for r in api_routers():
         app.include_router(r, prefix="/api/v1")
 
+    from app.publicapi.public_app import mount as mount_public_api  # wave 3 WS-L (F17): /api/public/v1, bearer tokens only
+
+    mount_public_api(app)
+
     @app.api_route("/api/{rest:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"], include_in_schema=False)
     def api_not_found(rest: str):
         return JSONResponse(status_code=404, content={"detail": "Not found.", "errors": []})
@@ -75,6 +79,9 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
         from app.litigation.startup import court_sources_on_start  # v0.6 WS-D
 
         court_sources_on_start(app)
+        from app.platformtrust.startup import on_start as wsl_on_start  # wave 3 WS-L: agentic questions, SOC 2 starter list, Futran's own AI
+
+        wsl_on_start(app)
     _start_scheduler(app, settings)
     return app
 

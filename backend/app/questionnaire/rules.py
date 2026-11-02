@@ -23,6 +23,7 @@ from typing import Any
 class SystemContext:
     built_by: str = "in_house"
     depth: str = "full"
+    agent: bool = False  # the client's register row is an agent (spec §21 F14: "Agentic AI" question set)
 
 
 @dataclass

@@ -116,7 +116,10 @@ def tracing_candidates(db: Session) -> dict[str, list[RegisterSystem]]:
 
     out: dict[str, list[RegisterSystem]] = {}
     covered: dict[str, set[str]] = {}
-    q = select(RegisterSystem).where(RegisterSystem.deleted_at.is_(None), RegisterSystem.stage.in_(("ready_for_go_live", "live")))
+    from app.tenancy.models import Organization
+
+    q = select(RegisterSystem).join(Organization, Organization.id == RegisterSystem.organization_id).where(  # clients only: not Futran's own AI (F19)
+        Organization.type == "client", RegisterSystem.deleted_at.is_(None), RegisterSystem.stage.in_(("ready_for_go_live", "live")))
     for s in db.scalars(q.order_by(RegisterSystem.reference)):
         if s.organization_id not in covered:
             covered[s.organization_id] = covered_ids(db, s.organization_id)

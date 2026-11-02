@@ -275,9 +275,23 @@ def start_scheduler(app) -> None:
         finally:
             db.close()
 
+    def webhook_tick():  # wave 3 WS-L (F17): find new events, then send what is due
+        from app.publicapi.webhooks import run_tick
+
+        db = app.state.sessionmaker()
+        try:
+            run_tick(db, settings, utcnow())
+            db.commit()
+        except Exception:  # logged; the next minute tries again
+            db.rollback()
+            log.exception("Webhook tick failed")
+        finally:
+            db.close()
+
     sched = BackgroundScheduler(timezone="UTC")
     sched.add_job(tick, "cron", hour=10, minute=0, id="daily", replace_existing=True)  # 06:00 New York
     sched.add_job(mail_tick, "interval", minutes=1, id="mail", replace_existing=True, max_instances=1, coalesce=True)
     sched.add_job(deadline_tick, "interval", minutes=15, id="incident_deadlines", replace_existing=True, max_instances=1, coalesce=True)  # CERT-In: 6 hours
+    sched.add_job(webhook_tick, "interval", minutes=1, id="webhooks", replace_existing=True, max_instances=1, coalesce=True)
     sched.start()
     app.state.scheduler = sched

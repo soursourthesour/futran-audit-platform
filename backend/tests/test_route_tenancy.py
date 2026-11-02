@@ -31,6 +31,10 @@ def _ids(db, abc_org_id: str) -> dict:
     from app.signoffs.models import SignOff
     from app.systems.models import AISystem, SystemAdditionRequest, Vendor
     from app.tenancy.models import Department, RoleAssignment, User
+    from app.comments.models import Comment
+    from app.platformtrust.models import SocControl
+    from app.publicapi.models import ApiClient, Webhook
+    from app.tracing.models import AgentDecisionSample
 
     def one(model, *where):
         return db.scalar(select(model.id).where(*where).limit(1))
@@ -52,6 +56,9 @@ def _ids(db, abc_org_id: str) -> dict:
         ("/evidence-requests", "req_id"): one(EvidenceRequest, org(EvidenceRequest)),
         ("adequacy", "response_id"): one(ManagementResponse, org(ManagementResponse)),
         ("verify", "response_id"): one(Response, org(Response)),
+        # wave 3 WS-L: comments, webhooks and agent decision samples on ABC's data (Futran's SOC 2 controls are Futran's own)
+        "comment_id": one(Comment, org(Comment)), "hook_id": one(Webhook, org(Webhook)), "sample_id": one(AgentDecisionSample, org(AgentDecisionSample)),
+        ("/admin/api/clients", "client_id"): one(ApiClient, org(ApiClient)), "control_id": one(SocControl, SocControl.organization_id != abc_org_id),
     }
 
 

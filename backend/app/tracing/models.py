@@ -161,3 +161,65 @@ class ActionTrace(IdMixin, Base):
 
 # Evidence: never edited or deleted (§24.6, §27.7). Guards in the ORM and triggers in the database.
 append_only(ActionTrace, "action trace")
+
+
+# ---- wave 3 WS-L: AI agent oversight (spec §21 F14). An agent is a RegisterSystem with type "agent"; its decision log is
+# its ActionTrace rows (manual entry, file import, GuardRail feed or the public API).
+AGENT_AUTONOMY = ("suggest_only", "acts_with_approval", "autonomous")
+TOOL_ACCESS = ("read", "write", "act")
+VERDICTS = ("appropriate", "inappropriate", "needs_follow_up")
+
+
+class AgentRegistration(TimestampedTenantMixin, Base):
+    """What an agent may do: the tools it can call, its permissions, where a person must approve, how autonomous it is,
+    how to stop it and the limits on its actions. Every change is in the register's change log; a change to what it may do
+    alerts the compliance officer and the audit team."""
+
+    __tablename__ = "agent_registrations"
+    __table_args__ = (UniqueConstraint("register_system_id", name="uq_agent_registrations_system"),)
+
+    register_system_id: Mapped[str] = mapped_column(String(36), ForeignKey("register_systems.id"), index=True)
+    tools: Mapped[list] = mapped_column(JSON, default=list)  # [{name, description, access, needs_approval}]
+    permissions: Mapped[list] = mapped_column(JSON, default=list)  # plain statements: data and systems it may use
+    approval_points: Mapped[list] = mapped_column(JSON, default=list)  # where a person approves before it acts
+    autonomy_level: Mapped[str] = mapped_column(String(20))
+    kill_switch: Mapped[str | None] = mapped_column(Text)  # how it is stopped, and by whom
+    kill_switch_tested_on: Mapped[date | None] = mapped_column(Date)
+    rate_limits: Mapped[str | None] = mapped_column(String(300))
+    version: Mapped[int] = mapped_column(Integer, default=1)
+
+
+class AgentDecisionSample(TimestampedTenantMixin, Base):
+    """A random sample of an agent's decisions drawn by the auditor (organization_id is the client). The seed and the
+    population are recorded, so the same sample can be drawn again from the same log."""
+
+    __tablename__ = "agent_decision_samples"
+
+    register_system_id: Mapped[str] = mapped_column(String(36), ForeignKey("register_systems.id"), index=True)
+    engagement_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("engagements.id"), index=True)
+    seed: Mapped[int] = mapped_column(Integer)
+    period_from: Mapped[datetime] = mapped_column(DateTime)
+    period_to: Mapped[datetime] = mapped_column(DateTime)
+    population: Mapped[int] = mapped_column(Integer)
+    trace_ids: Mapped[list] = mapped_column(JSON, default=list)  # in the order drawn
+    method: Mapped[str] = mapped_column(String(300))
+    drawn_by: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"))
+    status: Mapped[str] = mapped_column(String(10), default="open")  # open | complete
+    completed_by: Mapped[str | None] = mapped_column(String(36))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime)
+    conclusion: Mapped[str | None] = mapped_column(Text)
+
+
+class AgentDecisionReview(IdMixin, Base):
+    """The reviewer's verdict on one sampled decision."""
+
+    __tablename__ = "agent_decision_reviews"
+    __table_args__ = (UniqueConstraint("sample_id", "trace_id", name="uq_agent_decision_reviews_trace"),)
+
+    organization_id: Mapped[str] = mapped_column(String(36), index=True)
+    sample_id: Mapped[str] = mapped_column(String(36), ForeignKey("agent_decision_samples.id"), index=True)
+    trace_id: Mapped[str] = mapped_column(String(36), ForeignKey("action_traces.id"))
+    verdict: Mapped[str] = mapped_column(String(16))
+    note: Mapped[str | None] = mapped_column(Text)
+    reviewer_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"))
+    reviewed_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)

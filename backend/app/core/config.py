@@ -63,6 +63,9 @@ class Settings(BaseSettings):
     guardrail_token: str | None = None  # not used for client syncs: each organisation sets its own token (TracingOrgSettings)
     guardrail_tests_live: bool = False  # GenAI guardrail tests (§21 F11) call a client endpoint only when true and permission is recorded
 
+    # Public API webhooks (spec §21 F17). WEBHOOK_MODE: auto (the in-process fake in test mode, else live), fake or live.
+    webhook_mode: str = "auto"
+
     @property
     def test_mode(self) -> bool:
         return (not self.mfa_required) or self.email_mode == "outbox"

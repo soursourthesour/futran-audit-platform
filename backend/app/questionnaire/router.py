@@ -69,7 +69,8 @@ def _name(db: Session, user_id: str | None) -> str | None:
 def client_response(db: Session, r: Response | None) -> dict:
     if r is None:
         return {"value": None, "status": "unanswered", "na_reason": None, "detail": None, "evidence": []}
-    return {"value": r.client_value, "status": r.client_status or "unanswered", "na_reason": r.client_na_reason, "detail": r.client_detail, "evidence": _files(db, r.client_evidence_ids or [])}
+    return {"id": r.id, "value": r.client_value, "status": r.client_status or "unanswered", "na_reason": r.client_na_reason, "detail": r.client_detail,  # id: for comments (F18)
+            "evidence": _files(db, r.client_evidence_ids or [])}
 
 
 def futran_response(db: Session, r: Response | None) -> dict | None:

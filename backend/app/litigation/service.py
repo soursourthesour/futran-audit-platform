@@ -61,7 +61,10 @@ def match_case(db: Session, case: Case) -> list[CaseClientMatch]:
     db.execute(delete(CaseClientMatch).where(CaseClientMatch.case_id == case.id))
     vendors = dict(db.execute(select(Vendor.id, Vendor.legal_name)).all())
     by_org: dict[str, tuple[list[str], list[str]]] = {}
-    rows = db.scalars(select(RegisterSystem).where(RegisterSystem.deleted_at.is_(None)).order_by(RegisterSystem.reference))
+    from app.tenancy.models import Organization
+
+    rows = db.scalars(select(RegisterSystem).join(Organization, Organization.id == RegisterSystem.organization_id)  # clients only: not Futran's own AI (F19)
+                      .where(Organization.type == "client", RegisterSystem.deleted_at.is_(None)).order_by(RegisterSystem.reference))
     for s in rows:
         why = system_matches(case.match_rule or {}, s, vendors.get(s.vendor_id))
         if why is None:

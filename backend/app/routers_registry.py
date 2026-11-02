@@ -24,3 +24,6 @@ ROUTER_MODULES += ["policies.router", "training.router", "trust.router"]
 
 # wave 3 WS-K: bias calculator (screen 29), heat map and lineage (35), benchmarking (34), annual review carry-forward (F16)
 ROUTER_MODULES += ["biascalc.router", "insights.router", "annual.router"]
+
+# wave 3 WS-L: comments and mentions (F18)
+ROUTER_MODULES += ["comments.router", "publicapi.admin_router", "tracing.agents_router", "platformtrust.router"]

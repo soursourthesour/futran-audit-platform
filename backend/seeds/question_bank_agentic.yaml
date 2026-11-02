@@ -1,0 +1,26 @@
+# "Agentic AI" question set (spec §21 F14, added to §18.4). Shown for a system whose type includes agentic AI (3.2.01) or whose
+# register row is an agent. Added to the active template version by app.questionnaire.agentic (idempotent, at start-up and
+# when the question bank is loaded). No question is required, so engagements already in fieldwork are not blocked.
+section:
+  code: "AG"
+  title: Agentic AI
+  scope: system
+  note: "For agents that take actions. Compare the answers with the agent's registration and its decision log; sample decisions from the log before concluding."
+  applies: {any: [{q: "3.2.01", contains: agentic}, {system: agent, eq: true}]}
+questions:
+  - {code: "AG.01", label: "Autonomy level", type: single, help: "How far the agent acts without a person approving each action.",
+     options: [{value: suggest_only, label: "Suggests only; a person acts"}, {value: acts_with_approval, label: "Acts after a person approves"}, {value: autonomous, label: "Acts on its own"}]}
+  - {code: "AG.02", label: "Actions and tools the agent may use", type: long_text, help: "Each tool or API it can call, and whether it reads, writes or acts (sends, pays, books, deletes)."}
+  - {code: "AG.03", label: "Points where a person must approve before the agent acts", type: long_text,
+     help: "For example payments over a limit, messages to customers, changes to records about people."}
+  - {code: "AG.04", label: "Kill switch: a named person can stop the agent at once", type: single, option_set: yes_no, detail_label: "Who, and how",
+     finding: {when: {in: ["no"]}, severity: high, title: "No one can stop the AI agent at once"}}
+  - {code: "AG.05", label: "Kill switch last tested", type: date,
+     finding: {when: {older_than_months: 12, or_never: true}, severity: medium, title: "The AI agent's kill switch has not been tested in the last 12 months"}}
+  - {code: "AG.06", label: "Rate limits on the agent's actions", type: single, option_set: yes_no, detail_label: "Limits",
+     finding: {when: {in: ["no"]}, severity: medium, title: "The AI agent's actions have no rate limits"}}
+  - {code: "AG.07", label: "Every action the agent takes is logged (audit trail)", type: single, option_set: yes_no_partial, evidence: true,
+     finding: {when: {in: ["no"]}, severity: high, title: "The AI agent's actions are not logged"}}
+  - {code: "AG.08", label: "Changes to the agent's tools or permissions need approval and are recorded", type: single, option_set: yes_no,
+     finding: {when: {in: ["no"]}, severity: medium, title: "Changes to the AI agent's permissions are not approved or recorded"}}
+  - {code: "AG.09", label: "Decision logs are available to the auditor for sampling", type: single, option_set: yes_no, help: "Through the tracing add-on, a log export or the public API."}

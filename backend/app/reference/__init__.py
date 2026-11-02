@@ -47,8 +47,11 @@ def _templates(db: Session) -> str:
 def _question_bank(db: Session) -> str:
     from app.questionnaire.seed import load_question_bank
 
+    from app.questionnaire.agentic import ensure_agentic_questions
+
     tv = load_question_bank(db)
-    return f"{tv.name} {tv.version} (addenda {', '.join(tv.addenda)})"
+    added = ensure_agentic_questions(db)  # wave 3 WS-L (F14): the "Agentic AI" set, also on databases loaded before it
+    return f"{tv.name} {tv.version} (addenda {', '.join(tv.addenda)})" + (f"; {added} agentic AI questions added" if added else "")
 
 
 def _regmaster(db: Session) -> str:
