@@ -196,3 +196,51 @@ def test_policy_item_document_behind_the_nda_gate(client, db, world, signed):
     doc = client.get(f"{API}/public/trust/abc-corp/items/{it['id']}/document?access={token}")
     assert doc.status_code == 200 and doc.content.startswith(b"%PDF")
     assert client.post(f"{API}/public/trust/abc-corp/nda", json={"name": "Jo", "email": "jo@customer.example", "accept": False}).status_code == 422
+
+
+def test_a_retired_policy_leaves_the_public_page_until_the_item_moves_to_the_new_version(client, db, world, signed):
+    from tests.policies.test_policy_builder import _publish as publish_policy
+
+    v1 = publish_policy(client, db, world, ack=False)
+    login_as(client, db, world["caico"])
+    _page(client)
+    it = _item(client, kind="policy", source_id=v1["id"])
+    _publish(client, db, world, it["id"])
+    client.cookies.clear()
+    [p] = client.get(f"{API}/public/trust/abc-corp").json()["items"]
+    assert p["content"]["version_no"] == 1
+    assert client.get(f"{API}/public/trust/abc-corp/items/{it['id']}/document").status_code == 200
+    # version 2 is published and version 1 retired
+    login_as(client, db, world["caico"])
+    v2 = client.post(f"{API}/policies/{v1['id']}/new-version").json()
+    client.post(f"{API}/policies/{v2['id']}/submit")
+    assert client.post(f"{API}/policies/{v2['id']}/approve", json={}).json()["status"] == "published"
+    client.cookies.clear()
+    assert client.get(f"{API}/public/trust/abc-corp").json()["items"] == []
+    assert client.get(f"{API}/public/trust/abc-corp/items/{it['id']}/document").status_code == 404
+    # the editor says the item needs updating, and moving it to version 2 needs approval and confirmation again
+    login_as(client, db, world["caico"])
+    [ed] = client.get(f"{API}/trust").json()["items"]
+    assert ed["live"] is False and "version 2" in ed["problem"] and ed["update_to"] == {"policy_id": v2["id"], "version_no": 2}
+    r = client.put(f"{API}/trust/items/{it['id']}", json={"source_id": v2["id"]})
+    assert r.status_code == 200 and r.json()["status"] == "draft" and r.json()["source_id"] == v2["id"] and r.json()["problem"] is None
+    client.cookies.clear()
+    assert client.get(f"{API}/public/trust/abc-corp").json()["items"] == []
+    _publish(client, db, world, it["id"])
+    client.cookies.clear()
+    [p] = client.get(f"{API}/public/trust/abc-corp").json()["items"]
+    assert p["content"]["version_no"] == 2
+    assert client.get(f"{API}/public/trust/abc-corp/items/{it['id']}/document").status_code == 200
+
+
+def test_a_policy_item_moves_only_to_a_later_version_of_the_same_policy(client, db, world, signed):
+    from tests.policies.test_policy_builder import _publish as publish_policy
+
+    v1 = publish_policy(client, db, world, ack=False)
+    login_as(client, db, world["caico"])
+    other = client.post(f"{API}/policies", json={"template_code": "incident_response"})
+    assert other.status_code == 200, other.text
+    _page(client)
+    it = _item(client, kind="policy", source_id=v1["id"])
+    r = client.put(f"{API}/trust/items/{it['id']}", json={"source_id": other.json()["id"]})
+    assert r.status_code == 422 and r.json()["errors"][0]["field"] == "source_id"

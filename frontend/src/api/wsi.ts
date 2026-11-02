@@ -39,6 +39,7 @@ export type TrustItem = {
   status: 'draft' | 'awaiting_confirmation' | 'returned' | 'published' | 'withdrawn'; live: boolean; content: Record<string, unknown> | null; problem: string | null;
   published_content: Record<string, unknown> | null; client_approved_by: string | null; client_approved_at: string | null; confirmed_by: string | null; confirmed_at: string | null;
   confirm_note: string | null; return_note: string | null; published_at: string | null;
+  update_to: { policy_id: string; version_no: number } | null;
 };
 export type TrustPage = { id: string; slug: string; title: string; intro: string | null; contact_email: string | null; live: boolean; access: 'public' | 'nda'; nda_text: string | null; indexable: boolean; url_path: string };
 export type TrustEditorData = {

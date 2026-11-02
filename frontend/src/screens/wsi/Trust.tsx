@@ -51,6 +51,7 @@ export function TrustEditor() {
                   { key: 'confirmed', header: 'Confirmed by Futran', value: (i) => i.confirmed_at ?? '', render: (i) => i.confirmed_at ? <span className="small">{i.confirmed_by}, {fmtDate(i.confirmed_at)}</span> : '—' },
                 ]}
                 rowActions={(i) => [
+                  ...(i.update_to ? [{ label: `Move to version ${i.update_to.version_no}`, disabled: !d.can.edit, onSelect: () => act(() => api.put(`/trust/items/${i.id}`, { source_id: i.update_to!.policy_id }), `'${i.title}' now uses version ${i.update_to!.version_no}. Approve it to send it to Futran.`) }] : []),
                   { label: 'Edit', disabled: !d.can.edit, onSelect: () => setEditing(i) },
                   { label: 'Approve and send to Futran', disabled: !d.can.edit || !['draft', 'returned'].includes(i.status) || Boolean(i.problem), onSelect: () => act(() => api.post(`/trust/items/${i.id}/approve`), `'${i.title}' sent to Futran to confirm against the signed report.`) },
                   { label: 'Withdraw from public page', disabled: !d.can.edit || !i.live, onSelect: () => act(() => api.post(`/trust/items/${i.id}/withdraw`), `'${i.title}' is no longer public.`) },

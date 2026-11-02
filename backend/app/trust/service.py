@@ -125,6 +125,19 @@ def _iso(d) -> str | None:
     return d.isoformat() if d else None
 
 
+def policy_successor(db: Session, p) -> "object | None":
+    """The published version that replaced a retired policy, following the chain of versions; None if there is none."""
+    from app.policies.models import PolicyDocument
+
+    cur, seen = p, set()
+    while cur is not None and cur.status != "published" and cur.id not in seen:
+        seen.add(cur.id)
+        cur = db.scalar(select(PolicyDocument).where(PolicyDocument.supersedes_id == cur.id, PolicyDocument.organization_id == p.organization_id,
+                                                     PolicyDocument.deleted_at.is_(None), PolicyDocument.status.in_(("published", "retired")))
+                        .order_by(PolicyDocument.version_no.desc()).limit(1))
+    return cur if cur is not None and cur.id != p.id and cur.status == "published" else None
+
+
 def content(db: Session, it: TrustCenterItem) -> dict:
     """What the item says, built from the platform's records for badge, bias summary and policy items."""
     from app.policies.models import PolicyDocument
@@ -133,7 +146,13 @@ def content(db: Session, it: TrustCenterItem) -> dict:
         return {"title": it.title, "body": it.body or "", "link_label": it.link_label, "link_url": it.link_url}
     if it.kind == "policy":
         p = db.get(PolicyDocument, it.source_id) if it.source_id else None
-        if p is None or p.organization_id != it.organization_id or p.status != "published":
+        if p is None or p.organization_id != it.organization_id:
+            raise Conflict("The policy is no longer published.")
+        if p.status != "published":
+            n = policy_successor(db, p)
+            if n is not None:
+                raise Conflict(f"Needs updating to version {n.version_no}: version {p.version_no} of this policy was replaced, so the item is off the public page. "
+                               f"Move it to version {n.version_no}, then approve it for Futran to confirm again.")
             raise Conflict("The policy is no longer published.")
         return {"title": p.title, "body": it.body or "", "policy_id": p.id, "version_no": p.version_no, "approved_on": _iso(p.approved_at.date() if p.approved_at else None),
                 "file_id": p.published_file_id, "document": bool(p.published_file_id)}
@@ -191,6 +210,14 @@ def _apply(db: Session, it: TrustCenterItem, data: dict) -> None:
         it.title, it.body, it.link_url = title, body, url
         it.link_label = _text(data.get("link_label", it.link_label), 80) or (None if not url else "Contact us")
     else:
+        if it.kind == "policy" and data.get("source_id") and data["source_id"] != it.source_id:
+            from app.policies.models import PolicyDocument
+
+            old = db.get(PolicyDocument, it.source_id) if it.source_id else None
+            n = policy_successor(db, old) if old is not None else None
+            if n is None or n.id != data["source_id"]:
+                raise Invalid(errors=[{"field": "source_id", "message": "A policy item can only move to the current published version of the same policy."}])
+            it.source_id = n.id
         it.body = _long(data.get("body", it.body), 1000) or None
         if "show_rating" in data and it.kind == "badge":
             it.options = {**(it.options or {}), "show_rating": bool(data["show_rating"])}
@@ -299,7 +326,7 @@ def withdraw_item(db: Session, actor: User, it: TrustCenterItem) -> TrustCenterI
 
 
 def delete_item(db: Session, actor: User, it: TrustCenterItem) -> None:
-    if it.published_content is not None and it.withdrawn_at is None:
+    if shown(db, it):
         raise Conflict("Withdraw the item from the public page first.")
     it.deleted_at = utcnow()
     audit.record(db, actor_id=actor.id, action="trust.item_delete", obj=it, summary=f"Removed '{it.title}' from the Trust Center editor")
@@ -307,6 +334,20 @@ def delete_item(db: Session, actor: User, it: TrustCenterItem) -> None:
 
 def is_live(it: TrustCenterItem) -> bool:
     return it.published_content is not None and it.withdrawn_at is None
+
+
+def shown(db: Session, it: TrustCenterItem) -> bool:
+    """On the public page: confirmed, not withdrawn and, for a policy, the confirmed version is still the published one
+    (a retired version is never presented as current)."""
+    if not is_live(it):
+        return False
+    if it.kind == "policy":
+        from app.policies.models import PolicyDocument
+
+        pid = (it.published_content or {}).get("policy_id")
+        p = db.get(PolicyDocument, pid) if pid else None
+        return p is not None and p.organization_id == it.organization_id and p.deleted_at is None and p.status == "published"
+    return True
 
 
 def items(db: Session, page: TrustCenterPage) -> list[TrustCenterItem]:
@@ -321,8 +362,15 @@ def item_out(db: Session, it: TrustCenterItem) -> dict:
         problem = None
     except Conflict as exc:
         working, problem = None, exc.detail
+    update_to = None
+    if it.kind == "policy" and it.source_id:
+        from app.policies.models import PolicyDocument
+
+        src = db.get(PolicyDocument, it.source_id)
+        n = policy_successor(db, src) if src is not None and src.organization_id == it.organization_id else None
+        update_to = {"policy_id": n.id, "version_no": n.version_no} if n is not None else None
     return {"id": it.id, "kind": it.kind, "kind_label": KIND_LABELS[it.kind], "title": it.title, "body": it.body, "link_label": it.link_label, "link_url": it.link_url,
-            "source_id": it.source_id, "options": it.options or {}, "status": it.status, "live": is_live(it), "content": working, "problem": problem,
+            "source_id": it.source_id, "options": it.options or {}, "status": it.status, "live": shown(db, it), "update_to": update_to, "content": working, "problem": problem,
             "published_content": it.published_content, "client_approved_by": name(it.client_approved_by), "client_approved_at": _iso(it.client_approved_at),
             "confirmed_by": name(it.confirmed_by), "confirmed_at": _iso(it.confirmed_at), "confirmed_report_id": it.confirmed_report_id,
             "confirm_note": it.confirm_note, "return_note": it.return_note, "published_at": _iso(it.published_at)}
@@ -385,7 +433,7 @@ def public_out(db: Session, p: TrustCenterPage) -> dict:
     org = db.get(Organization, p.organization_id)
     out_items = []
     for it in items(db, p):
-        if not is_live(it):
+        if not shown(db, it):
             continue
         c = {k: v for k, v in (it.published_content or {}).items() if k in PUBLIC_CONTENT_KEYS}
         out_items.append({"id": it.id, "kind": it.kind, "title": c.get("title", it.title), "body": c.get("body", ""), "content": c,
@@ -423,7 +471,7 @@ def document(db: Session, settings, p: TrustCenterPage, item_id: str, access: st
     from app.files.service import read
 
     it = db.get(TrustCenterItem, item_id)
-    if it is None or it.page_id != p.id or it.organization_id != p.organization_id or it.deleted_at is not None or not is_live(it) or it.kind != "policy":
+    if it is None or it.page_id != p.id or it.organization_id != p.organization_id or it.deleted_at is not None or it.kind != "policy" or not shown(db, it):
         raise NotFound()
     file_id = (it.published_content or {}).get("file_id")
     f = db.get(FileObject, file_id) if file_id else None
