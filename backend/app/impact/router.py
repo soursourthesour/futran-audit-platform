@@ -54,9 +54,15 @@ def load(db: Session, actor: Actor, pid: str) -> ImpactAssessment:
     ia = db.get(ImpactAssessment, pid)
     if ia is None or ia.deleted_at is not None or ia.organization_id != org.id:
         raise NotFound()
-    if not can(db, actor, Action.VIEW_PROJECTS, ia.department_id) and ia.created_by != actor.id:
+    if not can(db, actor, Action.VIEW_PROJECTS, ia.department_id) and ia.created_by != actor.id and not owns_a_condition(db, actor, ia):
         raise NotFound()
     return ia
+
+
+def owns_a_condition(db: Session, actor: Actor, ia: ImpactAssessment) -> bool:
+    """A condition's owner may work outside the project's department: they see the project read-only and mark their own
+    condition met. Every other action still checks its own permission."""
+    return any(c.owner_user_id == actor.id for c in svc.conditions_of(db, ia))
 
 
 def _name(db: Session, uid: str | None) -> str | None:
