@@ -31,8 +31,9 @@ from app.trust.models import ITEM_KINDS, TrustCenterItem, TrustCenterNdaAcceptan
 SLUG = re.compile(r"^[a-z0-9](?:[a-z0-9-]{1,58}[a-z0-9])$")
 RESERVED = {"admin", "api", "login", "staff", "trust", "public", "new", "edit", "confirmations"}
 KIND_LABELS = {"commitment": "Commitment", "policy": "Policy", "bias_summary": "Bias audit summary (NYC LL144)", "badge": "Audited by Futran",
-               "governance": "Governance", "rights_contact": "Your rights and contact"}
+               "governance": "Governance", "rights_contact": "Your rights and contact", "heading": "Page heading and introduction"}
 TEXT_KINDS = ("commitment", "governance", "rights_contact")
+HEADING = "heading"
 NDA_HOURS = 24
 FUTRAN = "Futran Solutions"
 
@@ -50,13 +51,17 @@ def _long(v, limit: int = 4000) -> str:
     return "\n".join(" ".join(line.split()) for line in str(v or "").strip().splitlines())[:limit]
 
 
+def default_title(org: Organization | None) -> str:
+    return f"How {org.name if org else 'we'} governs its use of AI"
+
+
 def save_page(db: Session, actor: User, org: Organization, data: dict) -> TrustCenterPage:
     p = page_for(db, org.id)
     errs = []
     slug = str(data.get("slug", p.slug if p else "") or "").strip().lower()
     if not SLUG.match(slug) or slug in RESERVED:
         errs.append({"field": "slug", "message": "Use 3 to 60 lower-case letters, numbers and hyphens, for example abc-corp."})
-    title = _text(data.get("title", p.title if p else f"How {org.name} governs its use of AI"), 200)
+    title = _text(data.get("title", p.title if p else default_title(org)), 200)
     if not title:
         errs.append({"field": "title", "message": "Give the page a heading."})
     email = _text(data.get("contact_email", p.contact_email if p else ""), 254) or None
@@ -73,7 +78,7 @@ def save_page(db: Session, actor: User, org: Organization, data: dict) -> TrustC
     clash = db.scalar(select(TrustCenterPage.id).where(TrustCenterPage.slug == slug, TrustCenterPage.organization_id != org.id))
     if clash:
         raise Conflict("That address is already taken. Choose another.")
-    before = {"slug": p.slug, "live": p.live, "access": p.access, "indexable": p.indexable} if p else None
+    before = {"slug": p.slug, "live": p.live, "access": p.access, "indexable": p.indexable, "title": p.title, "intro": p.intro} if p else None
     if p is None:
         p = TrustCenterPage(organization_id=org.id, slug=slug, title=title, created_by=actor.id)
         db.add(p)
@@ -83,9 +88,35 @@ def save_page(db: Session, actor: User, org: Organization, data: dict) -> TrustC
     p.indexable = bool(data.get("indexable", p.indexable or False))
     p.updated_by = actor.id
     db.flush()
-    audit.record(db, actor_id=actor.id, action="trust.page", obj=p, before=before, after={"slug": p.slug, "live": p.live, "access": p.access, "indexable": p.indexable},
+    _sync_heading(db, actor, p)
+    audit.record(db, actor_id=actor.id, action="trust.page", obj=p, before=before,
+                 after={"slug": p.slug, "live": p.live, "access": p.access, "indexable": p.indexable, "title": p.title, "intro": p.intro},
                  summary=f"Updated the Trust Center page /trust/{p.slug}" + (" (live)" if p.live else " (not live)"))
     return p
+
+
+def heading_item(db: Session, p: TrustCenterPage) -> TrustCenterItem | None:
+    return db.scalar(select(TrustCenterItem).where(TrustCenterItem.page_id == p.id, TrustCenterItem.organization_id == p.organization_id,
+                                                   TrustCenterItem.kind == HEADING, TrustCenterItem.deleted_at.is_(None)).limit(1))
+
+
+def _sync_heading(db: Session, actor: User, p: TrustCenterPage) -> None:
+    """The heading and introduction are public only as confirmed. A change in the page settings puts the heading item
+    back to draft; the confirmed version stays up until Futran confirms the new one."""
+    it = heading_item(db, p)
+    if it is None:
+        it = TrustCenterItem(organization_id=p.organization_id, page_id=p.id, kind=HEADING, title=p.title, body=p.intro, source_id=None, options={}, order=0,
+                             status="draft", created_by=actor.id)
+        db.add(it)
+        db.flush()
+        audit.record(db, actor_id=actor.id, action="trust.item_add", obj=it, after={"kind": HEADING}, summary="Added the page heading and introduction to the Trust Center")
+        return
+    if (it.title, it.body or None) == (p.title, p.intro or None):
+        return
+    it.title, it.body = p.title, p.intro
+    it.status, it.approved_content, it.client_approved_by, it.client_approved_at = "draft", None, None, None
+    it.updated_by = actor.id
+    audit.record(db, actor_id=actor.id, action="trust.item_edit", obj=it, summary="Edited the page heading and introduction (back to draft; the confirmed version stays published)")
 
 
 # ---- sources the platform builds content from
@@ -144,6 +175,8 @@ def content(db: Session, it: TrustCenterItem) -> dict:
 
     if it.kind in TEXT_KINDS:
         return {"title": it.title, "body": it.body or "", "link_label": it.link_label, "link_url": it.link_url}
+    if it.kind == HEADING:
+        return {"title": it.title, "body": it.body or ""}
     if it.kind == "policy":
         p = db.get(PolicyDocument, it.source_id) if it.source_id else None
         if p is None or p.organization_id != it.organization_id:
@@ -227,7 +260,7 @@ def _apply(db: Session, it: TrustCenterItem, data: dict) -> None:
 
 def create_item(db: Session, actor: User, page: TrustCenterPage, data: dict) -> TrustCenterItem:
     kind = data.get("kind")
-    if kind not in ITEM_KINDS:
+    if kind not in ITEM_KINDS or kind == HEADING:
         raise Invalid(errors=[{"field": "kind", "message": "Choose what the item shows."}])
     src = data.get("source_id") if kind not in TEXT_KINDS else None
     if kind not in TEXT_KINDS and not src:
@@ -256,6 +289,8 @@ def get_item(db: Session, org_id: str | None, item_id: str) -> TrustCenterItem:
 
 
 def update_item(db: Session, actor: User, it: TrustCenterItem, data: dict) -> TrustCenterItem:
+    if it.kind == HEADING:
+        raise Conflict("Change the heading and introduction in the page settings.")
     _apply(db, it, data)
     it.status, it.approved_content, it.client_approved_by, it.client_approved_at = "draft", None, None, None
     it.updated_by = actor.id
@@ -326,6 +361,8 @@ def withdraw_item(db: Session, actor: User, it: TrustCenterItem) -> TrustCenterI
 
 
 def delete_item(db: Session, actor: User, it: TrustCenterItem) -> None:
+    if it.kind == HEADING:
+        raise Conflict("The page heading cannot be removed. Withdraw it to show the standard heading instead.")
     if shown(db, it):
         raise Conflict("Withdraw the item from the public page first.")
     it.deleted_at = utcnow()
@@ -432,13 +469,21 @@ def public_out(db: Session, p: TrustCenterPage) -> dict:
     """Only published items, and only their confirmed snapshot. No internal ids beyond the item id, no names of staff."""
     org = db.get(Organization, p.organization_id)
     out_items = []
+    head = None
     for it in items(db, p):
         if not shown(db, it):
+            continue
+        if it.kind == HEADING:
+            head = head or it.published_content or {}
             continue
         c = {k: v for k, v in (it.published_content or {}).items() if k in PUBLIC_CONTENT_KEYS}
         out_items.append({"id": it.id, "kind": it.kind, "title": c.get("title", it.title), "body": c.get("body", ""), "content": c,
                           "gated": p.access == "nda" and bool(c.get("document"))})
-    return {"slug": p.slug, "organization": org.name if org else "", "title": p.title, "intro": p.intro, "contact_email": p.contact_email, "access": p.access,
+    # the heading and introduction as Futran confirmed them; until then the standard heading and no introduction
+    title = _text(head.get("title"), 200) if head else ""
+    intro = (head.get("body") or None) if head else None
+    return {"slug": p.slug, "organization": org.name if org else "", "title": title or default_title(org), "intro": intro, "header_confirmed": bool(head),
+            "contact_email": p.contact_email, "access": p.access,
             "nda_text": p.nda_text if p.access == "nda" else None, "noindex": not p.indexable, "items": out_items, "updated_at": _iso(p.updated_at)}
 
 

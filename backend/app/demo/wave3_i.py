@@ -139,8 +139,9 @@ def _trust(m: Demo, cid: str, pol: dict) -> None:
     m.as_(maria)
     m.put("/trust/page", {"slug": "abc-corp", "title": "How ABC Corp governs its use of AI", "live": True, "access": "public", "contact_email": "ai-questions@abccorp.example",
                           "intro": "We use AI to help our recruiting, finance and customer support teams. These are the commitments we make and the independent review behind them."})
-    src = m.get("/trust")["sources"]
-    items = []
+    editor = m.get("/trust")
+    src = editor["sources"]
+    items = [i for i in editor["items"] if i["kind"] == "heading"]  # the heading and introduction are confirmed like any item
     if src["engagements"]:
         items.append(m.post("/trust/items", {"kind": "badge", "source_id": src["engagements"][0]["id"], "show_rating": False}))
     items.append(m.post("/trust/items", {"kind": "commitment", "title": "AI in hiring",

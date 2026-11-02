@@ -150,7 +150,7 @@ def test_public_page_isolation_and_unknown_slugs(client, db, world, signed, unsi
     # another client's slug never reaches ABC's documents or items
     assert client.get(f"{API}/public/trust/other-co/items/{it['id']}/document").status_code == 404
     body = client.get(f"{API}/public/trust/abc-corp").json()
-    assert set(body) <= {"slug", "organization", "title", "intro", "contact_email", "access", "nda_text", "noindex", "items", "updated_at"}
+    assert set(body) <= {"slug", "organization", "title", "intro", "header_confirmed", "contact_email", "access", "nda_text", "noindex", "items", "updated_at"}
     # a page that is not live is not public
     login_as(client, db, world["caico"])
     _page(client, live=False)
@@ -220,7 +220,7 @@ def test_a_retired_policy_leaves_the_public_page_until_the_item_moves_to_the_new
     assert client.get(f"{API}/public/trust/abc-corp/items/{it['id']}/document").status_code == 404
     # the editor says the item needs updating, and moving it to version 2 needs approval and confirmation again
     login_as(client, db, world["caico"])
-    [ed] = client.get(f"{API}/trust").json()["items"]
+    [ed] = [i for i in client.get(f"{API}/trust").json()["items"] if i["kind"] == "policy"]
     assert ed["live"] is False and "version 2" in ed["problem"] and ed["update_to"] == {"policy_id": v2["id"], "version_no": 2}
     r = client.put(f"{API}/trust/items/{it['id']}", json={"source_id": v2["id"]})
     assert r.status_code == 200 and r.json()["status"] == "draft" and r.json()["source_id"] == v2["id"] and r.json()["problem"] is None
@@ -244,3 +244,48 @@ def test_a_policy_item_moves_only_to_a_later_version_of_the_same_policy(client, 
     it = _item(client, kind="policy", source_id=v1["id"])
     r = client.put(f"{API}/trust/items/{it['id']}", json={"source_id": other.json()["id"]})
     assert r.status_code == 422 and r.json()["errors"][0]["field"] == "source_id"
+
+
+def _heading(client):
+    return next(i for i in client.get(f"{API}/trust").json()["items"] if i["kind"] == "heading")
+
+
+def test_heading_and_intro_go_public_only_after_approval_and_confirmation(client, db, world, signed):
+    login_as(client, db, world["caico"])
+    _page(client, title="Certified fully compliant by Futran", intro="Futran certified every AI system we run as bias-free.")
+    client.cookies.clear()
+    pub = client.get(f"{API}/public/trust/abc-corp").json()
+    # nothing confirmed yet: the standard heading, no introduction, and the client's text is not public
+    assert pub["title"] == "How ABC Corp governs its use of AI" and pub["intro"] is None and pub["header_confirmed"] is False
+    assert pub["items"] == []
+    # the CAICO sees the heading as a draft item and cannot add or remove one directly
+    login_as(client, db, world["caico"])
+    h = _heading(client)
+    assert h["status"] == "draft" and h["title"] == "Certified fully compliant by Futran" and h["live"] is False
+    assert client.post(f"{API}/trust/items", json={"kind": "heading", "title": "x"}).status_code == 422
+    assert "heading" not in [k["value"] for k in client.get(f"{API}/trust").json()["kinds"]]
+    # Futran returns the overclaim; the client rewords it; Futran confirms
+    client.post(f"{API}/trust/items/{h['id']}/approve")
+    login_as(client, db, world["chief"])
+    assert [q["kind"] for q in client.get(f"{API}/trust/confirmations").json()["items"]] == ["heading"]
+    assert client.post(f"{API}/trust/items/{h['id']}/return", json={"note": "Futran does not certify systems as bias-free."}).status_code == 200
+    login_as(client, db, world["caico"])
+    _page(client)  # the standard test text
+    h = _heading(client)
+    assert h["status"] == "draft" and h["title"] == "How ABC Corp governs its use of AI"
+    _publish(client, db, world, h["id"])
+    client.cookies.clear()
+    pub = client.get(f"{API}/public/trust/abc-corp").json()
+    assert pub["title"] == "How ABC Corp governs its use of AI" and pub["intro"].startswith("We use AI") and pub["header_confirmed"] is True
+    assert pub["items"] == []  # the heading is not shown as a card
+    # a later edit stays private until it is confirmed again
+    login_as(client, db, world["caico"])
+    _page(client, intro="Futran certified every AI system we run as bias-free.")
+    client.cookies.clear()
+    pub = client.get(f"{API}/public/trust/abc-corp").json()
+    assert pub["intro"].startswith("We use AI") and "bias-free" not in str(pub)
+    login_as(client, db, world["caico"])
+    h = _heading(client)
+    assert h["status"] == "draft" and h["live"] is True and "bias-free" in h["body"]
+    assert client.put(f"{API}/trust/items/{h['id']}", json={"title": "x"}).status_code == 409  # edited in page settings
+    assert client.delete(f"{API}/trust/items/{h['id']}").status_code == 409

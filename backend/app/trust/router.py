@@ -33,7 +33,7 @@ def _editor(db: Session, actor: Actor) -> dict:
     org = actor.organization
     p = svc.page_for(db, org.id)
     return {"page": svc.page_out(p) if p else None, "items": [svc.item_out(db, i) for i in svc.items(db, p)] if p else [],
-            "sources": svc.sources(db, org.id), "views": svc.views(db, p) if p else [], "kinds": [{"value": k, "label": v} for k, v in svc.KIND_LABELS.items()],
+            "sources": svc.sources(db, org.id), "views": svc.views(db, p) if p else [], "kinds": [{"value": k, "label": v} for k, v in svc.KIND_LABELS.items() if k != svc.HEADING],
             "has_signed_report": svc.latest_final_report(db, org.id) is not None, "can": {"edit": _can(db, actor, Action.EDIT_TRUST_CENTER, org.id)}}
 
 

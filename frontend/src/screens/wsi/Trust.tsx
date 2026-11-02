@@ -52,10 +52,10 @@ export function TrustEditor() {
                 ]}
                 rowActions={(i) => [
                   ...(i.update_to ? [{ label: `Move to version ${i.update_to.version_no}`, disabled: !d.can.edit, onSelect: () => act(() => api.put(`/trust/items/${i.id}`, { source_id: i.update_to!.policy_id }), `'${i.title}' now uses version ${i.update_to!.version_no}. Approve it to send it to Futran.`) }] : []),
-                  { label: 'Edit', disabled: !d.can.edit, onSelect: () => setEditing(i) },
+                  { label: 'Edit', disabled: !d.can.edit, onSelect: () => (i.kind === 'heading' ? setSettings(true) : setEditing(i)) },
                   { label: 'Approve and send to Futran', disabled: !d.can.edit || !['draft', 'returned'].includes(i.status) || Boolean(i.problem), onSelect: () => act(() => api.post(`/trust/items/${i.id}/approve`), `'${i.title}' sent to Futran to confirm against the signed report.`) },
                   { label: 'Withdraw from public page', disabled: !d.can.edit || !i.live, onSelect: () => act(() => api.post(`/trust/items/${i.id}/withdraw`), `'${i.title}' is no longer public.`) },
-                  { label: 'Remove', danger: true, disabled: !d.can.edit || i.live, onSelect: () => act(() => api.delete(`/trust/items/${i.id}`), `'${i.title}' removed.`) },
+                  { label: 'Remove', danger: true, disabled: !d.can.edit || i.live || i.kind === 'heading', onSelect: () => act(() => api.delete(`/trust/items/${i.id}`), `'${i.title}' removed.`) },
                 ]} />
               {d.can.edit && d.items.some((i) => ['draft', 'returned'].includes(i.status) && !i.problem) && (
                 <div className="row" style={{ marginTop: 12 }}><Button variant="primary" disabled={busy} onClick={() => act(async () => { for (const i of d.items.filter((x) => ['draft', 'returned'].includes(x.status) && !x.problem)) await api.post(`/trust/items/${i.id}/approve`); }, 'All drafts approved and sent to Futran.')}>Approve all drafts</Button></div>
@@ -71,7 +71,7 @@ export function TrustEditor() {
           </aside>
         </div>
       ) : <Alert tone="info">{d.can.edit ? 'Set up the page to choose its address and start adding items.' : 'The Trust Center has not been set up yet.'}</Alert>}
-      {settings && <PageDialog d={d} onClose={() => setSettings(false)} onDone={async () => { setSettings(false); setMsg({ tone: 'success', text: 'Page settings saved.' }); await refresh(); }} />}
+      {settings && <PageDialog d={d} onClose={() => setSettings(false)} onDone={async () => { setSettings(false); setMsg({ tone: 'success', text: 'Page settings saved. A changed heading or introduction goes public after you approve it and Futran confirms it.' }); await refresh(); }} />}
       {editing && <ItemDialog d={d} item={editing === 'new' ? null : editing} onClose={() => setEditing(null)} onDone={async (t) => { setEditing(null); setMsg({ tone: 'success', text: t }); await refresh(); }} />}
     </div>
   );
@@ -252,7 +252,7 @@ export function TrustPublic() {
           ))}
         </div>
         {d.items.length === 0 && <p className="muted">Nothing has been published yet.</p>}
-        <p className="small muted" style={{ margin: 0 }}>Each statement on this page was approved by {d.organization} and confirmed by Futran Solutions against its signed audit report{d.updated_at ? `. Page updated ${fmtDate(d.updated_at)}` : ''}.</p>
+        {(d.header_confirmed || d.items.length > 0) && <p className="small muted" style={{ margin: 0 }}>{d.header_confirmed ? 'The heading, introduction and each item on this page were' : 'Each item on this page was'} approved by {d.organization} and confirmed by Futran Solutions against its signed audit report{d.updated_at ? `. Page updated ${fmtDate(d.updated_at)}` : ''}.</p>}
       </main>
       {nda && <NdaDialog d={d} onClose={() => setNda(null)} onAccepted={(t) => { setAccess(t); setNda(null); }} />}
     </div>

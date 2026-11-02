@@ -29,8 +29,8 @@ export const trainingHelp = {
 
 export const trustHelp = {
   slug: 'The last part of the public address, for example abc-corp gives /trust/abc-corp. Lower-case letters, numbers and hyphens.',
-  heading: 'The main heading of the public page.',
-  intro: 'One or two sentences on how your organization uses AI.',
+  heading: 'The main heading of the public page. A change goes public only after you approve it and Futran confirms it; until then the confirmed heading, or the standard one, is shown.',
+  intro: 'One or two sentences on how your organization uses AI. Like the heading, it goes public only after you approve it and Futran confirms it.',
   contact: 'Where people send questions about your use of AI. Shown on the page.',
   live: 'When ticked the page is public at its address. Only items that are approved and confirmed by Futran appear on it.',
   access: 'Public shows everything. NDA click-through asks visitors to accept your terms before they open detailed documents such as policies.',

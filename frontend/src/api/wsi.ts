@@ -34,7 +34,7 @@ export type TrainingOverview = {
 };
 
 export type TrustItem = {
-  id: string; kind: 'commitment' | 'policy' | 'bias_summary' | 'badge' | 'governance' | 'rights_contact'; kind_label: string; title: string; body: string | null;
+  id: string; kind: 'commitment' | 'policy' | 'bias_summary' | 'badge' | 'governance' | 'rights_contact' | 'heading'; kind_label: string; title: string; body: string | null;
   link_label: string | null; link_url: string | null; source_id: string | null; options: { show_rating?: boolean };
   status: 'draft' | 'awaiting_confirmation' | 'returned' | 'published' | 'withdrawn'; live: boolean; content: Record<string, unknown> | null; problem: string | null;
   published_content: Record<string, unknown> | null; client_approved_by: string | null; client_approved_at: string | null; confirmed_by: string | null; confirmed_at: string | null;
@@ -48,4 +48,4 @@ export type TrustEditorData = {
   can: { edit: boolean };
 };
 export type PublicItem = { id: string; kind: TrustItem['kind']; title: string; body: string; content: Record<string, any>; gated: boolean };
-export type PublicTrust = { slug: string; organization: string; title: string; intro: string | null; contact_email: string | null; access: 'public' | 'nda'; nda_text: string | null; noindex: boolean; items: PublicItem[]; updated_at: string | null };
+export type PublicTrust = { slug: string; organization: string; title: string; intro: string | null; header_confirmed: boolean; contact_email: string | null; access: 'public' | 'nda'; nda_text: string | null; noindex: boolean; items: PublicItem[]; updated_at: string | null };

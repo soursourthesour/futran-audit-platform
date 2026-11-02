@@ -6,7 +6,9 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.models import Base, TimestampedTenantMixin
 
-ITEM_KINDS = ("commitment", "policy", "bias_summary", "badge", "governance", "rights_contact")
+ITEM_KINDS = ("commitment", "policy", "bias_summary", "badge", "governance", "rights_contact", "heading")
+# "heading" is the page's heading and introduction: one per page, kept in step with the page settings, and published
+# through the same approval and confirmation as every other item.
 
 
 class TrustCenterPage(TimestampedTenantMixin, Base):

@@ -80,6 +80,7 @@ def test_training_completion_by_department_is_realistic(world):
 def test_trust_center_live_with_confirmed_items(world):
     pub = TestClient(world["app"]).get("/api/v1/public/trust/abc-corp")
     assert pub.status_code == 200 and pub.headers["x-robots-tag"] == "noindex"
+    assert pub.json()["header_confirmed"] is True and pub.json()["intro"].startswith("We use AI")
     kinds = {i["kind"] for i in pub.json()["items"]}
     assert {"badge", "commitment", "policy", "governance"} <= kinds and "rights_contact" not in kinds
     chief = _as(world, "chief@futran.demo")
