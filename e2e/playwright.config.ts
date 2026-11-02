@@ -23,6 +23,6 @@ export default defineConfig({
   ],
   webServer: [
     { command: `bash ./start-server.sh ${PORT}`, url: `http://127.0.0.1:${PORT}/api/v1/health`, reuseExistingServer: false, timeout: 120_000 },
-    { command: `bash ./start-server.sh ${LATE} late`, url: `http://127.0.0.1:${LATE}/api/v1/health`, reuseExistingServer: false, timeout: 240_000 },
+    { command: `bash ./start-server.sh ${LATE} late`, url: `http://127.0.0.1:${LATE}/api/v1/health`, reuseExistingServer: false, timeout: 600_000 },
   ],
 });

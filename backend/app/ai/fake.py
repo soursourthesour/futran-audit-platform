@@ -203,8 +203,8 @@ def obligations(ctx: dict) -> dict:
     out = []
     default_actor = ctx.get("default_actor") or "deployer"
     for src in ctx.get("sources") or []:
-        for s in sentences(src["text"]):
-            if not DUTY.search(s):
+        for n, s in enumerate(sentences(src["text"])):
+            if not DUTY.search(s) and not (src.get("kind") == "requirement" and n == 0):  # a recorded requirement is a duty in itself
                 continue
             actor = next((a for a, pat in ACTORS if re.search(pat, s, re.I)), default_actor)
             m, c = DEADLINE.search(s), CITE.search(s)

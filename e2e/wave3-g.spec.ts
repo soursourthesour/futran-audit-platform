@@ -72,12 +72,12 @@ test.describe.serial('AI copilot, obligations and questionnaires', () => {
     await signIn(page, 'chief@futran.demo', true);
     const { meridian } = late();
     await page.goto(`/clients/${meridian}`);
-    const card = page.getByRole('heading', { name: 'AI features' }).locator('xpath=ancestor::*[contains(@class,"card")][1]');
+    const card = page.getByRole('heading', { name: 'AI features' }).locator('xpath=ancestor::section[contains(@class,"card")][1]');
     await expect(card.getByText('Off', { exact: true })).toBeVisible();
     await card.getByRole('button', { name: 'Turn on AI features' }).click();
     await card.getByRole('button', { name: 'Turn on', exact: true }).click();
     await expect(card.getByText(/Record where the client consented/)).toBeVisible();  // the consent note is required
-    await card.getByLabel('Where the client consented').fill('Engagement letter clause 11.3, signed by Katrin Vogel.');
+    await card.getByLabel('Where the client consented', { exact: true }).fill('Engagement letter clause 11.3, signed by Katrin Vogel.');
     await card.getByRole('button', { name: 'Turn on', exact: true }).click();
     await expect(card.getByText('On', { exact: true })).toBeVisible();
     await shoot(page, 'client-page-ai-switch', false);
@@ -108,7 +108,7 @@ test.describe.serial('AI copilot, obligations and questionnaires', () => {
     // reject one with a reason, accept all high-confidence, route an unsupported one to the interview list
     const tuning = page.getByRole('article', { name: 'Suggestion for 6.1.05' });
     await tuning.getByRole('button', { name: 'Reject' }).click();
-    await page.getByRole('dialog').getByLabel('Reason').fill('Confirmed in interview: tuning changed in version 4.2.');
+    await page.getByRole('dialog').getByLabel('Reason', { exact: true }).fill('Confirmed in interview: tuning changed in version 4.2.');
     await page.getByRole('dialog').getByRole('button', { name: 'Reject' }).click();
     await expect(tuning.getByText(/Rejected/)).toBeVisible();
     await panel.getByRole('button', { name: /Accept all high-confidence \(\d+\)/ }).click();
@@ -127,7 +127,7 @@ test.describe.serial('AI copilot, obligations and questionnaires', () => {
     await page.getByRole('button', { name: 'Run completeness review' }).click();
     await expect(page.getByText('8.2.05 · contradiction')).toBeVisible();
     await expect(page.getByText(/Drift monitoring for the credit scorecard runs monthly/).first()).toBeVisible();
-    await page.getByLabel('Question').fill('Who validates the credit scorecard before release, and is that validation independent?');
+    await page.getByLabel('Question', { exact: true }).fill('Who validates the credit scorecard before release, and is that validation independent?');
     await page.getByRole('button', { name: 'Ask a question' }).click();
     await expect(page.getByText(/Validation is performed by the model owner/).first()).toBeVisible();
     await shoot(page, 'screen25-completeness-and-ask');
@@ -176,8 +176,8 @@ test.describe.serial('AI copilot, obligations and questionnaires', () => {
     await noSidewaysScroll(page, 'questionnaires');
     await page.getByRole('button', { name: 'Upload a questionnaire' }).click();
     const xlsx = Buffer.from(readFileSync(`${__dirname}/fixtures/ai-ddq.xlsx`));
-    await page.getByLabel('Questionnaire file').setInputFiles({ name: 'Northwind_AI_DDQ.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: xlsx });
-    await page.getByLabel('Customer').fill('Northwind Bank');
+    await page.getByLabel('Questionnaire file', { exact: true }).setInputFiles({ name: 'Northwind_AI_DDQ.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: xlsx });
+    await page.getByLabel('Customer', { exact: true }).fill('Northwind Bank');
     await page.getByRole('button', { name: 'Upload and find questions' }).click();
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Northwind');
     await page.getByRole('button', { name: 'Draft answers' }).click();

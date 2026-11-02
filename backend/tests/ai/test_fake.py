@@ -33,3 +33,11 @@ def test_fake_finds_contradictions_between_interview_and_documents():
     out = answer("review_check", {"interviews": [{"code": "8.2.05", "label": "Monitoring frequency", "answer": "Daily", "detail": None, "person": "Lee Park"}], "documents": DOCS})
     c = out["contradictions"][0]
     assert c["code"] == "8.2.05" and "weekly" in c["quote"] and c["document"] == "D2"
+
+
+def test_fake_extracts_duties_from_law_text_and_recorded_requirements():
+    out = answer("obligation_extract", {"default_actor": "employer", "question_cues": {"6.2.01": r"bias audit"}, "requirements": [{"code": "LL144-02", "text": "Publish a summary of the results of the most recent bias audit"}],
+                                        "sources": [{"kind": "requirement", "label": "LL144-02", "citation": "§20-871(a)(2)", "text": "Publish a summary of the results of the most recent bias audit. A summary of the results of the most recent bias audit of such tool"},
+                                                    {"kind": "full_text", "label": "full text", "citation": None, "text": "Such notice shall be made no less than ten business days before such use."}]})["obligations"]
+    assert [o["citation"] for o in out] == ["§20-871(a)(2)", None] and out[0]["requirement_codes"] == ["LL144-02"] and out[0]["question_codes"] == ["6.2.01"]
+    assert out[1]["deadline"] == "no less than ten business days before such use"

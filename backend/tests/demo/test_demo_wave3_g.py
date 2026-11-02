@@ -46,7 +46,7 @@ def test_obligations_and_questionnaire_demo(world, as_user):
 
     db = world["db"]
     obs = list(db.scalars(select(Obligation).where(Obligation.deleted_at.is_(None))))
-    assert sum(o.status == "approved" for o in obs) == 2 and any(o.status == "suggested" for o in obs)
+    assert sum(o.status == "approved" for o in obs) == 2 and sum(o.status == "suggested" for o in obs) >= 2
     q = db.scalar(select(Questionnaire).where(Questionnaire.customer_name == "Northwind Bank"))
     items = list(db.scalars(select(QuestionnaireItem).where(QuestionnaireItem.questionnaire_id == q.id)))
     assert len(items) == 8 and q.status == "in_progress"
