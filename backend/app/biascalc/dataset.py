@@ -6,6 +6,9 @@ Columns (names are matched without regard to case, spaces or punctuation):
   score         the score the tool gave (scoring-rate method)
   sex           Male or Female; blank or "unknown" for the unknown category
   race          race/ethnicity, one of the seven EEO-1 component 1 categories; blank or "unknown" for unknown
+  ethnicity     optional, Hispanic or Latino / Not Hispanic or Latino, beside a race column (the two-question format).
+                Combined as EEO-1 does: Hispanic or Latino whatever the race; otherwise the race; unknown with no race.
+                A file with an ethnicity column and no race column reads it as the race/ethnicity column.
   age_band      optional, kept for reference (Local Law 144 does not require it)
   qualified     optional outcome label (yes/no) for the equal opportunity difference
 
@@ -29,7 +32,8 @@ ALIASES = {
     "selected": ("selected", "advanced", "movedforward", "selectedyn"),
     "score": ("score", "aedtscore", "toolscore"),
     "sex": ("sex", "gender"),
-    "race": ("raceethnicity", "race", "ethnicity", "raceandethnicity"),
+    "race": ("raceethnicity", "race", "raceandethnicity"),
+    "ethnicity": ("ethnicity", "hispanicorlatino", "hispaniclatino", "hispanicethnicity"),
     "age_band": ("ageband", "age", "agegroup"),
     "label": ("qualified", "label", "outcomelabel", "outcome", "actualoutcome"),
 }
@@ -49,6 +53,8 @@ RACE = {
     "twoormoreraces": "two_or_more", "twoormore": "two_or_more", "multiracial": "two_or_more", "multipleraces": "two_or_more", "twoormore races": "two_or_more",
 }
 RACE.update({k.replace("_", ""): k for k in ("hispanic_latino", "white", "black", "nhpi", "asian", "aian", "two_or_more")})
+HISPANIC = {"hispanicorlatino", "hispanic", "latino", "latina", "latinx", "hispaniclatino", "yes", "y", "true", "1"}
+NOT_HISPANIC = {"nothispanicorlatino", "nothispanic", "nonhispanic", "nonhispanicorlatino", "notlatino", "notlatinx", "no", "n", "false", "0"}
 
 
 def _norm(s: str) -> str:
@@ -103,6 +109,8 @@ def parse(data: bytes) -> Parsed:
         for name, aliases in ALIASES.items():
             if key in aliases and name not in cols:
                 cols[name] = i
+    if "ethnicity" in cols and "race" not in cols:  # one column holding the combined race/ethnicity categories
+        cols["race"] = cols.pop("ethnicity")
     p.report["columns"] = {k: header[i].strip() for k, i in sorted(cols.items(), key=lambda kv: list(ALIASES).index(kv[0]))}
     if "id" not in cols:
         err(1, "id", "Add a column named id for the applicant or candidate identifier.")
@@ -164,6 +172,14 @@ def parse(data: bytes) -> Parsed:
         elif rc not in UNKNOWN:
             err(line_no, "race", f'Row {line_no}: "{raw_race[:40]}" is not a race/ethnicity category. Use one of the seven EEO-1 categories or leave it blank for unknown.')
             bad = True
+        if "ethnicity" in cols:  # EEO-1: Hispanic or Latino whatever the race; otherwise the race
+            raw_eth = get("ethnicity")
+            eth = re.sub(r"[^a-z0-9]", "", raw_eth.casefold())
+            if eth in HISPANIC:
+                row.race = "hispanic_latino"
+            elif eth not in NOT_HISPANIC and eth not in UNKNOWN:
+                err(line_no, "ethnicity", f'Row {line_no}: "{raw_eth[:40]}" is not an ethnicity. Use Hispanic or Latino, Not Hispanic or Latino, or leave it blank for unknown.')
+                bad = True
         if "label" in cols:
             v = _norm(get("label"))
             if v in TRUE or v in FALSE:
@@ -178,6 +194,10 @@ def parse(data: bytes) -> Parsed:
         p.report["unknown"]["race"] += row.race is None
         p.report["unknown"]["either"] += row.sex is None or row.race is None
     p.report["rows_valid"] = len(p.rows)
+    if "ethnicity" in cols:
+        warnings.append(f'Race/ethnicity combines the "{header[cols["ethnicity"]].strip()}" and "{header[cols["race"]].strip()}" columns as EEO-1 does: anyone recorded as '
+                        "Hispanic or Latino is counted as Hispanic or Latino whatever their race; everyone else is counted by race, and in the unknown category "
+                        "when no race is recorded.")
     for value, n in sorted(outside.items()):
         warnings.append(f'"{value}" ({n} {"person" if n == 1 else "people"}) is not an EEO-1 component 1 sex category, so it is counted in the unknown category.')
     if p.report["rows_read"] == 0:

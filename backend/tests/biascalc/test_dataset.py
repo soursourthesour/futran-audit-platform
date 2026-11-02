@@ -56,3 +56,24 @@ def test_non_binary_and_declined_answers_are_unknown_category_with_a_warning():
     p = dataset.parse(csv("id,selected,sex,race", "1,yes,Non-binary,white", "2,no,male,white"))
     assert p.ok and p.rows[0].sex is None
     assert any("not an EEO-1 component 1 sex category" in w for w in p.report["warnings"])
+
+
+def test_separate_ethnicity_and_race_columns_are_combined_as_eeo1_does():
+    """The usual two-column format: Hispanic or Latino counts as Hispanic or Latino whatever the race; otherwise the race;
+    Not Hispanic or Latino with no race recorded is unknown."""
+    p = dataset.parse(csv("id,selected,sex,ethnicity,race",
+                          "1,yes,male,Hispanic or Latino,White", "2,no,female,Not Hispanic or Latino,White", "3,yes,female,Not Hispanic or Latino,Black or African American",
+                          "4,no,male,Hispanic or Latino,", "5,no,male,Not Hispanic or Latino,", "6,yes,female,,Asian"))
+    assert p.ok, p.report["errors"]
+    r = {x.id: x.race for x in p.rows}
+    assert r == {"1": "hispanic_latino", "2": "white", "3": "black", "4": "hispanic_latino", "5": None, "6": "asian"}
+    assert p.report["columns"]["race"] == "race" and p.report["columns"]["ethnicity"] == "ethnicity"
+    assert any("ethnicity" in w and "Hispanic or Latino" in w for w in p.report["warnings"])
+    assert p.report["unknown"]["race"] == 1
+
+
+def test_an_unrecognised_ethnicity_is_an_error_and_a_single_ethnicity_column_still_reads_as_race():
+    p = dataset.parse(csv("id,selected,sex,ethnicity,race", "1,yes,male,Martian,White"))
+    assert not p.ok and p.report["errors"][0]["row"] == 2 and p.report["errors"][0]["field"] == "ethnicity"
+    p = dataset.parse(csv("id,selected,sex,ethnicity", "1,yes,male,White", "2,no,female,Hispanic or Latino"))
+    assert p.ok and [x.race for x in p.rows] == ["white", "hispanic_latino"]
