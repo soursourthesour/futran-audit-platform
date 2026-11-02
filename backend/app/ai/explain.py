@@ -1,6 +1,6 @@
 """Client Q&A helper (spec §21 F1): explains what a questionnaire question means, from the glossary and the question's
 help text. It never suggests an answer: the prompt forbids it, and an explanation that still proposes one (names the
-answer, or tells the person which option to choose) is discarded, recorded as rejected, and replaced by the help text."""
+answer, or tells the person which option to choose, in the explanation or in any term's meaning) is discarded, recorded as rejected, and replaced by the help text."""
 import re
 
 from sqlalchemy.orm import Session
@@ -38,7 +38,9 @@ def explain(db: Session, app_state, settings, actor: User, t: qs.Target, code: s
                 context={"question": {"code": q.code, "label": q.label, "help": q.help_text, "section": q.section_title}, "glossary": glossary})
     text = str(c.reply.data.get("explanation") or "").strip()
     terms = [x for x in c.reply.data.get("terms") or [] if isinstance(x, dict) and x.get("term")]
-    bad = not text or proposes_answer(text, q)
+    # every text the client would see is checked, not only the explanation
+    shown_texts = [text] + [str(x.get(k) or "") for x in terms for k in ("term", "meaning")]
+    bad = not text or any(proposes_answer(t, q) for t in shown_texts)
     shown = fallback(q) if bad else text
     row = ai.record(db, actor, c, organization_id=t.engagement.client_id, feature="explain", engagement_id=t.engagement.id, ai_system_id=t.system_id,
                     input_refs=[{"type": "question", "id": q.id}], target_type="question", target_id=q.id, target_code=q.code,

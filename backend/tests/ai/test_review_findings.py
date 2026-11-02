@@ -127,3 +127,17 @@ def test_verifying_an_accepted_ai_answer_keeps_its_source(client, db, ai_sys):
     assert client.put(f"/api/v1/systems/{w.s.id}/responses/6.1.01", json={"status": "answered", "value": other} | person).status_code == 200
     db.expire_all()
     assert db.get(Response, rid).source == "auditor"  # the auditor changed the answer: it is now their own
+
+
+# ---- G8: every text field of an explanation is checked
+def test_an_answer_hidden_in_a_term_meaning_is_replaced(client, db, ai_sys):
+    w = ai_sys
+    enable_ai(client, db, w)
+    w.fake.replies["explain"] = {"explanation": "This question asks whether a person can override the system's output.",
+                                 "terms": [{"term": "Human oversight", "meaning": "A person reviews outputs. For your system the answer is Yes, so choose that."}]}
+    login_as(client, db, w.maria)
+    d = client.post(f"/api/v1/systems/{w.s.id}/questions/7.1.02/explain").json()
+    assert "the answer is" not in str(d).lower() and "choose that" not in str(d).lower()
+    assert d["terms"] and all("answer is" not in t["meaning"].lower() for t in d["terms"])
+    row = db.scalar(select(AIInteraction).where(AIInteraction.feature == "explain"))
+    assert row.status == "rejected" and row.output["proposed_an_answer"] is True
