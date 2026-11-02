@@ -83,6 +83,8 @@ def prefill(db: Session, app_state, settings, actor: User, t: qs.Target, sub_sec
             note = "The suggested answer does not fit this question's options."
         elif cite is None:
             note = "The suggestion cites no passage."
+        elif cite.get("too_short"):
+            note = "The quoted passage is too short to show that the document supports the answer."
         elif not cite["found"]:
             note = "The quoted passage is not in the cited document."
         supported = value is not None and cite is not None and cite["found"]

@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.ai.client import AIClient, AIError, AIReply, client_for
 from app.ai.models import AIInteraction, DocumentText
-from app.ai.text import extract_pages, find_quote
+from app.ai.text import extract_pages, find_quote, quote_long_enough
 from app.audit_log import service as audit
 from app.auth.deps import Actor
 from app.core.clock import utcnow
@@ -148,7 +148,10 @@ def check_citation(docs: list[Doc], doc_ref, page, quote) -> dict | None:
     except (TypeError, ValueError):
         hint = None
     found_on = find_quote(d.pages, str(quote), hint)
-    return {"file_id": d.file.id, "filename": d.file.filename, "page": found_on if found_on is not None else hint, "quote": str(quote).strip()[:2000], "found": found_on is not None}
+    out = {"file_id": d.file.id, "filename": d.file.filename, "page": found_on if found_on is not None else hint, "quote": str(quote).strip()[:2000], "found": found_on is not None}
+    if not quote_long_enough(str(quote)):
+        out["too_short"] = True
+    return out
 
 
 # ---- the model call and its record

@@ -68,4 +68,4 @@ def test_quote_check_normalises_whitespace_case_and_typographic_marks():
     assert find_quote(pages, "staged approval gates (dev - UAT - prod)", 1) == 4  # cited the wrong page: the page it is on
     assert find_quote(pages, "Section 5 Limitations: TBD.", 4) is None
     assert find_quote(pages, "  ", 4) is None
-    assert find_quote([{"page": 2, "text": "the “model owner” signs"}], 'the "model owner" signs', 2) == 2
+    assert find_quote([{"page": 2, "text": "the “model owner” signs each release"}], 'the "model owner" signs each release', 2) == 2

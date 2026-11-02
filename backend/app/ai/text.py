@@ -3,13 +3,18 @@
 PDF text is read page by page with pypdf, so a citation names the printed page. DOCX has no pages until it is laid out,
 so its paragraphs are grouped into "pages" of about 3,000 characters, never splitting a paragraph; plain text the same
 way by line. A quote counts as found when it appears in the cited document after normalising whitespace, case, and
-typographic quotes and dashes.
+typographic quotes and dashes, and is long enough to show something: at least MIN_QUOTE_CHARS normalised characters
+and MIN_QUOTE_WORDS words. A single word or a short phrase ("the", "the model owner") occurs in almost any document,
+so it proves nothing. Four words, not five, because a template gap is often a heading and its status
+("Section 5 Limitations: TBD."), which is the very passage an auditor needs to cite.
 """
 import re
 from io import BytesIO
 from pathlib import Path
 
 PAGE_CHARS = 3000
+MIN_QUOTE_CHARS = 25
+MIN_QUOTE_WORDS = 4
 TEXT_TYPES = {".txt", ".md", ".csv"}
 _TRANSLATE = str.maketrans({"“": '"', "”": '"', "„": '"', "‘": "'", "’": "'", "–": "-", "—": "-", "‑": "-", " ": " ", "­": ""})
 
@@ -86,10 +91,16 @@ def extract_pages(filename: str, data: bytes) -> tuple[str, list[dict], str | No
     return "none", [], "Text can't be read from this file type."
 
 
-def find_quote(pages: list[dict], quote: str, page_hint: int | None = None) -> int | None:
-    """The page the quote is on (the cited page first), or None when the document does not contain it."""
+def quote_long_enough(quote: str) -> bool:
     q = normalise(quote)
-    if len(q) < 3:
+    return len(q) >= MIN_QUOTE_CHARS and len(q.split()) >= MIN_QUOTE_WORDS
+
+
+def find_quote(pages: list[dict], quote: str, page_hint: int | None = None) -> int | None:
+    """The page the quote is on (the cited page first), or None when the document does not contain it or the quote is
+    too short to show support."""
+    q = normalise(quote)
+    if not quote_long_enough(q):
         return None
     ordered = sorted(pages, key=lambda p: p["page"] != page_hint)
     for p in ordered:
@@ -100,7 +111,7 @@ def find_quote(pages: list[dict], quote: str, page_hint: int | None = None) -> i
 
 def quote_in(text: str, quote: str) -> bool:
     q = normalise(quote)
-    return len(q) >= 3 and q in normalise(text)
+    return quote_long_enough(q) and q in normalise(text)
 
 
 def sentences(text: str) -> list[str]:
