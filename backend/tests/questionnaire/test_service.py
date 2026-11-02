@@ -62,7 +62,8 @@ def test_client_never_sees_verified_or_auditor_answers(client, db, sys1, people)
     assert q["response"]["value"] == "4.2" and q["response"]["client_value"] == "4.1" and q["response"]["verified"] is True
     login_as(client, db, maria)
     q = next(q for q in _get(client, s)["questions"] if q["code"] == "3.1.03")
-    assert q["response"] == {"value": "4.1", "status": "answered", "na_reason": None, "detail": None, "evidence": []}
+    # the client's own answer only; its id is there for comments (F18) and tells the client nothing about the auditor's work
+    assert {k: v for k, v in q["response"].items() if k != "id"} == {"value": "4.1", "status": "answered", "na_reason": None, "detail": None, "evidence": []}
 
 
 def test_na_requires_reason(client, db, sys1):
