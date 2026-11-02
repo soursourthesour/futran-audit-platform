@@ -362,6 +362,25 @@ for _role, _grants in _WS_F.items():
     MATRIX.setdefault(_role, {}).update(_grants)
 
 
+# ---- wave 3 WS-K (spec §21 F11, F13, F6, F15, F16). Bias runs: the engagement's auditors and the Chief Auditor; QA reads.
+# Heat map and lineage: Lead Auditor (team role), Chief Auditor and QA; auditors on the engagement read it as they read scores.
+# Benchmarks name the client, so only the Chief Auditor; the Sales Team sees the anonymous practice view. The client keeps or
+# lets go its raw applicant data, and confirms carried-forward answers.
+_WS_K: dict[R, dict[A, S]] = {
+    R.CHIEF_AUDITOR: {A.RUN_BIAS_TEST: S.ALL, A.VIEW_BIAS_TESTS: S.ALL, A.VIEW_HEATMAP: S.ALL, A.VIEW_BENCHMARKS: S.ALL, A.VIEW_PRACTICE_INSIGHTS: S.ALL,
+                      A.SET_BENCHMARK_CONSENT: S.ALL, A.START_ANNUAL_REVIEW: S.ALL},
+    R.AUDITOR: {A.RUN_BIAS_TEST: S.ASSIGNED, A.VIEW_BIAS_TESTS: S.ASSIGNED, A.VIEW_HEATMAP: S.ASSIGNED},
+    R.QA_REVIEWER: {A.VIEW_BIAS_TESTS: S.ASSIGNED, A.VIEW_HEATMAP: S.ASSIGNED},
+    R.SALES_TEAM: {A.VIEW_PRACTICE_INSIGHTS: S.ALL},
+    R.CAICO: {A.KEEP_BIAS_DATA: S.ORG, A.CONFIRM_CARRIED_ANSWERS: S.ORG},
+    R.CLIENT_ADMIN: {A.KEEP_BIAS_DATA: S.ORG, A.CONFIRM_CARRIED_ANSWERS: S.ORG},
+    R.DEPT_COMPLIANCE_LEAD: {A.CONFIRM_CARRIED_ANSWERS: S.DEPT},
+    R.CONTRIBUTOR: {A.CONFIRM_CARRIED_ANSWERS: S.DEPT},
+}
+for _role, _grants in _WS_K.items():
+    MATRIX.setdefault(_role, {}).update(_grants)
+
+
 def actions_for(roles: set[str]) -> list[str]:
     """Every action any of `roles` holds at some scope (the union for a person with several roles)."""
     out: set[str] = set()

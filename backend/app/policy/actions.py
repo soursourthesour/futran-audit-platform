@@ -136,3 +136,15 @@ class Action(StrEnum):
     VIEW_TRUST_CENTER = "view_trust_center"
     EDIT_TRUST_CENTER = "edit_trust_center"  # the CAICO edits and approves items
     CONFIRM_TRUST_ITEMS = "confirm_trust_items"  # Futran Chief Auditor: the item matches the signed report
+
+    # wave 3 WS-K: bias calculator (F11, screen 29), heat map and lineage (F13, F6, screen 35), benchmarking (F15, screen 34),
+    # annual review carry-forward (F16)
+    RUN_BIAS_TEST = "run_bias_test"  # upload data, run, apply answers, draft findings, public summary, record as bias test
+    VIEW_BIAS_TESTS = "view_bias_tests"
+    KEEP_BIAS_DATA = "keep_bias_data"  # the client keeps the raw applicant rows past the retention period
+    VIEW_HEATMAP = "view_heatmap"  # heat map, lineage and their report export
+    VIEW_BENCHMARKS = "view_benchmarks"  # peer comparison for a named client (Chief Auditor)
+    VIEW_PRACTICE_INSIGHTS = "view_practice_insights"  # anonymous practice view: most common findings, no client names
+    SET_BENCHMARK_CONSENT = "set_benchmark_consent"  # record the engagement letter's benchmarking consent
+    START_ANNUAL_REVIEW = "start_annual_review"  # a new engagement carrying forward a closed one
+    CONFIRM_CARRIED_ANSWERS = "confirm_carried_answers"  # the client confirms or updates a carried-forward answer

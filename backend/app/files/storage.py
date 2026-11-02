@@ -17,6 +17,7 @@ def safe_name(filename: str) -> str:
 class Storage(Protocol):
     def put(self, org_id: str, data: bytes, filename: str) -> str: ...
     def get(self, key: str) -> bytes: ...
+    def delete(self, key: str) -> None: ...
 
 
 class LocalStorage:
@@ -39,6 +40,10 @@ class LocalStorage:
     def get(self, key: str) -> bytes:
         return self._path(key).read_bytes()
 
+    def delete(self, key: str) -> None:
+        """Remove the stored bytes (retention). A file already gone is not an error."""
+        self._path(key).unlink(missing_ok=True)
+
 
 class AzureBlobStorage:
     """Placeholder for the Azure deployment (schematic §14, post-build). Configure with `azure:<container-url>`."""
@@ -50,6 +55,9 @@ class AzureBlobStorage:
         raise NotImplementedError("Azure Blob storage is set up at the Azure deployment stage.")
 
     def get(self, key: str) -> bytes:
+        raise NotImplementedError("Azure Blob storage is set up at the Azure deployment stage.")
+
+    def delete(self, key: str) -> None:
         raise NotImplementedError("Azure Blob storage is set up at the Azure deployment stage.")
 
 

@@ -61,6 +61,7 @@ class Settings(BaseSettings):
     guardrail_mode: str = "auto"
     guardrail_url: str | None = None
     guardrail_token: str | None = None  # not used for client syncs: each organisation sets its own token (TracingOrgSettings)
+    guardrail_tests_live: bool = False  # GenAI guardrail tests (§21 F11) call a client endpoint only when true and permission is recorded
 
     @property
     def test_mode(self) -> bool:

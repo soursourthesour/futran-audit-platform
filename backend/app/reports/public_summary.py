@@ -42,9 +42,10 @@ def _ratios(rows, errs: list) -> list[dict]:
     for i, row in enumerate(rows[:200]):
         row = row if isinstance(row, dict) else {}
         category, group = " ".join(str(row.get("category") or "").split())[:80], " ".join(str(row.get("group") or "").split())[:120]
+        excluded = row.get("excluded") is True  # § 5-301(d): a small category left out of the impact ratios, still reported
         try:
             rate = float(row.get("selection_rate")) if row.get("selection_rate") not in (None, "") else None
-            ratio = float(row.get("impact_ratio"))
+            ratio = None if excluded and row.get("impact_ratio") in (None, "") else float(row.get("impact_ratio"))
         except (TypeError, ValueError):
             errs.append({"field": f"impact_ratios.{i}", "message": f"Row {i + 1}: enter the impact ratio as a number."})
             continue
@@ -52,9 +53,23 @@ def _ratios(rows, errs: list) -> list[dict]:
             errs.append({"field": f"impact_ratios.{i}", "message": f"Row {i + 1}: enter the category and the group."})
         if rate is not None and not 0 <= rate <= 1:
             errs.append({"field": f"impact_ratios.{i}", "message": f"Row {i + 1}: the selection rate is between 0 and 1."})
-        if not 0 <= ratio <= 1:
+        if ratio is not None and not 0 <= ratio <= 1:
             errs.append({"field": f"impact_ratios.{i}", "message": f"Row {i + 1}: the impact ratio is between 0 and 1 (the most selected group is 1)."})
-        out.append({"category": category, "group": group, "selection_rate": rate, "impact_ratio": ratio})
+        item = {"category": category, "group": group, "selection_rate": rate, "impact_ratio": ratio}
+        if row.get("applicants") not in (None, ""):  # rows from the bias calculator (§ 5-303: number of applicants for every category)
+            n = row.get("applicants")
+            if isinstance(n, bool) or not (isinstance(n, int) or (isinstance(n, str) and n.isdigit())):
+                errs.append({"field": f"impact_ratios.{i}", "message": f"Row {i + 1}: enter the number of applicants as a whole number."})
+            else:
+                item["applicants"] = int(n)
+        if row.get("rate_kind") in ("selection", "scoring"):
+            item["rate_kind"] = row["rate_kind"]
+        if excluded:
+            why = " ".join(str(row.get("justification") or "").split())[:1000]
+            if "applicants" not in item or rate is None or not why:
+                errs.append({"field": f"impact_ratios.{i}", "message": f"Row {i + 1}: give the number of applicants, the rate and the justification for an excluded category."})
+            item |= {"impact_ratio": None, "excluded": True, "justification": why}
+        out.append(item)
     return out
 
 
@@ -107,8 +122,12 @@ def summary_text(s: PublicSummary) -> str:
         lines.append(f"Individuals in an unknown category: {s.unknown_category_count}")
     lines.append("Impact ratios:")
     for r in s.impact_ratios or []:
-        rate = f"selection rate {r['selection_rate']:.2f}, " if r.get("selection_rate") is not None else ""
-        lines.append(f"- {r['category']} · {r['group']}: {rate}impact ratio {r['impact_ratio']:.2f}")
+        applicants = f"{r['applicants']} applicants, " if r.get("applicants") is not None else ""
+        rate = f"{r.get('rate_kind') or 'selection'} rate {r['selection_rate']:.2f}, " if r.get("selection_rate") is not None else ""
+        if r.get("excluded"):
+            lines.append(f"- {r['category']} · {r['group']}: {applicants}{rate}excluded from the impact ratio calculation. Justification: {r.get('justification')}")
+        else:
+            lines.append(f"- {r['category']} · {r['group']}: {applicants}{rate}impact ratio {r['impact_ratio']:.2f}")
     return "\n".join(lines)
 
 
