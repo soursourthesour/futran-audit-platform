@@ -13,7 +13,7 @@ DOMAINS = ["governance", "data", "model", "bias", "oversight", "security", "inci
 
 def peer(db, name, *, consent=True, industry="staffing", band="250-999", bias=2.0, themes=("no_bias_audit",)):
     org = make_org(db, name=name, industry=industry, employee_band=band)
-    org.benchmark_consent = consent
+    org.benchmark_consent, org.status = consent, "active"  # a client with a signed report has been approved
     db.add(BenchmarkSnapshot(organization_id=org.id, industry=industry, size_band=band, consent=consent, domain_scores={d: 3.0 for d in DOMAINS} | {"bias": bias},
                              overall_maturity=2.8, overall_rating="high", finding_themes=list(themes)))
     db.flush()
@@ -134,3 +134,35 @@ def test_consent_is_recorded_by_the_chief_auditor(client, db, ats, people):
     db.expire_all()
     assert db.get(Organization, cid).benchmark_consent is True
     assert db.scalar(select(AuditLog).where(AuditLog.action == "benchmark.consent")) is not None
+
+
+def test_only_live_client_organizations_and_live_engagements_count(client, db, people):
+    """Demo peers count only in test mode; a deleted organization or a snapshot of a deleted engagement never counts."""
+    from datetime import datetime
+
+    from app.core.ids import new_id
+    from app.engagements.models import Engagement
+    from app.tenancy.models import Organization
+
+    me = peer(db, "Subject Co")
+    for i in range(3):
+        peer(db, f"Peer {i}")
+    oid = new_id()
+    db.add(Organization(id=oid, organization_id=oid, name="Demo peer 01 (demo data)", legal_name="Demo peer 01 (demo data)", type="demo_peer", status="archived",
+                        industry="staffing", employee_band="250-999", benchmark_consent=True))
+    db.flush()
+    db.add(BenchmarkSnapshot(organization_id=oid, industry="staffing", size_band="250-999", consent=True, domain_scores={d: 3.0 for d in DOMAINS}, overall_maturity=3.0,
+                             overall_rating="medium", finding_themes=["no_bias_audit"]))
+    gone = peer(db, "Deleted Co")
+    gone.deleted_at = datetime(2026, 1, 1)
+    dropped = peer(db, "Dropped Engagement Co")
+    eng = Engagement(organization_id=dropped.id, client_id=dropped.id, name="Withdrawn audit", status="completed", stage=9, deleted_at=datetime(2026, 1, 1))
+    db.add(eng)
+    db.flush()
+    db.scalar(select(BenchmarkSnapshot).where(BenchmarkSnapshot.organization_id == dropped.id)).engagement_id = eng.id
+    db.commit()
+    out = benchmark.comparison(db, me)
+    assert out["groups_considered"][-1] == {"label": "All consenting clients", "n": 3, "shown": False}
+    assert benchmark.practice(db)["clients"] == 4
+    assert benchmark.comparison(db, me, test_mode=True)["groups_considered"][-1]["n"] == 4  # the demo peer, in test mode only
+    assert benchmark.practice(db, test_mode=True)["clients"] == 5

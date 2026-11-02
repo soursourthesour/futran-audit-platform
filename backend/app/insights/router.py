@@ -1,5 +1,5 @@
 """Screens 35 (heat map and lineage) and 34 (benchmarking and practice insights)."""
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import Response as HttpResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -94,22 +94,22 @@ def insight_clients(actor: Actor = Depends(current_actor), db: Session = Depends
 
 
 @router.get("/insights/clients/{client_id}")
-def insight_client(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+def insight_client(client_id: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     if not actor.is_futran:
         raise NotFound()
     org = db.get(Organization, client_id)
     if org is None or org.type != "client":
         raise NotFound()
     authorize(db, actor, Action.VIEW_BENCHMARKS, org_id=org.id)
-    return benchmark.comparison(db, org)
+    return benchmark.comparison(db, org, test_mode=request.app.state.settings.test_mode)
 
 
 @router.get("/insights/clients/{client_id}/page.pdf")
-def insight_page(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+def insight_page(client_id: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """The comparison as a page the Chief Auditor can share with that client."""
     from app.documents.pdf import to_pdf
 
-    data = insight_client(client_id, actor, db)
+    data = insight_client(client_id, request, actor, db)
     md = benchmark_markdown(data)
     name = f"{data['client']['name']} benchmark.pdf".replace("/", "-").replace('"', "")
     audit.record(db, actor_id=actor.id, action="benchmark.page", organization_id=client_id, object_type="Organization", object_id=client_id, summary=f"Exported the benchmark page for {data['client']['name']}")
@@ -146,8 +146,8 @@ def put_consent(client_id: str, body: ConsentIn, actor: Actor = Depends(current_
 
 
 @router.get("/insights/practice")
-def practice(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+def practice(request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     if not actor.is_futran:
         raise NotFound()
     authorize(db, actor, Action.VIEW_PRACTICE_INSIGHTS)
-    return benchmark.practice(db)
+    return benchmark.practice(db, test_mode=request.app.state.settings.test_mode)

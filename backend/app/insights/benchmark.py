@@ -6,6 +6,8 @@
 - A peer figure is the median of the latest snapshot of each other consenting client in the group, and is shown only when
   the group has at least five such clients. Groups are tried from the most specific: industry and size band, industry,
   size band, all consenting clients.
+- Only live client organizations count (not deleted, approved), with snapshots of engagements that were not deleted.
+  Demo peer organizations (type demo_peer) count only when the platform runs in test mode.
 - No output names a peer, gives a peer's own score or an identifier. The client's own figures are shown only in that
   client's comparison (Chief Auditor). The practice view counts themes across consenting clients, also only from five.
 """
@@ -81,13 +83,25 @@ def snapshot_on_signoff(db: Session, settings, actor, so) -> None:
     record_snapshot(db, db.get(Engagement, so.engagement_id))
 
 
-def _latest_by_client(db: Session) -> dict[str, BenchmarkSnapshot]:
-    """Each client's latest snapshot, with consent read from the organization now (withdrawn consent stops counting)."""
+def _live_snapshots():
+    """Snapshots not deleted, of an engagement that was not deleted (demo peers have no engagement)."""
+    return (select(BenchmarkSnapshot).outerjoin(Engagement, Engagement.id == BenchmarkSnapshot.engagement_id)
+            .where(BenchmarkSnapshot.deleted_at.is_(None), (BenchmarkSnapshot.engagement_id.is_(None)) | (Engagement.deleted_at.is_(None))))
+
+
+def _latest_by_client(db: Session, *, test_mode: bool = False) -> dict[str, BenchmarkSnapshot]:
+    """Each client's latest snapshot, with consent read from the organization now (withdrawn consent stops counting).
+    Only active client organizations count; demo peers only in test mode."""
     out: dict[str, BenchmarkSnapshot] = {}
-    for s in db.scalars(select(BenchmarkSnapshot).where(BenchmarkSnapshot.deleted_at.is_(None)).order_by(BenchmarkSnapshot.created_at)):
+    for s in db.scalars(_live_snapshots().order_by(BenchmarkSnapshot.created_at)):
         out[s.organization_id] = s
-    consent = dict(db.execute(select(Organization.id, Organization.benchmark_consent).where(Organization.id.in_(list(out)))).all()) if out else {}
-    return {k: v for k, v in out.items() if consent.get(k) is True}
+    if not out:
+        return {}
+    kinds = (Organization.type == "client") & (Organization.status == "active")
+    if test_mode:
+        kinds = kinds | (Organization.type == "demo_peer")
+    ok = set(db.scalars(select(Organization.id).where(Organization.id.in_(list(out)), Organization.deleted_at.is_(None), Organization.benchmark_consent.is_(True), kinds)))
+    return {k: v for k, v in out.items() if k in ok}
 
 
 def _domains(db: Session) -> dict[str, str]:
@@ -101,9 +115,9 @@ def _domains(db: Session) -> dict[str, str]:
         return {d: d for d in dict.fromkeys(SECTION_DOMAIN.values())}
 
 
-def comparison(db: Session, org: Organization) -> dict:
+def comparison(db: Session, org: Organization, *, test_mode: bool = False) -> dict:
     domains = _domains(db)
-    own = db.scalar(select(BenchmarkSnapshot).where(BenchmarkSnapshot.organization_id == org.id, BenchmarkSnapshot.deleted_at.is_(None)).order_by(BenchmarkSnapshot.created_at.desc()).limit(1))
+    own = db.scalar(_live_snapshots().where(BenchmarkSnapshot.organization_id == org.id).order_by(BenchmarkSnapshot.created_at.desc()).limit(1))
     base = {"client": {"id": org.id, "name": org.name, "industry": INDUSTRIES.get(org.industry or "", org.industry), "size_band": band_label(org.employee_band), "consent": org.benchmark_consent},
             "min_peers": MIN_PEERS, "group": None, "groups_considered": [], "note": None,
             "domains": [{"key": k, "label": v, "client": (own.domain_scores or {}).get(k) if own else None, "peer_median": None, "below_peers": False} for k, v in domains.items()],
@@ -114,7 +128,7 @@ def comparison(db: Session, org: Organization) -> dict:
     if own is None:
         base["note"] = "This client has no signed report yet. Figures appear after the final report is signed."
         return base
-    peers = [s for k, s in _latest_by_client(db).items() if k != org.id]
+    peers = [s for k, s in _latest_by_client(db, test_mode=test_mode).items() if k != org.id]
     ind = INDUSTRIES.get(org.industry or "", org.industry or "Industry not recorded")
     groups = [(f"{ind}, {band_label(org.employee_band)}", lambda s: s.industry == org.industry and s.size_band == org.employee_band),
               (ind, lambda s: s.industry == org.industry), (band_label(org.employee_band), lambda s: s.size_band == org.employee_band), ("All consenting clients", lambda s: True)]
@@ -140,9 +154,9 @@ def comparison(db: Session, org: Organization) -> dict:
     return base
 
 
-def practice(db: Session) -> dict:
+def practice(db: Session, *, test_mode: bool = False) -> dict:
     """Most common finding themes across consenting clients and the service each leads to. No names, no scores."""
-    snaps = list(_latest_by_client(db).values())
+    snaps = list(_latest_by_client(db, test_mode=test_mode).values())
     out = {"clients": len(snaps), "min_clients": MIN_PEERS, "themes": [], "note": None}
     if len(snaps) < MIN_PEERS:
         out["note"] = f"Shown when at least {MIN_PEERS} clients have consented to benchmarking."
