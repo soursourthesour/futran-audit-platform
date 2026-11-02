@@ -348,3 +348,24 @@ export function FieldworkAsk({ clientId }: { clientId: string }) {
   if (!eid || !on) return null;
   return <AskCopilot path={`/engagements/${eid}/copilot/ask`} placeholder="Does any document describe who reviews the tool's recommendations before an offer is made?" />;
 }
+
+/** "Draft the text" on a draft finding: condition, criteria, cause, effect and recommendation, applied only on accept. */
+export function DraftFindingText({ findingId, onApplied }: { findingId: string; onApplied: () => void }) {
+  const [s, setS] = useState<Interaction | null>(null);
+  const { busy, msg, run } = useBusy();
+  const o = s?.output ?? {};
+  return (
+    <div className="stack-sm">
+      {!s && <Button size="sm" disabled={busy} onClick={() => run(async () => setS(await api.post<Interaction>(`/findings/${findingId}/copilot/draft-text`)))}>{busy ? 'Drafting…' : 'Draft the finding text with the copilot'}</Button>}
+      {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
+      {s && <div className="cp-card">
+        <div className="cp-head"><strong>{o.title}</strong><Badge tone={s.status === 'suggested' ? 'navy' : statusTone(s.status)}>{s.status === 'suggested' ? `Suggested · ${o.severity}` : STATUS_LABEL[s.status]}</Badge></div>
+        <dl className="small" style={{ margin: 0 }}>
+          {(['condition', 'criteria', 'cause', 'effect', 'recommendation'] as const).map((k) => <div key={k}><dt style={{ display: 'inline', fontWeight: 600 }}>{k[0].toUpperCase() + k.slice(1)}: </dt><dd style={{ display: 'inline', margin: 0 }}>{o[k]}</dd></div>)}
+        </dl>
+        <div className="small muted">Based on: {s.citations.map((c) => `${c.label} (${c.quote})`).join('; ') || 'the finding as recorded'}</div>
+        {s.status === 'suggested' && <DecideRow i={s} acceptLabel="Use this text" onDone={(i) => { setS(i); onApplied(); }} />}
+      </div>}
+    </div>
+  );
+}

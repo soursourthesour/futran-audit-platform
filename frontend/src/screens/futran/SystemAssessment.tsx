@@ -6,7 +6,7 @@ import { Alert, Badge, Button, ButtonLink, Card, Loading, PageHeader, TextField,
 import { scoringHelp } from '@/help/fieldwork';
 import { QuestionCard, type DraftFinding, type FileRef, type QuestionView, type SaveBody } from '@/components/QuestionCard';
 import { RegisterRecord } from './RegisterRecord';
-import { AIUseFooter, CopilotSuggestions, CopilotTab, EvidenceCheck, useCopilotAllowed } from '@/screens/ai/Copilot';
+import { AIUseFooter, CopilotSuggestions, CopilotTab, DraftFindingText, EvidenceCheck, useCopilotAllowed } from '@/screens/ai/Copilot';
 
 export type Section = { code: string; title: string; answered: number; applicable: number; note?: string | null };
 type ChecklistRow = { code: string; section: string; section_title: string; text: string; maturity_domain: string; pending_review: boolean; confirmed: boolean; evidence: FileRef[]; auditor_note: string | null };
@@ -78,7 +78,7 @@ export function SystemAssessment() {
           )}
           {current === 'checklists' && s && cp.on && <div style={{ marginBottom: 12 }}><EvidenceCheck systemId={s.id} sections={checklistSections} locked={d.locked} onChanged={refresh} /></div>}
           {current === 'checklists' && <Checklists base={base} rows={d.checklists ?? []} files={d.evidence_files ?? []} locked={d.locked} onUpload={upload} onDone={refresh} />}
-          {current === 'drafts' && <Drafts rows={d.draft_findings ?? []} onDone={refresh} />}
+          {current === 'drafts' && <Drafts rows={d.draft_findings ?? []} onDone={refresh} copilot={cp.on && !d.locked} />}
           {current === 'register' && s && <RegisterRecord systemId={s.id} />}
           {current === 'copilot' && s && cp.on && <CopilotTab systemId={s.id} onOpen={(code) => { setSection(code); window.scrollTo(0, 0); }} />}
           <div className="row" style={{ justifyContent: 'space-between', marginTop: 16 }}>
@@ -141,7 +141,7 @@ function Checklists({ base, rows, files, locked, onUpload, onDone }: { base: str
   );
 }
 
-function Drafts({ rows, onDone }: { rows: DraftFinding[]; onDone: () => void }) {
+function Drafts({ rows, onDone, copilot }: { rows: DraftFinding[]; onDone: () => void; copilot?: boolean }) {
   const [reason, setReason] = useState<Record<string, string>>({});
   const [err, setErr] = useState<string | null>(null);
   async function act(d: DraftFinding, dismiss: boolean) {
@@ -162,6 +162,7 @@ function Drafts({ rows, onDone }: { rows: DraftFinding[]; onDone: () => void }) 
               {!d.confirmed && <Button variant="primary" onClick={() => act(d, false)}>Keep</Button>}
               <Button onClick={() => act(d, true)}>Dismiss</Button>
             </div>
+            {copilot && <DraftFindingText findingId={d.finding_id} onApplied={onDone} />}
           </li>
         ))}
       </ul>

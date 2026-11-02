@@ -209,10 +209,14 @@ def _meridian_copilot(m: Demo, mid: str) -> dict:
 
 
 def _obligations(m: Demo) -> None:
-    from app.demo.v061 import LEGAL, _law
+    from app.demo.v061 import LEGAL
+    from app.regmaster.seed import find_law
 
     legal = m.user(LEGAL[1])
-    law = _law(m, "Local Law 144")
+    reg = find_law(m.db, "US-NYC", "Local Law 144")
+    if reg is None:
+        raise DemoError("NYC Local Law 144 is not in the law library")
+    law = reg.id
     rows = m.as_(legal).post(f"/reg/laws/{law}/obligations/extract")["obligations"]
     ok = [o for o in rows if o["status"] == "suggested"]
     for o in ok[:2]:
