@@ -62,8 +62,8 @@ test('comments: internal and shared threads, an @mention from the suggestions, a
   // internal by default; mention the Chief Auditor from the suggestion list
   const input = box.getByRole('combobox', { name: 'New comment' });
   await input.fill('Severity check please ');
-  await input.pressSequentially('@Chr');
-  await box.getByRole('option', { name: /Chris Chief/ }).click();
+  await input.pressSequentially('@Dan');
+  await box.getByRole('option', { name: /Dana Whitfield/ }).click();
   await input.pressSequentially('does medium stand?');
   await box.getByRole('button', { name: 'Post comment' }).click();
   await expect(box.getByText('does medium stand?')).toBeVisible();
@@ -154,10 +154,10 @@ test('agents: the client registers an agent, the auditor samples its decisions a
     autonomy: 'acts_with_approval', purpose: 'Collects supplier bank details and tax forms and sets the supplier up in the ERP after a person approves.' });
   await page.goto(`/register/${s.id}/agent`);
   await page.getByRole('button', { name: 'Register this agent' }).click();
-  await page.getByLabel('Tool 1 name').fill('erp.create_supplier');
+  await page.getByLabel('Tool 1 name', { exact: true }).fill('erp.create_supplier');
   await page.getByLabel('What it does').first().fill('Creates the supplier record');
   await page.getByLabel('Access').first().selectOption('act');
-  await page.getByLabel('Autonomy *').selectOption('acts_with_approval');
+  await page.getByLabel('Autonomy *', { exact: true }).selectOption('acts_with_approval');
   await page.getByLabel('Kill switch', { exact: true }).fill('Finance systems lead disables the service account.');
   await page.getByRole('button', { name: 'Save registration' }).click();
   await expect(page.getByText(/Registration saved/)).toBeVisible();
@@ -181,8 +181,8 @@ test('agents: the client registers an agent, the auditor samples its decisions a
   const card = page.locator('section.card', { hasText: 'Supplier onboarding agent' });
   await card.getByRole('button', { name: 'Sample decisions' }).click();
   const dd = page.getByRole('dialog', { name: /Sample decisions/ });
-  await dd.getByLabel('Number of decisions').fill('3');
-  await dd.getByLabel('Seed (optional)').fill('7');
+  await dd.getByLabel('Number of decisions', { exact: true }).fill('3');
+  await dd.getByLabel('Seed (optional)', { exact: true }).fill('7');
   await dd.getByRole('button', { name: 'Draw sample' }).click();
   const sd = page.getByRole('dialog', { name: 'Decision sample' });
   await expect(sd.getByText(/random.Random\(7\)/)).toBeVisible();
@@ -190,7 +190,7 @@ test('agents: the client registers an agent, the auditor samples its decisions a
     await sd.getByRole('group', { name: 'Verdict' }).nth(i).getByRole('button', { name: 'Appropriate' }).click();
     await expect(sd.getByRole('listitem').nth(i).getByText('Appropriate').first()).toBeVisible();
   }
-  await sd.getByLabel('Conclusion').fill('All three decisions within the registration.');
+  await sd.getByLabel('Conclusion', { exact: true }).fill('All three decisions within the registration.');
   await sd.getByRole('button', { name: 'Complete the review' }).click();
   await expect(sd.getByText(/Completed by/)).toBeVisible();
   await page.screenshot({ path: `${SHOTS}/f14-sample-1440.png`, fullPage: true });
@@ -208,8 +208,8 @@ test('platform trust: the Futran Admin keeps the SOC 2 register; the platform\'s
   await grid.getByRole('row', { name: /CC6\.1/ }).click({ button: 'right' });
   await page.getByRole('menuitem', { name: 'Edit' }).click();
   const dlg = page.getByRole('dialog', { name: /CC6\.1/ });
-  await dlg.getByLabel('Status').selectOption('implemented');
-  await dlg.getByLabel('Evidence').fill('MFA and tenant isolation tests in the release pipeline');
+  await dlg.getByLabel('Status', { exact: true }).selectOption('implemented');
+  await dlg.getByLabel('Evidence', { exact: true }).fill('MFA and tenant isolation tests in the release pipeline');
   await dlg.getByRole('button', { name: 'Save' }).click();
   await expect(page.getByText('CC6.1 saved.')).toBeVisible();
   await shoot(page, 'f19-platform-trust');

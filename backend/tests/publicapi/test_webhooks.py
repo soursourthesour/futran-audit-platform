@@ -188,3 +188,15 @@ def test_fake_mode_accepts_reserved_example_names_without_dns_and_sends_nothing(
     webhooks.enqueue(db, w.org.id, "signoff.completed", {}, event_key="fake-2")
     webhooks.deliver_due(db, settings, utcnow())
     assert db.scalar(select(WebhookDelivery).where(WebhookDelivery.event_key == "fake-2")).status == "blocked"
+
+
+def test_published_regulatory_updates_raise_a_webhook_once(client, db, w, settings):
+    from tests.publicapi.test_publicapi import _update
+
+    add_hook(client, w, events=["regulatory_update.published"])
+    u = _update(db, w.org)
+    _update(db, w.other, ref="RU-009", title="Only for XYZ")
+    webhooks.run_event_scan(db, settings, utcnow())
+    webhooks.run_event_scan(db, settings, utcnow())
+    rows = list(db.scalars(select(WebhookDelivery)))
+    assert len(rows) == 1 and rows[0].payload["data"]["id"] == u.id and rows[0].organization_id == w.org.id

@@ -225,3 +225,33 @@ def test_public_openapi_lists_only_the_public_api(client, abc):
     assert not any(p.startswith("/api/v1") or "admin" in p for p in paths)
     main = client.get("/api/openapi.json").json()["paths"]
     assert not any(p.startswith("/api/public") or p.endswith("/oauth/token") for p in main)
+
+
+def _update(db, org, status="published", ref="RU-001", title="Colorado AI Act effective date moved to 30 June 2026", **kw):
+    from app.core.clock import utcnow
+    from app.regupdates.models import RegulatoryAlert, RegulatoryUpdate
+
+    u = RegulatoryUpdate(reference=ref, change_type="effective_date", title=title, summary="SB 25B-004 moved the effective date.", todo_text="Check impact assessments\nUpdate notices",
+                         status=status, published_at=utcnow() if status == "published" else None, **kw)
+    db.add(u)
+    db.flush()
+    db.add(RegulatoryAlert(organization_id=org.id, update_id=u.id, affected_system_ids=[], match_reason="Consequential decisions in Colorado"))
+    db.commit()
+    return u
+
+
+def test_regulatory_updates_published_to_the_client_only(client, db, w, abc):
+    _, t = abc
+    mine = _update(db, w.org)
+    _update(db, w.org, status="draft", ref="RU-002", title="Draft not yet reviewed")
+    _update(db, w.other, ref="RU-003", title="Only for XYZ")
+    rows = client.get(f"{PUB}/updates", headers=bearer(t)).json()["data"]
+    assert [r["reference"] for r in rows] == ["RU-001"] and rows[0]["id"] == mine.id and rows[0]["todo"] == ["Check impact assessments", "Update notices"]
+
+
+def test_token_endpoint_is_rate_limited_per_address(client, w):
+    creds = make_client(client, w, scopes=["findings:read"])
+    client.cookies.clear()
+    data = {"grant_type": "client_credentials", "client_id": creds["client"]["client_id"], "client_secret": "wrong"}
+    codes = [client.post(f"{PUB}/oauth/token", data=data).status_code for _ in range(31)]
+    assert codes[:30] == [401] * 30 and codes[30] == 429

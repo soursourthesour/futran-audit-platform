@@ -18,6 +18,7 @@ from app.publicapi.auth import Caller, OAuthError, authenticate, require
 
 PREFIX = "/api/public/v1"
 RELEASE_STAGE = 7  # findings and remediation reach the client with the draft report
+TOKEN_REQUESTS_PER_MINUTE = 30  # per network address, so a guessed or leaked client id cannot be tried at speed
 WRITABLE = ("name", "type", "sourcing", "department_id", "purpose", "users_description", "user_count", "vendor_name", "ai_provider", "model_name", "model_version",
             "hosting", "autonomy", "decision_impact")
 
@@ -40,6 +41,12 @@ async def token(request: Request, db: Session = Depends(get_db, scope="function"
     Optional `scope`: a space-separated subset of the client's scopes. Tokens last one hour."""
     import base64
 
+    from app.core.ratelimit import TooManyRequests, client_ip, limiter
+
+    try:
+        limiter(request, "public_api_token", TOKEN_REQUESTS_PER_MINUTE).check(client_ip(request))
+    except TooManyRequests:  # as an OAuth error body
+        raise OAuthError(429, "rate_limited", "Too many token requests from this address. Wait a minute and try again.", {"Retry-After": "60"}) from None
     form = dict(await request.form())
     basic = None
     auth = request.headers.get("authorization") or ""

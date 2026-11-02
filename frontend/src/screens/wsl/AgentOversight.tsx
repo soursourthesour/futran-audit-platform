@@ -30,7 +30,7 @@ export function AgentOversight() {
         subtitle="The client's AI agents: what each may do, how often it hands decisions to a person, and samples of its decisions for your review. The decision log comes from the client (import, GuardRail or the public API)." />
       {d.agents.length === 0 && <EmptyState>This client has no agents in its register.</EmptyState>}
       {d.agents.map((a) => (
-        <Card key={a.id} title={<>{a.reference} {a.name} {a.department && <span className="small muted">· {a.department}</span>}</>}
+        <Card key={a.id} title={<h2>{a.reference} {a.name} {a.department && <span className="small muted">· {a.department}</span>}</h2>}
           actions={<Button variant="primary" onClick={() => setDrawing(a)} disabled={a.decisions === 0}>Sample decisions</Button>}>
           <div className="stack">
             {!a.registration && <Alert tone="warn">The client has not registered this agent's tools and permissions.</Alert>}

@@ -1,28 +1,25 @@
-"""Regulatory updates published to a client, for `GET /updates` and the `regulatory_update.published` webhook.
+"""Regulatory updates published to a client (WS-H, `app.regupdates`), for `GET /updates` and the
+`regulatory_update.published` webhook.
 
-The updates themselves belong to WS-H (`app.regupdates`). This reads them only when that package is installed and offers
-`published_for_client(db, org_id)`; otherwise there is nothing to serve and the list is empty.
+An update reaches a client when it is published (after its second review), not withdrawn, not a watch item, and matched
+to that client by a `RegulatoryAlert`. Nothing else of WS-H's data is read here.
 """
-import importlib
-from datetime import datetime
-
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 
 def published_updates(db: Session, org_id: str) -> list[dict]:
-    """[{id, title, change_type, summary, effective_on, published_at, published_at_dt}] for this client, newest first."""
+    """[{id, reference, title, change_type, law, summary, todo, effective_on, source_url, published_at, published_at_dt}], newest first."""
     try:
-        mod = importlib.import_module("app.regupdates.service")
+        from app.regupdates.models import RegulatoryAlert, RegulatoryUpdate
     except ModuleNotFoundError:
         return []
-    fn = getattr(mod, "published_for_client", None)
-    if fn is None:
-        return []
+    rows = db.execute(select(RegulatoryUpdate, RegulatoryAlert).join(RegulatoryAlert, RegulatoryAlert.update_id == RegulatoryUpdate.id).where(
+        RegulatoryAlert.organization_id == org_id, RegulatoryAlert.deleted_at.is_(None), RegulatoryUpdate.status == "published",
+        RegulatoryUpdate.withdrawn_at.is_(None), RegulatoryUpdate.watch.is_(False), RegulatoryUpdate.published_at.is_not(None)).order_by(RegulatoryUpdate.published_at.desc()))
     out = []
-    for u in fn(db, org_id):
-        get = (lambda k, u=u: u.get(k)) if isinstance(u, dict) else (lambda k, u=u: getattr(u, k, None))
-        at = get("published_at")
-        out.append({"id": get("id"), "title": get("title"), "change_type": get("change_type"), "summary": get("summary"),
-                    "effective_on": (get("effective_on") or get("effective_date") or None) and str(get("effective_on") or get("effective_date")),
-                    "published_at": at.isoformat() + "Z" if isinstance(at, datetime) else at, "published_at_dt": at if isinstance(at, datetime) else None})
+    for u, a in rows:
+        out.append({"id": u.id, "reference": u.reference, "title": u.title, "change_type": u.change_type, "law": u.law_name, "summary": u.summary,
+                    "todo": [x.strip() for x in (u.todo_text or "").splitlines() if x.strip()], "effective_on": u.effective_on.isoformat() if u.effective_on else None,
+                    "source_url": u.source_url, "why_it_applies": a.match_reason, "published_at": u.published_at.isoformat() + "Z", "published_at_dt": u.published_at})
     return out

@@ -88,6 +88,7 @@ def test_admin_keeps_the_register_and_others_read_or_see_nothing(client, db):
     assert client.patch(f"{API}/staff/admin/trust/controls/{cid}", json={"status": "done"}).status_code == 422
     assert client.patch(f"{API}/staff/admin/trust/controls/{cid}", json={"owner_id": caico.id}).status_code == 422
     assert client.patch(f"{API}/staff/admin/trust/controls/{cid}", json={"evidence_link": "javascript:alert(1)"}).status_code == 422
+    assert client.patch(f"{API}/staff/admin/trust/controls/{cid}", json={"evidence_link": "Architecture note: encryption at rest"}).status_code == 200
     assert client.patch(f"{API}/staff/admin/trust/controls/{cid}", json={"last_reviewed_on": "2099-01-01"}).status_code == 422
     new = client.post(f"{API}/staff/admin/trust/controls", json={"code": "CC9.9", "criterion": "security", "title": "Vendor SOC 2 reports reviewed each year"})
     assert new.status_code == 200 and new.json()["code"] == "CC9.9"

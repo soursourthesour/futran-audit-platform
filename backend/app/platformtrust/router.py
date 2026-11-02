@@ -1,6 +1,7 @@
 """Futran Admin > Platform trust (`/staff/admin/trust`, spec §21 F19): the SOC 2 readiness register and the platform's own
 AI systems. The Futran Admin edits; the Chief Auditor and QA Reviewer read. Every endpoint calls `authorize`."""
 import importlib
+import re
 from datetime import date
 
 from fastapi import APIRouter, Depends
@@ -116,7 +117,7 @@ def _apply(db: Session, org_id: str, c: SocControl, body: ControlPatch) -> None:
             c.owner_id = u.id if u else None
     if "evidence_link" in data:
         link = (data["evidence_link"] or "").strip()
-        if link and not link.lower().startswith(("https://", "http://")) and ":" in link.split("/")[0]:
+        if link and not link.lower().startswith(("https://", "http://")) and re.match(r"^[A-Za-z][A-Za-z0-9+.-]*:", link):  # another scheme (javascript:, data:)
             errs.append({"field": "evidence_link", "message": "Enter a web address starting https:// or a short description of where the evidence is."})
         else:
             c.evidence_link = link or None

@@ -7,6 +7,7 @@ import { SignPanel, type SignOffView } from '@/components/SignPanel';
 import { FindingForm, SEV_TONE, type FindingRow } from '@/screens/futran/FieldworkUseCase';
 import { findingHelp } from '@/help/fieldwork';
 import { Comments } from '@/components/Comments';
+import { useCommentCounts } from '@/api/wsl';
 
 type Data = { findings: (FindingRow & { review_role?: string | null; origin?: string })[]; stage: number; audit_ref: string; client: string; control_options: string[]; sign_off_5: SignOffView | null; approved: number; total: number; can_approve_as: string[]; me: string };
 
@@ -18,6 +19,7 @@ export function FindingsQA() {
   const key = ['findings', clientId];
   const qc = useQueryClient();
   const q = useQuery({ queryKey: key, queryFn: () => api.get<Data>(`/clients/${clientId}/findings`) });
+  const commentCounts = useCommentCounts('finding', (q.data?.findings ?? []).map((x) => x.id));
   const [sel, setSel] = useState<string | null>(null);
   const [comment, setComment] = useState('');
   const [reason, setReason] = useState('');
@@ -48,7 +50,7 @@ export function FindingsQA() {
                 <thead><tr><th>Finding</th><th>Severity</th><th>Author</th><th>Status</th></tr></thead>
                 <tbody>{d.findings.map((x) => (
                   <tr key={x.id} className={`clickable${x.id === f?.id ? ' selected' : ''}`} onClick={() => setSel(x.id)}>
-                    <td><span className="small muted">{x.ref}</span> <strong>{x.title}</strong>{x.null_compliance_flag && <> <Badge tone="warn">Null-compliance</Badge></>}</td>
+                    <td><span className="small muted">{x.ref}</span> <strong>{x.title}</strong>{x.null_compliance_flag && <> <Badge tone="warn">Null-compliance</Badge></>}{commentCounts.data?.counts[x.id] ? <span className="small muted"> · {commentCounts.data.counts[x.id]} comment{commentCounts.data.counts[x.id] === 1 ? '' : 's'}</span> : null}</td>
                     <td><Badge tone={SEV_TONE[x.severity]}>{x.severity[0].toUpperCase() + x.severity.slice(1)}</Badge></td>
                     <td>{mine(x) ? 'You' : x.author ?? '—'}</td>
                     <td>{statusText(x)}</td>
