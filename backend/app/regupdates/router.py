@@ -300,6 +300,8 @@ def client_updates(actor: Actor = Depends(current_actor), db: Session = Depends(
                               RegulatoryUpdate.published_at.is_not(None), RegulatoryUpdate.watch.is_(False))
                        .order_by(RegulatoryUpdate.published_at.desc())).all()
     for a, u in pairs:
+        if u.status == "withdrawn" and not _was_told(db, a):
+            continue  # never emailed to the client: it simply leaves the list
         systems = []
         for sid in a.affected_system_ids or []:
             s = db.get(RegisterSystem, sid)
@@ -308,7 +310,7 @@ def client_updates(actor: Actor = Depends(current_actor), db: Session = Depends(
             systems.append({"id": s.id, "reference": s.reference, "name": s.name, "risk_tier": s.risk_tier})
         if depts is not None and not systems:
             continue  # a Department Compliance Lead sees the updates that touch their department's systems
-        withdrawn = u.status == "withdrawn"  # a client that was shown the update sees it withdrawn, with the reason, rather than losing it
+        withdrawn = u.status == "withdrawn"  # a client that was emailed the update sees it withdrawn, with the reason, rather than losing it
         items.append({"id": u.id, "kind": "update", "change_label": svc.CHANGE_LABELS[u.change_type], "law_name": u.law_name, "jurisdiction_name": _jname(db, u.jurisdiction_id),
                       "title": u.title, "summary": u.summary, "effective_on": u.effective_on.isoformat() if u.effective_on else None, "source_url": u.source_url,
                       "published_at": u.published_at.isoformat() if u.published_at else None, "systems": systems, "todos": [] if withdrawn else svc.todos(db, u),
@@ -319,6 +321,16 @@ def client_updates(actor: Actor = Depends(current_actor), db: Session = Depends(
     for r in cal:
         r.pop("organization_ids", None)
     return {"items": items, "calendar": cal}
+
+
+def _was_told(db: Session, a: RegulatoryAlert) -> bool:
+    """The client received the update by email: its alert was sent, or it was in a weekly digest."""
+    from app.clientalerts.models import AlertSend
+
+    if a.digested_at is not None:
+        return True
+    s = db.get(AlertSend, a.alert_send_id) if a.alert_send_id else None
+    return s is not None and s.status == "sent"
 
 
 def _sent_law_changes(db: Session, org_id: str, depts) -> list[dict]:

@@ -59,3 +59,17 @@ def test_a_client_that_was_told_sees_the_update_marked_withdrawn_with_the_reason
     i = items[0]
     assert i["status"] == "withdrawn" and i["withdrawn_reason"] == "The source was misread" and i["withdrawn_at"]
     assert i["todos"] == []
+
+
+def test_a_client_that_received_it_in_the_weekly_digest_also_sees_it_withdrawn(client, db, world):
+    from datetime import datetime
+
+    from app.regupdates.models import RegulatoryAlert
+
+    d = publish(client, db, world, nyc_enforcement(world))
+    a = db.scalar(select(RegulatoryAlert).where(RegulatoryAlert.update_id == d["id"], RegulatoryAlert.organization_id == world["abc"].id))
+    a.digested_at = datetime(2026, 11, 2, 10)
+    db.commit()
+    _withdraw(client, db, world, d["id"])
+    login_as(client, db, world["maria"])
+    assert [i["status"] for i in client.get("/api/v1/updates").json()["items"]] == ["withdrawn"]
