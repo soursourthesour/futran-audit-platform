@@ -34,6 +34,10 @@ light_domains: [governance, data, oversight, vendor_risk]   # schematic D17: wei
 proposed_score_bands: [{min_pct: 80, score: 5}, {min_pct: 60, score: 4}, {min_pct: 40, score: 3}, {min_pct: 20, score: 2}, {min_pct: 0, score: 1}]
 override_rationale_threshold: 1
 max_control_reduction: 0.75
+bias_calculator:   # spec §21 F11: four-fifths guide and the 6 RCNY § 5-301(d) small-category exclusion
+  impact_ratio_threshold: 0.80
+  small_category_share: 0.02
+  exclude_small_categories: true
 bands:
   - {min: 75, rating: critical}
   - {min: 50, rating: high}

@@ -28,7 +28,7 @@ def load_catalogs(db: Session) -> str:
         db.add(RiskMethodology(
             version=rm["version"], effective_date=str(rm["effective_date"]), factor_weights=rm["factors"],
             domain_weights_by_build_type=rm["domain_weights_by_build_type"], bands=rm["bands"], knockout_rules=rm["knockouts"],
-            config={k: rm[k] for k in ("domains", "build_type_weights", "light_domains", "proposed_score_bands", "override_rationale_threshold", "max_control_reduction", "eu_ai_act")},
+            config={k: rm[k] for k in ("domains", "build_type_weights", "light_domains", "proposed_score_bands", "override_rationale_threshold", "max_control_reduction", "eu_ai_act", "bias_calculator") if k in rm},
         ))
         n += 1
     db.flush()
