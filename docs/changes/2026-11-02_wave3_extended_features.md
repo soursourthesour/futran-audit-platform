@@ -2,7 +2,7 @@
 title: Futran Audit Platform — wave 3 extended features (spec v0.3 §21, F1 to F19)
 tags: [futran, audit-platform, change-log]
 source: Futran_Audit_Platform_Developer_Spec_v0.3.md §21–22 and screens 25 to 35
-status: built, independently reviewed and fixed; final test runs below
+status: built, independently reviewed and fixed; all tests pass; installed on the laptop
 updated: 2026-11-02
 ---
 
@@ -113,6 +113,13 @@ Each workstream was reviewed by a fresh reviewer against the spec and the code. 
 - Annual reviews copied the Lead Auditor without the independence check.
 
 **Important, all fixed:** weak quote checking; "Audited by Futran" on unsupported answers; accepted suggestions overwriting verified answers; the AI-accepted marker being erased; large questionnaires failing (and costing money on retry); narrative overwritten without a copy; answers hidden in "Explain" term meanings; dismissed 12-month triggers coming back daily; false "new jurisdiction" alerts after a restart; withdrawn updates still going out; separation-of-duties bypasses on updates and projects; condition owners locked out; unverified updates published as fact; unconfirmed Trust Center heading text; policies closing the wrong commitment; authors removing themselves; retired policies staying public; ethnicity and race misread; stale exclusion notes in the LL144 summary; tables dropped from the summary; raw bias data left in the text cache; invalid scores accepted; "confirm all" confirming company-wide answers; deleted clients counted as benchmark peers; webhook timestamps 5 hours off; one bad webhook secret stopping all webhooks; API clients that could not be handed over; no comments on unanswered questions; autonomy changes without an alert; SOC 2 records of closed engagements reopened; a replaced SOC 2 report failing forever; one client's monitoring error stopping the others; a failed reconnection breaking a working connector; an endpoint without an authorisation check; past auditors seeing people's names.
+
+## Test results (branch build/v1 after the fixes)
+
+- Backend: 1,652 passed, 1 skipped, none failed.
+- Browser (Playwright): 91 passed, none failed. The heat map test was corrected: it assumed SYS-001 was still provisional, but earlier tests on the shared test server lock the score at sign-off 5 first.
+- Demo data loads end to end (part of the backend suite).
+- One chain of database migrations; every new migration only adds tables or columns.
 
 ## Deferred (minor)
 
