@@ -100,7 +100,7 @@ test.describe.serial('WS-K: bias calculator, heat map and lineage, benchmarking,
     await page.goto(`/clients/${clientId}`);
     await page.getByRole('link', { name: 'Risk heat map and lineage' }).click();
     await expect(page.getByRole('heading', { name: 'Risk heat map and lineage' })).toBeVisible();
-    await expect(page.getByRole('table', { name: /Risk heat map/ }).getByRole('cell', { name: /inherent 75–100: high, SYS-001/ }).getByRole('link', { name: 'SYS-001*' })).toBeVisible(); // scores lock at sign-off 5
+    await expect(page.getByRole('table', { name: /Risk heat map/ }).getByRole('cell', { name: /inherent 75–100: high, SYS-001/ }).getByRole('link', { name: /^SYS-001(\*| · High)$/ })).toBeVisible(); // provisional (*) until sign-off 5 locks the score; earlier specs on the shared late server may already have locked it
     await expect(page.getByRole('row', { name: /SYS-001/ }).filter({ hasText: 'Control effect' }).or(page.getByText(/76(\.0)? → 58\.2/)).first()).toBeVisible();
     await expect(page.getByText(/Lineage: why is F-\d+ a finding\?/)).toBeVisible();
     await expect(page.getByText('Finding and remediation')).toBeVisible();
