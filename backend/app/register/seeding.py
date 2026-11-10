@@ -127,6 +127,13 @@ def template_csv() -> str:
     return to_csv(HEADER, [[EXAMPLE.get(h, "") for h in HEADER]])
 
 
+def _text_cells(cells) -> None:
+    """Every value is text: a name from the AI model list that starts with = + - or @ is never read as a formula."""
+    for cell in cells:
+        if isinstance(cell.value, str):
+            cell.data_type = "s"
+
+
 def template_xlsx(db: Session) -> bytes:
     from openpyxl import Workbook
     from openpyxl.styles import Alignment, Font, PatternFill
@@ -175,6 +182,9 @@ def template_xlsx(db: Session) -> bytes:
         dv.add(f"{get_column_letter(i)}2:{get_column_letter(i)}2000")
         ws.add_data_validation(dv)
     lists.sheet_state = "hidden"
+    for sheet in (ws, ins, lists):
+        for row in sheet.iter_rows():
+            _text_cells(row)
     buf = io.BytesIO()
     wb.save(buf)
     return buf.getvalue()

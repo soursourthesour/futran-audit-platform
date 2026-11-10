@@ -108,6 +108,15 @@ def remember_client_model(db: Session, actor_id: str | None, org_id: str, vendor
 
 
 # ---- the Futran Admin's edits
+FORMULA_START = ("=", "+", "-", "@")
+
+
+def _check_name(name: str, what: str) -> None:
+    """Names go into spreadsheets (the import template); one that starts like a formula is refused."""
+    if name.startswith(FORMULA_START):
+        raise Invalid(errors=[{"field": "name", "message": f"The {what}'s name cannot start with =, +, - or @."}])
+
+
 def _slug(name: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", _norm(name)).strip("_")[:30] or "vendor"
 
@@ -116,6 +125,7 @@ def add_vendor(db: Session, actor, name: str, source_url: str | None = None) -> 
     name = " ".join(str(name or "").split())[:120]
     if not name:
         raise Invalid(errors=[{"field": "name", "message": "Enter the vendor's name."}])
+    _check_name(name, "vendor")
     ensure_seeded(db)
     if db.scalar(select(ModelVendor.id).where(func.lower(ModelVendor.name) == name.lower())):
         raise Conflict(f"{name} is already in the list.")
@@ -137,6 +147,7 @@ def edit_vendor(db: Session, actor, v: ModelVendor, data: dict) -> ModelVendor:
         name = " ".join(str(data.get("name") or "").split())[:120]
         if not name:
             raise Invalid(errors=[{"field": "name", "message": "Enter the vendor's name."}])
+        _check_name(name, "vendor")
         v.name = name
     if "active" in data:
         v.active = bool(data["active"])
@@ -150,6 +161,7 @@ def add_model(db: Session, actor, vendor: ModelVendor, name: str, *, origin: str
     name = " ".join(str(name or "").split())[:160]
     if not name:
         raise Invalid(errors=[{"field": "name", "message": "Enter the model's name."}])
+    _check_name(name, "model")
     if any(_norm(m.name) == _norm(name) for m in models_of(db, vendor.id, active_only=False)):
         raise Conflict(f"{name} is already listed for {vendor.name}.")
     m = ModelEntry(vendor_id=vendor.id, name=name, origin=origin, source_url=source_url, created_by=actor.id, updated_by=actor.id, active=True)
@@ -166,6 +178,7 @@ def edit_model(db: Session, actor, m: ModelEntry, data: dict) -> ModelEntry:
         name = " ".join(str(data.get("name") or "").split())[:160]
         if not name:
             raise Invalid(errors=[{"field": "name", "message": "Enter the model's name."}])
+        _check_name(name, "model")
         if any(_norm(x.name) == _norm(name) and x.id != m.id for x in models_of(db, m.vendor_id, active_only=False)):
             raise Conflict(f"{name} is already listed for this vendor.")
         m.name = name
@@ -278,7 +291,7 @@ def run_monthly(db: Session, settings, now: datetime, app_state=None, *, manual_
         if not isinstance(p, dict):
             continue
         vendor, model = " ".join(str(p.get("vendor") or "").split())[:120], " ".join(str(p.get("model") or "").split())[:160]
-        if not vendor or not model:
+        if not vendor or not model or vendor.startswith(FORMULA_START) or model.startswith(FORMULA_START):
             continue
         v = by_name.get(_norm(vendor))
         if v is not None and any(_norm(m) == _norm(model) for m in listed.get(v.name, [])):
