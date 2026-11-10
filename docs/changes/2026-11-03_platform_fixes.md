@@ -2,7 +2,7 @@
 title: Futran Audit Platform — changes from the 11-03 review notes
 tags: [futran, audit-platform, change-log]
 source: "futran AI audit platform fixes 11-03.docx" (updated 10 November 2026); item ids in 2026-11-03_fixes_source.md
-status: built, independently reviewed and fixed; all tests pass; update package ready to install
+status: built, independently reviewed and fixed; all tests pass; installed on the laptop 10 November
 updated: 2026-11-10
 ---
 
@@ -63,7 +63,7 @@ Status key: **Done**, **Partly done**, **Not started**, **Your test** (items you
 5. The vendor and model list is keyed by the underlying AI provider (OpenAI, Anthropic, Google …), not the client's own vendor register.
 6. "By role level" counts anyone who matches any of the choices, within the system's departments unless the system is company-wide.
 7. Laws without scope questions are suggested from the place and the system's features (statutes and regulations only); some suggestions may be broad. Nothing is added without the user accepting it.
-8. A few short register grid and button labels still say "role" ("Required roles", "Edit role", "Save role"). Say if they should change too.
+8. A few short register grid and button labels still say "role" ("Required roles", "Edit role", "Save role"). Decided 10 November: keep them.
 
 ## Independent review
 
@@ -101,7 +101,9 @@ Each workstream was reviewed by a separate reviewer. Fixed, each with a test tha
 
 ## Laptop update
 
-The laptop was not linked while this was built, so the update was not installed. To install it:
+Installed on 10 November. Before installing: your data was backed up to `backups\\app-before-1103-fixes-2026-11-10.db` and `backups\\files-before-1103-fixes-2026-11-10`, and the upgrade was rehearsed on a copy of that day's data (no table lost a row; AI systems and answers unchanged; the first start adds one opportunity from the existing effective-date job). All 1,317 files were checked against the package, and both `.env` files were left untouched. demo.bat was not run. The package is kept as `backups\\Futran_Audit_Platform_1103-fixes_2026-11-10.zip`.
+
+The steps, for next time:
 
 1. Close the platform (close the run.bat window).
 2. Back up your data: copy the `data` folder in `%LOCALAPPDATA%\FutranAuditPlatform` to `%LOCALAPPDATA%\FutranAuditPlatform\backups\data-before-1103-fixes`.
@@ -113,6 +115,5 @@ To go back: close the platform, put the backed-up `data` folder back, and unzip 
 
 ## Still to do
 
-- Install the update on the laptop (steps above), or link the laptop and ask Claude to install it.
 - The deferred items above.
-- Your answers on: "Needed by" meaning the system's life stage (as built) or the audit stage; the remaining register labels.
+- Your answer on "Needed by": the system's life stage (as built) or the audit stage.
