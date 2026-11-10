@@ -72,7 +72,10 @@ test.describe('phone header', () => {
       await expect(menu).toBeFocused();
       // following a link closes the menu
       await menu.click();
-      const second = links.nth(1);
+      // the navigation is grouped (11-03 C1): open the first closed group and follow a link that is not the current page
+      const closed = main(page).locator('.nav-group > button[aria-expanded="false"]');
+      if (await closed.count()) await closed.first().click();
+      const second = main(page).locator('a:visible:not([aria-current="page"])').first();
       const href = await second.getAttribute('href');
       await second.click();
       await page.waitForURL((u) => u.pathname === href);

@@ -42,9 +42,10 @@
   .nav-group-btn { min-height: 44px; }
 }
 
-/* Wide screens: the signed-in name and role wrap onto two short lines so the grouped menus fit on one row. */
+/* Wide screens: brand, bell and user on the top row; the grouped menus on a row of their own below, so every group
+   fits however many a person has. */
 @media (min-width: 601px) {
-  .shell-user > span { max-width: 200px; text-align: right; line-height: 1.3; }
-  .shell-header { column-gap: 20px; }
-  .shell-nav { gap: 2px; }
+  .shell-header { row-gap: 0; padding-top: 10px; }
+  .shell-header .brand { flex: 1 1 auto; }
+  .shell-nav { order: 4; flex: 1 0 100%; margin: 6px 0 0 -12px; padding-bottom: 8px; }
 }
