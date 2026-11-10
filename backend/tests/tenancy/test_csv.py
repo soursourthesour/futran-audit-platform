@@ -34,13 +34,13 @@ def test_user_csv_messy_rows():
     assert r.errors == [
         {"row": 4, "field": "email", "message": "Email appears more than once in this file."},
         {"row": 5, "field": "department", "message": "Department 'Legal' is not in the department list."},
-        {"row": 6, "field": "role", "message": "Role 'dept lead' is not recognised."},
+        {"row": 6, "field": "role", "message": "AI compliance role 'dept lead' is not recognised."},
     ]
 
 
 def test_user_csv_wrong_header_and_required_fields():
     r = parse_user_csv("name,email\nA,a@b.com\n", ["HR"])
-    assert r.rows_ok == [] and r.errors[0]["row"] == 1 and "first_name" in r.errors[0]["message"]
+    assert r.rows_ok == [] and r.errors[0]["row"] == 1 and "Missing: AI compliance role" in r.errors[0]["message"]
     r = parse_user_csv(USERS_HEADER + "\n,Shah,not-an-email,,HR,Contributor,\nA,B,a@b.com,,,Contributor,\n", ["HR"])
     msgs = {(e["row"], e["field"]): e["message"] for e in r.errors}
     assert msgs[(2, "first_name")] == "First name is required."
@@ -77,8 +77,11 @@ def test_import_departments_and_users_then_stage_advances(client, db, people, li
     assert client.post(f"/api/v1/clients/{cid}/departments/import", json={"csv_text": dep_csv}).json()["imported"] == 2
     assert client.post(f"/api/v1/clients/{cid}/departments/confirm").status_code == 200
     users = USERS_HEADER + "\nPriya,Shah,priya@abc.test,Head of HR,HR and recruiting,Department Compliance Lead,New York NY\nTom,Reyes,tom@abc.test,Recruiter,HR and recruiting,Contributor,New York NY\nBad,Row,bad,,Nowhere,Contributor,\n"
-    out = client.post(f"/api/v1/clients/{cid}/users/import", json={"csv_text": users}).json()
-    assert out["imported"] == 2 and len(out["errors"]) == 2
+    bad = client.post(f"/api/v1/clients/{cid}/users/import", json={"csv_text": users})
+    assert bad.status_code == 422 and len(bad.json()["errors"]) == 2  # one bad row: nothing is imported
+    assert db.scalar(select(User).where(User.email == "priya@abc.test")) is None
+    out = client.post(f"/api/v1/clients/{cid}/users/import", json={"csv_text": users.rsplit("Bad,Row", 1)[0]}).json()
+    assert out["imported"] == 2 and out["errors"] == []
     priya = db.scalar(select(User).where(User.email == "priya@abc.test"))
     assert priya.organization_id == cid and priya.name == "Priya Shah" and priya.job_title == "Head of HR"
     hr = db.scalar(select(Department).where(Department.organization_id == cid, Department.name == "HR and recruiting"))

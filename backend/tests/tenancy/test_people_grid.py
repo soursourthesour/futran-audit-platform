@@ -209,4 +209,4 @@ def test_user_csv_template(client, db, people, live):
     r = client.get(f"/api/v1/clients/{cid}/users/template.csv")
     assert r.status_code == 200 and r.headers["content-type"].startswith("text/csv")
     rows = list(csv.reader(io.StringIO(r.text)))
-    assert rows[0] == ["first_name", "last_name", "email", "job_title", "department", "role", "location"]
+    assert rows[0] == ["Full name", "Work email", "Department", "Job title", "Job level", "AI compliance role"]

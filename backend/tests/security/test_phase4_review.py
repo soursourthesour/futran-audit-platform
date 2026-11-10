@@ -134,8 +134,9 @@ def test_department_csv_whitespace_and_bad_files(client, db, live):
     cid, e, maria = live
     login_as(client, db, maria)
     csv = "department,head_name,head_email,headcount\nHuman Resources,,,3\nHuman  Resources,,,4\nFinance,,,5\n"
-    r = client.post(f"/api/v1/clients/{cid}/departments/import", json={"csv_text": csv}).json()
-    assert r["imported"] == 2 and r["errors"][0]["message"] == "Department 'Human  Resources' appears more than once in this file."
+    r = client.post(f"/api/v1/clients/{cid}/departments/import", json={"csv_text": csv})
+    assert r.status_code == 422 and r.json()["errors"][0]["message"] == "Department 'Human  Resources' appears more than once in this file."
+    assert client.get(f"/api/v1/clients/{cid}/people").json()["departments"] == []  # all or nothing
     pv = client.post(f"/api/v1/clients/{cid}/departments/import/preview", json={"csv_text": "department,head_name,head_email,headcount\n\"" + "x" * 200000 + "\",,,1\n"})
     assert pv.status_code == 200 and pv.json()["errors"][0]["field"] == "file"
     pv = client.post(f"/api/v1/clients/{cid}/departments/import/preview", json={"csv_text": "department,head_name,head_email,headcount\n" + "D" * 130 + ",,,1\n"}).json()

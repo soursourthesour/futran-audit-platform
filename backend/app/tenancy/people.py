@@ -13,7 +13,7 @@ from app.initiation.service import current_package
 from app.invitations.service import invite_user
 from app.notifications.service import futran_team, notify
 from app.policy.roles import CLIENT_ROLES, ROLE_LABELS, SIGN_OFF_ROLES
-from app.tenancy.csv_import import DEPARTMENT_ROLES, EMAIL, parse_department_csv, parse_user_csv
+from app.tenancy.csv_import import DEPARTMENT_ROLES, EMAIL, USER_HEADER
 from app.tenancy.job_levels import job_level_label, parse_job_level
 from app.tenancy.models import Department, Organization, RoleAssignment, User
 from app.tenancy.service import assign_role, create_department, create_user, find_user_by_email, roles_of
@@ -69,9 +69,9 @@ def user_template(db: Session, org: Organization) -> str:
     """The user list CSV with two example rows, using this client's own department names."""
     names = [d.name for d in departments(db, org) if d.in_scope] or ["Human Resources"]
     return to_csv(
-        ["first_name", "last_name", "email", "job_title", "department", "role", "location"],
-        [["Priya", "Shah", "priya.shah@example.com", "Head of department", names[0], "Department Compliance Lead", ""],
-         ["Tom", "Reyes", "tom.reyes@example.com", "Analyst", names[0], "Contributor", ""]],
+        USER_HEADER,
+        [["Priya Shah", "priya.shah@example.com", names[0], "Head of department", "Department head", "Department Compliance Lead"],
+         ["Tom Reyes", "tom.reyes@example.com", names[0], "Analyst", "Level 2", "Contributor"]],
     )
 
 
@@ -97,24 +97,6 @@ def add_department(db: Session, actor: User, org: Organization, name: str, headc
     d = create_department(db, org, name=name, actor_id=actor.id, headcount=headcount)
     audit.record(db, actor_id=actor.id, action="department.create", obj=d, summary=f"Added department {d.name}")
     return d
-
-
-def import_departments(db: Session, actor: User, org: Organization, text: str) -> dict:
-    result = parse_department_csv(text)
-    have = {" ".join(d.name.split()).casefold(): d for d in departments(db, org)}
-    errors = list(result.errors)
-    n = 0
-    for row in result.rows_ok:
-        try:
-            with db.begin_nested():
-                d = have.get(" ".join(row["department"].split()).casefold()) or add_department(db, actor, org, row["department"])
-                d.head_name, d.head_email = row["head_name"] or d.head_name, row["head_email"] or d.head_email
-                d.headcount = row["headcount"] if row["headcount"] is not None else d.headcount
-            n += 1
-        except (Invalid, Conflict) as exc:
-            errors.append({"row": row["row"], "field": exc.errors[0]["field"] if exc.errors else "department", "message": exc.errors[0]["message"] if exc.errors else exc.detail})
-    errors.sort(key=lambda x: x["row"] or 0)
-    return {"imported": n, "errors": errors}
 
 
 def confirm_departments(db: Session, settings: Settings | None, actor: User, org: Organization) -> None:
@@ -172,8 +154,11 @@ def _notify_sign_off_role(db: Session, settings: Settings, actor: User, org: Org
     notify(db, list(recipients.values()), "sign_off_role_changed", title, f"Changed by {actor.name}. Sign-off roles approve client sign-offs, so check any pending sign-offs.", f"/clients/{org.id}", engagement=e, settings=settings)
 
 
-def add_user(db: Session, settings: Settings, actor: User, org: Organization, data: dict) -> User:
-    """Create a client user (or add a role to an existing one in this organization) and invite them."""
+def add_user(db: Session, settings: Settings, actor: User, org: Organization, data: dict, defer: list | None = None) -> User:
+    """Create a client user (or add a role to an existing one in this organization) and invite them.
+
+    With `defer`, the invitation and notifications are appended to it as callables instead of being sent, so an import
+    can send them only once every row has been applied."""
     role = data.get("role")
     if not isinstance(role, str) or role not in CLIENT_ROLE_KEYS:
         raise Invalid(errors=[{"field": "role", "message": "Choose a role."}])
@@ -239,28 +224,22 @@ def add_user(db: Session, settings: Settings, actor: User, org: Organization, da
     if role in SIGN_OFF_KEYS or role == "client_admin":
         _sync_contact(db, e, role, user)
     if not already:
-        _notify_sign_off_role(db, settings, actor, org, e, user, role, assigned=True)
+        if defer is None:
+            _notify_sign_off_role(db, settings, actor, org, e, user, role, assigned=True)
+        else:
+            defer.append(lambda u=user, r=role, e=e: _notify_sign_off_role(db, settings, actor, org, e, u, r, assigned=True))
     if created:
-        invite_user(db, settings, actor, user, template_key="client_invitation", extra_context={"client_message": None, "chief_name": actor.name})
+        def send(u: User = user) -> None:
+            invite_user(db, settings, actor, u, template_key="client_invitation", extra_context={"client_message": None, "chief_name": actor.name})
+
+        if defer is None:
+            send()
+        else:
+            defer.append(send)
     if dept is not None:
         _mark_item(db, e, 3, actor)
     advance_if_ready(db, actor, e)
     return user
-
-
-def import_users(db: Session, settings: Settings, actor: User, org: Organization, text: str) -> dict:
-    result = parse_user_csv(text, [d.name for d in departments(db, org)])
-    errors = list(result.errors)
-    imported = 0
-    for row in result.rows_ok:
-        try:
-            with db.begin_nested():
-                add_user(db, settings, actor, org, row)
-            imported += 1
-        except (Invalid, Conflict, Forbidden) as exc:
-            errors.append({"row": row["row"], "field": exc.errors[0]["field"] if exc.errors else "email", "message": exc.errors[0]["message"] if exc.errors else exc.detail})
-    errors.sort(key=lambda x: x["row"] or 0)
-    return {"imported": imported, "errors": errors}
 
 
 def remove_role(db: Session, settings: Settings, actor: User, org: Organization, user: User, assignment_id: str) -> None:
@@ -321,8 +300,19 @@ def department_members(db: Session, d: Department) -> list[User]:
 
 
 def edit_department(db: Session, actor: User, org: Organization, d: Department, body: dict) -> Department:
-    before = {"name": d.name, "in_scope": d.in_scope, "headcount": d.headcount, "head_name": d.head_name, "head_email": d.head_email}
+    before = {"name": d.name, "in_scope": d.in_scope, "headcount": d.headcount, "head_name": d.head_name, "head_email": d.head_email, "parent_id": d.parent_id}
     errs = []
+    parent = None
+    if body.get("parent_id"):
+        by_id = {x.id: x for x in departments(db, org)}
+        parent = by_id.get(body["parent_id"])
+        node, hops = parent, 0
+        while node is not None and node.id != d.id and hops < 100:
+            node, hops = by_id.get(node.parent_id) if node.parent_id else None, hops + 1
+        if parent is None:
+            errs.append({"field": "parent_id", "message": "Choose a department from the list."})
+        elif node is not None:
+            errs.append({"field": "parent_id", "message": "A department can't sit under itself or under one of its own sub-departments."})
     if "in_scope" in body and not isinstance(body["in_scope"], bool):
         errs.append({"field": "in_scope", "message": "Choose in scope or out of scope."})
     hc = None
@@ -355,8 +345,10 @@ def edit_department(db: Session, actor: User, org: Organization, d: Department, 
         d.head_name = " ".join(str(body["head_name"] or "").split()) or None
     if head_email is not None:
         d.head_email = head_email or None
+    if "parent_id" in body:
+        d.parent_id = parent.id if parent else None
     d.updated_by = actor.id
-    after = {"name": d.name, "in_scope": d.in_scope, "headcount": d.headcount, "head_name": d.head_name, "head_email": d.head_email}
+    after = {"name": d.name, "in_scope": d.in_scope, "headcount": d.headcount, "head_name": d.head_name, "head_email": d.head_email, "parent_id": d.parent_id}
     changed = {k: v for k, v in after.items() if before[k] != v}
     if changed:
         audit.record(db, actor_id=actor.id, action="department.edit", obj=d, before={k: before[k] for k in changed}, after=changed, summary=f"Edited department {d.name}")
@@ -409,12 +401,16 @@ def change_history(db: Session, org: Organization, user: User | None = None, lim
     dept_names = dict(db.execute(select(Department.id, Department.name).where(Department.organization_id == org.id)).all())  # deleted ones too
     user_ids = {a.object_id for a in rows if a.object_type == "User"}
     people = dict(db.execute(select(User.id, User.name).where(User.id.in_(user_ids))).all()) if user_ids else {}
+    now: dict[str, list[str]] = {}
+    if user_ids:
+        for uid, role in db.execute(select(RoleAssignment.user_id, RoleAssignment.role).where(RoleAssignment.user_id.in_(user_ids), RoleAssignment.deleted_at.is_(None))):
+            now.setdefault(uid, []).append(ROLE_LABELS.get(role, role))
     out = []
     for a in rows:
         b, f = a.before or {}, a.after or {}
         ev = {"id": a.id, "at": a.at.isoformat(), "by": a.actor_name, "user_id": a.object_id if a.object_type == "User" else None,
               "name": people.get(a.object_id) if a.object_type == "User" else None, "summary": a.summary, "role": None, "department": None,
-              "from": None, "to": None, "sign_off_role": False}
+              "from": None, "to": None, "sign_off_role": False, "current_roles": sorted(set(now.get(a.object_id, []))) if a.object_type == "User" else []}
         if a.action in ("role.assign", "role.remove"):
             role = f.get("role") if a.action == "role.assign" else b.get("role")
             label = ROLE_LABELS.get(role, role) if role else None

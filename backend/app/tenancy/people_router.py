@@ -1,5 +1,5 @@
 """Departments, users and role holders for one client (screen 10b, mockup ClientUsers)."""
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import Response
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -13,7 +13,8 @@ from app.engagements.gates import gate_status
 from app.policy.actions import Action
 from app.policy.authorize import authorize, departments_for
 from app.policy.roles import ROLE_LABELS
-from app.tenancy import people
+from app.tenancy import people, people_import
+from app.tenancy.people_template import department_workbook
 from app.tenancy.csv_import import parse_department_csv, parse_user_csv
 from app.tenancy.job_levels import job_level_label
 from app.tenancy.models import Department, Organization, RoleAssignment, User
@@ -88,7 +89,7 @@ def get_people(client_id: str, actor: Actor = Depends(current_actor), db: Sessio
     return {
         "client": {"id": org.id, "name": org.name},
         "can_manage": manage,
-        "departments": [{"id": d.id, "name": d.name, "headcount": d.headcount, "head_name": d.head_name, "head_email": d.head_email, "in_scope": d.in_scope, "lead": leads.get(d.id), "people": counts.get(d.id, 0)} for d in depts if visible_depts is None or d.id in visible_depts],
+        "departments": [{"id": d.id, "name": d.name, "parent": names.get(d.parent_id) if d.parent_id else None, "parent_id": d.parent_id, "headcount": d.headcount, "head_name": d.head_name, "head_email": d.head_email, "in_scope": d.in_scope, "lead": leads.get(d.id), "people": counts.get(d.id, 0)} for d in depts if visible_depts is None or d.id in visible_depts],
         "departments_confirmed": bool(e and e.departments_confirmed_at),
         "scope_locked": bool(e and e.stage > 2),
         "is_caico": actor.has_role("caico"),
@@ -103,6 +104,42 @@ def get_people(client_id: str, actor: Actor = Depends(current_actor), db: Sessio
 def department_template(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _org(db, actor, client_id, Action.MANAGE_CLIENT_USERS)
     return Response(people.department_template(db, org), media_type="text/csv; charset=utf-8", headers={"Content-Disposition": 'attachment; filename="department_list.csv"'})
+
+
+XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+
+@router.get("/departments/template.xlsx")
+def department_workbook_template(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+    """Instructions, the department list and one sheet of people per department (11-03 review C5)."""
+    org = _org(db, actor, client_id, Action.MANAGE_CLIENT_USERS)
+    return Response(department_workbook(db, org), media_type=XLSX, headers={"Content-Disposition": 'attachment; filename="departments_and_people.xlsx"'})
+
+
+def _upload(request: Request, file: UploadFile) -> bytes:
+    limit = request.app.state.settings.max_upload_mb * 1024 * 1024
+    data = file.file.read(limit + 1)
+    if len(data) > limit:
+        raise Invalid(f"The file is larger than {request.app.state.settings.max_upload_mb} MB.", [{"row": None, "field": "file", "message": "File too large."}])
+    return data
+
+
+@router.post("/people/import/preview")
+def preview_people_import(client_id: str, request: Request, file: UploadFile = File(...), department_id: str | None = Form(None), actor: Actor = Depends(current_actor),
+                          db: Session = Depends(get_db, scope="function")):
+    """What a department or user file (CSV or workbook) would change, with every error and warning. Writes nothing."""
+    org = _org(db, actor, client_id, Action.MANAGE_CLIENT_USERS)
+    target = _dept(db, org, department_id) if department_id else None
+    return people_import.plan_import(db, actor.user, org, file.filename or "", _upload(request, file), target).to_json()
+
+
+@router.post("/people/import")
+def apply_people_import(client_id: str, request: Request, file: UploadFile = File(...), department_id: str | None = Form(None), actor: Actor = Depends(current_actor),
+                        db: Session = Depends(get_db, scope="function")):
+    """Apply the whole file, or nothing while any row has an error."""
+    org = _org(db, actor, client_id, Action.MANAGE_CLIENT_USERS)
+    target = _dept(db, org, department_id) if department_id else None
+    return people_import.apply_import(db, request.app.state.settings, actor.user, org, file.filename or "", _upload(request, file), target)
 
 
 @router.get("/users/template.csv")
@@ -153,9 +190,10 @@ def preview_departments(client_id: str, body: CsvIn, actor: Actor = Depends(curr
 
 
 @router.post("/departments/import")
-def import_departments(client_id: str, body: CsvIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+def import_departments(client_id: str, body: CsvIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _org(db, actor, client_id, Action.MANAGE_CLIENT_USERS)
-    return people.import_departments(db, actor.user, org, body.csv_text)
+    out = people_import.apply_import(db, request.app.state.settings, actor.user, org, "departments.csv", body.csv_text.encode("utf-8"))
+    return {"imported": out["imported"], "errors": [], "warnings": out["warnings"]}
 
 
 @router.post("/departments/confirm")
@@ -174,7 +212,8 @@ def preview_users(client_id: str, body: CsvIn, actor: Actor = Depends(current_ac
 @router.post("/users/import")
 def import_users(client_id: str, body: CsvIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _org(db, actor, client_id, Action.MANAGE_CLIENT_USERS)
-    return people.import_users(db, request.app.state.settings, actor.user, org, body.csv_text)
+    out = people_import.apply_import(db, request.app.state.settings, actor.user, org, "users.csv", body.csv_text.encode("utf-8"))
+    return {"imported": out["imported"], "errors": [], "warnings": out["warnings"]}
 
 
 @router.post("/users")
