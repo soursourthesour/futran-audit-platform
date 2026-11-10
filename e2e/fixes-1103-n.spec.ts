@@ -71,6 +71,28 @@ async function oneRow(page: Page) {
 
 const group = (page: Page, name: string) => mainNav(page).getByRole('button', { name: new RegExp(`^${name}`) });
 
+/** At mid widths (601-800 px) each menu, opened in turn, stays inside the window and the page never scrolls sideways. */
+async function panelsFit(page: Page, who: string) {
+  const buttons = mainNav(page).locator('.nav-group > button');
+  const n = await buttons.count();
+  expect(n, `${who} has grouped menus`).toBeGreaterThan(1);
+  for (const width of [640, 700, 760, 800]) for (let i = 0; i < n; i++) {
+    await page.setViewportSize({ width, height: 900 });
+    const btn = buttons.nth(i);
+    const name = (await btn.innerText()).trim();
+    await btn.click();
+    const panel = mainNav(page).locator('.nav-group').nth(i).locator('.nav-panel');
+    await expect(panel).toBeVisible();
+    const r = await panel.evaluate((el) => ({ left: el.getBoundingClientRect().left, right: el.getBoundingClientRect().right, vw: window.innerWidth,
+      wide: document.documentElement.scrollWidth - document.documentElement.clientWidth }));
+    expect(r.right, `${who} at ${width} px: the ${name} menu ends inside the window`).toBeLessThanOrEqual(r.vw);
+    expect(r.left, `${who} at ${width} px: the ${name} menu starts inside the window`).toBeGreaterThanOrEqual(0);
+    expect(r.wide, `${who} at ${width} px: no sideways scroll with the ${name} menu open`).toBeLessThanOrEqual(0);
+    await page.keyboard.press('Escape');
+    await expect(panel).toBeHidden();
+  }
+}
+
 test.describe('Futran', () => {
   test('F4: the Futran Admin navigation is grouped into menus, keyboard and phone friendly', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -229,6 +251,12 @@ test.describe('Futran', () => {
     await expect.poll(() => box.evaluate((el) => el.scrollHeight - el.clientHeight), { message: 'no text is cut off at the bottom of the box' }).toBeLessThanOrEqual(1);
   });
 
+  test('F4: from 640 to 800 px every Futran Admin menu opens inside the window', async ({ page }) => {
+    await page.setViewportSize({ width: 640, height: 900 });
+    await signIn(page, 'admin@futran.demo', true);
+    await panelsFit(page, 'Futran Admin');
+  });
+
   test('F13: the audit log When column keeps date and time on one line', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await signIn(page, 'admin@futran.demo', true);
@@ -257,6 +285,14 @@ test.describe('Futran', () => {
 
 test.describe('client', () => {
   test.use({ baseURL: LATE });
+
+  test('C1: from 640 to 800 px every Client Admin and CAICO menu opens inside the window', async ({ page }) => {
+    await page.setViewportSize({ width: 640, height: 900 });
+    await signIn(page, 'sam.okafor@abccorp.example', false);
+    await panelsFit(page, 'Client Admin');
+    await signIn(page, 'maria.lopez@abccorp.example', false);
+    await panelsFit(page, 'CAICO');
+  });
 
   test('C1: the CAICO navigation is grouped into menus at 1440 and 375 px', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });

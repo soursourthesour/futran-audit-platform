@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/api/client';
@@ -40,6 +40,25 @@ export function MainNav({ me, groups, pathname, phoneOpen, onFollow }: { me: Me;
   // a new page closes the open menu; opening the phone menu shows the current page's group
   useEffect(() => setOpen(null), [pathname]);
   useEffect(() => { if (phoneOpen) setOpen(currentGroup); }, [phoneOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // wide screens: the open panel drops below its button, shifted left as far as needed to stay inside the window
+  // (a group near the right end of the row would otherwise open past the edge and scroll the page sideways)
+  useLayoutEffect(() => {
+    if (!open) return undefined;
+    const place = () => {
+      const panel = navRef.current?.querySelector<HTMLElement>(`#nav-panel-${open}`);
+      if (!panel) return;
+      panel.style.left = '';
+      if (getComputedStyle(panel).position !== 'absolute') return; // phones: the panel sits in the menu's flow
+      const gap = 8;
+      const vw = document.documentElement.clientWidth;
+      const r = panel.getBoundingClientRect();
+      if (r.right > vw - gap) panel.style.left = `${Math.max(gap - r.left, vw - gap - r.right)}px`;
+    };
+    place();
+    window.addEventListener('resize', place);
+    return () => window.removeEventListener('resize', place);
+  }, [open, phoneOpen]);
 
   // wide screens: a click outside the navigation closes the open menu
   useEffect(() => {
