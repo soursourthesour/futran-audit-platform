@@ -318,7 +318,7 @@ function LawUpdatesMoved() {
   return (
     <Card title="Law updates">
       <div className="stack">
-        <p style={{ margin: 0 }}>Claude law updates now run from <strong>Law library › Refresh and review</strong>, with a review queue, second review for low-confidence and new-law changes, a schedule and a cost log. Earlier runs are listed there too.</p>
+        <p style={{ margin: 0 }}>AI law updates now run from <strong>Law library › Refresh and review</strong>, with a review queue, second review for low-confidence and new-law changes, a schedule and a cost log. Earlier runs are listed there too.</p>
         <div><ButtonLink to="/reg/refresh" variant="primary">Open refresh and review</ButtonLink></div>
       </div>
     </Card>
