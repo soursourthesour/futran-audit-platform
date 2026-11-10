@@ -6,7 +6,7 @@ export type PersonRef = { id: string; name: string; job_title?: string | null } 
 
 export type RoleSummary = { required: number; filled: number; recommended: number; no_such_person: number; pending_committee: number; not_answered: number; not_yet_due: number; blocking: string[] };
 export type Gate = { state: 'retired' | 'live_finding' | 'live_clear' | 'not_due' | 'blocked' | 'awaiting_approval' | 'ready'; label: string; roles: string[]; requirements: string[] };
-export type LawLink = { id: string; regulation_id: string; short_name: string; source: string; status: 'active' | 'removal_pending'; removal_reason: string | null; removal_requested_by: string | null };
+export type LawLink = { id: string; regulation_id: string; short_name: string; source: string; reason?: string | null; jurisdiction?: string | null; status: 'active' | 'removal_pending'; removal_reason: string | null; removal_requested_by: string | null };
 export type SystemData = { data_categories: string[]; data_subjects: string[]; consent_basis: string | null; consent_ref: string | null; consent_evidence_id: string | null; retention_period: string | null; cross_border: string | null };
 export type Bias = { last_tested_on: string | null; next_due: string | null; overdue: boolean; result: string | null; label: string; null_compliance: boolean };
 export type Tracing = { locked: boolean; state?: 'locked' | 'requested' | 'active'; recommended: boolean; reasons: string[] };
@@ -24,8 +24,18 @@ export type RegSystem = {
   updated_at: string | null; updated_by: PersonRef; retired_reason: string | null;
   can_edit?: boolean; can_add_law?: boolean; can_remove_law?: boolean; can_fill_roles?: boolean; can_record_history?: boolean; can_submit_go_live?: boolean; can_approve_go_live?: boolean;
   history?: { answers: Record<string, string>; statement: Statement; tracing: Tracing };
-  suggested_laws?: { regulation_id: string; short_name: string; reason: string | null }[];
+  suggested_laws?: LawSuggestion[];
+  departments?: { id: string; name: string }[];
+  user_selection?: UserSelection | null; dismissed_law_ids?: string[]; run_location?: Place | null; data_locations?: Place[];
+  run_location_label?: string | null; data_location_labels?: (string | null)[];
 };
+
+/** Who uses it (11-03 C10): by role level (job levels, AI compliance roles, job titles) or named users. */
+export type UserSelection = { job_levels?: string[]; compliance_roles?: string[]; job_titles?: string[]; user_ids?: string[] };
+/** A place (11-03 C14): a country code, optionally a state or region code within it, and a city name. */
+export type Place = { country: string; region?: string | null; city?: string | null };
+export type LawSuggestion = { regulation_id: string; short_name: string; reason: string | null; jurisdiction?: string | null; jurisdiction_code?: string | null; basis?: 'scope_test' | 'feature' };
+export type RegPerson = { id: string; name: string; job_title: string | null; department_id: string | null; job_level?: string | null; compliance_roles?: string[] };
 
 export type RegisterCan = { edit: boolean; org_wide: boolean; import_inventory: boolean; add_law: boolean; remove_law: boolean; fill_roles: boolean; company_roles: boolean; approve_go_live: boolean; submit_go_live: boolean; record_history: boolean; committee_members: boolean; record_committee: boolean };
 export type Register = {
@@ -33,13 +43,18 @@ export type Register = {
   kpis: { systems: number; agents: number; go_live_blocked: number; roles_no_person: number; bias_overdue: number; consent_missing: number };
   can: RegisterCan;
   departments: { id: string; name: string; can_edit: boolean }[];
-  people: { id: string; name: string; job_title: string | null; department_id: string | null }[];
+  people: RegPerson[];
   vendors: { id: string; name: string }[];
+  job_levels?: Opt[];
+  compliance_roles?: Opt[];
 };
+
+export type CatalogueVendor = { code: string; name: string; models: string[]; client_models: string[] };
+export const useModelCatalogue = () => useQuery({ queryKey: ['register-model-catalogue'], queryFn: () => api.get<{ vendors: CatalogueVendor[] }>('/register/model-catalogue'), staleTime: 60_000 });
 
 export type RoleRow = {
   role_id: string; code: string; number: number; name: string; description: string | null; level: 'company' | 'system' | 'agent'; extra_checks: string | null;
-  requirement: 'required' | 'recommended'; needed_by: string; needed_by_label: string; required_by: string[]; basis: string | null; status: string | null; status_label: string;
+  requirement: 'required' | 'recommended'; needed_by: string; needed_by_label: string; required_by: string[]; law_geographies?: string[]; basis: string | null; status: string | null; status_label: string;
   filled: boolean; due_for_gate: boolean; inherited: boolean; assignment: Assignment | null;
 };
 export type Assignment = {
@@ -98,7 +113,7 @@ export const DATA_CATEGORIES: Opt[] = [
   { value: 'personal', label: 'Personal information' }, { value: 'health', label: 'Health information' }, { value: 'biometric', label: 'Biometric data (face, voice)' },
   { value: 'sensitive', label: 'Sensitive categories (race, sex, age)' }, { value: 'children', label: "Children's data" }, { value: 'confidential', label: 'Company confidential' },
 ];
-export const DATA_SUBJECTS: Opt[] = [{ value: 'candidates', label: 'Job candidates' }, { value: 'employees', label: 'Employees' }, { value: 'customers', label: 'Customers' }, { value: 'public', label: 'Members of the public' }, { value: 'none', label: 'No personal data' }];
+export const DATA_SUBJECTS: Opt[] = [{ value: 'candidates', label: 'Job candidates' }, { value: 'employees', label: 'Employees' }, { value: 'customers', label: 'Customers' }, { value: 'public', label: 'Members of the public' }, { value: 'company', label: "The company's own data" }, { value: 'none', label: 'No personal data' }];
 export const CONSENT: Opt[] = [{ value: 'consent', label: 'Yes, consent obtained' }, { value: 'notice_only', label: 'Notice given only' }, { value: 'other_lawful_basis', label: 'Other lawful basis (contract, legitimate interest)' }, { value: 'not_obtained', label: 'No, not obtained' }, { value: 'na', label: 'Not applicable' }];
 export const CROSS_BORDER: Opt[] = [{ value: 'no', label: 'No' }, { value: 'eu', label: 'Yes, to the EU' }, { value: 'india', label: 'Yes, to India' }, { value: 'other', label: 'Yes, other' }];
 export const IMPACT: Opt[] = [{ value: 'none', label: 'No effect on decisions about people' }, { value: 'informs', label: 'Supports a decision a person makes' }, { value: 'consequential', label: 'Makes or substantially makes the decision' }];

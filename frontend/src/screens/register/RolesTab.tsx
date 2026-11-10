@@ -46,8 +46,9 @@ export function RolesTab({ s, onChanged }: { s: RegSystem; onChanged: () => unkn
   const blockers = [...p.gate.roles, ...p.gate.requirements];
   const canEdit = (r: RoleRow) => (r.level === 'company' ? p.can.company : p.can.fill);
   const cols: GridColumn<RoleRow>[] = [
-    { key: 'name', header: 'Role', value: (r) => r.number, render: (r) => <><strong>{r.name}</strong>{r.level === 'agent' && <div className="small muted">Agents</div>}</> },
+    { key: 'name', header: 'AI compliance role', value: (r) => r.number, render: (r) => <><strong>{r.name}</strong>{r.level === 'agent' && <div className="small muted">Agents</div>}</> },
     { key: 'by', header: 'Required by', value: (r) => r.required_by.join(', '), render: (r) => <span className="small">{r.required_by.join(' · ') || '—'}{r.basis && <div className="muted">{r.basis}</div>}</span> },
+    { key: 'geo', header: 'Geography of law', value: (r) => (r.law_geographies ?? []).join(', '), render: (r) => <span className="small">{(r.law_geographies ?? []).join(' · ') || '—'}</span> },
     { key: 'needed', header: 'Needed by', value: (r) => r.needed_by_label, render: (r) => r.requirement === 'recommended' ? <Badge tone="muted">Recommended</Badge> : r.needed_by_label },
     { key: 'status', header: 'Status', value: (r) => r.status_label, render: (r) => <StatusBadge status={r.status} label={r.status_label} /> },
     { key: 'who', header: 'Person or party', value: (r) => r.assignment?.user?.name ?? r.assignment?.external_party ?? '', render: whoCell },

@@ -9,6 +9,7 @@ import { DataGrid } from '@/components/ui/DataGrid';
 import { historyHelp, systemHelp as H } from '@/help/register';
 import { AgentActions, Card, DataConsent, ImpactField, VendorModel, WhatItIs, emptyForm, formFrom, payload, scrollToError, type Form } from './SystemForm';
 import { LawSearch } from './LawSearch';
+import { LawSelect, Places, SuggestionList, useLawSuggestions, type Draft } from './LawsStep';
 import { RolesTab } from './RolesTab';
 import { FirstEntryQuestions, HistoryTab } from './HistoryTab';
 import { TracingTab } from '@/screens/tracing/TracingTab';
@@ -168,13 +169,29 @@ function DetailsTab({ s, d, onSaved }: { s: RegSystem; d: Register; onSaved: (m:
   );
 }
 
+/** What the law suggestions need from the form (11-03 C14). */
+export function draftOf(f: Form): Draft {
+  const p = payload(f);
+  return { name: f.name, purpose: f.purpose, department_id: f.department_id || null, type: f.type || null, sourcing: f.sourcing || null, algorithm_type: f.algorithm_type || null,
+           decision_impact: f.decision_impact || null, data: { data_categories: f.data_categories, data_subjects: f.data_subjects }, run_location: p.run_location, data_locations: p.data_locations };
+}
+
+const hasPlaces = (f: Form) => !!f.run_location?.country || f.data_locations.some((p) => p.country);
+
 function LawsCard({ s, n, f, set, fe, ro, onChanged }: { s: RegSystem; n: number; f: Form; set: (f: Form) => void; fe: Record<string, string>; ro: boolean; onChanged: () => void }) {
   const [err, setErr] = useState<string | null>(null);
   const [removing, setRemoving] = useState<RegSystem['laws'][number] | null>(null);
   const [reason, setReason] = useState('');
-  async function add(regulation_id: string) {
+  const dismissed = s.dismissed_law_ids ?? [];
+  const live = useLawSuggestions(draftOf(f), [...s.laws.map((l) => l.regulation_id), ...dismissed], hasPlaces(f));
+  const suggestions = hasPlaces(f) ? live.rows : (s.suggested_laws ?? []);
+  async function add(regulation_id: string, why?: string | null) {
     setErr(null);
-    try { await api.post(`/register/${s.id}/laws`, { regulation_id }); onChanged(); } catch (e) { setErr(errorMessage(e)); }
+    try { await api.post(`/register/${s.id}/laws`, why ? { regulation_id, source: 'suggested', suggestion_reason: why } : { regulation_id }); onChanged(); } catch (e) { setErr(errorMessage(e)); }
+  }
+  async function dismiss(regulation_id: string) {
+    setErr(null);
+    try { await api.patch(`/register/${s.id}`, { dismissed_law_ids: [...dismissed, regulation_id] }); onChanged(); } catch (e) { setErr(errorMessage(e)); }
   }
   async function remove() {
     if (!removing) return;
@@ -183,27 +200,36 @@ function LawsCard({ s, n, f, set, fe, ro, onChanged }: { s: RegSystem; n: number
   async function decide(link: RegSystem['laws'][number], approve: boolean) {
     try { await api.post(`/register/${s.id}/laws/${link.id}/decide`, { approve }); onChanged(); } catch (e) { setErr(errorMessage(e)); }
   }
+  const canAdd = !!s.can_add_law && !ro;
   return (
     <Card n={n} title="Laws and risk">
       {err && <Alert tone="danger">{err}</Alert>}
+      <Places run={f.run_location} data={f.data_locations} disabled={ro} onRun={(p) => set({ ...f, run_location: p })} onData={(p) => set({ ...f, data_locations: p })} />
+      {fe.run_location && <p className="small reg-danger" style={{ margin: 0 }}>{fe.run_location}</p>}
+      {fe.data_locations && <p className="small reg-danger" style={{ margin: 0 }}>{fe.data_locations}</p>}
+      {!ro && <p className="small muted" style={{ margin: 0 }}>Places are saved with Save changes below.</p>}
       <div className="stack-sm">
         <div className="field-label"><strong>Laws that apply</strong></div>
         <div className="reg-lawchips">
           {s.laws.length === 0 && <span className="muted small">None chosen yet. Required roles are worked out from the laws you choose.</span>}
           {s.laws.map((l) => (
-            <span key={l.id} className={`chip ${l.status === 'removal_pending' ? 'reg-chip-pending' : ''}`}>
-              {l.short_name}{l.status === 'removal_pending' && <em className="small"> · removal waiting for approval</em>}
+            <span key={l.id} className={`chip ${l.status === 'removal_pending' ? 'reg-chip-pending' : ''}`} title={l.reason ? `Suggested: ${l.reason}` : undefined}>
+              {l.short_name}{l.jurisdiction && <span className="small muted"> · {l.jurisdiction}</span>}{l.status === 'removal_pending' && <em className="small"> · removal waiting for approval</em>}
               {!ro && l.status === 'active' && s.can_add_law && <button type="button" className="linklike reg-x" aria-label={`Remove ${l.short_name}`} onClick={() => setRemoving(l)}>×</button>}
               {l.status === 'removal_pending' && s.can_remove_law && <><button type="button" className="linklike small" onClick={() => decide(l, true)}>Approve removal</button> · <button type="button" className="linklike small" onClick={() => decide(l, false)}>Keep</button></>}
             </span>
           ))}
-          {(s.suggested_laws ?? []).map((l) => (
-            <span key={l.regulation_id} className="chip reg-chip-suggest" title={l.reason ?? undefined}>Suggested: {l.short_name}{s.can_add_law && !ro && <button type="button" className="linklike small reg-chip-add" aria-label={`Add ${l.short_name}`} onClick={() => add(l.regulation_id)}>Add</button>}</span>
-          ))}
         </div>
-        <p className="small muted" style={{ margin: 0 }}>Suggested from the company's locations and the laws found in scope for it.</p>
       </div>
-      {s.can_add_law && !ro && <LawSearch label="Add a law" help={H.addLaw} exclude={s.laws.map((l) => l.regulation_id)} onPick={(l) => add(l.id)} />}
+      <div className="stack-sm">
+        <div className="field-label"><strong>Suggested laws</strong></div>
+        <SuggestionList rows={suggestions} busy={live.busy} disabled={!canAdd} onAccept={(x) => add(x.regulation_id, x.reason)} onRemove={(x) => dismiss(x.regulation_id)}
+          empty={hasPlaces(f) ? 'No other law in the law library matches these places and what the system does.' : 'Add where it runs, or where the people whose data it uses are, to see the laws that apply. Until then the laws found in scope for the company are suggested.'} />
+      </div>
+      {canAdd && <div className="grid-2">
+        <LawSearch label="Add a law" help={H.addLaw} exclude={s.laws.map((l) => l.regulation_id)} onPick={(l) => add(l.id)} />
+        <LawSelect exclude={s.laws.map((l) => l.regulation_id)} onPick={(l) => add(l.id)} />
+      </div>}
       <ImpactField f={f} set={set} fe={fe} disabled={ro} />
       <p className="small" style={{ margin: 0 }}>{s.risk_tier ? <>Risk tier is calculated: <Badge tone={TIER_TONE[s.risk_tier]}>{TIER_LABEL[s.risk_tier]}</Badge> ({s.risk_tier_reason}). It updates when you save.</> : 'The risk tier is calculated when you save.'}</p>
       {removing && (
@@ -243,7 +269,8 @@ export function RegisterNew() {
   const qc = useQueryClient();
   const myDept = me?.roles.find((r) => r.role === 'dept_compliance_lead' && r.scope_id)?.scope_id ?? '';
   const [f, setF] = useState<Form>(() => emptyForm(myDept));
-  const [laws, setLaws] = useState<{ id: string; name: string }[]>([]);
+  const [laws, setLaws] = useState<{ id: string; name: string; reason?: string | null }[]>([]);
+  const [dismissed, setDismissed] = useState<string[]>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [step, setStep] = useState(0);
   const [fe, setFe] = useState<Record<string, string>>({});
@@ -259,12 +286,15 @@ export function RegisterNew() {
   async function save(go: 'roles' | 'stay') {
     setBusy(true); setErr(null); setFe({});
     try {
-      const s = await api.post<RegSystem>('/register', { ...payload(f), regulation_ids: laws.map((l) => l.id), ...(Object.keys(answers).length ? { history_answers: answers } : {}) });
+      const reasons = Object.fromEntries(laws.filter((l) => l.reason).map((l) => [l.id, l.reason]));
+      const s = await api.post<RegSystem>('/register', { ...payload(f), regulation_ids: laws.map((l) => l.id), law_reasons: reasons, ...(dismissed.length ? { dismissed_law_ids: dismissed } : {}),
+                                                         ...(Object.keys(answers).length ? { history_answers: answers } : {}) });
       await qc.invalidateQueries({ queryKey: ['register'] });
       nav(go === 'roles' ? `/register/${s.id}/roles` : `/register/${s.id}`);
     } catch (e) {
       setErr(errorMessage(e)); const x = fieldErrors(e); setFe(x);
-      if (x.name || x.type || x.sourcing || x.department_id || x.stage) setStep(0);
+      if (x.name || x.type || x.sourcing || x.department_id || x.stage || x.department_ids || x.user_selection) setStep(0);
+      else if (x.run_location || x.data_locations) setStep(steps.indexOf('Laws and risk'));
       scrollToError();
     } finally { setBusy(false); }
   }
@@ -280,17 +310,7 @@ export function RegisterNew() {
       {name === 'Vendor and model' && <VendorModel {...props} />}
       {name === 'What the agent can do' && <AgentActions {...props} />}
       {name === 'Data and consent' && <DataConsent {...props} />}
-      {name === 'Laws and risk' && (
-        <Card title="Laws and risk">
-          <div className="reg-lawchips">
-            {laws.length === 0 && <span className="muted small">No law chosen yet.</span>}
-            {laws.map((l) => <span key={l.id} className="chip">{l.name}<button type="button" className="linklike reg-x" aria-label={`Remove ${l.name}`} onClick={() => setLaws((x) => x.filter((y) => y.id !== l.id))}>×</button></span>)}
-          </div>
-          <LawSearch label="Add a law" help={H.laws} exclude={laws.map((l) => l.id)} onPick={(l) => setLaws((x) => [...x, l])} />
-          <p className="small muted" style={{ margin: 0 }}>After saving, the system shows the laws found in scope for the company as suggestions.</p>
-          <ImpactField f={f} set={setF} fe={fe} />
-        </Card>
-      )}
+      {name === 'Laws and risk' && <NewLaws f={f} set={setF} fe={fe} laws={laws} setLaws={setLaws} dismissed={dismissed} setDismissed={setDismissed} />}
       {name === 'History to date' && (
         <Card title="History to date">
           <FirstEntryQuestions stage={f.stage} answers={answers} onChange={setAnswers} help={historyHelp} />
@@ -303,6 +323,36 @@ export function RegisterNew() {
         {step < steps.length - 1 ? <Button variant="primary" onClick={() => setStep(step + 1)}>Next</Button> : <Button variant="primary" disabled={busy} onClick={() => save('roles')}>Save and fill governance roles</Button>}
       </div>
     </div>
+  );
+}
+
+type ChosenLaw = { id: string; name: string; reason?: string | null };
+
+function NewLaws({ f, set, fe, laws, setLaws, dismissed, setDismissed }: { f: Form; set: (f: Form) => void; fe: Record<string, string>; laws: ChosenLaw[]; setLaws: (fn: (x: ChosenLaw[]) => ChosenLaw[]) => void; dismissed: string[]; setDismissed: (fn: (x: string[]) => string[]) => void }) {
+  const live = useLawSuggestions(draftOf(f), [...laws.map((l) => l.id), ...dismissed], hasPlaces(f));
+  const add = (l: ChosenLaw) => setLaws((x) => (x.some((y) => y.id === l.id) ? x : [...x, l]));
+  return (
+    <Card title="Laws and risk">
+      <Places run={f.run_location} data={f.data_locations} onRun={(p) => set({ ...f, run_location: p })} onData={(p) => set({ ...f, data_locations: p })} />
+      {(fe.run_location || fe.data_locations) && <p className="small reg-danger" style={{ margin: 0 }}>{fe.run_location ?? fe.data_locations}</p>}
+      <div className="stack-sm">
+        <div className="field-label"><strong>Suggested laws</strong></div>
+        <SuggestionList rows={live.rows} busy={live.busy} onAccept={(x) => add({ id: x.regulation_id, name: x.short_name, reason: x.reason })} onRemove={(x) => setDismissed((d) => [...d, x.regulation_id])}
+          empty={hasPlaces(f) ? 'No law in the law library matches these places and what the system does. Add any law below.' : 'Add where it runs, or where the people whose data it uses are, to see the laws that apply.'} />
+      </div>
+      <div className="stack-sm">
+        <div className="field-label"><strong>Laws that apply</strong></div>
+        <div className="reg-lawchips">
+          {laws.length === 0 && <span className="muted small">No law chosen yet.</span>}
+          {laws.map((l) => <span key={l.id} className="chip" title={l.reason ? `Suggested: ${l.reason}` : undefined}>{l.name}<button type="button" className="linklike reg-x" aria-label={`Remove ${l.name}`} onClick={() => setLaws((x) => x.filter((y) => y.id !== l.id))}>×</button></span>)}
+        </div>
+      </div>
+      <div className="grid-2">
+        <LawSearch label="Add a law" help={H.laws} exclude={laws.map((l) => l.id)} onPick={(l) => add(l)} />
+        <LawSelect exclude={laws.map((l) => l.id)} onPick={(l) => add(l)} />
+      </div>
+      <ImpactField f={f} set={set} fe={fe} />
+    </Card>
   );
 }
 

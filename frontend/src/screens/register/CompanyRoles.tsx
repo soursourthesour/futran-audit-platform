@@ -8,7 +8,7 @@ import { committeeHelp as H } from '@/help/register';
 import { RoleEditor, StatusBadge, personLabel } from './RolesTab';
 import './register.css';
 
-type CompanyRow = { role_id: string; code: string; number: number; name: string; description: string | null; main_sources: string | null; required_by: string[]; status: string | null; status_label: string; assignment: Assignment | null; applies_to: number; blocks_go_live_on: number; overrides: number };
+type CompanyRow = { role_id: string; code: string; number: number; name: string; description: string | null; main_sources: string | null; required_by: string[]; law_geographies?: string[]; status: string | null; status_label: string; assignment: Assignment | null; applies_to: number; blocks_go_live_on: number; overrides: number };
 type CompanyPage = { rows: CompanyRow[]; kpis: { systems: number; departments: number; roles_no_person: number; roles_pending: number; systems_blocked: number }; by_department: { department: string; systems: number; no_such_person: number; pending: number; blocked: number }[]; people: RolePerson[]; can: { set: boolean; mark_na: boolean } };
 type Member = { id: string; user_id: string | null; name: string; job_title: string | null; external_party: string | null; committee_role: string; committee_role_label: string; covers_role_id: string | null; covers_role: string | null; department: string | null };
 type Committee = { committee: { id: string; status: string; target_date: string | null; formed_on: string | null; charter_evidence_id: string | null; charter_note: string | null; meeting_cadence: string | null; approval_scope: string | null; recorded_by: string | null }; members: Member[]; can: { record: boolean; members: boolean } };
@@ -45,7 +45,8 @@ export function CompanyRoles() {
         <div className="card-body">
           <DataGrid label="Company-wide roles" rows={p.rows} rowId={(r) => r.role_id} rowLabel={(r) => r.name}
             columns={[
-              { key: 'role', header: 'Role', value: (r) => r.number, render: (r) => <><strong>{r.name}</strong><div className="small muted">{r.required_by.length ? r.required_by.join(' · ') : r.main_sources}</div></> },
+              { key: 'role', header: 'AI compliance role', value: (r) => r.number, render: (r) => <><strong>{r.name}</strong><div className="small muted">{r.required_by.length ? r.required_by.join(' · ') : r.main_sources}</div></> },
+              { key: 'geo', header: 'Geography of law', value: (r) => (r.law_geographies ?? []).join(', '), render: (r) => <span className="small">{(r.law_geographies ?? []).join(' · ') || '—'}</span> },
               { key: 'status', header: 'Status', value: (r) => r.status_label, render: (r) => <StatusBadge status={r.status} label={r.status_label} /> },
               { key: 'who', header: 'Person or party', value: (r) => r.assignment?.user?.name ?? r.assignment?.external_party ?? '', render: (r) => r.assignment?.status === 'assigned' ? <>{r.assignment.user?.name}{r.assignment.user?.job_title ? ` · ${r.assignment.user.job_title}` : ''}</> : r.assignment?.status === 'external' ? r.assignment.external_party : r.assignment?.status === 'not_applicable' ? <span className="small">{r.assignment.reason}</span> : r.assignment?.status === 'pending_committee' ? <span className="small">Target {fmtDate(r.assignment.target_date)}</span> : <span className="muted">—</span> },
               { key: 'backup', header: 'Backup', value: (r) => r.assignment?.backup_user?.name ?? '', render: (r) => r.assignment?.backup_user?.name ?? '—' },

@@ -9,6 +9,13 @@ export const systemHelp = {
   stage: 'Where the system is in its life. Live needs the Chief AI Compliance Officer\'s approval: submit it for go-live approval instead of choosing Live.',
   purpose: 'What the system does and for whom, in a sentence or two. This is what an auditor reads first.',
   usersScope: 'Role level (for example "Recruiting team") is enough for Tier 1. Tier 2 and 3 systems need the named users, recorded on the use case.',
+  multiDept: 'Tick when more than one department uses the tool but not the whole company, then choose the departments. The department above stays the one that owns it.',
+  departments: 'Every department whose staff use the tool. Role-level user counts include the people in these departments.',
+  userCountCalculated: 'Worked out from the choices above: the named people, or the people in the departments that use it who match a chosen job level, AI compliance role or job title.',
+  modelPick: 'Models listed for the chosen provider in the AI model list kept by Futran, and models your company added before. Choose Other to type a model that is not listed; it is saved for your company and offered next time.',
+  modelOther: 'The model\'s name as the vendor or your team gives it. It is saved for your company and offered the next time you choose this provider.',
+  importInventory: 'Copies into the register the AI tools and agents your company declared in the AI inventory (audit stage 3), including tools staff declared in their attestations, and the use cases their departments approved. Tools marked Not approved are left out unless staff declared them. Each vendor and product becomes one system at stage Proposed, with the purpose, department, decision impact and data from its use cases; a tool used by several departments lists them. Running it again adds only what is new.',
+  importTemplate: 'The template has a column for each field of the Add an AI system form, in the same order. Columns marked * are required. The workbook adds dropdowns and an Instructions sheet with the allowed values; the CSV has the same columns and an example row. Files made from the earlier template still import.',
   usersDescription: 'Who uses it, for example "Recruiting team, 12 people".',
   userCount: 'Approximate number of people who use it.',
   owner: 'The AI System Owner: the person accountable for the system day to day. They sign the no-incident statement.',
@@ -31,14 +38,14 @@ export const systemHelp = {
   consentRef: 'Where the consent or notice is recorded, for example "Careers site opt-in, v3, 1 Sep 2026".',
   retention: 'How long the system or its outputs keep the data. California ADS rules expect four years for employment decisions.',
   crossBorder: 'Whether the data is sent or processed outside the country where it was collected.',
-  laws: 'The laws that apply to this system. Suggestions come from the company\'s locations and the laws found in scope for it. Adding a law recalculates the required roles at once.',
   addLaw: 'Search the law library by name, place or topic.',
   removeLaw: 'Say why the law no longer applies. A Department Head\'s request waits for the Chief AI Compliance Officer.',
   impact: 'Whether the output is used to make decisions about people, such as hiring, credit or benefits. Making or substantially making the decision is Tier 3.',
   biasNextDue: 'When the next bias test is due. New systems are tested before go-live, then every 12 months.',
   inUseSince: 'For a system the company was already using before it was registered: the date it first went into use. It becomes the live-since date when go-live is approved.',
   reason: 'Why you are making this change. It is saved to the change history with your name and the time.',
-  importFile: 'A CSV with the columns in the template. Every row is checked as the form checks it; nothing is imported until all rows are correct.',
+  importFile: 'A CSV or Excel workbook (.xlsx) with the template\'s columns. Every row is checked as the form checks it; nothing is imported until all rows are correct.',
+  laws: 'The laws that apply to this system. Suggestions come from where it runs, where the people whose data it uses are, and what it does, using the law library\'s own scope rules. Accept or remove each one, or add any law from the law library.',
 };
 
 export const bulkHelp = {
@@ -133,4 +140,19 @@ export const committeeHelp = {
   externalParty: 'The name of an external member, for example a law firm or Futran Solutions as a non-voting adviser.',
   committeeRole: 'The member\'s seat on the committee.',
   covers: 'The governance role this member fills. An external non-voting adviser covers none, which keeps audit independence.',
+};
+
+/* 11-03 C10: who uses it */
+export const whoHelp = {
+  scope: 'By role level counts everyone in the departments that use it who matches a job level, an AI compliance role or a job title you choose. Named users lists each person. Tier 2 and 3 systems need the named users.',
+  levels: 'The job level recorded for each person under People: executive, department head, manager, or level 1, 2 or 3 staff. The number after each is how many people it covers.',
+  roles: 'The AI compliance role each person holds in the platform, such as Department Compliance Lead or Contributor.',
+  titles: 'Working titles from the company\'s user list, for example Recruiter. Optional.',
+};
+
+/* 11-03 C14: places and the law library */
+export const placeHelp = {
+  run: 'Where the system is operated from: the country, and the state or region and city if they are known. City and state laws apply only when they are given.',
+  data: 'Each place where the people whose data the system uses are, for example candidates in Illinois or patients in Germany. A law can apply because of where these people are even when the system runs elsewhere.',
+  library: 'Any law in the law library, grouped by jurisdiction. Choose one to add it to this system.',
 };

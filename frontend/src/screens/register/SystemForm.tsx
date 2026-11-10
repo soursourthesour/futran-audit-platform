@@ -1,10 +1,11 @@
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 import {
   ACTIONS, AGENTASSURE, ALGORITHMS, AUTONOMY, CONSENT, CROSS_BORDER, DATA_CATEGORIES, DATA_SUBJECTS, HOSTING, IMPACT, PROVIDERS, SOURCING, STAGES, TRAINS, TYPES, VENDOR_DOCS,
-  type Register, type RegSystem,
+  useModelCatalogue, type Place, type Register, type RegSystem, type UserSelection,
 } from '@/api/register';
-import { Checkbox, FieldGroup, SelectField, TextArea, TextField } from '@/components/ui';
+import { Checkbox, FieldGroup, FieldHelp, SelectField, TextArea, TextField } from '@/components/ui';
 import { systemHelp as H } from '@/help/register';
+import { WhoUses, countFor } from './WhoUses';
 
 export type Form = {
   name: string; type: string; sourcing: string; department_id: string; company_wide: boolean; stage: string; purpose: string; users_scope: string; users_description: string; user_count: string;
@@ -12,6 +13,8 @@ export type Form = {
   vendor_trains_on_data: string; vendor_documents: string[]; autonomy: string; guardrail_policy_ref: string; agentassure_status: string; actions: string[]; other_action: string;
   decision_impact: string; bias_next_due: string;
   data_categories: string[]; data_subjects: string[]; consent_basis: string; consent_ref: string; retention_period: string; cross_border: string;
+  // 11-03: several departments (C9), who uses it (C10), "Other" model (C12), places (C14)
+  multi_dept: boolean; department_ids: string[]; user_selection: UserSelection; model_other: boolean; run_location: Place | null; data_locations: Place[];
 };
 
 export function emptyForm(deptId = ''): Form {
@@ -20,6 +23,7 @@ export function emptyForm(deptId = ''): Form {
     vendor_id: '', new_vendor: false, vendor_name: '', ai_provider: '', model_name: '', model_version: '', algorithm_type: '', hosting: '', vendor_trains_on_data: '', vendor_documents: [], autonomy: '',
     guardrail_policy_ref: '', agentassure_status: '', actions: [], other_action: '', decision_impact: '', bias_next_due: '', data_categories: [], data_subjects: [], consent_basis: '',
     consent_ref: '', retention_period: '', cross_border: '',
+    multi_dept: false, department_ids: [], user_selection: {}, model_other: false, run_location: null, data_locations: [],
   };
 }
 
@@ -33,8 +37,19 @@ export function formFrom(s: RegSystem): Form {
     agentassure_status: s.agentassure_status ?? '', actions: s.actions.filter((a) => a.action_code !== 'other').map((a) => a.action_code), other_action: other?.description ?? '',
     decision_impact: s.decision_impact ?? '', bias_next_due: s.bias_next_due ?? '', data_categories: s.data.data_categories, data_subjects: s.data.data_subjects,
     consent_basis: s.data.consent_basis ?? '', consent_ref: s.data.consent_ref ?? '', retention_period: s.data.retention_period ?? '', cross_border: s.data.cross_border ?? '',
+    multi_dept: (s.departments ?? []).length > 0, department_ids: (s.departments ?? []).map((x) => x.id), user_selection: s.user_selection ?? {}, model_other: false,
+    run_location: s.run_location ?? null, data_locations: s.data_locations ?? [],
   };
 }
+
+/** The part of the selection that belongs to the chosen scope; null when nothing is chosen. */
+export function selectionFor(f: Pick<Form, 'users_scope' | 'user_selection'>): UserSelection | null {
+  const x = f.user_selection;
+  const out: UserSelection = f.users_scope === 'named' ? { user_ids: x.user_ids ?? [] } : f.users_scope === 'role' ? { job_levels: x.job_levels ?? [], compliance_roles: x.compliance_roles ?? [], job_titles: x.job_titles ?? [] } : {};
+  return Object.values(out).some((v) => v && v.length) ? out : null;
+}
+
+const cleanPlace = (p: Place | null) => (p && p.country ? { country: p.country, ...(p.region ? { region: p.region } : {}), ...(p.city?.trim() ? { city: p.city.trim() } : {}) } : null);
 
 /** The API payload. Blank selects are sent as null so a cleared answer is saved as cleared. */
 export function payload(f: Form): Record<string, unknown> {
@@ -49,10 +64,12 @@ export function payload(f: Form): Record<string, unknown> {
     actions: agent ? [...f.actions.map((a) => ({ action_code: a })), ...(f.other_action.trim() ? [{ action_code: 'other', description: f.other_action }] : [])] : [],
     decision_impact: n(f.decision_impact), bias_next_due: n(f.bias_next_due),
     data: { data_categories: f.data_categories, data_subjects: f.data_subjects, consent_basis: n(f.consent_basis), consent_ref: n(f.consent_ref), retention_period: n(f.retention_period), cross_border: n(f.cross_border) },
+    department_ids: f.multi_dept && f.department_ids.length ? f.department_ids : null, user_selection: selectionFor(f),
+    run_location: cleanPlace(f.run_location), data_locations: f.data_locations.map(cleanPlace).filter(Boolean).length ? f.data_locations.map(cleanPlace).filter(Boolean) : null,
   };
 }
 
-type Props = { f: Form; set: (f: Form) => void; fe: Record<string, string>; d: Pick<Register, 'departments' | 'people' | 'vendors' | 'can'>; disabled?: boolean; editing?: boolean };
+type Props = { f: Form; set: (f: Form) => void; fe: Record<string, string>; d: Pick<Register, 'departments' | 'people' | 'vendors' | 'can' | 'job_levels' | 'compliance_roles'>; disabled?: boolean; editing?: boolean };
 
 function toggle(list: string[], v: string): string[] {
   return list.includes(v) ? list.filter((x) => x !== v) : [...list, v];
@@ -69,6 +86,8 @@ export function Card({ n, title, children, aside }: { n?: number; title: string;
 
 export function WhatItIs({ f, set, fe, d, disabled, editing, n }: Props & { n?: number }) {
   const depts = d.departments.filter((x) => x.can_edit || x.id === f.department_id);
+  const scope = { department_id: f.department_id, department_ids: f.department_ids, company_wide: f.company_wide, multi_dept: f.multi_dept };
+  const counted = countFor(f.users_scope, f.user_selection, d.people, scope);
   return (
     <Card n={n} title="What it is">
       <fieldset disabled={disabled} className="reg-plain stack">
@@ -80,19 +99,61 @@ export function WhatItIs({ f, set, fe, d, disabled, editing, n }: Props & { n?: 
           <SelectField label="Stage *" help={H.stage} value={f.stage} onChange={(e) => set({ ...f, stage: e.target.value })} options={STAGES.filter((s) => s.value !== 'live' || f.stage === 'live').filter((s) => editing || s.value !== 'retired')} error={fe.stage} disabled={f.stage === 'live' || f.stage === 'retired'} />
         </div>
         {d.can.org_wide && <Checkbox label="Company-wide tool, managed by the Chief AI Compliance Officer" help={H.companyWide} checked={f.company_wide} onChange={(e) => set({ ...f, company_wide: e.target.checked })} />}
+        {!f.company_wide && <Checkbox label="Used by several departments" help={H.multiDept} checked={f.multi_dept}
+          onChange={(e) => set({ ...f, multi_dept: e.target.checked, department_ids: e.target.checked && !f.department_ids.length && f.department_id ? [f.department_id] : f.department_ids })} />}
+        {!f.company_wide && f.multi_dept && (
+          <FieldGroup legend="Departments that use it" help={H.departments}>
+            <div className="grid-2">{d.departments.map((x) => <Checkbox key={x.id} label={x.name} checked={f.department_ids.includes(x.id)} onChange={() => set({ ...f, department_ids: toggle(f.department_ids, x.id) })} />)}</div>
+            {fe.department_ids && <p className="small reg-danger" style={{ margin: '4px 0 0' }}>{fe.department_ids}</p>}
+          </FieldGroup>
+        )}
         <TextArea label="Purpose *" help={H.purpose} value={f.purpose} onChange={(e) => set({ ...f, purpose: e.target.value })} error={fe.purpose} />
+        <WhoUses scope={f.users_scope} sel={f.user_selection} people={d.people} departments={d.departments} s={scope} jobLevels={d.job_levels} complianceRoles={d.compliance_roles} disabled={disabled}
+          onScope={(v) => set({ ...f, users_scope: v })} onSel={(x) => set({ ...f, user_selection: x })} />
+        {fe.user_selection && <p className="small reg-danger" style={{ margin: 0 }}>{fe.user_selection}</p>}
         <div className="grid-2">
-          <SelectField label="Who uses it" help={H.usersScope} value={f.users_scope} placeholder="Choose" onChange={(e) => set({ ...f, users_scope: e.target.value })} options={[{ value: 'role', label: 'Role level' }, { value: 'named', label: 'Named users' }]} hint="Named users are required for Tier 2 and 3." />
           <TextField label="Users" help={H.usersDescription} value={f.users_description} onChange={(e) => set({ ...f, users_description: e.target.value })} />
-          <TextField label="Number of users" help={H.userCount} inputMode="numeric" value={f.user_count} onChange={(e) => set({ ...f, user_count: e.target.value.replace(/[^0-9]/g, '') })} error={fe.user_count} />
-          <SelectField label="System owner" help={H.owner} value={f.owner_user_id} placeholder="Not named yet" onChange={(e) => set({ ...f, owner_user_id: e.target.value })} options={d.people.map((p) => ({ value: p.id, label: p.job_title ? `${p.name} · ${p.job_title}` : p.name }))} error={fe.owner_user_id} />
+          {counted !== null
+            ? <TextField label="Number of users" help={H.userCountCalculated} value={String(counted)} readOnly hint="Calculated from the selection" />
+            : <TextField label="Number of users" help={H.userCount} inputMode="numeric" value={f.user_count} onChange={(e) => set({ ...f, user_count: e.target.value.replace(/[^0-9]/g, '') })} error={fe.user_count} />}
+          <OwnerSelect f={f} set={set} fe={fe} d={d} />
         </div>
       </fieldset>
     </Card>
   );
 }
 
+/** The system owner, grouped by department (11-03 C11). */
+function OwnerSelect({ f, set, fe, d }: Pick<Props, 'f' | 'set' | 'fe' | 'd'>) {
+  const id = useId();
+  const names = Object.fromEntries(d.departments.map((x) => [x.id, x.name]));
+  const groups = new Map<string, typeof d.people>();
+  [...d.people].sort((a, b) => a.name.localeCompare(b.name)).forEach((p) => {
+    const g = (p.department_id && names[p.department_id]) || '';
+    groups.set(g, [...(groups.get(g) ?? []), p]);
+  });
+  const ordered = [...groups].sort((a, b) => (a[0] === '' ? 1 : b[0] === '' ? -1 : a[0].localeCompare(b[0])));
+  const label = (p: (typeof d.people)[number]) => (p.job_title ? `${p.name} · ${p.job_title}` : p.name);
+  return (
+    <div className="field">
+      <div className="field-label"><label htmlFor={id}>System owner</label><FieldHelp label="System owner">{H.owner}</FieldHelp></div>
+      <select id={id} className="select" value={f.owner_user_id} aria-invalid={fe.owner_user_id ? true : undefined} onChange={(e) => set({ ...f, owner_user_id: e.target.value })}>
+        <option value="">Not named yet</option>
+        {ordered.map(([g, ps]) => <optgroup key={g || '_none'} label={g || 'No department'}>{ps.map((p) => <option key={p.id} value={p.id}>{label(p)}</option>)}</optgroup>)}
+      </select>
+      <div className="help">Grouped by department</div>
+      {fe.owner_user_id && <div className="error">{fe.owner_user_id}</div>}
+    </div>
+  );
+}
+
 export function VendorModel({ f, set, fe, d, disabled, n }: Props & { n?: number }) {
+  const cat = useModelCatalogue();
+  const vendors = cat.data?.vendors ?? [];
+  const providers = vendors.length ? [...vendors.map((v) => ({ value: v.code, label: v.name })), ...(f.ai_provider && !vendors.some((v) => v.code === f.ai_provider) ? [{ value: f.ai_provider, label: f.ai_provider }] : [])] : PROVIDERS;
+  const v = vendors.find((x) => x.code === f.ai_provider);
+  const listed = v ? [...v.models, ...v.client_models.filter((m) => !v.models.includes(m))] : [];
+  const other = f.model_other || (!!f.model_name && !listed.includes(f.model_name));
   return (
     <Card n={n} title="Vendor and model">
       <fieldset disabled={disabled} className="reg-plain stack">
@@ -100,8 +161,15 @@ export function VendorModel({ f, set, fe, d, disabled, n }: Props & { n?: number
           <SelectField label="Vendor" help={H.vendor} value={f.new_vendor ? '_new' : f.vendor_id} placeholder="None" onChange={(e) => set({ ...f, vendor_id: e.target.value === '_new' ? '' : e.target.value, new_vendor: e.target.value === '_new' })}
             options={[...d.vendors.map((v) => ({ value: v.id, label: v.name })), { value: '_new', label: 'Add a new vendor' }]} hint="From the company vendor register" error={fe.vendor_id} />
           {f.new_vendor && <TextField label="New vendor's name" help={H.vendor} value={f.vendor_name} onChange={(e) => set({ ...f, vendor_name: e.target.value })} />}
-          <SelectField label="Underlying AI provider" help={H.provider} value={f.ai_provider} placeholder="Choose" onChange={(e) => set({ ...f, ai_provider: e.target.value })} options={PROVIDERS} error={fe.ai_provider} />
-          <TextField label="Model or algorithm" help={H.modelName} value={f.model_name} onChange={(e) => set({ ...f, model_name: e.target.value })} error={fe.model_name} />
+          <SelectField label="Underlying AI provider" help={H.provider} value={f.ai_provider} placeholder="Choose" onChange={(e) => set({ ...f, ai_provider: e.target.value, model_other: false, model_name: f.model_name && !other ? '' : f.model_name })} options={providers} error={fe.ai_provider} />
+          {listed.length > 0 ? (
+            <SelectField label="Model or algorithm" help={H.modelPick} value={other ? '_other' : f.model_name} placeholder="Choose"
+              onChange={(e) => set({ ...f, model_other: e.target.value === '_other', model_name: e.target.value === '_other' ? (other ? f.model_name : '') : e.target.value })}
+              options={[...listed.map((m) => ({ value: m, label: v!.client_models.includes(m) && !v!.models.includes(m) ? `${m} (added by your company)` : m })), { value: '_other', label: 'Other' }]} error={!other ? fe.model_name : undefined} />
+          ) : (
+            <TextField label="Model or algorithm" help={H.modelName} value={f.model_name} onChange={(e) => set({ ...f, model_name: e.target.value })} error={fe.model_name} />
+          )}
+          {listed.length > 0 && other && <TextField label="Other model or algorithm" help={H.modelOther} value={f.model_name} onChange={(e) => set({ ...f, model_name: e.target.value })} error={fe.model_name} />}
           <TextField label="Model version" help={H.modelVersion} value={f.model_version} onChange={(e) => set({ ...f, model_version: e.target.value })} />
           <SelectField label="Algorithm type" help={H.algorithm} value={f.algorithm_type} placeholder="Choose" onChange={(e) => set({ ...f, algorithm_type: e.target.value })} options={ALGORITHMS} error={fe.algorithm_type} />
           <SelectField label="Hosting" help={H.hosting} value={f.hosting} placeholder="Choose" onChange={(e) => set({ ...f, hosting: e.target.value })} options={HOSTING} />

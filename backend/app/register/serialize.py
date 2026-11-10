@@ -15,6 +15,13 @@ def person(db: Session, uid: str | None) -> dict | None:
     return {"id": u.id, "name": u.name, "job_title": u.job_title} if u else None
 
 
+def _jurisdiction(db: Session, reg) -> str | None:
+    from app.reference.models import Jurisdiction
+
+    j = db.get(Jurisdiction, reg.jurisdiction_id) if reg is not None else None
+    return j.name if j else None
+
+
 def _provider_label(db: Session, code: str | None) -> str | None:
     if not code:
         return None
@@ -38,7 +45,7 @@ def system_out(db: Session, s: RegisterSystem, actor: Actor | None, *, full: boo
     for link in svc.law_links(db, s):
         reg = svc.current_regulation(db, link.regulation_id)
         laws.append({"id": link.id, "regulation_id": reg.id if reg else link.regulation_id, "short_name": reg.short_name if reg else "Law no longer in the library",
-                     "source": link.source, "status": link.status, "removal_reason": link.removal_reason,
+                     "source": link.source, "reason": link.reason, "jurisdiction": _jurisdiction(db, reg), "status": link.status, "removal_reason": link.removal_reason,
                      "removal_requested_by": person(db, link.removal_requested_by)["name"] if link.removal_requested_by and person(db, link.removal_requested_by) else None})
     roles = role_summary(db, s)
     out = {
@@ -63,7 +70,7 @@ def system_out(db: Session, s: RegisterSystem, actor: Actor | None, *, full: boo
         "updated_at": s.updated_at.isoformat() if s.updated_at else None, "updated_by": person(db, s.updated_by),
         "retired_reason": s.retired_reason,
         "departments": [{"id": x.id, "name": x.name} for x in (db.get(Department, i) for i in (s.department_ids or [])) if x is not None],
-        "user_selection": s.user_selection, "run_location": s.run_location, "data_locations": s.data_locations or [],
+        "user_selection": s.user_selection, "dismissed_law_ids": s.dismissed_law_ids or [], "run_location": s.run_location, "data_locations": s.data_locations or [],
         "run_location_label": svc.place_label(db, s.run_location), "data_location_labels": [svc.place_label(db, p) for p in s.data_locations or []],
     }
     if actor is not None:

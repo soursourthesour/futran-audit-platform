@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
 import { useMe } from '@/api/auth';
 import { GATE_TONE, IMPACT, STAGES, TIER_LABEL, TIER_TONE, TYPES, labelOf, useRegister, type RegSystem } from '@/api/register';
-import { Alert, Badge, Button, Dialog, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField } from '@/components/ui';
+import { Alert, Badge, Button, Dialog, EmptyState, FieldHelp, Loading, PageHeader, SelectField, TextArea, TextField } from '@/components/ui';
 import { DataGrid, type GridColumn, type GridRowAction } from '@/components/ui/DataGrid';
 import { systemHelp as H } from '@/help/register';
 import { BulkEdit, type BulkMode } from './RegisterBulk';
@@ -141,8 +141,8 @@ export function RegisterGrid() {
       <PageHeader title="AI system register"
         subtitle={d.can.org_wide ? 'Every AI app, agent, vendor tool and AI model used across the company.' : `Every AI app, agent, vendor tool and AI model used in ${myDept ?? 'your department'}. Company-wide tools are shown read-only.`}
         actions={<>
-          {d.can.edit && <Button onClick={() => setImporting(true)}>Import from CSV</Button>}
-          {d.can.import_inventory && <Button onClick={importInventory} disabled={pulling}>Import from inventory</Button>}
+          {d.can.edit && <Button onClick={() => setImporting(true)}>Import from a file</Button>}
+          {d.can.import_inventory && <span className="reg-btn-help"><Button onClick={importInventory} disabled={pulling}>Import from inventory</Button><FieldHelp label="Import from inventory">{H.importInventory}</FieldHelp></span>}
           <Button onClick={() => exportCsv()}>Export</Button>
           {d.can.edit && <Link className="btn btn-primary" to="/register/new">Add AI system</Link>}
         </>} />
@@ -231,21 +231,26 @@ function CsvImport({ onClose, onDone }: { onClose: () => void; onDone: (m: strin
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   async function go() {
-    if (!file) { setErr('Choose a CSV file.'); return; }
+    if (!file) { setErr('Choose a CSV or Excel file.'); return; }
     setBusy(true); setErr(null);
     const fd = new FormData();
     fd.append('file', file);
     try {
       const r = await api.upload<{ created: number; errors: { row: number; field: string; message: string }[] }>('/register/import', fd);
-      if (r.errors.length) setErrors(r.errors); else onDone(`${r.created} AI systems imported.`);
+      if (r.errors.length) setErrors(r.errors); else onDone(`${r.created} AI system${r.created === 1 ? '' : 's'} imported.`);
     } catch (e) { setErr(errorMessage(e)); } finally { setBusy(false); }
   }
   return (
-    <Dialog title="Import AI systems from CSV" onClose={onClose} wide>
+    <Dialog title="Import AI systems from a file" onClose={onClose} wide>
       <div className="stack">
-        <p className="small" style={{ margin: 0 }}>Use the template's columns. Each row is checked as the form checks it, and nothing is imported until every row is correct. Live is not accepted: import those systems as Ready for go-live and submit them. <a href="/api/v1/register/import-template.csv">Download the template</a></p>
+        <p className="small" style={{ margin: 0 }}>The template has a column for each field of the Add an AI system form, in the same order; columns marked * are required. Each row is checked as the form checks it, and nothing is imported until every row is correct. Live is not accepted: import those systems as Ready for go-live and submit them.</p>
+        <div className="row reg-templates">
+          <a className="btn btn-sm" href="/api/v1/register/import-template.xlsx">Download the template (Excel, with instructions)</a>
+          <a className="btn btn-sm" href="/api/v1/register/import-template.csv">Download the template (CSV)</a>
+          <FieldHelp label="Import template">{H.importTemplate}</FieldHelp>
+        </div>
         {err && <Alert tone="danger">{err}</Alert>}
-        <TextField label="CSV file" help={H.importFile} type="file" accept=".csv,text/csv" onChange={(e) => { setFile(e.target.files?.[0] ?? null); setErrors([]); }} />
+        <TextField label="CSV or Excel file" help={H.importFile} type="file" accept=".csv,text/csv,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={(e) => { setFile(e.target.files?.[0] ?? null); setErrors([]); }} />
         {errors.length > 0 && (
           <div className="stack-sm">
             <Alert tone="danger">{errors.length} problem{errors.length === 1 ? '' : 's'} found. Fix them in the file and import it again.</Alert>
