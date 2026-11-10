@@ -21,6 +21,7 @@ from app.tenancy.job_levels import job_level_label
 from app.tenancy.models import Department, Organization, User
 from app.tenancy.service import find_user_by_email, roles_of
 
+COMPANY_WIDE = "Company-wide"  # the workbook sheet of people with no department
 NOTHING_IMPORTED = "Nothing was imported. Fix the rows listed and upload the file again."
 
 
@@ -149,7 +150,7 @@ def plan_import(db: Session, actor: User, org: Organization, filename: str, data
     users = CsvResult()
     for t in user_tables:
         default = target.name if target else None
-        if default is None and t.sheet:
+        if default is None and t.sheet and key(t.sheet) != key(COMPANY_WIDE):
             default = next((n for n in all_depts if key(t.sheet) in (key(n), key(sheet_title(n)))), None)
         before = len(users.rows_ok)
         parse_users(t, users, all_depts, default, seen)

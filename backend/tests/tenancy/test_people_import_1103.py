@@ -128,7 +128,7 @@ def test_department_workbook_template(client, db, people, live):
     r = client.get(f"/api/v1/clients/{cid}/departments/template.xlsx")
     assert r.status_code == 200 and r.headers["content-type"].startswith(XLSX)
     wb = _book(r)
-    assert wb.sheetnames == ["Instructions", "Departments", "Finance", "Legal"]
+    assert wb.sheetnames == ["Instructions", "Departments", "Company-wide", "Finance", "Legal"]
     ds = wb["Departments"]
     assert [c.value for c in ds[1]] == ["Department", "Parent department", "Head of department", "Headcount"]
     assert {ds.cell(row=i, column=1).value for i in (2, 3)} == {"Finance", "Legal"}
@@ -145,7 +145,7 @@ def test_workbook_with_no_departments_has_two_example_sheets(client, db, people,
     e.wizard_state = {**(e.wizard_state or {}), "departments": []}
     db.commit()
     wb = _book(client.get(f"/api/v1/clients/{cid}/departments/template.xlsx"))
-    assert len(wb.sheetnames) == 4 and wb.sheetnames[:2] == ["Instructions", "Departments"]
+    assert len(wb.sheetnames) == 5 and wb.sheetnames[:3] == ["Instructions", "Departments", "Company-wide"]
     # the example rows are refused if uploaded unchanged, so they can't become real users
     pv = preview(client, cid, _bytes(wb), "people.xlsx")
     assert any("example" in x["message"] for x in pv["errors"])

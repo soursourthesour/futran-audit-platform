@@ -271,3 +271,55 @@ def test_adding_and_removing_a_department_role_records_the_department_change(cli
     assert _dept_rows(db, uid) == [(None, "Finance"), ("Finance", "Legal"), ("Legal", "Finance")]
     hist = client.get(f"/api/v1/clients/{cid}/users/{uid}/history").json()
     assert sum(1 for h in (hist if isinstance(hist, list) else hist.get("events", hist.get("history", []))) if h.get("kind") == "department") == 3
+
+
+# ---- P5: people without a department have their own sheet
+def test_workbook_lists_company_wide_people_and_round_trips(client, db, people, live):
+    from tests.tenancy.test_people_import_1103 import _bytes, _dept, _user, apply, preview
+
+    cid, e, maria = live
+    login_as(client, db, maria)
+    _dept(client, cid, "Finance")
+    _user(client, cid, "Dina", "Pro", "dina@abc.test", role="dpo", department="")
+    _user(client, cid, "Fred", "Fin", "fred@abc.test", role="contributor", department="Finance")
+    data = _workbook(client, cid)
+    wb = openpyxl.load_workbook(io.BytesIO(data))
+    assert wb.sheetnames[:3] == ["Instructions", "Departments", "Company-wide"]
+    assert any("Company-wide" in str(c.value) for row in wb["Instructions"].iter_rows() for c in row)
+    cw = wb["Company-wide"]
+    rows = {r[1]: r for r in cw.iter_rows(min_row=2, values_only=True) if r[1]}
+    assert rows["dina@abc.test"][2] is None and rows["dina@abc.test"][5] == "Data Protection Officer"
+    assert "fred@abc.test" not in rows
+    assert maria.email in rows  # the Client Admin and CAICO, who has no department
+    pv = preview(client, cid, data, "people.xlsx")
+    assert pv["errors"] == [], pv["errors"]
+    assert {u["email"]: u["action"] for u in pv["users"]}["dina@abc.test"] == "unchanged"
+    assert all(u["action"] == "unchanged" for u in pv["users"]), [u for u in pv["users"] if u["action"] != "unchanged"]
+    # a new company-wide person added on that sheet is imported with no department
+    cw.append(["Eli Sponsor", "eli.s@abc.test", None, "COO", "Executive", "Executive Sponsor"])
+    r = apply(client, cid, _bytes(wb), "people.xlsx")
+    assert r.status_code == 200, r.text
+    from sqlalchemy import select
+
+    from app.tenancy.models import User
+
+    eli = db.scalar(select(User).where(User.email == "eli.s@abc.test"))
+    assert eli is not None and eli.department_id is None and _shown(db, cid, eli.id) is None
+
+
+def test_company_wide_sheet_is_not_read_as_a_department_of_that_name(client, db, people, live):
+    from tests.tenancy.test_people_import_1103 import _bytes, _dept, apply
+
+    cid, e, maria = live
+    login_as(client, db, maria)
+    _dept(client, cid, "Company-wide")
+    wb = openpyxl.load_workbook(io.BytesIO(_workbook(client, cid)))
+    assert "Company-wide (2)" in wb.sheetnames
+    wb["Company-wide"].append(["Ola Org", "ola@abc.test", None, None, None, "Data Protection Officer"])
+    assert apply(client, cid, _bytes(wb), "people.xlsx").status_code == 200
+    from sqlalchemy import select
+
+    from app.tenancy.models import User
+
+    ola = db.scalar(select(User).where(User.email == "ola@abc.test"))
+    assert ola.department_id is None

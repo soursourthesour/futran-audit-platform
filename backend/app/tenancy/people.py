@@ -195,7 +195,7 @@ def add_user(db: Session, settings: Settings, actor: User, org: Organization, da
             raise Conflict("This email belonged to a user who was removed. Ask Futran to restore the account.", [{"field": "email", "message": "This email belonged to a user who was removed. Ask Futran to restore the account."}])
         if removed_org is not None:
             raise Conflict(CROSS_ORG_EMAIL, [{"field": "email", "message": CROSS_ORG_EMAIL}])
-    if user is not None and user.id == actor.id and role in SIGN_OFF_KEYS:
+    if user is not None and user.id == actor.id and role in SIGN_OFF_KEYS and not any(r.role == role and r.scope_type == "org" for r in roles_of(db, user.id)):
         raise Forbidden(f"You can't make yourself {ROLE_LABELS[role]}. Ask another administrator or your Futran engagement manager.")
     try:
         level = parse_job_level(data.get("job_level"))

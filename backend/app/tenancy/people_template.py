@@ -15,7 +15,7 @@ from app.tenancy import people as ppl
 from app.tenancy.csv_import import DEPARTMENT_HEADER, DEPARTMENT_ROLES, USER_HEADER
 from app.tenancy.job_levels import JOB_LEVELS
 from app.tenancy.models import Organization, User
-from app.tenancy.people_import import sheet_title
+from app.tenancy.people_import import COMPANY_WIDE, sheet_title
 from app.tenancy.service import roles_of
 
 ROWS = 1000  # rows that carry the drop-down lists
@@ -26,6 +26,7 @@ EXAMPLE_PEOPLE = {
     "Human Resources": ["Priya Shah", "priya.shah@example.com", "Human Resources", "Head of HR", "Department head", "Department Compliance Lead"],
     "Talent Acquisition": ["Tom Reyes", "tom.reyes@example.com", "Talent Acquisition", "Recruiter", "Level 2", "Contributor"],
 }
+EXAMPLE_COMPANY_WIDE = ["Sam Lee", "sam.lee@example.com", None, "Chief Risk Officer", "Executive", ROLE_LABELS["caico"]]
 ROLE_NAMES = [ROLE_LABELS[r] for r in dict.fromkeys(CSV_ROLE_NAMES.values())]
 
 USER_HELP = {
@@ -48,8 +49,9 @@ INSTRUCTIONS = [
     ("1. On the Departments sheet, list every department, one per row. Add parent departments and heads if you have them.", None),
     ("2. Each department has its own sheet of people. To add a department, add it to the Departments sheet, then copy any department sheet, rename the copy to the department's name and replace the rows.", None),
     ("3. On each department sheet, list the people who need a login: one row per person. Leave Department blank to use the sheet's department.", None),
-    ("4. Upload the workbook on People > Departments. Everything is checked first and shown to you; nothing is imported until every row is correct.", None),
-    ("5. To add people to one department only, use Upload users to this department on that department's row, with this workbook or a CSV.", None),
+    (f"4. On the {COMPANY_WIDE} sheet, list people who are not in any department, such as the Client Admin, Chief AI Compliance Officer, Executive Sponsor or Data Protection Officer. Leave Department blank there: they are imported with no department. Department Compliance Leads and Contributors belong on a department's sheet.", None),
+    ("5. Upload the workbook on People > Departments. Everything is checked first and shown to you; nothing is imported until every row is correct.", None),
+    ("6. To add people to one department only, use Upload users to this department on that department's row, with this workbook or a CSV.", None),
     ("", None),
     ("Example rows (shown in grey, with example.com emails) are refused if uploaded. Delete them or replace them with real people.", None),
     ("People already on the user list are recognised by work email. Uploading them again adds any new AI compliance role and fills a blank job title or job level; it never moves them to another department or removes anything. A Department Compliance Lead or Contributor role for a department other than their own is not added; move them on the People screen first.", None),
@@ -58,7 +60,7 @@ INSTRUCTIONS = [
     ("Columns on the Departments sheet", "bold"),
     *[(f"{k}: {v}", None) for k, v in DEPT_HELP.items()],
     ("", None),
-    ("Columns on each department sheet", "bold"),
+    (f"Columns on each department sheet and the {COMPANY_WIDE} sheet", "bold"),
     *[(f"{k}: {v}", None) for k, v in USER_HELP.items()],
     ("", None),
     ("Job levels", "bold"),
@@ -99,7 +101,7 @@ def _list(formula: str, prompt: str, strict: bool = True) -> DataValidation:
     return dv
 
 
-def _people_sheet(wb: Workbook, title: str, dept: str, rows: list[list], example: bool) -> None:
+def _people_sheet(wb: Workbook, title: str, dept: str | None, rows: list[list], example: bool) -> None:
     ws = wb.create_sheet(title)
     _header(ws, USER_HEADER, USER_HELP, [26, 32, 22, 28, 16, 34])
     for r in rows:
@@ -108,7 +110,7 @@ def _people_sheet(wb: Workbook, title: str, dept: str, rows: list[list], example
             for c in ws[ws.max_row]:
                 c.font = EXAMPLE
     rng = lambda col: f"{col}2:{col}{ROWS}"  # noqa: E731
-    dv = _list(f"Departments!$A$2:$A${ROWS}", f"Blank means {dept}.")
+    dv = _list(f"Departments!$A$2:$A${ROWS}", f"Blank means {dept}." if dept else "Leave blank: people on this sheet have no department.")
     dv.add(rng("C"))
     lv = _list('"' + ",".join(JOB_LEVELS.values()) + '"', "Executive, Department head, Manager, Level 3, Level 2 or Level 1.")
     lv.add(rng("E"))
@@ -164,8 +166,15 @@ def department_workbook(db: Session, org: Organization) -> bytes:
     ds.add_data_validation(pv)
     ds.add_data_validation(hc)
 
-    used = {"instructions", "departments", "history"}  # Excel keeps "History" for itself
+    used = {"instructions", "departments", "history", COMPANY_WIDE.casefold()}  # Excel keeps "History" for itself
     users = list(db.scalars(select(User).where(User.organization_id == org.id, User.deleted_at.is_(None), User.status != "disabled").order_by(User.name)))
+    if example:
+        company = [EXAMPLE_COMPANY_WIDE]
+    else:
+        company = [[u.name, u.email, None, u.job_title, JOB_LEVELS.get(u.job_level) if u.job_level else None,
+                    "; ".join(dict.fromkeys(ROLE_LABELS[r.role] for r in roles_of(db, u.id) if r.role in ROLE_LABELS and r.scope_type == "org")) or None]
+                   for u in users if ppl.user_department(db, u, names) is None]
+    _people_sheet(wb, COMPANY_WIDE, None, company, example)
     for name, d in sheets:
         title, i = sheet_title(name), 2
         while title.casefold() in used:
