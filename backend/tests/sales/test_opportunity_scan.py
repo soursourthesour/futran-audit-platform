@@ -326,3 +326,59 @@ def test_opportunities_screen_lists_the_renewal_trigger(client, db, world):
     body = client.get("/api/v1/opportunities").json()
     assert {"value": "renewal_audit", "label": "Renewal audit"} in body["triggers"]
     assert "Renewal audit" in {i["trigger_label"] for i in body["items"]}
+
+
+# ------------------------------------------------------------------ review of workstream O (11-10)
+
+def _ver(db, reg, at, no, field_path, summary):
+    v = LawVersion(regulation_id=reg.id, version_no=no, approved_at=at, approved_by="chief-auditor", change_summary=summary)
+    db.add(v)
+    db.flush()
+    db.add(ProposedChange(change_type="new_law" if field_path == "new_law" else "amendment", regulation_id=reg.id, field_path=field_path, summary=summary,
+                          status="approved", applied_version_id=v.id, reviewed_at=at))
+    reg.current_version_id = v.id
+    return v
+
+
+def _other_law(db, world):
+    return next(r for r in current_regulations(db) if r.id != world["reg"].id)
+
+
+def test_o1_a_new_law_corrected_in_wording_in_the_same_window_is_still_a_new_law(db, world):
+    reg = _other_law(db, world)
+    v1 = _ver(db, reg, NOW - timedelta(days=10), 1, "new_law", f"Add {reg.short_name}")
+    _in_scope(db, world["nw"], reg, v1)
+    v2 = _ver(db, reg, NOW - timedelta(days=5), 2, "law.citation", "Citation corrected")
+    db.commit()
+    scan.run_now(db, world["admin"], now=NOW)
+    o = [x for x in _mine(db, "new_law", "law_change") if x.organization_id == world["nw"].id]
+    assert [(x.trigger, x.trigger_ref) for x in o] == [("new_law", f"lawver:{v2.id}")]
+    assert o[0].why_now.startswith("New law in the library")
+    # the change id of each version counts as the same opportunity (one opened at approval is not repeated)
+    pcs = db.scalars(select(ProposedChange.id).where(ProposedChange.applied_version_id.in_((v1.id, v2.id)))).all()
+    db.delete(o[0])
+    db.add(Opportunity(organization_id=world["nw"].id, trigger="new_law", trigger_ref=sorted(pcs)[0], service="Readiness review for the change", stage="new"))
+    db.commit()
+    again = scan.run_scan(db, trigger="manual", actor=world["admin"], now=NOW + timedelta(hours=1), since=NOW - timedelta(days=30))
+    assert again.counts["laws"] == 0
+
+
+def test_o1_a_material_change_then_a_wording_change_in_the_same_window_is_a_change(db, world):
+    reg = _other_law(db, world)
+    v1 = _ver(db, reg, NOW - timedelta(days=10), 9, "law.penalty_text", "Penalty raised")
+    _in_scope(db, world["nw"], reg, v1)
+    _ver(db, reg, NOW - timedelta(days=5), 10, "law.verify_flag", "Verified")
+    db.commit()
+    scan.run_now(db, world["admin"], now=NOW)
+    o = [x for x in _mine(db, "law_change") if x.organization_id == world["nw"].id]
+    assert len(o) == 1 and "Penalty raised" in o[0].why_now and "Verified" not in o[0].why_now
+
+
+def test_o1_wording_changes_only_are_still_not_opportunities(db, world):
+    reg = _other_law(db, world)
+    v1 = _ver(db, reg, NOW - timedelta(days=10), 9, "law.citation", "Citation corrected")
+    _in_scope(db, world["nw"], reg, v1)
+    _ver(db, reg, NOW - timedelta(days=5), 10, "law.verify_flag", "Verified")
+    db.commit()
+    scan.run_now(db, world["admin"], now=NOW)
+    assert [x for x in _mine(db, "law_change", "new_law") if x.organization_id == world["nw"].id] == []

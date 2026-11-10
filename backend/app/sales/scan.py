@@ -257,31 +257,39 @@ def _day(d: date | datetime) -> str:
 # ------------------------------------------------------------------ sources
 
 def _law_items(db: Session, since: datetime, now: datetime) -> list[Item]:
-    """(a) The newest version of each law a person approved in the window, when it is a new law or changes more than
-    wording. Versions the platform wrote itself (seeding, a matrix re-import carrying content forward) have no
-    approver and are not news."""
+    """(a) Each law with versions a person approved in the window, when one of them adds the law or changes more than
+    wording. The reference is the newest of them; every one of them, and its approved changes, counts as the same.
+    Versions the platform wrote itself (seeding, a matrix re-import carrying content forward) have no approver and are
+    not news."""
     from app.laws.models import Regulation
     from app.laws.publish import chain_ids, current_version_of
     from app.regmaster.engine import law_label
     from app.regmaster.models import ClientLawApplicability, LawVersion, ProposedChange
 
-    latest: dict[str, tuple[Regulation, object, list[str]]] = {}
+    window: dict[str, tuple[Regulation, list, list[str]]] = {}
     for v in db.scalars(select(LawVersion).where(LawVersion.approved_by.is_not(None), LawVersion.approved_at > since, LawVersion.approved_at <= now)
                         .order_by(LawVersion.approved_at)):
         reg = current_version_of(db, v.regulation_id)
         if reg is None or reg.retired_in_version_id is not None:
             continue
         ids = chain_ids(db, reg.id) or [reg.id]
-        latest[ids[0]] = (reg, v, ids)  # a later approval in the window replaces an earlier one
+        versions = window[ids[0]][1] if ids[0] in window else []
+        window[ids[0]] = (reg, [*versions, v], ids)  # the law as it stands now
     clients = _clients(db)
     out: list[Item] = []
-    for reg, v, ids in latest.values():
-        pcs = list(db.scalars(select(ProposedChange).where(ProposedChange.applied_version_id == v.id)))
-        new = v.version_no == 1 or any(pc.field_path == "new_law" for pc in pcs)
-        if not new and pcs and all(pc.field_path in COSMETIC_PATHS for pc in pcs):
+    for reg, versions, ids in window.values():
+        # "New" and "material" are decided across every version approved in the window, so a later wording fix does
+        # not hide the new law or the material change approved before it.
+        v = versions[-1]
+        pcs = list(db.scalars(select(ProposedChange).where(ProposedChange.applied_version_id.in_([x.id for x in versions]))))
+        by_version = {x.id: [pc for pc in pcs if pc.applied_version_id == x.id] for x in versions}
+        new = any(x.version_no == 1 for x in versions) or any(pc.field_path == "new_law" for pc in pcs)
+        material = [x for x in versions if not by_version[x.id] or any(pc.field_path not in COSMETIC_PATHS for pc in by_version[x.id])]
+        if not new and not material:
             continue
         label = law_label(reg)
-        what = "; ".join(dict.fromkeys(pc.summary for pc in pcs)) or v.change_summary or "a new version was approved"
+        what = ("; ".join(dict.fromkeys(pc.summary for pc in pcs if pc.field_path not in COSMETIC_PATHS))
+                or "; ".join(dict.fromkeys(x.change_summary for x in material if x.change_summary)) or "a new version was approved")
         ref = f"lawver:{v.id}"
         rows = db.scalars(select(ClientLawApplicability).where(ClientLawApplicability.regulation_id.in_(ids), ClientLawApplicability.in_scope.is_(True),
                                                                ClientLawApplicability.deleted_at.is_(None)))
@@ -292,7 +300,8 @@ def _law_items(db: Session, since: datetime, now: datetime) -> list[Item]:
             if row.reason_text:
                 why += f" (applies: {row.reason_text})"
             out.append(Item(row.organization_id, "laws", "new_law" if new else "law_change", ref, service=f"{label} readiness review", service_kind="readiness",
-                            why_now=why[:300], same_refs=[pc.id for pc in pcs], same_triggers=LAW_TRIGGERS))
+                            why_now=why[:300], same_refs=[*(f"lawver:{x.id}" for x in versions), *(pc.id for pc in pcs)],
+                            same_triggers=LAW_TRIGGERS))
     return out
 
 
