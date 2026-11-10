@@ -149,10 +149,12 @@ test('auditor sets up a client, the Chief Auditor approves and the client signs 
   await expect(page.getByText('Department list confirmed.')).toBeVisible();
   await page.getByRole('navigation', { name: 'People sections' }).getByRole('link', { name: /^Users/ }).click();
   const csv = 'first_name,last_name,email,job_title,department,role,location\nPriya,Shah,priya.shah@abccorp.example,Head of HR,HR and recruiting,Department Compliance Lead,New York NY\nRaj,Iyer,raj.iyer@abccorp.example,CTO,Engineering and IT,Department Compliance Lead,Chicago IL\nLee,Park,lee.park@abccorp.example,Counsel,Legal,Contributor,Chicago IL\n';
-  await page.getByLabel('User list CSV').setInputFiles({ name: 'user_list.csv', mimeType: 'text/csv', buffer: Buffer.from(csv) });
+  await page.getByLabel('User list file').setInputFiles({ name: 'user_list.csv', mimeType: 'text/csv', buffer: Buffer.from(csv) });
   await expect(page.getByText("Row 4: Department 'Legal' is not in the department list.")).toBeVisible();
-  await page.getByRole('button', { name: 'Import 2 ready rows' }).click();
-  await expect(page.getByText('Imported 2 users.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Fix the file to import' })).toBeDisabled();  // nothing is imported until every row is correct
+  await page.getByLabel('User list file').setInputFiles({ name: 'user_list.csv', mimeType: 'text/csv', buffer: Buffer.from(csv.split('\nLee,Park')[0] + '\n') });
+  await page.getByRole('button', { name: 'Import 2 changes' }).click();
+  await expect(page.getByText('Imported user_list.csv: 2 people added and invited.')).toBeVisible();
   await page.getByLabel('Not appointed', { exact: true }).first().click();
   await expect(page.getByText('Not appointed: the Chief AI Compliance Officer covers this role').first()).toBeVisible();
   await page.screenshot({ path: 'screenshots/p4-people.png', fullPage: true });

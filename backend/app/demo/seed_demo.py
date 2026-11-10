@@ -254,7 +254,20 @@ def _people_titles(db: Session, titles: dict[str, str]) -> None:
         u = db.scalar(select(User).where(User.email == email))
         if u is not None:
             u.job_title = title
+            u.job_level = _level_for(title)
     db.commit()
+
+
+def _level_for(title: str) -> str:
+    """A plausible job level for a demo job title."""
+    t = title.casefold()
+    if t.startswith(("chief", "vp ", "vice president")) or " officer" in t and "protection" not in t:
+        return "executive"
+    if t.startswith("head of") or "director" in t:
+        return "department_head"
+    if "manager" in t or t.endswith(" lead") or "protection officer" in t:
+        return "manager"
+    return "level_2"
 
 
 # ---- ABC Corp

@@ -11,7 +11,7 @@ type History = { user: { id: string; name: string; email: string; removed: boole
 
 /** What changed, in words: "Contributor for Finance", "Finance to Legal". */
 export function changeText(e: ChangeEvent): string {
-  if (e.kind === 'department') return e.from ? `${e.from} to ${e.to ?? 'no department'}` : `Put in ${e.to ?? '—'}`;
+  if (e.kind === 'department') return e.from ? `${e.from} to ${e.to ?? 'no department'}` : e.to ?? '—';
   if (e.change === 'Role removed') return `${e.from ?? e.role ?? ''} removed`;
   if (e.change === 'Role given') return `${e.to ?? e.role ?? ''}${e.department ? ` for ${e.department}` : ''}`;
   return `${e.role ?? ''}: ${e.change.toLowerCase()}`;

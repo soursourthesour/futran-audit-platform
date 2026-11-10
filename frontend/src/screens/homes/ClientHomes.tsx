@@ -48,7 +48,6 @@ function RoleChanges({ rows }: { rows: ChangeEvent[] }) {
       {rows.length === 0 ? <EmptyState>No role or department changes yet.</EmptyState> : (
         <div className="changes-grid">
           <DataGrid label="Role and department changes" rows={rows} rowId={(c) => c.id} rowLabel={(c) => `${c.name ?? 'Sign-off role'}, ${c.change}`} columns={columns}
-            rowActions={(c) => (c.user_id ? [{ label: 'Change history', onSelect: () => setOpen(person(c)) }] : [])}
             filters={[
               { key: 'change', label: 'Change', options: uniq(rows.map((c) => c.change)), test: (c, v) => c.change === v },
               { key: 'department', label: 'Department', options: uniq(rows.map((c) => c.department)), test: (c, v) => c.department === v || c.from === v },

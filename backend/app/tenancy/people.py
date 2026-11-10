@@ -219,7 +219,8 @@ def add_user(db: Session, settings: Settings, actor: User, org: Organization, da
         audit.record(db, actor_id=actor.id, action="role.assign", object_type="User", object_id=user.id, organization_id=org.id, after={"role": role, "department": dept.name if dept else None, "assignment_id": ra.id}, summary=f"Gave {user.name} the role {ROLE_LABELS[role]}{f' for {dept.name}' if dept else ''}")
     if dept is not None and not had_department:
         user.department_id = dept.id  # the person's own department, also for org-wide roles
-        record_department_change(db, actor, org, user, None, dept.name)
+        if role not in DEPARTMENT_ROLES:  # a department role's own audit row already names the department
+            record_department_change(db, actor, org, user, None, dept.name)
     e = current_engagement(db, org)
     if role in SIGN_OFF_KEYS or role == "client_admin":
         _sync_contact(db, e, role, user)

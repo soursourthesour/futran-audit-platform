@@ -32,4 +32,4 @@
 .changes-grid .dg-scroll { max-height: 440px; overflow: auto; border: 1px solid var(--line-soft); border-radius: var(--radius-sm); }
 .changes-grid .dg-table thead th { position: sticky; top: 0; z-index: 1; background: var(--surface); }
 .changes-grid .badge { margin-left: 6px; }
-.changes-grid .nowrap { white-space: nowrap; }
+.changes-grid .nowrap, .changes-grid td:first-child { white-space: nowrap; }

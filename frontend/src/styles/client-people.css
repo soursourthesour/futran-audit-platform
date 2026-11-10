@@ -17,7 +17,7 @@
 .subnav a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px; border-bottom: 2px solid transparent; color: var(--muted); text-decoration: none; font-size: 15px; white-space: nowrap; }
 .subnav a:hover { color: var(--navy); }
 .subnav a.active { color: var(--navy); border-bottom-color: var(--navy); font-weight: 600; }
-.people-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.people-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .inline-add { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .inline-add .input { flex: 1 1 220px; min-width: 0; }
 .roles-note summary { cursor: pointer; font-weight: 600; color: var(--navy); min-height: 44px; display: flex; align-items: center; }
