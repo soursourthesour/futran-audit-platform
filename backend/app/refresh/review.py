@@ -105,7 +105,8 @@ def apply_law_change(db: Session, change: ProposedChange, actor: User, value, ed
 
 def _after_approval(db: Session, settings: Settings, change: ProposedChange, meta: RefreshProposalMeta, actor: User, case: Case | None) -> None:
     from app.clientalerts.service import queue_for_case, queue_for_change
-    from app.sales.service import IndependenceError, open_from_trigger
+    from app.sales.models import Opportunity
+    from app.sales.service import IndependenceError, open_from_trigger, updates_proposing
     from app.staffalerts.service import resolve_run_alerts
 
     if not meta.update_letters:
@@ -124,7 +125,11 @@ def _after_approval(db: Session, settings: Settings, change: ProposedChange, met
         if meta.notify_clients:
             queue_for_change(db, settings, change, actor_id=actor.id)
         trigger = "new_law" if change.change_type == "new_law" else "law_change"
+        updates = updates_proposing(db, [change.id])  # the update that proposed this change may have its opportunity already
         for imp in db.scalars(select(ChangeImpact).where(ChangeImpact.proposed_change_id == change.id)):
+            if updates and db.scalar(select(Opportunity.id).where(Opportunity.organization_id == imp.organization_id, Opportunity.trigger == "regulatory_update",
+                                                                  Opportunity.trigger_ref.in_(updates)).limit(1)):
+                continue
             try:
                 open_from_trigger(db, imp.organization_id, trigger, change.id, service="Readiness review for the change"[:200], service_kind="readiness",
                                   why_now=change.summary, system_ids=list(imp.ai_system_ids or []), created_by=actor.id)

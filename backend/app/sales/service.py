@@ -73,6 +73,15 @@ def open_from_trigger(db: Session, org_id: str, trigger: str, trigger_ref: str |
     return o
 
 
+def updates_proposing(db: Session, change_ids: list[str]) -> list[str]:
+    """The regulatory updates that proposed these law changes. An update and the law change it proposed are one
+    opportunity per client: whichever is found first is opened and the other counts as already open (11-10 review O2)."""
+    from app.regupdates.models import RegulatoryUpdate
+
+    ids = [c for c in change_ids if c]
+    return list(db.scalars(select(RegulatoryUpdate.id).where(RegulatoryUpdate.proposed_change_id.in_(ids)))) if ids else []
+
+
 def can_send_offer(o: Opportunity) -> bool:
     return not o.needs_ca_approval or o.ca_decision == "approved"
 

@@ -76,3 +76,22 @@ def test_turning_off_letter_updates_clears_the_flag(client, db, lit, reg, settin
     db.expire_all()
     assert not any(i.letter_update_needed for i in db.scalars(select(ChangeImpact).where(ChangeImpact.proposed_change_id == pc.id)))
     assert db.query(AlertSend).count() == 0
+
+
+def test_approval_does_not_repeat_the_opportunity_of_the_update_that_proposed_the_change(client, db, lit, reg, settings):
+    """11-10 review O2: one change, one opportunity per client."""
+    from datetime import datetime
+
+    from app.regupdates.models import RegulatoryUpdate
+
+    run, (pc,) = _propose(db, lit, settings, [change(reg["law"])])
+    u = RegulatoryUpdate(reference="RU-077", change_type="enforcement_action", law_name="Illinois", title="Date moved", summary="s", status="published",
+                         published_at=datetime(2026, 11, 1), regulation_id=reg["law"].id, proposed_change_id=pc.id)
+    db.add(u)
+    db.flush()
+    db.add(Opportunity(organization_id=lit["abc"].id, trigger="regulatory_update", trigger_ref=u.id, service="Advisory", stage="new"))
+    db.commit()
+    login_as(client, db, lit["chief"])
+    assert client.post(f"/api/v1/reg/changes/{pc.id}/decide", json={"action": "approve"}).status_code == 200
+    db.expire_all()
+    assert [o.trigger for o in db.scalars(select(Opportunity).where(Opportunity.organization_id == lit["abc"].id))] == ["regulatory_update"]

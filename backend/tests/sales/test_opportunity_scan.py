@@ -382,3 +382,58 @@ def test_o1_wording_changes_only_are_still_not_opportunities(db, world):
     db.commit()
     scan.run_now(db, world["admin"], now=NOW)
     assert [x for x in _mine(db, "law_change", "new_law") if x.organization_id == world["nw"].id] == []
+
+
+def _update_proposing(db, org, reg, pc, at, ref="RU-050"):
+    u = RegulatoryUpdate(reference=ref, change_type="enforcement_action", law_name=reg.short_name, title="Penalty raised", summary="s", status="published",
+                         published_at=at, regulation_id=reg.id, proposed_change_id=pc.id)
+    db.add(u)
+    db.flush()
+    db.add(RegulatoryAlert(organization_id=org.id, update_id=u.id, affected_system_ids=[], match_reason="m"))
+    return u
+
+
+def _nw_opps(db, world):
+    return [(o.trigger, o.trigger_ref) for o in _mine(db) if o.organization_id == world["nw"].id and o.trigger != "renewal_audit"]
+
+
+def test_o2_an_update_and_the_law_change_it_proposed_open_one_opportunity(db, world):
+    reg = _other_law(db, world)
+    v = _ver(db, reg, NOW - timedelta(days=2), 9, "law.penalty_text", "Penalty raised")
+    pc = db.scalar(select(ProposedChange).where(ProposedChange.applied_version_id == v.id))
+    _in_scope(db, world["nw"], reg, v)
+    _update_proposing(db, world["nw"], reg, pc, NOW - timedelta(days=3))
+    db.commit()
+    run = scan.run_now(db, world["admin"], now=NOW)
+    assert _nw_opps(db, world) == [("law_change", f"lawver:{v.id}")]
+    assert run.counts["already_open"] == 1
+
+
+def test_o2_an_update_opened_first_stops_the_law_change_it_proposed(db, world):
+    reg = _other_law(db, world)
+    pc = ProposedChange(change_type="amendment", regulation_id=reg.id, field_path="law.penalty_text", summary="Penalty raised", status="pending")
+    db.add(pc)
+    db.flush()
+    u = _update_proposing(db, world["nw"], reg, pc, NOW - timedelta(days=3))
+    db.commit()
+    scan.run_now(db, world["admin"], now=NOW - timedelta(days=1))
+    assert _nw_opps(db, world) == [("regulatory_update", u.id)]
+    v = LawVersion(regulation_id=reg.id, version_no=9, approved_at=NOW - timedelta(hours=12), approved_by="chief-auditor", change_summary="Penalty raised")
+    db.add(v)
+    db.flush()
+    pc.status, pc.applied_version_id, reg.current_version_id = "approved", v.id, v.id
+    _in_scope(db, world["nw"], reg, v)
+    db.commit()
+    scan.run_now(db, world["admin"], now=NOW)
+    assert _nw_opps(db, world) == [("regulatory_update", u.id)]
+
+
+def test_o2_a_law_change_opened_at_approval_stops_the_update_that_proposed_it(db, world):
+    reg = _other_law(db, world)
+    v = _ver(db, reg, NOW - timedelta(days=40), 9, "law.penalty_text", "Penalty raised")  # before the window: the update alone is in it
+    pc = db.scalar(select(ProposedChange).where(ProposedChange.applied_version_id == v.id))
+    db.add(Opportunity(organization_id=world["nw"].id, trigger="law_change", trigger_ref=pc.id, service="Readiness review for the change", stage="new"))
+    _update_proposing(db, world["nw"], reg, pc, NOW - timedelta(days=3))
+    db.commit()
+    scan.run_now(db, world["admin"], now=NOW)
+    assert _nw_opps(db, world) == [("law_change", pc.id)]

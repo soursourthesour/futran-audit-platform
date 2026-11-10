@@ -291,6 +291,7 @@ def _law_items(db: Session, since: datetime, now: datetime) -> list[Item]:
         what = ("; ".join(dict.fromkeys(pc.summary for pc in pcs if pc.field_path not in COSMETIC_PATHS))
                 or "; ".join(dict.fromkeys(x.change_summary for x in material if x.change_summary)) or "a new version was approved")
         ref = f"lawver:{v.id}"
+        updates = sales.updates_proposing(db, [pc.id for pc in pcs])  # an update that proposed one of these changes is the same opportunity
         rows = db.scalars(select(ClientLawApplicability).where(ClientLawApplicability.regulation_id.in_(ids), ClientLawApplicability.in_scope.is_(True),
                                                                ClientLawApplicability.deleted_at.is_(None)))
         for row in {r.organization_id: r for r in rows}.values():
@@ -300,14 +301,15 @@ def _law_items(db: Session, since: datetime, now: datetime) -> list[Item]:
             if row.reason_text:
                 why += f" (applies: {row.reason_text})"
             out.append(Item(row.organization_id, "laws", "new_law" if new else "law_change", ref, service=f"{label} readiness review", service_kind="readiness",
-                            why_now=why[:300], same_refs=[*(f"lawver:{x.id}" for x in versions), *(pc.id for pc in pcs)],
-                            same_triggers=LAW_TRIGGERS))
+                            why_now=why[:300], same_refs=[*(f"lawver:{x.id}" for x in versions), *(pc.id for pc in pcs), *updates],
+                            same_triggers=(*LAW_TRIGGERS, "regulatory_update")))
     return out
 
 
 def _update_items(db: Session, since: datetime, now: datetime) -> list[Item]:
     """(b) Published regulatory updates matched to a client. The reference is the update, as for "Create advisory
-    opportunity" on the update itself, so the two never open the same opportunity twice."""
+    opportunity" on the update itself, so the two never open the same opportunity twice. An update that proposed a law
+    change and that change are one opportunity: whichever is found first is opened."""
     from app.regupdates.models import RegulatoryAlert, RegulatoryUpdate
     from app.regupdates.service import CHANGE_LABELS
 
@@ -330,9 +332,27 @@ def _update_items(db: Session, since: datetime, now: datetime) -> list[Item]:
             if a.opportunity_id is None:
                 a.opportunity_id = o.id
 
+        same = _law_refs_of_change(db, u.proposed_change_id) if u.proposed_change_id else []
         out.append(Item(a.organization_id, "regulatory_updates", "regulatory_update", u.id, service=f"{u.law_name or 'Regulatory'} advisory: {u.title}"[:200],
-                        service_kind="advisory", why_now=why[:300], system_ids=list(a.affected_system_ids or []), after=link))
+                        service_kind="advisory", why_now=why[:300], system_ids=list(a.affected_system_ids or []), after=link,
+                        same_refs=same, same_triggers=("regulatory_update", *LAW_TRIGGERS) if same else ()))
     return out
+
+
+def _law_refs_of_change(db: Session, change_id: str) -> list[str]:
+    """The references a law opportunity for this change can carry: the change itself (opened at approval) and the
+    version it wrote, or any later version of the law, since a scan names the newest version approved in its window."""
+    from app.laws.publish import chain_ids
+    from app.regmaster.models import LawVersion, ProposedChange
+
+    refs = [change_id]
+    pc = db.get(ProposedChange, change_id)
+    v = db.get(LawVersion, pc.applied_version_id) if pc is not None and pc.applied_version_id else None
+    if v is not None:
+        ids = chain_ids(db, v.regulation_id) or [v.regulation_id]
+        later = db.scalars(select(LawVersion.id).where(LawVersion.regulation_id.in_(ids), LawVersion.approved_at >= v.approved_at))
+        refs += [f"lawver:{x}" for x in dict.fromkeys([v.id, *later])]
+    return refs
 
 
 def _year_later(d: date, years: int) -> date:
