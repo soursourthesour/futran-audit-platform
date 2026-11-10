@@ -323,3 +323,39 @@ def test_company_wide_sheet_is_not_read_as_a_department_of_that_name(client, db,
 
     ola = db.scalar(select(User).where(User.email == "ola@abc.test"))
     assert ola.department_id is None
+
+
+# ---- P6: invitations go out only after the upload is saved
+def test_no_invitation_is_sent_when_saving_the_upload_fails(client, db, people, live, monkeypatch):
+    import pytest
+    from sqlalchemy import select
+    from sqlalchemy.exc import OperationalError
+    from sqlalchemy.orm import Session
+
+    from app.mail import delivery
+    from app.tenancy.models import User
+    from tests.tenancy.test_people_import_1103 import NEW_HEADER, _dept, apply
+
+    cid, e, maria = live
+    login_as(client, db, maria)
+    _dept(client, cid, "Finance")
+    sent: list[list[str]] = []
+    real_deliver, real_commit = delivery.deliver, Session.commit
+    monkeypatch.setattr(delivery, "deliver", lambda db_, s, sender, env, msg: (sent.append(env.to), real_deliver(db_, s, sender, env, msg))[1])
+
+    def locked(self):  # only the commit that would save the uploaded person fails
+        if self is not db and self.execute(select(User.id).where(User.email == "nia@abc.test")).first():
+            raise OperationalError("COMMIT", {}, Exception("database is locked"))
+        return real_commit(self)
+
+    monkeypatch.setattr(Session, "commit", locked)
+    text = (NEW_HEADER + "\nNia New,nia@abc.test,Finance,,,Contributor\n").encode()
+    with pytest.raises(OperationalError):
+        apply(client, cid, text, "u.csv")
+    assert sent == []
+    monkeypatch.setattr(Session, "commit", real_commit)
+    db.expire_all()
+    assert db.scalar(select(User).where(User.email == "nia@abc.test")) is None
+    # once saving works, the same upload invites her
+    assert apply(client, cid, text, "u.csv").status_code == 200
+    assert ["nia@abc.test"] in sent

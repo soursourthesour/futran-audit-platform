@@ -4,7 +4,7 @@
 or updated (parent, head, headcount), people added or given new AI compliance roles, and every error and warning with
 its sheet and row. `apply_import` re-plans the same file, refuses it while any error remains, and otherwise applies it
 through the same functions the People screen uses, so the audit log and notifications are the same. Invitations and
-notifications go out only after every row has been applied; any failure rolls the whole upload back."""
+notifications go out only after every row has been applied and saved; any failure before that rolls the whole upload back."""
 from dataclasses import dataclass, field
 
 from sqlalchemy import func, select
@@ -295,6 +295,9 @@ def apply_import(db: Session, settings: Settings, actor: User, org: Organization
         db.flush()
     except AppError as exc:
         raise Invalid(NOTHING_IMPORTED, exc.errors or [{"row": None, "field": "file", "message": exc.detail}]) from exc
+    # Save the upload before anyone is emailed: if saving fails (on SQLite, "database is locked"), no one gets a link
+    # to an account that does not exist. The invitations and notices are saved by the request's own commit.
+    db.commit()
     for send in defer:
         send()
     out = p.to_json()
