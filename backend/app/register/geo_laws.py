@@ -9,6 +9,9 @@
    the law's AI feature in the law library is one the system has. Developer-only laws are left out for bought systems,
    and only statutes and regulations are suggested (not bills, guidance or voluntary frameworks).
 
+3. A law a person decided for the whole company (an override in the applicability results) follows that decision:
+   ruled out, it is not suggested; ruled in, it is suggested as in scope for the company.
+
 Nothing is added to a system until a person accepts a suggestion.
 """
 from __future__ import annotations
@@ -112,9 +115,11 @@ def suggest(db: Session, org_id: str, d: Draft, *, exclude: set[str] | None = No
     exclude = exclude or set()
     f = facts(d)
     feats = features(d)
-    manual = {}
+    manual, decided_for_company = {}, {}
     for row in db.scalars(select(ClientLawApplicability).where(ClientLawApplicability.organization_id == org_id, ClientLawApplicability.deleted_at.is_(None))):
         manual[row.regulation_id] = ((row.scope_answers or {}).get("manual") or {})
+        if row.override and row.in_scope is not None:  # a person decided the law for the whole company (as the engine keeps it)
+            decided_for_company[row.regulation_id] = row
     tested = set(db.scalars(select(ScopeTest.law_version_id).distinct()))
     rows = db.execute(select(Regulation, LawVersion).join(LawVersion, LawVersion.id == Regulation.current_version_id)
                       .where(Regulation.superseded_by_id.is_(None), Regulation.retired_in_version_id.is_(None))).all()
@@ -129,7 +134,16 @@ def suggest(db: Session, org_id: str, d: Draft, *, exclude: set[str] | None = No
         return f"The people whose data it uses are in {_the(_most_specific(dd).name)}" if dd else ""
 
     for reg, v in rows:
-        if v.id not in tested or reg.id in exclude:
+        row = decided_for_company.get(reg.id)
+        if row is None or reg.id in exclude:
+            continue
+        decided.add(reg.id)
+        if row.in_scope:
+            why = " ".join((row.reason_text or "").split())
+            out.append(_out(db, reg, (f"In scope for the company: {why}" if why else "In scope for the company")[:600], "company"))
+
+    for reg, v in rows:
+        if v.id not in tested or reg.id in exclude or reg.id in decided:
             continue
         decided.add(reg.id)
         if repealed(v):
@@ -174,7 +188,8 @@ def suggest(db: Session, org_id: str, d: Draft, *, exclude: set[str] | None = No
         label = FEATURE_LABELS.get(reg.feature, reg.feature)
         reason = f"{j.name} law on {label[:1].lower()}{label[1:]}. {place}."
         out.append(_out(db, reg, reason[:600], "feature"))
-    return sorted(out, key=lambda x: (x["basis"] != "scope_test", x["jurisdiction"] or "", x["short_name"]))
+    order = {"company": 0, "scope_test": 1, "feature": 2}
+    return sorted(out, key=lambda x: (order[x["basis"]], x["jurisdiction"] or "", x["short_name"]))
 
 
 def _codes_under(j: Jurisdiction, geo: dict[str, Jurisdiction]) -> set[str]:

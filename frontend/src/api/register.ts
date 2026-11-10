@@ -34,7 +34,7 @@ export type RegSystem = {
 export type UserSelection = { job_levels?: string[]; compliance_roles?: string[]; job_titles?: string[]; user_ids?: string[] };
 /** A place (11-03 C14): a country code, optionally a state or region code within it, and a city name. */
 export type Place = { country: string; region?: string | null; city?: string | null };
-export type LawSuggestion = { regulation_id: string; short_name: string; reason: string | null; jurisdiction?: string | null; jurisdiction_code?: string | null; basis?: 'scope_test' | 'feature' };
+export type LawSuggestion = { regulation_id: string; short_name: string; reason: string | null; jurisdiction?: string | null; jurisdiction_code?: string | null; basis?: 'company' | 'scope_test' | 'feature' };
 export type RegPerson = { id: string; name: string; job_title: string | null; department_id: string | null; job_level?: string | null; compliance_roles?: string[] };
 
 export type RegisterCan = { edit: boolean; org_wide: boolean; import_inventory: boolean; add_law: boolean; remove_law: boolean; fill_roles: boolean; company_roles: boolean; approve_go_live: boolean; submit_go_live: boolean; record_history: boolean; committee_members: boolean; record_committee: boolean };
