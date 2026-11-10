@@ -23,7 +23,8 @@ TYPE_LABELS = {"agent": "AI agent", "vendor_app": "Vendor app with AI", "embedde
 SOURCING_LABELS = {"vendor": "Bought from vendor", "in_house": "Built in-house", "contractor": "Built by contractor", "shadow": "Free or personal tool (shadow AI)"}
 STAGE_LABELS = {"proposed": "Proposed", "in_development": "In development / procurement", "ready_for_go_live": "Ready for go-live", "live": "Live", "retired": "Retired"}
 AI_PROVIDERS = {"openai": "OpenAI", "anthropic": "Anthropic", "azure_openai": "Microsoft Azure OpenAI", "google": "Google", "amazon_bedrock": "Amazon Bedrock",
-                "meta_open": "Meta (open model)", "in_house": "In-house model", "unknown": "Unknown, vendor did not disclose"}
+                "meta_open": "Meta (open model)", "mistral": "Mistral AI", "cohere": "Cohere", "xai": "xAI", "deepseek": "DeepSeek",
+                "in_house": "In-house model", "unknown": "Unknown, vendor did not disclose"}
 ALGORITHM_TYPES = {"llm_agent": "Large language model (LLM) agent", "llm": "Large language model (LLM)", "ranking": "Ranking or scoring model", "classifier": "Classifier",
                    "regression": "Regression", "computer_vision": "Computer vision", "speech": "Speech analysis", "rules_ml": "Rules plus machine learning", "other": "Other"}
 HOSTING = {"vendor_cloud_us": "Vendor cloud (US)", "vendor_cloud_eu": "Vendor cloud (EU)", "vendor_cloud_other": "Vendor cloud (other region)", "our_cloud": "Our cloud tenant", "on_premises": "On premises"}
@@ -272,7 +273,11 @@ def clean(db: Session, org: Organization, data: dict, current: RegisterSystem | 
         out["vendor_id"] = v or None
     if data.get("vendor_name"):
         out["_vendor_name"] = _text(data.get("vendor_name"), 200)
-    for f, allowed, msg in (("ai_provider", AI_PROVIDERS, "Choose the underlying AI provider."), ("algorithm_type", ALGORITHM_TYPES, "Choose the algorithm type."),
+    if "ai_provider" in data:
+        from app.register.catalogue import provider_codes
+
+        out["ai_provider"] = _choice(data.get("ai_provider"), provider_codes(db) | set(AI_PROVIDERS), "ai_provider", "Choose the underlying AI provider.", errs)
+    for f, allowed, msg in (("algorithm_type", ALGORITHM_TYPES, "Choose the algorithm type."),
                             ("hosting", HOSTING, "Choose where it is hosted."), ("vendor_trains_on_data", TRAINS_ON_DATA, "Answer yes, no or unknown."),
                             ("agentassure_status", AGENTASSURE, "Choose the pre-release testing."), ("decision_impact", DECISION_IMPACT, "Choose the effect on decisions about people."),
                             ("autonomy", AUTONOMY, "Choose how much it acts on its own.")):
@@ -530,6 +535,7 @@ def create_system(db: Session, actor: User, org: Organization, data: dict, *, or
     db.add(s)
     _write(db, actor, org, s, v)
     log_change(db, actor, s, "created", None, f"{s.reference} {s.name}", reason, raw=True)
+    _remember_model(db, actor, s)
     _engine_facts_changed(db, s)
     audit.record(db, actor_id=actor.id, action="register.create", obj=s, after={"name": s.name, "reference": s.reference, "stage": s.stage, "origin": origin},
                  summary=f"Added {s.reference} {s.name} to the AI system register")
@@ -557,6 +563,8 @@ def update_system(db: Session, actor: User, s: RegisterSystem, data: dict, *, re
         from app.tracing.agents import register_autonomy_changed
 
         register_autonomy_changed(db, settings, actor, s, *changed["autonomy"])
+    if {"model_name", "ai_provider"} & set(changed):
+        _remember_model(db, actor, s)
     if s.risk_tier != tier_before:
         log_change(db, actor, s, "risk_tier", f"Tier {tier_before}" if tier_before else None, f"Tier {s.risk_tier}", "Recalculated from the system's data and decisions.", batch_id=batch_id, raw=True)
     if changed:
@@ -566,6 +574,13 @@ def update_system(db: Session, actor: User, s: RegisterSystem, data: dict, *, re
         audit.record(db, actor_id=actor.id, action="register.edit", obj=s, before={k: display(db, k, o) for k, (o, _) in changed.items()},
                      after={k: display(db, k, n) for k, (_, n) in changed.items()} | ({"reason": reason} if reason else {}), summary=f"Edited {s.reference} {s.name}")
     return changed
+
+
+def _remember_model(db: Session, actor: User | None, s: RegisterSystem) -> None:
+    """A model typed under "Other" is offered again on the client's later systems (11-03 C12)."""
+    from app.register.catalogue import remember_client_model
+
+    remember_client_model(db, actor.id if actor else None, s.organization_id, s.ai_provider, s.model_name)
 
 
 def retire(db: Session, actor: User, s: RegisterSystem, reason: str) -> RegisterSystem:

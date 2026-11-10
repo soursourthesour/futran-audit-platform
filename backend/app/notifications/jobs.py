@@ -319,3 +319,13 @@ def _wsh(module: str, name: str):
 
 JOBS |= {"regulatory_digest": _wsh("app.regupdates.service", "run_weekly_digest"), "reassessment_schedule": _wsh("app.impact.schedule", "run_reassessment_schedule")}
 JOBS["opportunity_scan"] = _wsh("app.sales.scan", "run_scheduled")  # 11-03 F8: every N days once the Futran Admin turns it on
+
+
+def run_model_catalogue_monthly(db: Session, settings: Settings, now) -> int:
+    """11-03 C12: once a month, propose AI model list additions (AI connected) or remind the Futran Admin to review it."""
+    from app.register.catalogue import run_monthly
+
+    return run_monthly(db, settings, _dt(now))
+
+
+JOBS["model_catalogue_monthly"] = run_model_catalogue_monthly

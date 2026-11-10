@@ -1,0 +1,64 @@
+# AI model catalogue (11-03 C12): vendors and their current models, offered in the register's "Model or algorithm" field.
+# Loaded once into an empty catalogue; after that the Futran Admin keeps it (Reference data > AI models) and the monthly
+# check proposes additions for the admin to accept or reject.
+#
+# Names checked on 10 November 2026 against each vendor's own documentation (the `source` of each vendor):
+#   OpenAI      https://developers.openai.com/api/docs/changelog            (GPT-6 Astra 3 Sep 2026, GPT-6 Sol/Luna 22 Sep,
+#                                                                              GPT-6.1 Sol 29 Sep, GPT-6.1 Terra 26 Oct, GPT-5.6 family 9 Jul,
+#                                                                              GPT-5.5 24 Apr, GPT-5.4 5 Mar, GPT-5.4 mini/nano 17 Mar)
+#   Anthropic   https://platform.claude.com/docs/en/about-claude/models/overview  (current: Fable 5.2, Opus 5.5, Sonnet 5.5, Haiku 5.5;
+#                                                                              earlier models still listed: Opus 5, Sonnet 5, Opus 4.8, Opus 4.7, Sonnet 4.6, Haiku 4.5)
+#   Google      https://ai.google.dev/gemini-api/docs/models                 (Gemini 4 Argon, 3.8 Flash, 3.6 Flash, 3.5 Flash-Lite, 3.1 Pro preview,
+#                                                                              2.5 Pro / Flash / Flash-Lite)
+#   Amazon      https://docs.aws.amazon.com/nova/latest/userguide/what-is-nova.html (Nova Premier, Pro, Lite, Micro)
+#   Meta        https://www.llama.com/models/                                (Llama 4 Maverick, Llama 4 Scout, Llama 3.2, Llama 3.1)
+#   Mistral AI  https://docs.mistral.ai/getting-started/models/models_overview/ (Mistral Large 4, Medium 3.5, Small 4, Ministral 3, Magistral, Codestral, Devstral)
+#   Cohere      https://docs.cohere.com/docs/models                          (Command A, Command A Reasoning, Vision, Translate; Command R+, Command R)
+#   xAI         https://docs.x.ai/docs/models                                (Grok 4.7, Grok 4.6, Grok 4.3)
+#   DeepSeek    https://api-docs.deepseek.com/quick_start/pricing            (DeepSeek V4 Pro, DeepSeek V4 Flash)
+# Microsoft Azure OpenAI (Microsoft Foundry) serves OpenAI's models under deployment names the client chooses, so its list
+# repeats the OpenAI models most often deployed there; "Other" records a deployment name.
+# `code` is the value saved as a register system's underlying AI provider; the first eight match the codes used before 11-03.
+vendors:
+  - code: openai
+    name: OpenAI
+    source: https://developers.openai.com/api/docs/changelog
+    models: [GPT-6 Astra, GPT-6 Sol, GPT-6 Luna, GPT-6.1 Sol, GPT-6.1 Terra, GPT-5.6 Sol, GPT-5.6 Terra, GPT-5.6 Luna, GPT-5.5, GPT-5.5 Pro, GPT-5.4, GPT-5.4 mini,
+             GPT-5.4 nano, GPT-4.1, GPT-4o, gpt-image-2, gpt-realtime-2.1, gpt-transcribe]
+  - code: anthropic
+    name: Anthropic
+    source: https://platform.claude.com/docs/en/about-claude/models/overview
+    models: [Claude Fable 5.2, Claude Opus 5.5, Claude Sonnet 5.5, Claude Haiku 5.5, Claude Opus 5, Claude Sonnet 5, Claude Opus 4.8, Claude Opus 4.7, Claude Sonnet 4.6,
+             Claude Haiku 4.5]
+  - code: azure_openai
+    name: Microsoft Azure OpenAI
+    source: https://developers.openai.com/api/docs/changelog
+    models: [GPT-6 Sol, GPT-5.6 Sol, GPT-5.5, GPT-5.4, GPT-5.4 mini, GPT-4.1, GPT-4o]
+  - code: google
+    name: Google
+    source: https://ai.google.dev/gemini-api/docs/models
+    models: [Gemini 4 Argon, Gemini 3.8 Flash, Gemini 3.6 Flash, Gemini 3.5 Flash-Lite, Gemini 3.1 Pro (preview), Gemini 2.5 Pro, Gemini 2.5 Flash, Gemini 2.5 Flash-Lite]
+  - code: amazon_bedrock
+    name: Amazon Bedrock
+    source: https://docs.aws.amazon.com/nova/latest/userguide/what-is-nova.html
+    models: [Amazon Nova Premier, Amazon Nova Pro, Amazon Nova Lite, Amazon Nova Micro]
+  - code: meta_open
+    name: Meta (open model)
+    source: https://www.llama.com/models/
+    models: [Llama 4 Maverick, Llama 4 Scout, Llama 3.2, Llama 3.1]
+  - code: mistral
+    name: Mistral AI
+    source: https://docs.mistral.ai/getting-started/models/models_overview/
+    models: [Mistral Large 4, Mistral Medium 3.5, Mistral Small 4, Ministral 3, Magistral Medium, Magistral Small, Codestral, Devstral]
+  - code: cohere
+    name: Cohere
+    source: https://docs.cohere.com/docs/models
+    models: [Command A, Command A Reasoning, Command A Vision, Command A Translate, Command R+, Command R]
+  - code: xai
+    name: xAI
+    source: https://docs.x.ai/docs/models
+    models: [Grok 4.7, Grok 4.6, Grok 4.3]
+  - code: deepseek
+    name: DeepSeek
+    source: https://api-docs.deepseek.com/quick_start/pricing
+    models: [DeepSeek V4 Pro, DeepSeek V4 Flash]

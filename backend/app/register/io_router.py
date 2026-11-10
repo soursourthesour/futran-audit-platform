@@ -99,3 +99,13 @@ class _Blank:
     department_id = None
     company_wide = False
     stage = "proposed"
+
+
+@router.get("/register/model-catalogue")
+def model_catalogue(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+    """Vendors and their models for the "Model or algorithm" field, with this client's own "Other" models (11-03 C12)."""
+    from app.register.catalogue import client_catalogue
+
+    org = client_org(actor)
+    authorize(db, actor, Action.VIEW_REGISTER, org_id=org.id, list_view=True)
+    return client_catalogue(db, org.id)

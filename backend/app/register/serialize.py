@@ -15,6 +15,16 @@ def person(db: Session, uid: str | None) -> dict | None:
     return {"id": u.id, "name": u.name, "job_title": u.job_title} if u else None
 
 
+def _provider_label(db: Session, code: str | None) -> str | None:
+    if not code:
+        return None
+    if code in svc.AI_PROVIDERS:
+        return svc.AI_PROVIDERS[code]
+    from app.register.catalogue import provider_label
+
+    return provider_label(db, code)
+
+
 def system_out(db: Session, s: RegisterSystem, actor: Actor | None, *, full: bool = False) -> dict:
     from app.policy.actions import Action
     from app.register.gate import gate_for, role_summary
@@ -36,7 +46,7 @@ def system_out(db: Session, s: RegisterSystem, actor: Actor | None, *, full: boo
         "sourcing": s.sourcing, "sourcing_label": svc.SOURCING_LABELS.get(s.sourcing, s.sourcing), "stage": s.stage, "stage_label": svc.STAGE_LABELS.get(s.stage, s.stage),
         "department": {"id": dept.id, "name": dept.name} if dept else None, "company_wide": s.company_wide, "purpose": s.purpose,
         "users_scope": s.users_scope, "users_description": s.users_description, "user_count": s.user_count, "owner": person(db, s.owner_user_id),
-        "vendor": {"id": vendor.id, "name": vendor.legal_name} if vendor else None, "ai_provider": s.ai_provider, "ai_provider_label": svc.AI_PROVIDERS.get(s.ai_provider or ""),
+        "vendor": {"id": vendor.id, "name": vendor.legal_name} if vendor else None, "ai_provider": s.ai_provider, "ai_provider_label": _provider_label(db, s.ai_provider),
         "model_name": s.model_name, "model_version": s.model_version, "algorithm_type": s.algorithm_type, "algorithm_label": svc.ALGORITHM_TYPES.get(s.algorithm_type or ""),
         "hosting": s.hosting, "vendor_trains_on_data": s.vendor_trains_on_data, "vendor_documents": s.vendor_documents or [], "autonomy": s.autonomy,
         "guardrail_policy_ref": s.guardrail_policy_ref, "agentassure_status": s.agentassure_status, "decision_impact": s.decision_impact,

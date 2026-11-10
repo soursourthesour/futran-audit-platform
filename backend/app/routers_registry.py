@@ -38,3 +38,6 @@ ROUTER_MODULES += ["connectors.router", "monitoring.router"]
 
 # 11-03 fixes WS-N: counts on navigation entries (F6)
 ROUTER_MODULES += ["nav.router"]
+
+# 11-03 fixes WS-R: the Futran Admin's AI model list (C12)
+ROUTER_MODULES += ["register.catalogue_router"]
