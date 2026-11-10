@@ -4,20 +4,22 @@ import { api, errorMessage, fieldErrors } from '@/api/client';
 import { hasRole, useMe } from '@/api/auth';
 import { TYPE_LABELS, useFeatures, useLawJurisdictions, type Law } from '@/api/laws';
 import { LawPicker } from '@/components/LawPicker';
+import { ModelCatalogue } from './ModelCatalogue';
 import { Alert, Badge, Button, ButtonLink, Card, Checkbox, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField, fmtDate, fmtDateTime } from '@/components/ui';
 
-type Tab = 'laws' | 'jurisdictions' | 'import' | 'versions' | 'updates';
+type Tab = 'laws' | 'jurisdictions' | 'import' | 'versions' | 'updates' | 'models';
 
 export function ReferenceData() {
   const { data: me } = useMe();
   const isAdmin = hasRole(me ?? undefined, 'admin');
-  const [tab, setTab] = useState<Tab>('laws');
+  const [tab, setTab] = useState<Tab>(() => (new URLSearchParams(window.location.search).get('tab') === 'models' ? 'models' : 'laws'));
   const tabs: { id: Tab; label: string; admin?: boolean }[] = [
     { id: 'laws', label: 'Laws' },
     { id: 'jurisdictions', label: 'Jurisdictions' },
     { id: 'import', label: 'Import workbook', admin: true },
     { id: 'updates', label: 'Law updates', admin: true },
     { id: 'versions', label: 'Versions' },
+    { id: 'models', label: 'AI models', admin: true },
   ];
   return (
     <div className="page">
@@ -32,6 +34,7 @@ export function ReferenceData() {
       {tab === 'import' && <ImportTab />}
       {tab === 'updates' && <LawUpdatesMoved />}
       {tab === 'versions' && <VersionsTab />}
+      {tab === 'models' && <ModelCatalogue canEdit={isAdmin} />}
     </div>
   );
 }
