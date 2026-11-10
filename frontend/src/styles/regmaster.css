@@ -40,3 +40,4 @@
 .reg-two > * { min-width: 0; }
 @media (max-width: 900px) { .reg-two { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 600px) { .reg-kv { grid-template-columns: 1fr; gap: 2px; } .reg-kv dd { margin-bottom: 8px; } .letter-body { padding: 14px; } }
+.th-help { display: inline-flex; align-items: center; gap: 2px; white-space: nowrap; }  /* a column heading with its (i) (11-03 F2) */

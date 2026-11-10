@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
 import { Alert, Badge, Button, Card, Dialog, Loading, PageHeader, SelectField, TextArea, TextField } from '@/components/ui';
+import { FieldHelp } from '@/components/ui/FieldHelp';
 import { STAGE_OPTIONS, stageLabel, type RoleCatalogue as Catalogue, type RoleRow } from '@/api/regmaster';
 import { roleHelp as H } from '@/help/regmaster';
 import { RegTabs } from './LawLibrary';
@@ -24,6 +25,7 @@ export function RoleCatalogue() {
       <PageHeader title="Role and committee catalogue"
         subtitle="The 21 governance roles and which law requires each. A client's required roles are the union of the columns for the laws that apply to them; where laws differ, the stricter level and the earlier stage win. A refresh can propose a change to any cell." />
       <RegTabs />
+      <p className="small" style={{ marginTop: 0, maxWidth: 880 }}>Needed by is the point in an AI system's life by which a role must be filled. A required role still empty at program set-up, procurement, development or go-live blocks that system's go-live approval in the client's AI system register; on a system already live the empty role shows as a finding. Ongoing and yearly roles never block go-live.</p>
       {flash && <Alert tone="success">{flash}</Alert>}
       <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 12 }}>
         <div style={{ minWidth: 220 }}><SelectField label="Show laws" help={H.show} value={show} onChange={(e) => setShow(e.target.value)} options={[{ value: 'top', label: '10 most used' }, { value: 'all', label: `All laws with role maps` }]} /></div>
@@ -32,7 +34,7 @@ export function RoleCatalogue() {
       <Card>
         <div className="reg-matrix-wrap" tabIndex={0} role="region" aria-label="Role by law matrix">
           <table className="reg-matrix">
-            <thead><tr><th>Role and responsibility</th><th>Level</th><th>Needed by</th>{d.laws.map((l) => <th key={l.id} title={l.short_name}><Link to={`/reg/${l.id}`}>{l.label}</Link></th>)}{d.can_edit && <th><span className="sr-only">Actions</span></th>}</tr></thead>
+            <thead><tr><th>Role and responsibility</th><th>Level</th><th><span className="th-help">Needed by<FieldHelp label="Needed by">{H.neededBy}</FieldHelp></span></th>{d.laws.map((l) => <th key={l.id} title={l.short_name}><Link to={`/reg/${l.id}`}>{l.label}</Link></th>)}{d.can_edit && <th><span className="sr-only">Actions</span></th>}</tr></thead>
             <tbody>
               {GROUPS.map((g) => {
                 const rows = d.roles.filter((r) => r.level === g.level);
@@ -111,7 +113,7 @@ function RoleEditor({ role, cat, onClose, onDone }: { role: RoleRow; cat: Catalo
       <TextArea label="Responsibility (shown in the intro letter) *" help={H.description} value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} error={errs.description} rows={2} />
       <div className="table-wrap" style={{ marginTop: 12 }}>
         <table className="table">
-          <thead><tr><th>Law</th><th>Level</th><th>Needed by</th><th>Basis</th></tr></thead>
+          <thead><tr><th>Law</th><th>Level</th><th><span className="th-help">Needed by<FieldHelp label="Needed by">{H.neededBy}</FieldHelp></span></th><th>Basis</th></tr></thead>
           <tbody>{cat.laws.map((l) => (
             <tr key={l.id}>
               <td>{l.label}</td>

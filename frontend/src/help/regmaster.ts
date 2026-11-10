@@ -17,7 +17,7 @@ export const bulkHelp = {
   topics: 'Adds a topic to every selected law. This is a content change and goes to the review queue.',
   appliesTo: 'Adds a party the selected laws apply to. This is a content change and goes to the review queue.',
   roleLevel: 'Sets this role on every selected law once approved. The role catalogue (M4) and every client system under these laws follow.',
-  neededBy: 'The stage by which the role must be filled.',
+  neededBy: "The point in an AI system's life by which the role must be filled. A required role still empty then blocks the system's go-live approval.",
   reason: 'Saved with each proposed change and in each law version history.',
 };
 
@@ -53,7 +53,7 @@ export const requirementHelp = {
   suggestField: "The part of the law record your suggestion is about. The Chief Auditor sees it next to the current text and your source.",
   text: 'The duty in plain words, as an auditor would test it.',
   appliesTo: 'Who carries this duty under the law.',
-  neededBy: 'The stage by which the client must meet it.',
+  neededBy: "The point in an AI system's life by which the client must meet it. A requirement due at or before go-live that is not met blocks the system's go-live approval in the client's register; on a system already live it shows as a finding.",
   role: 'The catalogue role that is responsible. Adds the role to the law\'s role map.',
   aiTypes: 'Which kinds of AI the rule appears under in the intro letter.',
   evidence: 'What the auditor asks to see to confirm the duty is met.',
@@ -68,6 +68,8 @@ export const roleHelp = {
   name: 'The role name clients see in the register and the intro letter.',
   level: 'Company roles are filled once for the whole client; system roles for each AI system; agent roles for each AI agent.',
   stage: 'The stage by which the role must be filled when no law sets an earlier one.',
+  /** 11-03 F2: what "Needed by" means for the client, wherever the column appears. */
+  neededBy: "The point in an AI system's life by which the role must be filled: program set-up, procurement, development or go-live. If a required role is still empty then, the system cannot be approved for go-live in the client's AI system register; on a system already live the empty role shows as a finding. Ongoing roles must stay filled and yearly roles are re-confirmed each year; neither blocks go-live.",
   checks: 'Extra confirmations recorded when the role is assigned, such as training and authority to override for human oversight.',
   description: 'The responsibility, as shown in the intro letter.',
   lawLevel: 'Required by the law, recommended, or not required. Changes go to the Chief Auditor as proposed changes.',

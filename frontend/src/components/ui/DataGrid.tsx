@@ -34,6 +34,8 @@ export type GridOption = { value: string; label: string };
 export type GridColumn<T> = {
   key: string;
   header: ReactNode;
+  /** An (i) placed after the header, outside the sort button (a FieldHelp). */
+  help?: ReactNode;
   /** Plain value for sorting, searching and the editor's starting value. */
   value?: (row: T) => string | number | null | undefined;
   /** Cell content; defaults to `value`. */
@@ -215,6 +217,7 @@ export function DataGrid<T>(props: DataGridProps<T>) {
                         {c.header}<span className="dg-sort-ind" aria-hidden="true">{dir === 'asc' ? '▲' : dir === 'desc' ? '▼' : '↕'}</span>
                       </button>
                     ) : c.header}
+                    {c.help}
                   </th>
                 );
               })}

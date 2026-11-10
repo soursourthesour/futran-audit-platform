@@ -5,7 +5,8 @@ import { api, errorMessage, fieldErrors } from '@/api/client';
 import { Alert, Badge, Button, Card, Checkbox, Dialog, EmptyState, FieldGroup, Loading, PageHeader, SelectField, TextArea, TextField, fmtDate } from '@/components/ui';
 import { DataGrid } from '@/components/ui/DataGrid';
 import { AI_TYPE_OPTIONS, APPLIES_OPTIONS, STAGE_OPTIONS, appliesLabel, stageLabel, statusTone, type LawRecord as Law, type Requirement } from '@/api/regmaster';
-import { requirementHelp as H } from '@/help/regmaster';
+import { requirementHelp as H, roleHelp as RH } from '@/help/regmaster';
+import { FieldHelp } from '@/components/ui/FieldHelp';
 import { RegTabs, canReviewLaws } from './LawLibrary';
 import { can, useMe } from '@/api/auth';
 import { LawCases } from '@/screens/litigation/LawCases';
@@ -87,7 +88,7 @@ export function LawRecord() {
                 { key: 'code', header: 'ID', value: (r) => r.code, render: (r) => <><strong>{r.code}</strong>{r.verify_flag && <div><Badge tone="warn">Verify</Badge></div>}</> },
                 { key: 'text', header: 'Requirement', value: (r) => r.text, render: (r) => <div style={{ minWidth: 240 }}>{r.text}{r.source_quote && <div className="reg-quote">“{r.source_quote}”</div>}</div> },
                 { key: 'applies', header: 'Applies to', value: (r) => appliesLabel(r.applies_to) },
-                { key: 'needed', header: 'Needed by', value: (r) => stageLabel(r.needed_by_stage) },
+                { key: 'needed', header: 'Needed by', help: <FieldHelp label="Needed by">{H.neededBy}</FieldHelp>, value: (r) => stageLabel(r.needed_by_stage) },
                 { key: 'evidence', header: 'Evidence the auditor checks', value: (r) => r.evidence_text ?? '', render: (r) => <span className="small">{r.evidence_text || '—'}</span> },
                 { key: 'role', header: 'Role responsible', value: (r) => r.role_name ?? '' },
                 { key: 'citation', header: 'Citation', value: (r) => r.citation ?? '', render: (r) => r.source_url ? <a href={r.source_url} target="_blank" rel="noreferrer noopener" className="small">{r.citation}</a> : <span className="small">{r.citation}</span> },
@@ -101,7 +102,7 @@ export function LawRecord() {
         <Card title="Roles and committees this law requires">
           {d.role_maps.length ? (
             <div className="table-wrap"><table className="table">
-              <thead><tr><th>Role (from the role catalogue)</th><th>Level</th><th>Needed by</th><th>Basis</th></tr></thead>
+              <thead><tr><th>Role (from the role catalogue)</th><th>Level</th><th><span className="th-help">Needed by<FieldHelp label="Needed by">{RH.neededBy}</FieldHelp></span></th><th>Basis</th></tr></thead>
               <tbody>{d.role_maps.map((m) => (
                 <tr key={m.role + m.level}><td>{m.name}</td><td>{m.level === 'required' ? <span className="reg-pill-req">Required</span> : m.level === 'recommended' ? <span className="reg-pill-rec">Recommended</span> : <span className="muted">{LEVEL_LABEL[m.level]}</span>}{m.verify && <> <Badge tone="warn">Verify</Badge></>}</td>
                   <td>{m.needed_by_stage ? stageLabel(m.needed_by_stage) : '—'}</td><td className="small">{m.basis || (m.requirements.length ? m.requirements.join(', ') : '—')}</td></tr>
