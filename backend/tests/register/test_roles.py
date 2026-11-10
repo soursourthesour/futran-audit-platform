@@ -324,7 +324,8 @@ def test_roles_show_the_geography_of_their_laws(client, db, reg, cat):
     assert rows["bias_testing_lead"]["law_geographies"] == [ja]
     assert set(rows["human_oversight_person"]["law_geographies"]) == {ja, jb}
     assert rows["accountable_executive"]["law_geographies"] == []  # no law asks for it here
-    company = client.get("/api/v1/governance/roles" if False else "/api/v1/register/company-roles")
-    if company.status_code == 200:
-        r = next(x for x in company.json()["rows"] if x["code"] == "records_retention_owner")
-        assert r["law_geographies"] == [ja]
+    reg.as_(reg.caico)
+    company = client.get("/api/v1/governance/company-roles")
+    assert company.status_code == 200
+    r = next(x for x in company.json()["rows"] if x["code"] == "records_retention_owner")
+    assert r["law_geographies"] == [ja]

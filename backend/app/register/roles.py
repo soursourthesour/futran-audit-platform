@@ -61,6 +61,14 @@ def developer_only(applies_to: list | None) -> bool:
     return bool(applies_to) and set(applies_to) <= {"developer"}
 
 
+def _jurisdiction_name(db: Session, reg) -> str | None:
+    """The jurisdiction of a law, for the "Geography of law" column (11-03 C15)."""
+    from app.reference.models import Jurisdiction
+
+    j = db.get(Jurisdiction, reg.jurisdiction_id) if reg is not None else None
+    return j.name if j else None
+
+
 def _maps(db: Session, s: RegisterSystem) -> dict[str, list[tuple]]:
     """role_id -> [(map, regulation)] over the system's laws (active, or waiting for removal approval)."""
     from app.regmaster.models import LawRoleMap
@@ -133,8 +141,9 @@ def role_rows(db: Session, s: RegisterSystem) -> list[dict]:
             stage = min((m[0].needed_by_stage or r.default_stage for m in chosen), key=lambda x: STAGE_ORDER.get(x, 9))
             sources = list(dict.fromkeys(reg.short_name for _, reg in required + [m for m in ms if m not in required]))  # every source, strictest first
             basis = "; ".join(dict.fromkeys(m[0].basis_text for m in ms if m[0].basis_text)) or None
+            geos = list(dict.fromkeys(_jurisdiction_name(db, reg) for _, reg in required + [m for m in ms if m not in required]))
         else:
-            stage, sources, basis = r.default_stage, [r.main_sources] if r.main_sources else [], None
+            stage, sources, basis, geos = r.default_stage, [r.main_sources] if r.main_sources else [], None, []
         requirement = "required" if required else "recommended"
         if r.level == "company":
             a = own.get(r.id) if own.get(r.id) is not None and own[r.id].override else company.get(r.id)
@@ -145,7 +154,7 @@ def role_rows(db: Session, s: RegisterSystem) -> list[dict]:
         rows.append({
             "role_id": r.id, "code": r.code, "number": r.number, "name": r.name, "description": r.description, "level": r.level, "extra_checks": r.extra_checks,
             "requirement": requirement, "needed_by": stage, "needed_by_label": STAGE_LABELS.get(stage, stage) if requirement == "required" else "Recommended",
-            "required_by": sources, "basis": basis, "status": status, "status_label": STATUS_LABELS.get(status or "", "Not answered"),
+            "required_by": sources, "law_geographies": [g for g in geos if g], "basis": basis, "status": status, "status_label": STATUS_LABELS.get(status or "", "Not answered"),
             "filled": status in FILLED, "due_for_gate": requirement == "required" and stage in GATE_STAGES, "inherited": inherited,
             "assignment": assignment_out(db, a),
         })
@@ -355,6 +364,7 @@ def company_page(db: Session, org_id: str) -> dict:
         a = company.get(r.id)
         rows.append({"role_id": r.id, "code": r.code, "number": r.number, "name": r.name, "description": r.description, "main_sources": r.main_sources,
                      "required_by": sorted({reg for s in required_on for x in per[s.id] if x["role_id"] == r.id for reg in x["required_by"]}),
+                     "law_geographies": sorted({g for s in required_on for x in per[s.id] if x["role_id"] == r.id for g in x["law_geographies"]}),
                      "status": a.status if a else None, "status_label": STATUS_LABELS.get(a.status if a else "", "Not answered"), "assignment": assignment_out(db, a),
                      "applies_to": len(required_on), "blocks_go_live_on": len(blocks), "overrides": overrides})
     summaries = {s.id: role_summary(db, s) for s in systems}
