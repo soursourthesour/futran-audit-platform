@@ -49,12 +49,13 @@ def parse_json(text: str) -> dict:
 class AnthropicAIClient:
     provider = "anthropic"
 
-    def __init__(self, settings: Settings, client=None):
-        self.model = settings.ai_model or settings.claude_model
+    def __init__(self, settings: Settings, client=None, *, api_key: str | None = None, model: str | None = None):
+        """`api_key` and `model` come from a saved connection; without them, ANTHROPIC_API_KEY and AI_MODEL/CLAUDE_MODEL."""
+        self.model = model or settings.ai_model or settings.claude_model
         if client is None:
             import anthropic
 
-            client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+            client = anthropic.Anthropic(api_key=api_key or settings.anthropic_api_key)
         self.client = client
 
     def complete(self, *, task: str, system: str, prompt: str, schema: dict, context: dict | None = None, max_tokens: int = 8000) -> AIReply:

@@ -23,6 +23,7 @@ class ClaudeReply:
     # pages web search cited and the passages it cited from each ({url: [passage, ...]}); the pipeline checks every
     # change's source_url and source_quote against these. None = the client reported no citations at all.
     cited: dict[str, list[str]] | None = None
+    provider: str = "anthropic"  # who answered: anthropic, openai, azure_openai, gemini, or fake
 
 
 class StructuredClaude(Protocol):
@@ -45,13 +46,15 @@ class AnthropicStructuredClient:
     See platform.claude.com/docs/en/build-with-claude/structured-outputs (Incompatible with: Citations) and
     platform.claude.com/docs/en/agents-and-tools/tool-use/web-search-tool (Citations are always enabled for web search)."""
 
-    def __init__(self, settings: Settings, client=None):
+    provider = "anthropic"
+
+    def __init__(self, settings: Settings, client=None, *, api_key: str | None = None, model: str | None = None):
         self.settings = settings
-        self.model = settings.claude_model
+        self.model = model or settings.claude_model
         if client is None:
             import anthropic
 
-            client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+            client = anthropic.Anthropic(api_key=api_key or settings.anthropic_api_key)
         self.client = client
 
     def propose(self, *, system: str, prompt: str, schema: dict, allowed_domains: list[str]) -> ClaudeReply:
@@ -134,7 +137,7 @@ class FakeRefreshClient:
             reply = reply(prompt)
         text = reply if isinstance(reply, str) else json.dumps(reply)
         cited = self.citations[key] if key in self.citations else cites_of(reply)
-        return ClaudeReply(text=text, model=self.model, input_tokens=self.tokens[0], output_tokens=self.tokens[1], searches=self.searches, cited=cited)
+        return ClaudeReply(text=text, model=self.model, input_tokens=self.tokens[0], output_tokens=self.tokens[1], searches=self.searches, cited=cited, provider="fake")
 
 
 def _key_from(prompt: str) -> str:

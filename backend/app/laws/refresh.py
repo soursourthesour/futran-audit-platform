@@ -25,15 +25,18 @@ class ClaudeClient(Protocol):
 
 
 class AnthropicClaudeClient:
-    def __init__(self, settings: Settings):
+    provider = "anthropic"
+
+    def __init__(self, settings: Settings, *, api_key: str | None = None, model: str | None = None):
         import anthropic
 
         self.settings = settings
-        self.client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+        self.model = model or settings.claude_model
+        self.client = anthropic.Anthropic(api_key=api_key or settings.anthropic_api_key)
 
     def research(self, prompt: str) -> str:
         msg = self.client.messages.create(
-            model=self.settings.claude_model,
+            model=self.model,
             max_tokens=8000,
             tools=[{"type": self.settings.claude_web_search_tool, "name": "web_search", "max_uses": 8}],
             messages=[{"role": "user", "content": prompt}],
@@ -42,6 +45,8 @@ class AnthropicClaudeClient:
 
 
 def default_factory(settings: Settings) -> ClaudeClient:
+    """The env-key Anthropic client. Callers choose a client through app.ai.client.drafting_client_for, which prefers
+    the AI provider the Futran Admin connected."""
     return AnthropicClaudeClient(settings)
 
 
