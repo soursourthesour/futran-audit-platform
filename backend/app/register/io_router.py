@@ -1,5 +1,7 @@
 """Register CSV export and import, and "Import from inventory". Registered before the register router so these paths are
 not read as system ids."""
+import csv
+
 from fastapi import APIRouter, Depends, File, Query, UploadFile
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
@@ -36,9 +38,16 @@ def export_csv(ids: str | None = Query(None), actor: Actor = Depends(current_act
 def import_template(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = client_org(actor)
     authorize(db, actor, Action.EDIT_REGISTER, org_id=org.id, list_view=True)
-    example = [["Résumé screening", "Vendor app with AI", "Bought from vendor", "Human Resources", "In development / procurement", "Ranks applicants for recruiters", "TalentRank Inc.",
-                "Unknown, vendor did not disclose", "Ranking model", "Supports a decision a person makes", "owner@example.com"]]
-    return _csv(to_csv(seeding.IMPORT_HEADER, example), "ai-system-register-template.csv")
+    return _csv(seeding.template_csv(), "ai-system-register-template.csv")
+
+
+@router.get("/register/import-template.xlsx")
+def import_template_xlsx(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+    """The template as a workbook: an AI systems sheet with dropdowns and an Instructions sheet (11-03 C7)."""
+    org = client_org(actor)
+    authorize(db, actor, Action.EDIT_REGISTER, org_id=org.id, list_view=True)
+    return Response(content=seeding.template_xlsx(db), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    headers={"Content-Disposition": 'attachment; filename="ai-system-register-template.xlsx"', "Cache-Control": "private, no-store"})
 
 
 @router.post("/register/import")
@@ -48,11 +57,16 @@ async def import_csv(file: UploadFile = File(...), actor: Actor = Depends(curren
     raw = await file.read()
     if len(raw) > 5 * 1024 * 1024:
         raise Invalid(errors=[{"field": "file", "message": "The file is over 5 MB. Split it and import each part."}])
+    from app.register.router import may
+
     try:
-        text = raw.decode("utf-8")
-    except UnicodeDecodeError:
-        text = raw.decode("cp1252", errors="replace")
-    return seeding.import_csv(db, actor.user, org, text, departments_for(actor, Action.EDIT_REGISTER))
+        rows = seeding.rows_from_upload(raw)
+    except Invalid as e:
+        return {"created": 0, "errors": [{"row": 0, **x} for x in e.errors]}
+    except csv.Error:
+        return {"created": 0, "errors": [{"row": 0, "field": "file", "message": "The file could not be read. Save it as CSV (comma delimited) from the template and try again."}]}
+    can_add_law = may(db, actor, Action.ADD_SYSTEM_LAW, department_id=None) or departments_for(actor, Action.ADD_SYSTEM_LAW) is not None
+    return seeding.import_csv(db, actor.user, org, rows, departments_for(actor, Action.EDIT_REGISTER), can_add_law=can_add_law)
 
 
 @router.post("/register/import-inventory")

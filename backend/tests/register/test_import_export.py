@@ -63,7 +63,7 @@ def test_csv_import_validates_each_row(client, db, reg):
 def test_csv_template(client, db, reg):
     reg.as_(reg.admin)
     r = client.get("/api/v1/register/import-template.csv")
-    assert r.status_code == 200 and r.text.startswith("name,type,sourcing,department,stage")
+    assert r.status_code == 200 and r.text.lstrip("\ufeff").startswith("Name *,Type *,Built or bought *,Department *")
 
 
 def _inventory(db, reg):
@@ -124,3 +124,21 @@ def test_import_tool_made_by_the_client_is_in_house(client, db, reg):
     client.post("/api/v1/register/import-inventory")
     s = db.scalar(select(RegisterSystem).where(RegisterSystem.name == "Invoice anomaly model"))
     assert s.sourcing == "in_house" and s.vendor_id is None and s.type == "in_house_model"
+
+
+def test_import_from_inventory_records_the_departments_of_a_shared_tool(client, db, reg):
+    """11-03 C9: a tool used by several departments stays unassigned and lists the departments that use it."""
+    from app.engagements.models import Engagement
+
+    e = Engagement(organization_id=reg.org.id, client_id=reg.org.id, name="AI audit 2026", audit_ref="AUD-1", stage=4, status="active")
+    t = AITool(organization_id=reg.org.id, vendor="Microsoft", product="Copilot", account_type="enterprise", approval_status="approved")
+    db.add_all([e, t])
+    db.flush()
+    for dept, name in ((reg.hr.id, "HR letters"), (reg.fin.id, "Finance memos")):
+        db.add(UseCase(organization_id=reg.org.id, engagement_id=e.id, name=name, department_id=dept, tool_ids=[t.id], data_categories=["none"], decision_impact="none",
+                       proposed_tier=1, status="dept_approved"))
+    db.commit()
+    reg.as_(reg.caico)
+    client.post("/api/v1/register/import-inventory")
+    s = db.scalar(select(RegisterSystem).where(RegisterSystem.name == "Copilot"))
+    assert s.department_id is None and set(s.department_ids) == {reg.hr.id, reg.fin.id}
