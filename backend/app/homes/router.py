@@ -20,7 +20,7 @@ from app.inventory.models import AITool, UseCase
 from app.policy.actions import Action
 from app.policy.authorize import assigned_engagement_ids, authorize, departments_for
 from app.policy.matrix import MATRIX, Scope
-from app.policy.roles import CLIENT_ROLES, ROLE_LABELS, SIGN_OFF_ROLES, Role
+from app.policy.roles import CLIENT_ROLES, ROLE_LABELS, Role
 from app.tenancy.models import Department, Organization, RoleAssignment, User
 from app.tenancy.people import current_engagement
 
@@ -264,10 +264,9 @@ def client_admin_home(actor: Actor = Depends(current_actor), db: Session = Depen
     without = [x for x in items if not x["has_lead"] and x["in_scope"]]
     e = current_engagement(db, org)
     email = (getting_started_items(db, actor) or [{"status": "Not started", "done": False, "link": "/admin/email"}])[0]
-    logs = list(db.scalars(select(AuditLog).where(AuditLog.organization_id == org.id, AuditLog.action.in_(("role.assign", "role.remove", "role_holder.not_appointed")))
-                           .order_by(AuditLog.at.desc()).limit(25)))
-    changes = [{"summary": a.summary, "by": a.actor_name, "at": a.at.isoformat(),
-                "sign_off_role": ((a.after or {}).get("role") or (a.before or {}).get("role")) in {str(r) for r in SIGN_OFF_ROLES}} for a in logs]
+    from app.tenancy.people import change_history
+
+    changes = change_history(db, org, limit=500)  # role and department changes, newest first; the screen shows them as a grid
     todos = [{"kind": "assign_lead", "text": f"Assign a Department Compliance Lead for {d['name']}", "link": "/people/departments"} for d in without]
     for x in expiring:
         who = f"{x['user']} ({', '.join(x['roles'])})" if x["roles"] else x["user"]

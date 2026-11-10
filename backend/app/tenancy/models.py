@@ -56,6 +56,7 @@ class User(TimestampedTenantMixin, Base):
     name: Mapped[str] = mapped_column(String(160))
     email: Mapped[str] = mapped_column(String(254), index=True)
     job_title: Mapped[str | None] = mapped_column(String(160))
+    job_level: Mapped[str | None] = mapped_column(String(30))  # app.tenancy.job_levels keys; null = not given
     phone: Mapped[str | None] = mapped_column(String(40))
     department_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("departments.id"))
     location: Mapped[str | None] = mapped_column(String(160))

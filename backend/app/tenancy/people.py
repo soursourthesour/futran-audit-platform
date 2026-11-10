@@ -14,6 +14,7 @@ from app.invitations.service import invite_user
 from app.notifications.service import futran_team, notify
 from app.policy.roles import CLIENT_ROLES, ROLE_LABELS, SIGN_OFF_ROLES
 from app.tenancy.csv_import import DEPARTMENT_ROLES, EMAIL, parse_department_csv, parse_user_csv
+from app.tenancy.job_levels import job_level_label, parse_job_level
 from app.tenancy.models import Department, Organization, RoleAssignment, User
 from app.tenancy.service import assign_role, create_department, create_user, find_user_by_email, roles_of
 
@@ -179,12 +180,16 @@ def add_user(db: Session, settings: Settings, actor: User, org: Organization, da
     email = str(data.get("email") or "").strip().lower()
     first, last = " ".join(str(data.get("first_name") or "").split()), " ".join(str(data.get("last_name") or "").split())
     errs = []
-    if not first:
-        errs.append({"field": "first_name", "message": "Enter the first name."})
-    if not last:
-        errs.append({"field": "last_name", "message": "Enter the last name."})
-    if len(first) > 80 or len(last) > 80:
-        errs.append({"field": "last_name" if len(last) > 80 else "first_name", "message": "Names must be 80 characters or fewer."})
+    if data.get("name"):  # one "Full name" instead of first and last
+        if len(" ".join(str(data["name"]).split())) > 160:
+            errs.append({"field": "name", "message": "Full name must be 160 characters or fewer."})
+    else:
+        if not first:
+            errs.append({"field": "first_name", "message": "Enter the first name."})
+        if not last:
+            errs.append({"field": "last_name", "message": "Enter the last name."})
+        if len(first) > 80 or len(last) > 80:
+            errs.append({"field": "last_name" if len(last) > 80 else "first_name", "message": "Names must be 80 characters or fewer."})
     if not EMAIL.match(email) or len(email) > 254:
         errs.append({"field": "email", "message": "Enter a valid work email."})
     dept = None
@@ -207,16 +212,29 @@ def add_user(db: Session, settings: Settings, actor: User, org: Organization, da
             raise Conflict(CROSS_ORG_EMAIL, [{"field": "email", "message": CROSS_ORG_EMAIL}])
     if user is not None and user.id == actor.id and role in SIGN_OFF_KEYS:
         raise Forbidden(f"You can't make yourself {ROLE_LABELS[role]}. Ask another administrator or your Futran engagement manager.")
+    try:
+        level = parse_job_level(data.get("job_level"))
+    except ValueError as exc:
+        raise Invalid(errors=[{"field": "job_level", "message": str(exc)}]) from exc
     created = user is None
+    full_name = " ".join(str(data.get("name") or "").split()) or f"{first} {last}"
     if created:
-        user = create_user(db, org, name=f"{first} {last}", email=email, job_title=str(data.get("job_title") or "").strip()[:160] or None, actor_id=actor.id)
-    elif data.get("job_title") and not user.job_title:
-        user.job_title = str(data["job_title"]).strip()[:160]
+        user = create_user(db, org, name=full_name, email=email, job_title=str(data.get("job_title") or "").strip()[:160] or None, actor_id=actor.id)
+        user.job_level = level
+    else:
+        if data.get("job_title") and not user.job_title:
+            user.job_title = str(data["job_title"]).strip()[:160]
+        if level and not user.job_level:
+            user.job_level = level
+    had_department = not created and user_department(db, user, {d.id: d.name for d in departments(db, org)}) is not None
     scope = ("department", dept.id) if role in DEPARTMENT_ROLES else ("org", None)
     already = any(r.role == role and r.scope_type == scope[0] and r.scope_id == scope[1] for r in roles_of(db, user.id))
     if not already:
         ra = assign_role(db, user, role, scope_type=scope[0], scope_id=scope[1], actor_id=actor.id)
         audit.record(db, actor_id=actor.id, action="role.assign", object_type="User", object_id=user.id, organization_id=org.id, after={"role": role, "department": dept.name if dept else None, "assignment_id": ra.id}, summary=f"Gave {user.name} the role {ROLE_LABELS[role]}{f' for {dept.name}' if dept else ''}")
+    if dept is not None and not had_department:
+        user.department_id = dept.id  # the person's own department, also for org-wide roles
+        record_department_change(db, actor, org, user, None, dept.name)
     e = current_engagement(db, org)
     if role in SIGN_OFF_KEYS or role == "client_admin":
         _sync_contact(db, e, role, user)
@@ -368,6 +386,57 @@ def delete_department(db: Session, actor: User, org: Organization, d: Department
     advance_if_ready(db, actor, e)
 
 
+DEPARTMENT_CHANGE = "user.department_change"
+
+
+def record_department_change(db: Session, actor: User, org: Organization, user: User, before: str | None, after: str | None) -> None:
+    """One audit row per change of a person's department, by name, like the role.assign and role.remove rows."""
+    if before == after:
+        return
+    summary = (f"Moved {user.name} from {before} to {after}" if before and after else f"Put {user.name} in {after}" if after else f"Took {user.name} out of {before}")
+    audit.record(db, actor_id=actor.id, action=DEPARTMENT_CHANGE, object_type="User", object_id=user.id, organization_id=org.id,
+                 before={"department": before}, after={"department": after}, summary=summary)
+
+
+def change_history(db: Session, org: Organization, user: User | None = None, limit: int = 500) -> list[dict]:
+    """Role and department changes, newest first, read from the audit log: for one person, or for the whole client."""
+    from app.audit_log.models import AuditLog
+
+    q = select(AuditLog).where(AuditLog.organization_id == org.id, AuditLog.action.in_(("role.assign", "role.remove", DEPARTMENT_CHANGE, "user.edit", "role_holder.not_appointed")))
+    if user is not None:
+        q = q.where(AuditLog.object_type == "User", AuditLog.object_id == user.id)
+    rows = list(db.scalars(q.order_by(AuditLog.at.desc(), AuditLog.id.desc()).limit(limit * 2)))
+    dept_names = dict(db.execute(select(Department.id, Department.name).where(Department.organization_id == org.id)).all())  # deleted ones too
+    user_ids = {a.object_id for a in rows if a.object_type == "User"}
+    people = dict(db.execute(select(User.id, User.name).where(User.id.in_(user_ids))).all()) if user_ids else {}
+    out = []
+    for a in rows:
+        b, f = a.before or {}, a.after or {}
+        ev = {"id": a.id, "at": a.at.isoformat(), "by": a.actor_name, "user_id": a.object_id if a.object_type == "User" else None,
+              "name": people.get(a.object_id) if a.object_type == "User" else None, "summary": a.summary, "role": None, "department": None,
+              "from": None, "to": None, "sign_off_role": False}
+        if a.action in ("role.assign", "role.remove"):
+            role = f.get("role") if a.action == "role.assign" else b.get("role")
+            label = ROLE_LABELS.get(role, role) if role else None
+            ev |= {"kind": "role", "change": "Role given" if a.action == "role.assign" else "Role removed", "role": label, "department": f.get("department") if a.action == "role.assign" else None,
+                   "from": label if a.action == "role.remove" else None, "to": label if a.action == "role.assign" else None, "sign_off_role": role in SIGN_OFF_KEYS}
+        elif a.action == DEPARTMENT_CHANGE:
+            ev |= {"kind": "department", "change": "Department changed" if b.get("department") else "Department set", "department": f.get("department"),
+                   "from": b.get("department"), "to": f.get("department")}
+        elif a.action == "user.edit" and ("department_id" in f or "department" in f):  # rows written before department changes had their own action
+            to = f.get("department") or dept_names.get(f.get("department_id"))
+            ev |= {"kind": "department", "change": "Department changed", "department": to, "from": dept_names.get(b.get("department_id")), "to": to}
+        elif a.action == "role_holder.not_appointed":
+            role = f.get("role")
+            ev |= {"kind": "role", "change": "Marked not appointed" if f.get("not_appointed") else "Marked to be appointed", "role": ROLE_LABELS.get(role, role), "sign_off_role": role in SIGN_OFF_KEYS}
+        else:
+            continue
+        out.append(ev)
+        if len(out) >= limit:
+            break
+    return out
+
+
 def user_department(db: Session, user: User, names: dict[str, str]) -> str | None:
     """The department shown for a person: from their department role, else from their record."""
     for r in roles_of(db, user.id):
@@ -378,9 +447,11 @@ def user_department(db: Session, user: User, names: dict[str, str]) -> str | Non
 
 def edit_user(db: Session, actor: User, org: Organization, user: User, data: dict) -> User:
     """Change a person's name, job title, email (until they first sign in) or department. Roles change separately."""
-    before = {"name": user.name, "job_title": user.job_title, "email": user.email, "department_id": user.department_id}
+    before = {"name": user.name, "job_title": user.job_title, "job_level": user.job_level, "email": user.email}
+    names = {d.id: d.name for d in departments(db, org)}
+    before_dept = user_department(db, user, names)
     errs = []
-    name = email = dept = None
+    name = email = dept = level = None
     if "name" in data:
         try:
             name = _clean_name(data["name"], "name", "name", 160)
@@ -392,6 +463,11 @@ def edit_user(db: Session, actor: User, org: Organization, user: User, data: dic
             errs.append({"field": "email", "message": "Enter a valid work email."})
     if "job_title" in data and len(str(data["job_title"] or "").strip()) > 160:
         errs.append({"field": "job_title", "message": "Job title must be 160 characters or fewer."})
+    if "job_level" in data:
+        try:
+            level = parse_job_level(data["job_level"])
+        except ValueError as exc:
+            errs.append({"field": "job_level", "message": str(exc)})
     if data.get("department"):
         dept = next((d for d in departments(db, org) if d.name.casefold() == str(data["department"]).strip().casefold()), None)
         if dept is None:
@@ -414,18 +490,23 @@ def edit_user(db: Session, actor: User, org: Organization, user: User, data: dic
         user.name = name
     if "job_title" in data:
         user.job_title = str(data["job_title"] or "").strip() or None
-    moved = False
+    if "job_level" in data:
+        user.job_level = level
     if "department" in data:
         user.department_id = dept.id if dept else None
         for r in roles_of(db, user.id):
             if r.scope_type == "department" and dept is not None and r.scope_id != dept.id:
-                r.scope_id, r.updated_by, moved = dept.id, actor.id, True
+                r.scope_id, r.updated_by = dept.id, actor.id
     user.updated_by = actor.id
-    after = {"name": user.name, "job_title": user.job_title, "email": user.email, "department_id": user.department_id}
+    after = {"name": user.name, "job_title": user.job_title, "job_level": user.job_level, "email": user.email}
     changed = {k: v for k, v in after.items() if before[k] != v}
-    if changed or moved:
-        audit.record(db, actor_id=actor.id, action="user.edit", obj=user, before={k: before[k] for k in changed}, after=changed | ({"department": dept.name} if dept and moved else {}),
-                     summary=f"Edited {user.name}" + (f"; moved to {dept.name}" if dept and (moved or "department_id" in changed) else ""))
+    if changed:
+        audit.record(db, actor_id=actor.id, action="user.edit", obj=user, before={k: before[k] for k in changed}, after=changed, summary=f"Edited {user.name}")
+    if "department" in data:
+        db.flush()
+        after_dept = user_department(db, user, names)
+        if after_dept != before_dept:
+            record_department_change(db, actor, org, user, before_dept, after_dept)
     e = current_engagement(db, org)
     if e is not None and {"name", "email"} & changed.keys():  # keep the engagement's contact record in step
         for c in db.scalars(select(ClientContact).where(ClientContact.engagement_id == e.id, ClientContact.user_id == user.id, ClientContact.deleted_at.is_(None))):

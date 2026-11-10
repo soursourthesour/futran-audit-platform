@@ -15,6 +15,7 @@ from app.policy.authorize import authorize, departments_for
 from app.policy.roles import ROLE_LABELS
 from app.tenancy import people
 from app.tenancy.csv_import import parse_department_csv, parse_user_csv
+from app.tenancy.job_levels import job_level_label
 from app.tenancy.models import Department, Organization, RoleAssignment, User
 from app.tenancy.service import roles_of
 
@@ -81,7 +82,7 @@ def get_people(client_id: str, actor: Actor = Depends(current_actor), db: Sessio
         dept_id = next((k for k, v in names.items() if v == dept), None)
         if dept_id:
             counts[dept_id] = counts.get(dept_id, 0) + 1
-        users.append({"id": u.id, "name": u.name, "email": u.email, "job_title": u.job_title, "status": u.status, "invite_status": invite_status(db, u), "roles": roles,
+        users.append({"id": u.id, "name": u.name, "email": u.email, "job_title": u.job_title, "job_level": u.job_level, "job_level_label": job_level_label(u.job_level), "status": u.status, "invite_status": invite_status(db, u), "roles": roles,
                       "department": dept, "signed_in": bool(u.password_hash), "notice": notice.status_for(acks, release, u) if u.status != "disabled" else {"status": "not_required", "at": None, "version": None}})
     gate = gate_status(db, e) if e is not None and e.stage == 2 else None
     return {
@@ -187,6 +188,7 @@ class UserPatchIn(BaseModel):
     name: str | None = None
     email: str | None = None
     job_title: str | None = None
+    job_level: str | None = None
     department: str | None = None
 
 
@@ -199,7 +201,17 @@ class RoleIn(BaseModel):
 def patch_user(client_id: str, user_id: str, body: UserPatchIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _org(db, actor, client_id, Action.MANAGE_CLIENT_USERS)
     u = people.edit_user(db, actor.user, org, _person(db, org, user_id), body.model_dump(exclude_unset=True))
-    return {"id": u.id, "name": u.name, "email": u.email, "job_title": u.job_title}
+    return {"id": u.id, "name": u.name, "email": u.email, "job_title": u.job_title, "job_level": u.job_level}
+
+
+@router.get("/users/{user_id}/history")
+def user_history(client_id: str, user_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+    """Every change to this person's AI compliance roles and department: who, when, from what to what (audit log)."""
+    org = _org(db, actor, client_id, Action.MANAGE_CLIENT_USERS)
+    u = db.get(User, user_id)
+    if u is None or u.organization_id != org.id:
+        raise NotFound()
+    return {"user": {"id": u.id, "name": u.name, "email": u.email, "removed": u.deleted_at is not None}, "events": people.change_history(db, org, u)}
 
 
 @router.delete("/users/{user_id}")
