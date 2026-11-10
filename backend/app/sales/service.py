@@ -1,7 +1,7 @@
 """Opportunities: automatic triggers, Chief Auditor approval and the independence rule (spec §27.5)."""
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.core.clock import utcnow
@@ -88,9 +88,10 @@ def can_send_offer(o: Opportunity) -> bool:
 
 def open_effective_date_opportunities(db: Session, on) -> list[Opportunity]:
     """Daily: a law the client is in scope of reaches its compliance (or effective) date within 90 days (§27.5).
-    Returns only the opportunities created today; one per client, law and date."""
+    Returns only the opportunities created today; one per client, law and date, and none where a "New law" or "Law
+    change" readiness review of a version with that date is open already."""
     from app.laws.models import Regulation
-    from app.regmaster.models import ClientLawApplicability, LawVersion
+    from app.regmaster.models import ClientLawApplicability, LawVersion, ProposedChange
 
     from app.laws.publish import chain_ids
     from app.regmaster.versioning import deadline_keys
@@ -105,8 +106,15 @@ def open_effective_date_opportunities(db: Session, on) -> list[Opportunity]:
         ids = chain_ids(db, reg.id) or [reg.id]
         ref, same = deadline_keys(db, reg, d)  # one per client, law and date (a new version with the same date is not news)
         rows = db.scalars(select(ClientLawApplicability).where(ClientLawApplicability.regulation_id.in_(ids), ClientLawApplicability.in_scope.is_(True), ClientLawApplicability.deleted_at.is_(None)))
+        # A "New law" or "Law change" readiness review of a version with this date is the same review (11-10 review O3).
+        dated = list(db.scalars(select(LawVersion.id).where(LawVersion.regulation_id.in_(ids), or_(LawVersion.compliance_on == d,
+                                                                                                 LawVersion.compliance_on.is_(None) & (LawVersion.effective_on == d)))))
+        law_refs = [*(f"lawver:{x}" for x in dated), *db.scalars(select(ProposedChange.id).where(ProposedChange.applied_version_id.in_(dated)))]
         for org_id in dict.fromkeys(r.organization_id for r in rows):
             if db.scalar(select(Opportunity.id).where(Opportunity.organization_id == org_id, Opportunity.trigger == "effective_date", Opportunity.trigger_ref.in_(same)).limit(1)):
+                continue
+            if law_refs and db.scalar(select(Opportunity.id).where(Opportunity.organization_id == org_id, Opportunity.trigger.in_(("new_law", "law_change")),
+                                                                   Opportunity.trigger_ref.in_(law_refs)).limit(1)):
                 continue
             try:
                 out.append(open_from_trigger(db, org_id, "effective_date", ref, service=f"{reg.short_name} readiness review"[:200], service_kind="readiness",

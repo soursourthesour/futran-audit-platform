@@ -437,3 +437,41 @@ def test_o2_a_law_change_opened_at_approval_stops_the_update_that_proposed_it(db
     db.commit()
     scan.run_now(db, world["admin"], now=NOW)
     assert _nw_opps(db, world) == [("law_change", pc.id)]
+
+
+def _new_law_due_soon(db, world, at=NOW - timedelta(days=2)):
+    reg = _other_law(db, world)
+    v = _ver(db, reg, at, 1, "new_law", f"Add {reg.short_name}")
+    v.effective_on, v.compliance_on = (NOW + timedelta(days=40)).date(), None
+    _in_scope(db, world["nw"], reg, v)
+    db.commit()
+    return reg, v
+
+
+def test_o3_effective_date_first_then_the_scan_opens_one_readiness_review(db, world):
+    from app.sales import service as sales
+
+    _new_law_due_soon(db, world)
+    assert [o.organization_id for o in sales.open_effective_date_opportunities(db, NOW.date())] == [world["nw"].id]
+    scan.run_now(db, world["admin"], now=NOW)
+    assert [t for t, _ in _nw_opps(db, world)] == ["effective_date"]
+
+
+def test_o3_the_scan_first_then_the_effective_date_job_opens_nothing_more(db, world):
+    from app.sales import service as sales
+
+    _new_law_due_soon(db, world)
+    scan.run_now(db, world["admin"], now=NOW)
+    assert sales.open_effective_date_opportunities(db, NOW.date()) == []
+    assert [t for t, _ in _nw_opps(db, world)] == ["new_law"]
+
+
+def test_o3_an_effective_date_review_opened_before_a_later_material_change_does_not_hide_it(db, world):
+    reg, v = _new_law_due_soon(db, world, at=NOW - timedelta(days=60))
+    db.add(Opportunity(organization_id=world["nw"].id, trigger="effective_date", trigger_ref=f"date:{reg.id}:{v.effective_on.isoformat()}", service="x",
+                       stage="new", created_at=NOW - timedelta(days=50)))
+    v2 = _ver(db, reg, NOW - timedelta(days=2), 2, "law.penalty_text", "Penalty raised")
+    v2.effective_on = v.effective_on
+    db.commit()
+    scan.run_now(db, world["admin"], now=NOW)
+    assert sorted(t for t, _ in _nw_opps(db, world)) == ["effective_date", "law_change"]

@@ -60,6 +60,8 @@ class Item:
     same_refs: list[str] = field(default_factory=list)  # other references that mean the same opportunity is already open
     same_triggers: tuple[str, ...] = ()
     system_ids: list[str] = field(default_factory=list)
+    # (triggers, references, opened at or after) of other opportunities that also mean this one is open
+    also: list[tuple[tuple[str, ...], list[str], datetime | None]] = field(default_factory=list)
     after: Callable[[Opportunity], None] | None = None
 
 
@@ -242,8 +244,16 @@ def _audit(db: Session, run: OpportunityScanRun, actor: User | None, request) ->
 def _already_open(db: Session, it: Item) -> bool:
     refs = [it.ref, *it.same_refs]
     triggers = it.same_triggers or (it.trigger,)
-    return db.scalar(select(Opportunity.id).where(Opportunity.organization_id == it.organization_id, Opportunity.trigger.in_(triggers),
-                                                  Opportunity.trigger_ref.in_(refs)).limit(1)) is not None
+    if db.scalar(select(Opportunity.id).where(Opportunity.organization_id == it.organization_id, Opportunity.trigger.in_(triggers),
+                                              Opportunity.trigger_ref.in_(refs)).limit(1)) is not None:
+        return True
+    for triggers, refs, opened_since in it.also:
+        q = select(Opportunity.id).where(Opportunity.organization_id == it.organization_id, Opportunity.trigger.in_(triggers), Opportunity.trigger_ref.in_(refs))
+        if opened_since is not None:
+            q = q.where(Opportunity.created_at >= opened_since)
+        if db.scalar(q.limit(1)) is not None:
+            return True
+    return False
 
 
 def _clients(db: Session) -> set[str]:
@@ -292,6 +302,14 @@ def _law_items(db: Session, since: datetime, now: datetime) -> list[Item]:
                 or "; ".join(dict.fromkeys(x.change_summary for x in material if x.change_summary)) or "a new version was approved")
         ref = f"lawver:{v.id}"
         updates = sales.updates_proposing(db, [pc.id for pc in pcs])  # an update that proposed one of these changes is the same opportunity
+        # The daily effective-date review of the same law version is the same readiness review (11-10 review O3): for a new
+        # law any one for its date; for a change, one opened since the change was approved.
+        also = []
+        deadline = v.compliance_on or v.effective_on
+        if deadline is not None:
+            from app.regmaster.versioning import deadline_keys
+
+            also.append((("effective_date",), deadline_keys(db, reg, deadline)[1], None if new else versions[0].approved_at))
         rows = db.scalars(select(ClientLawApplicability).where(ClientLawApplicability.regulation_id.in_(ids), ClientLawApplicability.in_scope.is_(True),
                                                                ClientLawApplicability.deleted_at.is_(None)))
         for row in {r.organization_id: r for r in rows}.values():
@@ -302,7 +320,7 @@ def _law_items(db: Session, since: datetime, now: datetime) -> list[Item]:
                 why += f" (applies: {row.reason_text})"
             out.append(Item(row.organization_id, "laws", "new_law" if new else "law_change", ref, service=f"{label} readiness review", service_kind="readiness",
                             why_now=why[:300], same_refs=[*(f"lawver:{x.id}" for x in versions), *(pc.id for pc in pcs), *updates],
-                            same_triggers=(*LAW_TRIGGERS, "regulatory_update")))
+                            same_triggers=(*LAW_TRIGGERS, "regulatory_update"), also=also))
     return out
 
 
