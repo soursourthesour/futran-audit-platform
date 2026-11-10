@@ -41,13 +41,17 @@ def _is_question(text: str) -> bool:
     return len(t) >= 8 and (t.endswith("?") or bool(re.match(r"^(describe|explain|list|provide|confirm|state|outline)\b", t, re.I)))
 
 
-def detect_xlsx(data: bytes) -> list[dict]:
-    from openpyxl import load_workbook
+XLSX_MAX_ROWS = 5000
+XLSX_MAX_COLS = 100
 
-    wb = load_workbook(BytesIO(data), data_only=True)
+
+def detect_xlsx(data: bytes) -> list[dict]:
+    from app.core import xlsx_guard
+
+    wb = xlsx_guard.open_workbook(data, max_rows=XLSX_MAX_ROWS, max_cols=XLSX_MAX_COLS, read_only=False)
     out = []
     for ws in wb.worksheets:
-        rows = list(ws.iter_rows(min_row=1, max_row=ws.max_row))
+        rows = list(ws.iter_rows(min_row=1, max_row=min(ws.max_row, XLSX_MAX_ROWS), max_col=min(ws.max_column, XLSX_MAX_COLS)))
         header_row = q_col = a_col = s_col = None
         for r in rows[:15]:
             for c in r:
@@ -138,10 +142,14 @@ def detect_pdf(data: bytes) -> list[dict]:
 
 
 def detect(fmt: str, data: bytes) -> list[dict]:
+    from app.core.xlsx_guard import WorkbookTooLarge
+
     try:
         return {"xlsx": detect_xlsx, "docx": detect_docx, "pdf": detect_pdf}[fmt](data)
     except Invalid:
         raise
+    except WorkbookTooLarge as exc:
+        raise Invalid(str(exc), [{"field": "file", "message": str(exc)}]) from None
     except Exception:  # noqa: BLE001 - a damaged file
         raise Invalid("This file could not be read. Upload the questionnaire as XLSX, DOCX or PDF.", [{"field": "file", "message": "Unreadable file."}]) from None
 
@@ -378,9 +386,9 @@ def export(db: Session, settings, q: Questionnaire) -> tuple[bytes, str, str]:
     stem = Path(f.filename).stem
     rows = items(db, q)
     if q.format == "xlsx":
-        from openpyxl import load_workbook
+        from app.core import xlsx_guard
 
-        wb = load_workbook(BytesIO(data))
+        wb = xlsx_guard.open_workbook(data, max_rows=XLSX_MAX_ROWS, max_cols=XLSX_MAX_COLS, read_only=False, data_only=False)
         for it in rows:
             a = _final(it)
             if a is not None:

@@ -49,13 +49,17 @@ def _docx_blocks(data: bytes) -> list[str]:
     return out
 
 
-def _xlsx_blocks(data: bytes) -> list[str]:
-    from openpyxl import load_workbook
+XLSX_MAX_ROWS = 50_000
+XLSX_MAX_COLS = 200
 
-    wb = load_workbook(BytesIO(data), read_only=True, data_only=True)
+
+def _xlsx_blocks(data: bytes) -> list[str]:
+    from app.core import xlsx_guard
+
+    wb = xlsx_guard.open_workbook(data, max_rows=XLSX_MAX_ROWS, max_cols=XLSX_MAX_COLS)
     out = []
     for ws in wb.worksheets:
-        for row in ws.iter_rows(values_only=True):
+        for row in xlsx_guard.rows(ws, max_rows=XLSX_MAX_ROWS, max_cols=XLSX_MAX_COLS):
             cells = [str(v).strip() for v in row if v not in (None, "")]
             if cells:
                 out.append(" | ".join(cells))
@@ -81,8 +85,12 @@ def extract_pages(filename: str, data: bytes) -> tuple[str, list[dict], str | No
         except Exception:  # noqa: BLE001
             return "docx", [], "The text of this Word document could not be read."
     if ext == ".xlsx":
+        from app.core.xlsx_guard import WorkbookTooLarge
+
         try:
             return "xlsx", _chunk(_xlsx_blocks(data), "\n"), None
+        except WorkbookTooLarge as exc:
+            return "xlsx", [], str(exc)
         except Exception:  # noqa: BLE001
             return "xlsx", [], "The text of this spreadsheet could not be read."
     if ext in TEXT_TYPES:

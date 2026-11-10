@@ -190,18 +190,24 @@ def template_xlsx(db: Session) -> bytes:
     return buf.getvalue()
 
 
+IMPORT_MAX_ROWS = 5001  # a header and 5,000 systems
+IMPORT_MAX_COLS = 100
+
+
 def rows_from_upload(raw: bytes) -> list[list[str]]:
     """The rows of an uploaded CSV, or of the "AI systems" sheet (else the first sheet) of a workbook."""
     if raw[:2] == b"PK":
-        from openpyxl import load_workbook
+        from app.core import xlsx_guard
 
         try:
-            wb = load_workbook(io.BytesIO(raw), read_only=True, data_only=True)
+            wb = xlsx_guard.open_workbook(raw, max_rows=IMPORT_MAX_ROWS, max_cols=IMPORT_MAX_COLS)
+        except xlsx_guard.WorkbookTooLarge as exc:
+            raise Invalid(errors=[{"field": "file", "message": str(exc)}]) from None
         except Exception as exc:  # noqa: BLE001 - any unreadable workbook gets the same message
             raise Invalid(errors=[{"field": "file", "message": "The workbook could not be read. Save it again as .xlsx from the template."}]) from exc
         ws = wb["AI systems"] if "AI systems" in wb.sheetnames else wb.worksheets[0]
         out = []
-        for row in ws.iter_rows(values_only=True):
+        for row in xlsx_guard.rows(ws, max_rows=IMPORT_MAX_ROWS, max_cols=IMPORT_MAX_COLS):
             out.append(["" if v is None else (v.date().isoformat() if hasattr(v, "date") and hasattr(v, "hour") else str(v)) for v in row])
         return out
     try:
