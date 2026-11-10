@@ -66,7 +66,7 @@ export function Opportunities() {
   ];
   return (
     <div className="page">
-      <PageHeader title="Opportunities" subtitle="Created automatically when a client asks to unlock an add-on, a new rule or deadline affects them, a relevant case appears, or a high-risk system has no tracing. Shared by the Sales Team and the Chief Auditor."
+      <PageHeader title="Opportunities" subtitle="Created automatically when a client asks to unlock an add-on, a new rule or deadline affects them, a relevant case appears, a high-risk system has no tracing, or the opportunity scan finds a law change, a regulatory update or a renewal audit coming up. Shared by the Sales Team and the Chief Auditor."
         actions={<Button variant="primary" onClick={() => setAdding(true)}>Add opportunity</Button>} />
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
       {!d ? <Loading /> : (
