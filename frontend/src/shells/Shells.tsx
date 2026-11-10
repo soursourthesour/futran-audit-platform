@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { primaryRole, useMe, useSignOut, type Me } from '@/api/auth';
-import { CLIENT_NAV, FUTRAN_NAV, activeNav, homePath, navFor, type NavEntry } from '@/nav';
+import { CLIENT_GROUPS, FUTRAN_GROUPS, homePath, type NavGroup } from '@/nav';
+import { MainNav } from './MainNav';
 import { Loading } from '@/components/ui';
 import { NotificationBell } from '@/components/NotificationBell';
 import logo from '@/assets/futran-logo.svg';
@@ -28,14 +29,13 @@ function UserMenu({ me }: { me: Me }) {
   );
 }
 
-/** The header of both shells. Under 600 px the navigation and the user menu fold behind a Menu button (44 px, with
- *  aria-expanded) that closes on navigation and on Escape; focus is never trapped. */
-function ShellHeader({ me, entries, client }: { me: Me; entries: NavEntry[]; client?: boolean }) {
+/** The header of both shells. The navigation is grouped into menus (MainNav). Under 600 px the navigation and the user
+ *  menu fold behind a Menu button (44 px, with aria-expanded) that closes on navigation and on Escape; focus is never
+ *  trapped. */
+function ShellHeader({ me, groups, client }: { me: Me; groups: NavGroup[]; client?: boolean }) {
   const [open, setOpen] = useState(false);
   const loc = useLocation();
   const btn = useRef<HTMLButtonElement>(null);
-  const mine = navFor(me, entries);
-  const current = activeNav(loc.pathname, mine);
   useEffect(() => setOpen(false), [loc.pathname, loc.search]);
   useEffect(() => {
     if (!open) return undefined;
@@ -55,9 +55,7 @@ function ShellHeader({ me, entries, client }: { me: Me; entries: NavEntry[]; cli
       </button>
       <div id="shell-menu" className="shell-menu" data-open={open ? 'true' : 'false'}>
         {client && <div className="shell-menu-org small">{me.organization.name}</div>}
-        <nav className="shell-nav" aria-label="Main" onClick={(e) => { if ((e.target as HTMLElement).closest('a')) setOpen(false); }}>
-          {mine.map((n) => <Link key={n.to} to={n.to} className={n.to === current ? 'active' : undefined} aria-current={n.to === current ? 'page' : undefined}>{n.label}</Link>)}
-        </nav>
+        <MainNav me={me} groups={groups} pathname={loc.pathname} phoneOpen={open} onFollow={() => setOpen(false)} />
         <UserMenu me={me} />
       </div>
     </header>
@@ -81,7 +79,7 @@ export function FutranShell() {
   return (
     <>
       <TestModeBar me={me} />
-      <ShellHeader me={me} entries={FUTRAN_NAV} />
+      <ShellHeader me={me} groups={FUTRAN_GROUPS} />
       <main><MailboxGate /><Outlet /></main>
     </>
   );
@@ -93,7 +91,7 @@ export function ClientShell() {
   return (
     <>
       <TestModeBar me={me} />
-      <ShellHeader me={me} entries={CLIENT_NAV} client />
+      <ShellHeader me={me} groups={CLIENT_GROUPS} client />
       <main><MailboxGate /><Outlet /></main>
     </>
   );

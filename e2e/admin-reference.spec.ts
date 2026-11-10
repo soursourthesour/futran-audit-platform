@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { openNav } from './nav';
 import path from 'path';
 
 /** Each role lands on its own home after sign-in (spec §13.1). */
@@ -15,7 +16,7 @@ async function signIn(page: Page, email: string) {
 
 test('admin re-imports the law matrix, browses Illinois and edits a law into a new version', async ({ page }) => {
   await signIn(page, 'admin@futran.demo');
-  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Reference data', exact: true }).click();
+  await openNav(page, 'Reference data');
   await page.getByRole('tab', { name: 'Import workbook' }).click();
   await page.getByLabel('Law matrix workbook').setInputFiles(path.resolve(__dirname, '../backend/seeds/law_matrix.xlsx'));
   await page.getByRole('button', { name: 'Preview import' }).click();

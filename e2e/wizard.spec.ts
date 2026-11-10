@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { openNav } from './nav';
 
 /** Each role lands on its own home after sign-in (spec §13.1). */
 const HOME: Record<string, RegExp> = { 'admin@futran.demo': /\/staff\/admin$/, 'auditor1@futran.demo': /\/my-work$/, 'auditor2@futran.demo': /\/my-work$/, 'em@futran.demo': /\/my-work$/, 'manager@futran.demo': /\/my-work$/, 'qa@futran.demo': /\/qa$/, 'sales@futran.demo': /\/opportunities$/ };
@@ -139,7 +140,7 @@ test('auditor sets up a client, the Chief Auditor approves and the client signs 
   await expect(page.getByText('2 of 7 complete')).toBeVisible();
 
   // Client sets up departments and users (Phase 4)
-  await page.getByRole('link', { name: 'People' }).click();
+  await openNav(page, 'People');
   for (const d of ['HR and recruiting', 'Engineering and IT']) {
     await page.getByLabel('New department', { exact: true }).fill(d);
     await page.getByRole('button', { name: 'Add', exact: true }).click();
@@ -160,7 +161,7 @@ test('auditor sets up a client, the Chief Auditor approves and the client signs 
   await page.screenshot({ path: 'screenshots/p4-people.png', fullPage: true });
 
   // Governance structure request (Phase 4)
-  await page.getByRole('link', { name: 'Governance' }).click();
+  await openNav(page, 'Governance');
   await expect(page.getByRole('heading', { name: 'AI governance structure' })).toBeVisible();
   const committee = page.getByRole('group', { name: 'Answer for AI governance committee' });
   await committee.getByRole('button', { name: 'In place' }).click();
@@ -177,12 +178,12 @@ test('auditor sets up a client, the Chief Auditor approves and the client signs 
   await page.screenshot({ path: 'screenshots/p4-governance.png', fullPage: true });
 
   // Attestation campaign (Phase 4): acknowledge the notice, launch, staff answer on a phone
-  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Getting started' }).click();
+  await openNav(page, 'Getting started');
   await page.getByRole('button', { name: 'Review and send' }).click();
   await page.getByRole('button', { name: 'Send to employees', exact: true }).click();
   await page.getByRole('button', { name: 'Send to employees', exact: true }).click();
   await expect(page.getByText(/Version 1 of the notice was emailed to/)).toBeVisible();
-  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Attestation', exact: true }).click();
+  await openNav(page, 'Attestation');
   await page.getByRole('button', { name: 'Launch and get the staff link' }).click();
   await expect(page.getByRole('button', { name: 'Copy staff link' })).toBeVisible();
   const me = await (await page.request.get('/api/v1/auth/me')).json();
@@ -211,7 +212,7 @@ test('auditor sets up a client, the Chief Auditor approves and the client signs 
   await page.screenshot({ path: 'screenshots/p4-attestation-tracker.png', fullPage: true });
 
   // AI inventory (Phase 4): a Tier 3 use case with a named user, then the auditor sets the final tier
-  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'AI inventory' }).click();
+  await openNav(page, 'AI inventory');
   await page.getByRole('link', { name: 'Add use case' }).click();
   await page.getByLabel('Use case name *').fill('Résumé screening for NYC roles');
   await page.getByLabel('Department *').selectOption({ label: 'HR and recruiting' });

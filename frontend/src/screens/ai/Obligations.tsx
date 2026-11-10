@@ -79,7 +79,7 @@ export function ObligationsPanel({ lawId }: { lawId: string }) {
   const [msg, setMsg] = useState<{ tone: 'success' | 'danger'; text: string } | null>(null);
   if (!q.data) return null;
   const d = q.data;
-  const refresh = () => qc.invalidateQueries({ queryKey: key });
+  const refresh = () => Promise.all([qc.invalidateQueries({ queryKey: key }), qc.invalidateQueries({ queryKey: ['nav-badges'] })]);
   async function extract() {
     if (busy) return;
     setBusy(true); setMsg(null);
@@ -111,7 +111,7 @@ export function ObligationQueue() {
       <PageHeader title="Obligations to review" subtitle="Obligations the AI proposed from the stored text of each law. Approve, edit or reject each one; only approved obligations show on the law record and in lineage." />
       {q.isLoading ? <Loading /> : !q.data ? <Alert tone="danger">{errorMessage(q.error)}</Alert>
         : q.data.rows.length === 0 ? <EmptyState>Nothing waiting for review.</EmptyState>
-          : <PendingList rows={q.data.rows} showLaw onDone={() => qc.invalidateQueries({ queryKey: ['obligation-queue'] })} />}
+          : <PendingList rows={q.data.rows} showLaw onDone={() => Promise.all([qc.invalidateQueries({ queryKey: ['obligation-queue'] }), qc.invalidateQueries({ queryKey: ['nav-badges'] })])} />}
     </div>
   );
 }

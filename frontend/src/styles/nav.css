@@ -1,0 +1,50 @@
+/* Grouped main navigation (11-03 F4, C1). Wide screens: a button per group opens a panel below it. Phones: the groups
+   sit in the header's Menu panel as an accordion. */
+.shell-nav { align-items: center; }
+.nav-group { position: relative; }
+.nav-group-btn { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 8px 10px 8px 12px; border: 0; border-radius: 5px; background: none; color: var(--header-sub); font: inherit; font-size: 14px; cursor: pointer; white-space: nowrap; }
+.nav-group-btn:hover { color: #fff; }
+.nav-group-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.nav-group-btn.active { color: #fff; background: rgba(255, 255, 255, 0.14); font-weight: 600; }
+.nav-group-btn[aria-expanded='true'] { color: #fff; background: rgba(255, 255, 255, 0.2); }
+.nav-chev { flex: none; transition: transform 0.15s ease; }
+.nav-group-btn[aria-expanded='true'] .nav-chev { transform: rotate(180deg); }
+.client-header .nav-group-btn { color: var(--muted); }
+.client-header .nav-group-btn:hover { color: var(--navy); }
+.client-header .nav-group-btn.active { color: var(--navy); background: #eef3fb; }
+.client-header .nav-group-btn[aria-expanded='true'] { color: var(--navy); background: #e3ebf7; }
+
+.nav-panel { position: absolute; top: calc(100% + 6px); left: 0; z-index: 60; min-width: 240px; padding: 6px; display: flex; flex-direction: column; gap: 2px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 12px 32px rgba(16, 24, 40, 0.18); }
+.nav-panel[hidden] { display: none; }
+.shell-header .shell-nav .nav-panel a { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 40px; padding: 8px 12px; border-radius: 5px; color: var(--ink); font-size: 14px; white-space: nowrap; text-decoration: none; }
+.shell-header .shell-nav .nav-panel a:hover, .shell-header .shell-nav .nav-panel a:focus-visible { background: var(--bg); color: var(--navy); }
+.shell-header .shell-nav .nav-panel a:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+.shell-header .shell-nav .nav-panel a.active { background: #eef3fb; color: var(--navy); font-weight: 600; box-shadow: inset 3px 0 0 var(--navy); }
+.shell-nav a.nav-plain { gap: 8px; }
+
+/* A count of items waiting for this person (F6). Amber on both the navy and the white header. */
+.nav-count { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: #fec84b; color: var(--ink); font-size: 12px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+
+@media (max-width: 600px) {
+  .shell-menu .shell-nav { align-items: stretch; }
+  .nav-group { width: 100%; }
+  .nav-group-btn { width: 100%; min-height: 44px; justify-content: flex-start; }
+  .nav-group-btn > span:first-child { flex: 1; text-align: left; }
+  .nav-panel { position: static; min-width: 0; padding: 0 0 4px 12px; background: none; border: 0; border-radius: 0; box-shadow: none; }
+  .shell-header .shell-nav .nav-panel a { min-height: 44px; color: var(--header-sub); }
+  .shell-header .shell-nav .nav-panel a:hover, .shell-header .shell-nav .nav-panel a:focus-visible { background: rgba(255, 255, 255, 0.1); color: #fff; }
+  .shell-header .shell-nav .nav-panel a.active { background: rgba(255, 255, 255, 0.14); color: #fff; box-shadow: inset 3px 0 0 #fff; }
+  .client-header .shell-nav .nav-panel a { color: var(--muted); }
+  .client-header .shell-nav .nav-panel a:hover, .client-header .shell-nav .nav-panel a:focus-visible { background: var(--bg); color: var(--navy); }
+  .client-header .shell-nav .nav-panel a.active { background: #eef3fb; color: var(--navy); box-shadow: inset 3px 0 0 var(--navy); }
+}
+@media (pointer: coarse) {
+  .nav-group-btn { min-height: 44px; }
+}
+
+/* Wide screens: the signed-in name and role wrap onto two short lines so the grouped menus fit on one row. */
+@media (min-width: 601px) {
+  .shell-user > span { max-width: 200px; text-align: right; line-height: 1.3; }
+  .shell-header { column-gap: 20px; }
+  .shell-nav { gap: 2px; }
+}

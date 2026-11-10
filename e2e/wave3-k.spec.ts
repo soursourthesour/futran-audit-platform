@@ -1,5 +1,6 @@
 import { mkdirSync } from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
+import { openNav } from './nav';
 
 /* Wave 3 WS-K on ABC Corp at stage 6 (start-server.sh … late): the bias test calculator (screen 29) with a validation
    failure, a run, a draft finding and the guardrail sandbox; the heat map and lineage (35); benchmarking (34) with no
@@ -119,7 +120,7 @@ test.describe.serial('WS-K: bias calculator, heat map and lineage, benchmarking,
 
   test('screen 34: benchmarking for the Chief Auditor and the practice view for Sales', async ({ page }) => {
     await staff(page, 'chief@futran.demo');
-    await page.getByRole('link', { name: 'Insights' }).click();
+    await openNav(page, 'Insights');
     await expect(page.getByRole('heading', { name: 'Benchmarking and practice insights' })).toBeVisible();
     await expect(page.getByText('Shown when at least 5 clients have consented to benchmarking.').or(page.getByText('No signed reports yet.', { exact: false })).first()).toBeVisible();
     await shoot(page, 'insights');

@@ -1,5 +1,6 @@
 import { mkdirSync, readFileSync } from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
+import { openNav } from './nav';
 
 /* Wave 3 WS-J on the "late" server (ABC Corp at stage 6): the Futran Admin puts ABC on the Monitor plan; the Client Admin
    uploads an expense export, connects Google Workspace through the test consent page, syncs, confirms one tool and
@@ -89,7 +90,7 @@ test('Futran Admin puts ABC Corp on the Monitor plan from the client page', asyn
 
 test('Client Admin uploads expenses, connects Google Workspace and works the discovered tools', async ({ page }) => {
   await signIn(page, SAM);
-  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Integrations', exact: true }).click();
+  await openNav(page, 'Integrations');
   await expect(page.getByRole('heading', { name: 'Integrations and AI discovery' })).toBeVisible();
   await expect(page.getByText('Results are grouped by tool and department')).toBeVisible();
 
@@ -125,7 +126,7 @@ test('CAICO reads integrations without decisions and runs the monitoring checks'
   await page.goto('/integrations');
   await expect(page.getByRole('heading', { name: 'Integrations and AI discovery' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Upload CSV' })).toHaveCount(0);
-  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Monitoring', exact: true }).click();
+  await openNav(page, 'Monitoring');
   await expect(page.getByRole('heading', { name: 'Continuous monitoring' })).toBeVisible();
   await page.getByRole('button', { name: 'Run checks now' }).click();
   await expect(page.getByText(/Checks run: \d+ failed/)).toBeVisible();

@@ -1,6 +1,7 @@
 import { mkdirSync, readFileSync } from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
 import { test, expect, type Page } from '@playwright/test';
+import { expectNav, openNav } from './nav';
 
 /* v0.6.1 WS-F: each role lands on its own home after sign-in and the navigation shows only that role's modules
    (spec §13.1). Runs on the "late" server: ABC Corp at stage 6 with every client role filled, and Meridian GmbH whose
@@ -24,20 +25,21 @@ type Case = { who: string; email: string; staff: boolean; home: RegExp; heading:
 
 const CASES: Case[] = [
   { who: 'Futran Admin', email: 'admin@futran.demo', staff: true, home: /\/staff\/admin$/, heading: 'Admin console', shot: 'admin-home',
-    shown: ['Admin home', 'Dashboard', 'Clients', 'Regulatory master', 'Client alerts', 'Templates', 'Reference data', 'Users', 'Audit log', 'Outbox', 'Email and groups', 'Email log', 'Settings'],
+    shown: ['Admin home', 'Dashboard', 'Clients', 'Law library', 'Client alerts', 'Templates', 'Reference data', 'Users', 'Audit log', 'Email and groups', 'Email log', 'Settings'],
     hidden: ['My work', 'QA queue', 'Litigation', 'Opportunities'] },
   { who: 'Chief Auditor', email: 'chief@futran.demo', staff: true, home: /\/audits$/, heading: 'Audits', shot: 'chief-auditor-dashboard',
-    shown: ['Dashboard', 'Clients', 'Regulatory master', 'Litigation', 'Opportunities', 'Client alerts', 'Templates', 'Reference data', 'Users', 'Audit log', 'Outbox', 'Email log', 'Settings'],
+    shown: ['Dashboard', 'Clients', 'Law library', 'Litigation', 'Opportunities', 'Client alerts', 'Templates', 'Reference data', 'Users', 'Audit log', 'Email log', 'Settings'],
+    // the outbox is a tab of the email log (11-03 F14b)
     hidden: ['Admin home', 'My work', 'QA queue', 'Email and groups'] },
   { who: 'Auditor', email: 'auditor1@futran.demo', staff: true, home: /\/my-work$/, heading: 'My work', shot: 'auditor-my-work',
-    shown: ['My work', 'Dashboard', 'Clients', 'Regulatory master', 'Litigation', 'Audit log', 'Email log'],
+    shown: ['My work', 'Dashboard', 'Clients', 'Law library', 'Litigation', 'Audit log', 'Email log'],
     hidden: ['Admin home', 'QA queue', 'Users', 'Templates', 'Reference data', 'Opportunities', 'Client alerts', 'Outbox', 'Settings', 'Email and groups'] },
   { who: 'QA Reviewer', email: 'qa@futran.demo', staff: true, home: /\/qa$/, heading: 'QA review queue', shot: 'qa-queue',
-    shown: ['QA queue', 'Dashboard', 'Clients', 'Regulatory master'],
+    shown: ['QA queue', 'Dashboard', 'Clients', 'Law library'],
     hidden: ['Admin home', 'My work', 'Users', 'Litigation', 'Opportunities', 'Templates', 'Client alerts'] },
   { who: 'Sales Team', email: 'sales@futran.demo', staff: true, home: /\/opportunities$/, heading: 'Opportunities', shot: 'sales-opportunities',
     shown: ['Opportunities', 'Litigation'],
-    hidden: ['Dashboard', 'Clients', 'Regulatory master', 'Users', 'Audit log', 'My work'] },
+    hidden: ['Dashboard', 'Clients', 'Law library', 'Users', 'Audit log', 'My work'] },
   { who: 'Chief AI Compliance Officer', email: `maria.lopez@${ABC}`, staff: false, home: /\/start$/, heading: 'Welcome to your AI governance assessment', shot: 'caico-getting-started',
     shown: ['Getting started', 'People', 'AI system register', 'Company roles', 'Add-ons', 'Governance', 'Attestation', 'AI inventory', 'Review', 'Report', 'Responses', 'Remediation', 'Email connection', 'Groups', 'Email log'],
     hidden: ['Admin home', 'Summary', 'Data review', 'My department', 'My tasks'] },
@@ -76,13 +78,9 @@ async function signIn(page: Page, email: string, staff: boolean) {
   }
 }
 
-const mainNav = (page: Page) => page.getByRole('navigation', { name: 'Main' });
 
-async function checkNav(page: Page, shown: string[], hidden: string[]) {
-  const nav = mainNav(page);
-  for (const name of shown) await expect(nav.getByRole('link', { name, exact: true }), `nav shows ${name}`).toBeVisible();
-  for (const name of hidden) await expect(nav.getByRole('link', { name, exact: true }), `nav hides ${name}`).toHaveCount(0);
-}
+/** The navigation is grouped into menus (11-03 F4, C1): entries count whether or not their menu is open. */
+const checkNav = expectNav;
 
 /** No sideways scrolling, and every control is at least 44 px tall (spec §13 accessibility). */
 async function checkLayout(page: Page, where: string) {
@@ -131,7 +129,7 @@ test('a CAICO with Client Admin powers lands on Getting started and sees the uni
   await expect(page).toHaveURL(/\/start$/);
   await checkNav(page, ['Getting started', 'Admin home', 'People', 'Email connection', 'Groups', 'AI inventory', 'Review', 'Company roles', 'Attestation'],
     ['Summary', 'Data review', 'My department', 'My tasks']);
-  await mainNav(page).getByRole('link', { name: 'Admin home', exact: true }).click();
+  await openNav(page, 'Admin home');
   await expect(page).toHaveURL(/\/admin\/home$/);
   await expect(page.getByRole('heading', { level: 1, name: 'Client Admin home' })).toBeVisible();
   await expect(page.getByText('Meridian GmbH').first()).toBeVisible();

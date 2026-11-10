@@ -1,5 +1,6 @@
 import { mkdirSync } from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
+import { openNav } from './nav';
 
 /* v0.6 WS-E: the tracing add-on on ABC Corp (start-server.sh … late). R8 unlock: locked tab → request → the
    Executive Sponsor approves → unlocked. R7: import of an agent's actions, an incident with its regulator deadlines,
@@ -100,7 +101,7 @@ test('tracing add-on: locked, requested, approved by the sponsor, then traces an
 
   // the Executive Sponsor approves on Add-ons
   await clientUser(page, ROBERT);
-  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Add-ons' }).click();
+  await openNav(page, 'Add-ons');
   const waiting = page.getByRole('region', { name: 'Waiting for your approval' });
   await expect(waiting.getByText(/Website refund chatbot/)).toBeVisible();
   await shoot(page, 'r8-sponsor-approval');

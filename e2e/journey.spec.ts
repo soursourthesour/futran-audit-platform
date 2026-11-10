@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
+import { openNav } from './nav';
 
 /** Each role lands on its own home after sign-in (spec §13.1). */
 const HOME: Record<string, RegExp> = { 'admin@futran.demo': /\/staff\/admin$/, 'auditor1@futran.demo': /\/my-work$/, 'auditor2@futran.demo': /\/my-work$/, 'em@futran.demo': /\/my-work$/, 'manager@futran.demo': /\/my-work$/, 'qa@futran.demo': /\/qa$/, 'sales@futran.demo': /\/opportunities$/ };
@@ -95,7 +96,7 @@ test('review to close: sign-off 5, report and declarations, responses, final rep
 
   // Stage 7: the client responds; Futran reviews adequacy; sign-off 6
   await clientUser(page, `maria.lopez@${ABC}`);
-  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Responses' }).click();
+  await openNav(page, 'Responses');
   await expect(page.getByRole('heading', { name: 'Respond to findings' })).toBeVisible();
   const first = page.locator('.card').filter({ hasText: 'Finding 1' });
   await first.getByLabel('Agree', { exact: true }).check();
@@ -119,7 +120,7 @@ test('review to close: sign-off 5, report and declarations, responses, final rep
     await api(page, 'POST', `/responses/${r.id}/adequacy`, { adequate: true, note: 'The action addresses the cause.' });
   }
   await clientUser(page, `priya.shah@${ABC}`);
-  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Responses' }).click();
+  await openNav(page, 'Responses');
   await page.getByRole('button', { name: 'Send for sign-off 6' }).click();
   await expect(page.getByText('The remediation plan was sent for sign-off 6.')).toBeVisible();
   for (const [email, name] of [[`maria.lopez@${ABC}`, 'Maria Lopez'], [`robert.chen@${ABC}`, 'Robert Chen']]) {
@@ -152,7 +153,7 @@ test('review to close: sign-off 5, report and declarations, responses, final rep
   await expect(page.locator('.card').filter({ hasText: 'Sign-off 7' }).getByText('Approved').first()).toBeVisible();
   await shot(page, 'p6-final-report-signed');
   await clientUser(page, `maria.lopez@${ABC}`);
-  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Report' }).click();
+  await openNav(page, 'Report');
   await expect(page.getByText('Signing confirms you have received and read this report. It does not mean you agree with every finding.')).toBeVisible();
   await sign(page, 'Maria Lopez', 'Public summary');
   await page.locator('.card').filter({ hasText: 'Acknowledge the final report' }).getByLabel('Type your full name to sign', { exact: true }).fill('Maria Lopez');
@@ -162,7 +163,7 @@ test('review to close: sign-off 5, report and declarations, responses, final rep
 
   // Stage 9: owners mark items done, the auditor verifies, the Chief Auditor closes
   await clientUser(page, `priya.shah@${ABC}`);
-  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Remediation' }).click();
+  await openNav(page, 'Remediation');
   await page.getByLabel('What was done', { exact: true }).fill('Bias audit commissioned; summary published on the careers page.');
   await page.getByRole('button', { name: 'Mark done' }).click();
   await expect(page.getByText('Marked done. Futran has been told.')).toBeVisible();

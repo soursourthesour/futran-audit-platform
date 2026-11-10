@@ -1,5 +1,6 @@
 import { mkdirSync } from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
+import { openNav } from './nav';
 
 // Email, groups and sync (spec §26, §27.1) on the "late" server: Meridian has an open attestation campaign and Katrin
 // Vogel is its Chief AI Compliance Officer and Client Admin. Providers are the in-process fakes (test mode).
@@ -53,7 +54,7 @@ test.describe.configure({ mode: 'serial' });
 
 test('E1: the Futran Admin connects the Futran mailbox with the test provider', async ({ page }) => {
   await signIn(page, 'admin@futran.demo', true);
-  await page.getByRole('link', { name: 'Email and groups' }).click();
+  await openNav(page, 'Email and groups');
   await expect(page.getByRole('heading', { name: 'Futran email and groups' })).toBeVisible();
   await expect(page.getByText(/Test mode: connections use a simulated Microsoft 365/)).toBeVisible();
   await page.locator('.mail-card').filter({ hasText: 'Microsoft 365' }).getByRole('button', { name: 'Connect', exact: true }).click();

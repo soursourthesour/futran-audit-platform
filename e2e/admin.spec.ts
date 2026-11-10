@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { navLink, openNav } from './nav';
 
 /** Each role lands on its own home after sign-in (spec §13.1). */
 const HOME: Record<string, RegExp> = { 'admin@futran.demo': /\/staff\/admin$/, 'auditor1@futran.demo': /\/my-work$/, 'auditor2@futran.demo': /\/my-work$/, 'em@futran.demo': /\/my-work$/, 'manager@futran.demo': /\/my-work$/, 'qa@futran.demo': /\/qa$/, 'sales@futran.demo': /\/opportunities$/ };
@@ -14,7 +15,7 @@ async function signIn(page: Page, email: string) {
 
 test('admin adds a Futran user, the invitation lands in the outbox and the audit log', async ({ page }) => {
   await signIn(page, 'admin@futran.demo');
-  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Users', exact: true }).click();
+  await openNav(page, 'Users');
   await page.getByRole('button', { name: 'Add user' }).click();
   await page.getByLabel('Full name').fill('Quinn Reviewer');
   await page.getByLabel('Work email').fill('quinn@futran.demo');
@@ -24,21 +25,22 @@ test('admin adds a Futran user, the invitation lands in the outbox and the audit
   await expect(page.getByRole('cell', { name: 'quinn@futran.demo' })).toBeVisible();
   await page.screenshot({ path: 'screenshots/p1-users.png', fullPage: true });
 
-  await page.getByRole('link', { name: 'Outbox' }).click();
+  await openNav(page, 'Email log');  // 11-03 F14b: the outbox is a tab of the email log
+  await page.getByRole('tab', { name: 'Outbox (test mode)' }).click();
   await page.getByRole('button', { name: /your Futran Audit Platform account is ready/ }).first().click();
   await expect(page.frameLocator('iframe[title="Email preview"]').getByText('Accept invitation')).toBeVisible();
   await page.screenshot({ path: 'screenshots/p1-outbox.png', fullPage: true });
   await page.keyboard.press('Escape'); // the message opens in a dialog; close it to use the navigation
   await expect(page.getByRole('dialog')).toHaveCount(0);
 
-  await page.getByRole('link', { name: 'Audit log' }).click();
+  await openNav(page, 'Audit log');
   await expect(page.getByText('Added quinn@futran.demo')).toBeVisible();
   await page.screenshot({ path: 'screenshots/p1-audit-log.png', fullPage: true });
 });
 
 test('auditor does not see admin navigation', async ({ page }) => {
   await signIn(page, 'auditor1@futran.demo');
-  await expect(page.getByRole('link', { name: 'Users' })).toHaveCount(0);
+  await expect(navLink(page, 'Users')).toHaveCount(0);
   await page.goto('/staff/login');
   await page.screenshot({ path: 'screenshots/p1-login.png' });
 });

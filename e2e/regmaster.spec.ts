@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { openNav } from './nav';
 
 /** Each role lands on its own home after sign-in (spec §13.1). */
 const HOME: Record<string, RegExp> = { 'admin@futran.demo': /\/staff\/admin$/, 'auditor1@futran.demo': /\/my-work$/, 'auditor2@futran.demo': /\/my-work$/, 'em@futran.demo': /\/my-work$/, 'manager@futran.demo': /\/my-work$/, 'qa@futran.demo': /\/qa$/, 'sales@futran.demo': /\/opportunities$/ };
@@ -29,7 +30,7 @@ async function noSidewaysScroll(page: Page) {
 
 test('Chief Auditor browses the law library, opens Colorado SB 26-189 and an Admin edit becomes a proposed change', async ({ page }) => {
   await signIn(page, 'chief@futran.demo');
-  await page.getByRole('link', { name: 'Regulatory master' }).click();
+  await openNav(page, 'Law library');
   await expect(page.getByRole('heading', { name: 'Law library' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'NYC LL144' })).toBeVisible();
   await page.getByPlaceholder('Law, citation or requirement').fill('SB 26-189');
@@ -56,7 +57,7 @@ test('Chief Auditor browses the law library, opens Colorado SB 26-189 and an Adm
   await expect(page.getByText(/^60 days after a notice of violation/)).toBeVisible();
 
   // M4: the role matrix
-  await page.getByRole('navigation', { name: 'Regulatory master' }).getByRole('link', { name: 'Roles and committees' }).click();
+  await page.getByRole('navigation', { name: 'Law library sections' }).getByRole('link', { name: 'Roles and committees' }).click();
   await expect(page.getByRole('heading', { name: 'Role and committee catalogue' })).toBeVisible();
   await expect(page.getByRole('cell', { name: /Bias testing lead/ }).first()).toBeVisible();
   await noSidewaysScroll(page);

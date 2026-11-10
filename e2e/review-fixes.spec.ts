@@ -1,5 +1,6 @@
 import { mkdirSync, readFileSync } from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
+import { navLink, openNav } from './nav';
 
 /* Front-end review fixes (v0.6.1): the phone header, the governance committee, the register link in fieldwork, and
    screens that must not call endpoints the signed-in person cannot use. Runs on the "late" server. */
@@ -166,7 +167,7 @@ test('the Auditor is not sent to a review queue they cannot open', async ({ page
   });
   expect(bad).toEqual([]);
   await expect(page.getByRole('link', { name: 'Refresh laws with AI' })).toHaveCount(0);
-  await expect(page.getByRole('navigation', { name: 'Regulatory master' }).getByRole('link', { name: /Refresh and review/ })).toHaveCount(0);
+  await expect(page.getByRole('navigation', { name: 'Law library sections' }).getByRole('link', { name: /Refresh and review/ })).toHaveCount(0);
   const bad2 = await apiErrors(page, async () => {
     await page.goto('/reg/refresh?kind=law');
     await expect(page.getByText(/wait here for the Chief Auditor/)).toBeVisible();
@@ -178,13 +179,13 @@ test('the Auditor is not sent to a review queue they cannot open', async ({ page
 test('QA reaches the review queue from the main navigation, and no screen answers 403', async ({ page }) => {
   await signIn(page, 'qa@futran.demo', true);
   const bad = await apiErrors(page, async () => {
-    await main(page).getByRole('link', { name: 'Refresh and review', exact: true }).click();
+    await openNav(page, 'Refresh and review');
     await expect(page.getByRole('heading', { level: 1, name: 'Refresh laws and review changes' })).toBeVisible();
     await expect(page.getByRole('grid', { name: 'Changes waiting for review' }).or(page.getByText('Nothing is waiting for review.'))).toBeVisible();
   });
   expect(bad).toEqual([]);
-  await expect(main(page).getByRole('link', { name: 'Refresh and review', exact: true })).toHaveAttribute('aria-current', 'page');
-  await expect(main(page).getByRole('link', { name: 'Regulatory master', exact: true })).not.toHaveAttribute('aria-current', 'page');
+  await expect(navLink(page, 'Refresh and review')).toHaveAttribute('aria-current', 'page');
+  await expect(navLink(page, 'Law library')).not.toHaveAttribute('aria-current', 'page');
   // a law record does not ask for the litigation tracker
   const laws = await (await page.request.get('/api/v1/reg/laws')).json();
   const law = laws.groups.flatMap((g: { laws: { id: string }[] }) => g.laws)[0];

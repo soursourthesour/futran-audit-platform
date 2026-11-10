@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { openNav } from './nav';
 
 // ABC Corp from start-server.sh … late: the AI system register (R1–R6), seeded from the inventory, with NYC Local
 // Law 144 and its role map and requirements from the regulatory master seed.
@@ -51,7 +52,7 @@ async function addSystem(page: Page, name: string, law?: string) {
 
 test('register grid: import from inventory, bulk edit with a reason, row menu and change history', async ({ page }) => {
   await clientUser(page, MARIA);
-  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'AI system register' }).click();
+  await openNav(page, 'AI system register');
   await expect(page.getByRole('heading', { name: 'AI system register' })).toBeVisible();
   await page.getByRole('button', { name: 'Import from inventory' }).click();
   await expect(page.getByText(/AI systems added from the inventory as Proposed/)).toBeVisible();
