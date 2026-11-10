@@ -2,7 +2,7 @@
 title: Futran Audit Platform — changes from the 11-03 review notes
 tags: [futran, audit-platform, change-log]
 source: "futran AI audit platform fixes 11-03.docx" (updated 10 November 2026); item ids in 2026-11-03_fixes_source.md
-status: built, independently reviewed and fixed; final test runs below
+status: built, independently reviewed and fixed; all tests pass; update package ready to install
 updated: 2026-11-10
 ---
 
@@ -87,11 +87,32 @@ Each workstream was reviewed by a separate reviewer. Fixed, each with a test tha
 - Connect an AI provider and run Test connection, then one small feature. The OpenAI, Azure OpenAI and Gemini connections have been tested only against simulated responses.
 - Switch on the opportunity scan if you want it.
 
+## Also fixed during this round
+
+- Every uploaded Excel workbook is now size-checked before it is read: People uploads, the register import, customer questionnaires and the copilot's document reader. A few kilobytes could declare a million rows and run the server out of memory.
+- Daily jobs (invitation reminders, escalations, law refresh schedules, the 12-month reassessment, the opportunity scan) now run once a day the first time the app is open after 10:00 UTC (05:00 New York in winter, 06:00 in summer). Before, they only ran if the app happened to be open at that moment, so on a laptop they rarely ran.
+
+## Test results
+
+- Backend: 1,865 passed, 1 skipped, none failed.
+- Browser (Playwright): 113 passed, none failed.
+- One chain of database migrations (head `c8d2e3f4a5b6`); every new migration only adds tables or columns.
+- Upgrade rehearsed on a copy of your 2 November data: no table lost a row; AI systems and answers unchanged. On first start: one law added to the library, the nine Agentic AI questions added, expiry notices for pending invitations (outbox only), and the day's daily jobs run once. The opportunity scan is off, no AI provider is connected, and Job level is blank for everyone until you set it.
+
 ## Laptop update
 
-To be completed when the update is installed.
+The laptop was not linked while this was built, so the update was not installed. To install it:
+
+1. Close the platform (close the run.bat window).
+2. Back up your data: copy the `data` folder in `%LOCALAPPDATA%\FutranAuditPlatform` to `%LOCALAPPDATA%\FutranAuditPlatform\backups\data-before-1103-fixes`.
+3. Unzip `Futran_Audit_Platform.zip` and copy the contents of its `Futran Audit Platform` folder over your app folder (`IT work\strategy development\Futran Audit Platform`), replacing files. The zip contains no `.env`, so your settings stay as they are.
+4. Do not run demo.bat or setup.bat.
+5. Start run.bat. The first start upgrades the database (about a minute) and runs the day's daily jobs once.
+
+To go back: close the platform, put the backed-up `data` folder back, and unzip the previous package (`backups\Futran_Audit_Platform_wave3_2026-11-02.zip`) over the app folder.
 
 ## Still to do
 
+- Install the update on the laptop (steps above), or link the laptop and ask Claude to install it.
 - The deferred items above.
 - Your answers on: "Needed by" meaning the system's life stage (as built) or the audit stage; the remaining register labels.
