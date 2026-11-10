@@ -41,7 +41,7 @@ CHOICES = (7, 15, 30)
 MIN_DAYS, MAX_DAYS = 1, 365
 LOOKBACK_WHEN_OFF = 30
 RENEWAL_WINDOW_DAYS = 90
-DAILY_RUN_UTC = time(10, 0)  # start_scheduler's daily tick (06:00 New York)
+DAILY_RUN_UTC = time(10, 0)  # the daily run: 10:00 UTC (05:00 New York in winter, 06:00 in summer) or the first time the app is open after that
 LAW_TRIGGERS = ("new_law", "law_change")
 # Approved changes that do not change what a client must do: a version made only of these is not an opportunity.
 COSMETIC_PATHS = {"law.verify_flag", "law.source_ids", "law.litigation_text", "law.main_duty", "law.effective_text", "law.short_name", "law.citation",
@@ -115,12 +115,15 @@ def _due_on(db: Session, n: int) -> date | None:
 
 
 def next_run_on(db: Session, now: datetime | None = None) -> date | None:
-    """The date of the daily run that will next scan (None while the setting is off)."""
+    """The date of the daily run that will next scan (None while the setting is off). Today's run happens at 10:00 UTC
+    or the first time the app is open after that, so today counts until it has happened."""
+    from app.notifications.jobs import ran_on
+
     n = interval(db)
     if n is None:
         return None
     now = _dt(now or utcnow())
-    first_daily = now.date() if now.time() < DAILY_RUN_UTC else now.date() + timedelta(days=1)
+    first_daily = now.date() + timedelta(days=1) if ran_on(db, now.date()) else now.date()
     due = _due_on(db, n)
     return max(due, first_daily) if due else first_daily
 

@@ -107,3 +107,86 @@ def test_run_daily_runs_every_job(client, db, live, settings):
                         "model_catalogue_monthly"}  # 11-03 C12
     # email (every minute) and incident deadlines (every 15 minutes) run on their own ticks, never also in the daily run
     assert all(isinstance(v, int) for v in out.values()), out
+
+
+# ---- 11-10 review O7: the daily run happens once a day even when the server was not running at 10:00 UTC
+
+def _counting(monkeypatch):
+    calls = []
+    monkeypatch.setattr(jobs, "JOBS", {"count": lambda db, settings, now: calls.append(now) or 1})
+    return calls
+
+
+def test_a_missed_daily_run_catches_up_once_when_the_app_is_open(db, settings, monkeypatch):
+    from app.notifications.models import DailyJobRun
+
+    calls = _counting(monkeypatch)
+    assert jobs.run_daily_once(db, settings, datetime(2026, 11, 16, 9, 59)) is None  # not before 10:00 UTC
+    assert jobs.run_daily_once(db, settings, datetime(2026, 11, 16, 14, 30)) == {"count": 1}  # opened in the afternoon
+    assert jobs.run_daily_once(db, settings, datetime(2026, 11, 16, 14, 45)) is None  # the next tick: already run today
+    assert jobs.run_daily_once(db, settings, datetime(2026, 11, 16, 23, 59)) is None
+    assert len(calls) == 1
+    row = db.scalar(select(DailyJobRun))
+    assert row.run_on.isoformat() == "2026-11-16" and row.status == "completed" and row.outcome == {"count": 1} and row.finished_at
+    assert jobs.run_daily_once(db, settings, datetime(2026, 11, 18, 10, 0)) == {"count": 1}  # a day the laptop was off is not run twice
+    assert len(calls) == 2
+
+
+def test_a_failed_job_is_recorded_on_the_days_run(db, settings, monkeypatch):
+    from app.notifications.models import DailyJobRun
+
+    def boom(db, settings, now):
+        raise RuntimeError("x")
+
+    monkeypatch.setattr(jobs, "JOBS", {"boom": boom})
+    assert jobs.run_daily_once(db, settings, datetime(2026, 11, 16, 11, 0)) == {"boom": "failed: RuntimeError"}
+    assert db.scalar(select(DailyJobRun.status)) == "failed"
+    assert jobs.run_daily_once(db, settings, datetime(2026, 11, 16, 12, 0)) is None
+
+
+def test_two_processes_claim_the_day_and_one_runs(tmp_path, settings, monkeypatch):
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+
+    from app.core.models import Base
+    import app.models_registry  # noqa: F401
+
+    eng = create_engine(f"sqlite:///{tmp_path / 'two.db'}")
+    Base.metadata.create_all(eng)
+    a, b = sessionmaker(bind=eng)(), sessionmaker(bind=eng)()
+    now = datetime(2026, 11, 16, 10, 0)
+    try:
+        assert jobs._claim_day(a, now) is not None
+        assert jobs._claim_day(b, now) is None  # the unique day is taken: the other process runs nothing
+        calls = _counting(monkeypatch)
+        assert jobs.run_daily_once(b, settings, now) is None and calls == []
+    finally:
+        a.close()
+        b.close()
+        eng.dispose()
+
+
+def test_the_scheduler_catches_up_on_start_and_every_15_minutes(engine, settings, monkeypatch):
+    import time as _time
+    from types import SimpleNamespace
+
+    from sqlalchemy.orm import sessionmaker
+
+    seen = []
+    monkeypatch.setattr(jobs, "run_daily_once", lambda db, settings, now: seen.append(now))
+    app = SimpleNamespace(state=SimpleNamespace(settings=settings, sessionmaker=sessionmaker(bind=engine)))
+    jobs.start_scheduler(app)
+    try:
+        sched = app.state.scheduler
+        daily = sched.get_job("daily")
+        assert daily.misfire_grace_time and daily.misfire_grace_time >= 3600 and daily.coalesce is True
+        assert str(daily.trigger.fields[5]) == "10" and str(daily.trigger.fields[6]) == "0"  # hour, minute (UTC)
+        catchup = sched.get_job("daily_catchup")
+        assert catchup.trigger.interval.total_seconds() == 15 * 60 and catchup.coalesce is True and catchup.max_instances == 1
+        for _ in range(50):  # on start
+            if seen:
+                break
+            _time.sleep(0.1)
+        assert seen
+    finally:
+        app.state.scheduler.shutdown(wait=False)

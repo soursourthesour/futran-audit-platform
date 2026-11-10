@@ -18,7 +18,8 @@ const KEY = ['admin-opportunity-scan'];
 const HELP = {
   interval: (
     <>
-      Off by default. When on, the daily jobs (06:00 New York time) run the scan once this many days have passed since the last completed scan.
+      Off by default. When on, the daily run (10:00 UTC, which is 05:00 New York in winter and 06:00 in summer, or the first time the app is open
+      after that) runs the scan once this many days have passed since the last completed scan.
       Each scan looks at what changed since the one before. The first after switching it on looks back to that moment, or 30 days, whichever is
       shorter; Run now while it is off looks back 30 days at most. It opens an opportunity, once per client and reason, for
       laws added or changed in the law library that apply to the client, regulatory updates published and matched to the client, and renewal audits due

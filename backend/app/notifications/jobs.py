@@ -1,11 +1,13 @@
-"""Daily jobs (spec §14). Each is a plain function `run_<job>(db, settings, now)` so tests can call it with any date;
-the scheduler runs `run_daily` once a day."""
+"""Daily jobs (spec §14). Each is a plain function `run_<job>(db, settings, now)` so tests can call it with any date.
+The scheduler runs them once a day through `run_daily_once`: at 10:00 UTC (05:00 New York in winter, 06:00 in summer),
+or the first time the app is open after that, since a laptop is often off at 10:00."""
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.audit_log import service as audit
@@ -245,6 +247,54 @@ def run_daily(db: Session, settings: Settings, now) -> dict[str, int | str]:
     return out
 
 
+DAILY_RUN_UTC = time(10, 0)  # the earliest time of the daily run
+
+
+def ran_on(db: Session, day: date) -> bool:
+    """Whether the daily run of this date has happened (or is under way)."""
+    from app.notifications.models import DailyJobRun
+
+    return db.scalar(select(DailyJobRun.id).where(DailyJobRun.run_on == day)) is not None
+
+
+def _claim_day(db: Session, now: datetime):
+    """Claim today's run with its unique date and commit, so another process sees it. None when it is taken."""
+    from app.notifications.models import DailyJobRun
+
+    row = DailyJobRun(run_on=now.date(), started_at=now, status="running", outcome={})
+    db.add(row)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        return None
+    return row
+
+
+def run_daily_once(db: Session, settings: Settings, now) -> dict[str, int | str] | None:
+    """Run the daily jobs if today's run has not happened and it is 10:00 UTC or later. The scheduler calls this at
+    10:00, when the server starts and every 15 minutes, so a day the server was not running at 10:00 still gets its
+    run once the app is open. Returns what each job returned, or None when nothing ran."""
+    from app.core.clock import utcnow
+
+    now = _dt(now)
+    if now.time() < DAILY_RUN_UTC or ran_on(db, now.date()):
+        return None
+    row = _claim_day(db, now)
+    if row is None:  # another process claimed it first
+        return None
+    try:
+        out = run_daily(db, settings, now)
+    except Exception as exc:  # run_daily keeps one job's failure from the others; this is what is left
+        db.rollback()
+        log.exception("Daily jobs failed")
+        out = {"run_daily": f"failed: {exc.__class__.__name__}"}
+    row.outcome, row.finished_at = out, utcnow()
+    row.status = "failed" if any(isinstance(v, str) and v.startswith("failed") for v in out.values()) else "completed"
+    db.commit()
+    return out
+
+
 def start_scheduler(app) -> None:
     from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -252,10 +302,15 @@ def start_scheduler(app) -> None:
 
     settings = app.state.settings
 
-    def tick():
+    def tick():  # at 10:00 UTC, on start and every 15 minutes: runs the day's jobs once, the first time it is due
         db = app.state.sessionmaker()
         try:
-            log.info("Daily jobs: %s", run_daily(db, settings, utcnow()))
+            out = run_daily_once(db, settings, utcnow())
+            if out is not None:
+                log.info("Daily jobs: %s", out)
+        except Exception:  # logged; the next tick tries again
+            db.rollback()
+            log.exception("Daily tick failed")
         finally:
             db.close()
 
@@ -299,7 +354,10 @@ def start_scheduler(app) -> None:
             db.close()
 
     sched = BackgroundScheduler(timezone="UTC")
-    sched.add_job(tick, "cron", hour=10, minute=0, id="daily", replace_existing=True)  # 06:00 New York
+    sched.add_job(tick, "cron", hour=DAILY_RUN_UTC.hour, minute=DAILY_RUN_UTC.minute, id="daily", replace_existing=True, misfire_grace_time=6 * 3600,
+                  coalesce=True, max_instances=1)  # 05:00 New York in winter, 06:00 in summer
+    sched.add_job(tick, "interval", minutes=15, id="daily_catchup", replace_existing=True, max_instances=1, coalesce=True)  # a laptop off at 10:00
+    sched.add_job(tick, "date", id="daily_on_start", replace_existing=True, misfire_grace_time=None)  # on start: catch up a missed day
     sched.add_job(mail_tick, "interval", minutes=1, id="mail", replace_existing=True, max_instances=1, coalesce=True)
     sched.add_job(deadline_tick, "interval", minutes=15, id="incident_deadlines", replace_existing=True, max_instances=1, coalesce=True)  # CERT-In: 6 hours
     sched.add_job(webhook_tick, "interval", minutes=1, id="webhooks", replace_existing=True, max_instances=1, coalesce=True)

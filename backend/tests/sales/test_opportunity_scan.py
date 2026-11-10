@@ -524,3 +524,17 @@ def test_o3_an_effective_date_review_opened_before_a_later_material_change_does_
     db.commit()
     scan.run_now(db, world["admin"], now=NOW)
     assert sorted(t for t, _ in _nw_opps(db, world)) == ["effective_date", "law_change"]
+
+
+def test_o7_next_run_is_today_until_todays_daily_run_has_happened(db, world, settings):
+    """The daily run is at 10:00 UTC or the first time the app is open after that, so the next run is today until it has happened."""
+    from app.notifications import jobs
+
+    scan.set_interval(db, world["admin"], 7, now=NOW - timedelta(days=1))
+    db.commit()
+    assert scan.next_run_on(db, NOW.replace(hour=8)) == NOW.date()
+    assert scan.next_run_on(db, NOW.replace(hour=15)) == NOW.date()  # 10:00 has passed but the laptop was off: it runs when the app is open
+    jobs.run_daily_once(db, settings, NOW.replace(hour=15))
+    assert scan.next_run_on(db, NOW.replace(hour=16)) == NOW.date() + timedelta(days=7)
+    scan.set_interval(db, world["admin"], 1)
+    assert scan.next_run_on(db, NOW.replace(hour=16)) == NOW.date() + timedelta(days=1)
