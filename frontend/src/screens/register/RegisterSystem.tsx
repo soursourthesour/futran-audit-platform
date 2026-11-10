@@ -3,7 +3,7 @@ import { Link, NavLink, useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
 import { useMe } from '@/api/auth';
-import { GATE_TONE, TIER_LABEL, TIER_TONE, useRegister, useRegSystem, type Change, type EvidenceFile, type RegSystem, type Register } from '@/api/register';
+import { GATE_TONE, TIER_LABEL, TIER_TONE, useRegister, useRegSystem, type Change, type EvidenceFile, type LawSuggestion, type RegSystem, type Register } from '@/api/register';
 import { Alert, Badge, Button, Dialog, EmptyState, Loading, PageHeader, TextArea, TextField, fmtDate, fmtDateTime, fileUrl } from '@/components/ui';
 import { DataGrid } from '@/components/ui/DataGrid';
 import { historyHelp, systemHelp as H } from '@/help/register';
@@ -135,17 +135,38 @@ function GoLiveDialog({ s, onClose, onDone }: { s: RegSystem; onClose: () => voi
   );
 }
 
+/** Suggestion decisions made on the details tab: saved with the rest of the form by Save changes (review R1, R5). */
+type Decisions = { accept: LawSuggestion[]; dismiss: LawSuggestion[]; restore: string[] };
+const NO_DECISIONS: Decisions = { accept: [], dismiss: [], restore: [] };
+
 function DetailsTab({ s, d, onSaved }: { s: RegSystem; d: Register; onSaved: (m: string) => void }) {
   const [f, setF] = useState<Form>(() => formFrom(s));
+  const [base, setBase] = useState<Form>(() => formFrom(s));
+  const [decisions, setDecisions] = useState<Decisions>(NO_DECISIONS);
   const [fe, setFe] = useState<Record<string, string>>({});
   const [err, setErr] = useState<string | null>(null);
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
-  useEffect(() => setF(formFrom(s)), [s]);
+  // a refetch (after a law is added or removed) refreshes the form only when it has no unsaved edits
+  useEffect(() => {
+    const next = formFrom(s);
+    setF((cur) => (JSON.stringify(cur) === JSON.stringify(base) ? next : cur));
+    setBase(next);
+  }, [s]); // eslint-disable-line react-hooks/exhaustive-deps
   const ro = !s.can_edit;
   async function save() {
     setBusy(true); setErr(null); setFe({});
-    try { await api.patch(`/register/${s.id}`, { ...payload(f), reason }); setReason(''); onSaved('Saved. Each change is in the change history.'); }
+    const ops = {
+      ...(decisions.accept.length ? { accept_suggested_law_ids: decisions.accept.map((x) => x.regulation_id) } : {}),
+      ...(decisions.dismiss.length ? { dismiss_law_ids: decisions.dismiss.map((x) => x.regulation_id) } : {}),
+      ...(decisions.restore.length ? { undismiss_law_ids: decisions.restore } : {}),
+    };
+    try {
+      const saved = await api.patch<RegSystem>(`/register/${s.id}`, { ...payload(f), ...ops, reason });
+      const next = formFrom(saved);
+      setF(next); setBase(next); setDecisions(NO_DECISIONS); setReason('');
+      onSaved('Saved. Each change is in the change history.');
+    }
     catch (e) { setErr(errorMessage(e)); setFe(fieldErrors(e)); scrollToError(); } finally { setBusy(false); }
   }
   const props = { f, set: setF, fe, d, disabled: ro, editing: true };
@@ -157,7 +178,7 @@ function DetailsTab({ s, d, onSaved }: { s: RegSystem; d: Register; onSaved: (m:
       <VendorModel {...props} n={2} />
       {f.type === 'agent' && <AgentActions {...props} n={3} />}
       <DataConsent {...props} n={f.type === 'agent' ? 4 : 3} />
-      <LawsCard s={s} n={f.type === 'agent' ? 5 : 4} f={f} set={setF} fe={fe} ro={ro} onChanged={() => onSaved('Laws updated. Required roles were recalculated.')} />
+      <LawsCard s={s} n={f.type === 'agent' ? 5 : 4} f={f} set={setF} fe={fe} ro={ro} decisions={decisions} setDecisions={setDecisions} onChanged={() => onSaved('Laws updated. Required roles were recalculated.')} />
       <BiasCard s={s} n={f.type === 'agent' ? 6 : 5} f={f} set={setF} ro={ro} />
       {!ro && (
         <section className="card"><div className="card-body stack">
@@ -178,21 +199,22 @@ export function draftOf(f: Form): Draft {
 
 const hasPlaces = (f: Form) => !!f.run_location?.country || f.data_locations.some((p) => p.country);
 
-function LawsCard({ s, n, f, set, fe, ro, onChanged }: { s: RegSystem; n: number; f: Form; set: (f: Form) => void; fe: Record<string, string>; ro: boolean; onChanged: () => void }) {
+function LawsCard({ s, n, f, set, fe, ro, decisions, setDecisions, onChanged }: { s: RegSystem; n: number; f: Form; set: (f: Form) => void; fe: Record<string, string>; ro: boolean;
+  decisions: Decisions; setDecisions: (d: Decisions) => void; onChanged: () => void }) {
   const [err, setErr] = useState<string | null>(null);
   const [removing, setRemoving] = useState<RegSystem['laws'][number] | null>(null);
   const [reason, setReason] = useState('');
-  const dismissed = s.dismissed_law_ids ?? [];
+  const dismissed = (s.dismissed_law_ids ?? []).filter((x) => !decisions.restore.includes(x));
   const live = useLawSuggestions(draftOf(f), [...s.laws.map((l) => l.regulation_id), ...dismissed], hasPlaces(f));
-  const suggestions = hasPlaces(f) ? live.rows : (s.suggested_laws ?? []);
-  async function add(regulation_id: string, why?: string | null) {
+  const decided = new Set([...decisions.accept, ...decisions.dismiss].map((x) => x.regulation_id));
+  const suggestions = (hasPlaces(f) ? live.rows : (s.suggested_laws ?? []))?.filter((x) => !decided.has(x.regulation_id)) ?? null;
+  async function add(regulation_id: string) {
     setErr(null);
-    try { await api.post(`/register/${s.id}/laws`, why ? { regulation_id, source: 'suggested', suggestion_reason: why } : { regulation_id }); onChanged(); } catch (e) { setErr(errorMessage(e)); }
+    try { await api.post(`/register/${s.id}/laws`, { regulation_id }); onChanged(); } catch (e) { setErr(errorMessage(e)); }
   }
-  async function dismiss(regulation_id: string) {
-    setErr(null);
-    try { await api.patch(`/register/${s.id}`, { dismissed_law_ids: [...dismissed, regulation_id] }); onChanged(); } catch (e) { setErr(errorMessage(e)); }
-  }
+  const accept = (x: LawSuggestion) => setDecisions({ ...decisions, accept: [...decisions.accept, x] });
+  const dismiss = (x: LawSuggestion) => setDecisions({ ...decisions, dismiss: [...decisions.dismiss, x] });
+  const undo = (x: LawSuggestion) => setDecisions({ ...decisions, accept: decisions.accept.filter((y) => y.regulation_id !== x.regulation_id), dismiss: decisions.dismiss.filter((y) => y.regulation_id !== x.regulation_id) });
   async function remove() {
     if (!removing) return;
     try { await api.post(`/register/${s.id}/laws/${removing.id}/remove`, { reason }); setRemoving(null); setReason(''); onChanged(); } catch (e) { setErr(errorMessage(e)); }
@@ -207,7 +229,7 @@ function LawsCard({ s, n, f, set, fe, ro, onChanged }: { s: RegSystem; n: number
       <Places run={f.run_location} data={f.data_locations} disabled={ro} onRun={(p) => set({ ...f, run_location: p })} onData={(p) => set({ ...f, data_locations: p })} />
       {fe.run_location && <p className="small reg-danger" style={{ margin: 0 }}>{fe.run_location}</p>}
       {fe.data_locations && <p className="small reg-danger" style={{ margin: 0 }}>{fe.data_locations}</p>}
-      {!ro && <p className="small muted" style={{ margin: 0 }}>Places are saved with Save changes below.</p>}
+      {!ro && <p className="small muted" style={{ margin: 0 }}>Places, and the suggestions you accept or remove, are saved with Save changes below.</p>}
       <div className="stack-sm">
         <div className="field-label"><strong>Laws that apply</strong></div>
         <div className="reg-lawchips">
@@ -219,12 +241,28 @@ function LawsCard({ s, n, f, set, fe, ro, onChanged }: { s: RegSystem; n: number
               {l.status === 'removal_pending' && s.can_remove_law && <><button type="button" className="linklike small" onClick={() => decide(l, true)}>Approve removal</button> · <button type="button" className="linklike small" onClick={() => decide(l, false)}>Keep</button></>}
             </span>
           ))}
+          {decisions.accept.map((x) => (
+            <span key={x.regulation_id} className="chip reg-chip-pending" title={x.reason ? `Suggested: ${x.reason}` : undefined}>
+              {x.short_name}{x.jurisdiction && <span className="small muted"> · {x.jurisdiction}</span>}<em className="small"> · added when you save</em>
+              <button type="button" className="linklike reg-x" aria-label={`Undo accepting ${x.short_name}`} onClick={() => undo(x)}>×</button>
+            </span>
+          ))}
         </div>
       </div>
       <div className="stack-sm">
         <div className="field-label"><strong>Suggested laws</strong></div>
-        <SuggestionList rows={suggestions} busy={live.busy} disabled={!canAdd} onAccept={(x) => add(x.regulation_id, x.reason)} onRemove={(x) => dismiss(x.regulation_id)}
+        <SuggestionList rows={suggestions} busy={live.busy} disabled={!canAdd} onAccept={accept} onRemove={dismiss}
           empty={hasPlaces(f) ? 'No other law in the law library matches these places and what the system does.' : 'Add where it runs, or where the people whose data it uses are, to see the laws that apply. Until then the laws found in scope for the company are suggested.'} />
+        {decisions.dismiss.length > 0 && (
+          <p className="small muted" style={{ margin: 0 }}>
+            Removed when you save: {decisions.dismiss.map((x, i) => <span key={x.regulation_id}>{i > 0 && ', '}{x.short_name} (<button type="button" className="linklike small" onClick={() => undo(x)} aria-label={`Keep suggesting ${x.short_name}`}>undo</button>)</span>)}
+          </p>
+        )}
+        {canAdd && dismissed.length > 0 && (
+          <p className="small muted" style={{ margin: 0 }}>
+            {dismissed.length} suggestion{dismissed.length === 1 ? ' was' : 's were'} removed earlier. <button type="button" className="linklike small" onClick={() => setDecisions({ ...decisions, restore: [...decisions.restore, ...dismissed] })}>Show them again</button>
+          </p>
+        )}
       </div>
       {canAdd && <div className="grid-2">
         <LawSearch label="Add a law" help={H.addLaw} exclude={s.laws.map((l) => l.regulation_id)} onPick={(l) => add(l.id)} />

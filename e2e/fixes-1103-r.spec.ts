@@ -155,6 +155,56 @@ test('new-system form: departments, who uses it, owner by department, model list
   await expect(page.getByLabel('Model or algorithm', { exact: true }).locator('option', { hasText: 'Acme ranker 1103 (added by your company)' })).toHaveCount(1);
 });
 
+test('existing system: accepting a suggestion keeps unsaved edits, and Save stores the places and the law with its reason', async ({ page }) => {
+  await clientUser(page, MARIA);
+  const me = await (await page.request.get('/api/v1/auth/me')).json();
+  const reg = await (await page.request.get('/api/v1/register')).json();
+  const hr = reg.departments.find((x: { name: string }) => x.name === 'HR');
+  const name = `Edit places ${Date.now().toString(36)}`;
+  const made = await page.request.post('/api/v1/register', { headers: { 'X-CSRF-Token': me.csrf_token }, data: {
+    name, type: 'vendor_app', sourcing: 'vendor', stage: 'proposed', purpose: 'Ranks job applicants for recruiters.', department_id: hr.id, decision_impact: 'consequential',
+    data: { data_categories: ['personal'], data_subjects: ['candidates'] } } });
+  expect(made.status(), await made.text()).toBe(200);
+  const id = (await made.json()).id;
+  await page.goto(`/register/${id}`);
+  await page.getByLabel('Purpose *', { exact: true }).fill('Ranks job applicants for recruiters in New York.');
+  const run = page.getByRole('group', { name: 'Where it runs' });
+  await run.getByLabel('Country', { exact: true }).selectOption({ label: 'United States' });
+  await run.getByLabel('State or region', { exact: true }).selectOption({ label: 'New York' });
+  await run.getByLabel('City', { exact: true }).fill('New York');
+  const sugg = page.getByRole('list', { name: 'Suggested laws' });
+  const ll144 = sugg.getByRole('listitem').filter({ hasText: 'NYC Local Law 144' });
+  await expect(ll144).toContainText('Why: Runs in New York City');
+  await ll144.getByRole('button', { name: /^Accept/ }).click();
+  const other = sugg.getByRole('listitem').first();
+  const otherName = (await other.locator('strong').textContent())!.trim();
+  await other.getByRole('button', { name: /^Remove suggestion/ }).click();
+  // nothing typed is lost: the place and the purpose are still filled, and the law waits for Save
+  await expect(run.getByLabel('City', { exact: true })).toHaveValue('New York');
+  await expect(run.getByLabel('State or region', { exact: true })).toHaveValue('US-NY');
+  await expect(page.getByLabel('Purpose *', { exact: true })).toHaveValue('Ranks job applicants for recruiters in New York.');
+  await expect(page.locator('.reg-lawchips .chip', { hasText: 'NYC Local Law 144' })).toContainText('added when you save');
+  await shot(page, '1440-details-accept-before-save');
+  await page.getByRole('button', { name: 'Save changes' }).click();
+  await expect(page.getByText('Saved. Each change is in the change history.')).toBeVisible();
+  const got = await (await page.request.get(`/api/v1/register/${id}`)).json();
+  expect(got.run_location).toEqual({ country: 'US', region: 'US-NY', city: 'New York' });
+  expect(got.purpose).toBe('Ranks job applicants for recruiters in New York.');
+  const link = got.laws.find((l: { short_name: string }) => l.short_name === 'NYC Local Law 144');
+  expect(link.source).toBe('suggested');
+  expect(link.reason).toMatch(/^Runs in New York City/);
+  const changes = await (await page.request.get(`/api/v1/register/${id}/changes`)).json();
+  expect(changes.some((c: { field: string; new_value: string }) => c.field === 'law_suggestions' && c.new_value === `Removed suggestion ${otherName}`)).toBeTruthy();
+  await expect(page.locator('.reg-lawchips .chip', { hasText: 'NYC Local Law 144' })).toHaveAttribute('title', /Runs in New York City/);
+
+  // the bulk role picker says AI compliance role
+  await page.goto('/register');
+  const grid = page.getByRole('table', { name: 'AI systems' });
+  await grid.getByRole('checkbox', { name: `Select ${name}` }).check();
+  await page.getByRole('region', { name: 'Actions for selected rows' }).getByRole('button', { name: 'Assign an AI compliance role' }).click();
+  await expect(page.getByRole('dialog').getByLabel('AI compliance role', { exact: true }).first()).toBeVisible();
+});
+
 test('register grid: import from inventory help and the import template', async ({ page }) => {
   await clientUser(page, MARIA);
   await page.goto('/register');
