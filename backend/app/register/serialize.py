@@ -52,6 +52,9 @@ def system_out(db: Session, s: RegisterSystem, actor: Actor | None, *, full: boo
                     "approved_by": person(db, s.go_live_approved_by), "approved_at": s.go_live_approved_at.isoformat() if s.go_live_approved_at else None},
         "updated_at": s.updated_at.isoformat() if s.updated_at else None, "updated_by": person(db, s.updated_by),
         "retired_reason": s.retired_reason,
+        "departments": [{"id": x.id, "name": x.name} for x in (db.get(Department, i) for i in (s.department_ids or [])) if x is not None],
+        "user_selection": s.user_selection, "run_location": s.run_location, "data_locations": s.data_locations or [],
+        "run_location_label": svc.place_label(db, s.run_location), "data_location_labels": [svc.place_label(db, p) for p in s.data_locations or []],
     }
     if actor is not None:
         out["can_edit"] = may(db, actor, Action.EDIT_REGISTER, s)

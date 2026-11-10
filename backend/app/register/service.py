@@ -1,6 +1,7 @@
 """The AI system register: validation, create and edit with a field-level change log, laws, risk tier (spec §24.4–§24.6)."""
 from __future__ import annotations
 
+import json
 from datetime import date, timedelta
 
 from sqlalchemy import func, select
@@ -36,7 +37,14 @@ ACTION_CODES = {"read_records": "Read records", "send_email": "Send email", "wri
 DECISION_LABELS = {"none": "No effect on decisions about people", "informs": "Supports a decision a person makes", "consequential": "Makes or substantially makes the decision"}
 DATA_CATEGORIES = {"personal": "Personal information", "health": "Health information", "biometric": "Biometric data (face, voice)", "sensitive": "Sensitive categories (race, sex, age)",
                    "children": "Children's data", "confidential": "Company confidential"}
-DATA_SUBJECTS = {"candidates": "Job candidates", "employees": "Employees", "customers": "Customers", "public": "Members of the public", "none": "No personal data"}
+DATA_SUBJECTS = {"candidates": "Job candidates", "employees": "Employees", "customers": "Customers", "public": "Members of the public", "company": "The company's own data",
+                 "none": "No personal data"}
+NOT_PEOPLE = {"none", "company"}  # whose-data answers that name no group of people
+# User.job_level values (11-03 shared names; the column comes from the people workstream and may be absent or null)
+JOB_LEVELS = {"executive": "Executive", "department_head": "Department head", "manager": "Manager", "level_3": "Level 3", "level_2": "Level 2", "level_1": "Level 1"}
+ROLE_NAMES = {"caico": "Chief AI Compliance Officer", "client_admin": "Client Admin", "exec_sponsor": "Executive Sponsor", "dpo": "Data Protection Officer",
+              "dept_compliance_lead": "Department Compliance Lead", "contributor": "Contributor"}
+COMPLIANCE_ROLES = ("caico", "client_admin", "exec_sponsor", "dpo", "dept_compliance_lead", "contributor")
 CONSENT_LABELS = {"consent": "Consent obtained", "notice_only": "Notice given", "other_lawful_basis": "Lawful basis recorded", "not_obtained": "Consent not obtained", "na": "Not applicable"}
 CROSS_BORDER = {"no": "No", "eu": "Yes, to the EU", "india": "Yes, to India", "other": "Yes, other"}
 USERS_SCOPE = {"role": "Role level", "named": "Named users"}
@@ -50,11 +58,12 @@ FIELD_LABELS = {
     "decision_impact": "Effect on decisions about people", "risk_tier": "Risk tier", "company_wide": "Company-wide", "bias_next_due": "Next bias test due",
     "data_categories": "Data used", "data_subjects": "Whose data", "consent_basis": "Consent or lawful basis", "consent_ref": "Consent date or version",
     "consent_evidence_id": "Consent evidence", "retention_period": "Retention period", "cross_border": "Data leaves the country", "actions": "Actions and tools", "laws": "Laws that apply",
-    "created": "Added to the register", "evidence": "Evidence", "history": "History log", "retired_reason": "Retirement reason", "go_live": "Go-live", "history_answers": "History questions",
+    "created": "Added to the register", "department_ids": "Used by departments", "user_selection": "Users chosen",
+    "run_location": "Where it runs", "data_locations": "Where the people whose data it uses are", "evidence": "Evidence", "history": "History log", "retired_reason": "Retirement reason", "go_live": "Go-live", "history_answers": "History questions",
 }
 SYSTEM_FIELDS = ("name", "type", "sourcing", "department_id", "stage", "purpose", "users_scope", "users_description", "user_count", "owner_user_id", "vendor_id", "ai_provider",
                  "model_name", "model_version", "algorithm_type", "hosting", "vendor_trains_on_data", "vendor_documents", "autonomy", "guardrail_policy_ref", "agentassure_status",
-                 "decision_impact", "company_wide", "bias_next_due")
+                 "decision_impact", "company_wide", "bias_next_due", "department_ids", "user_selection", "run_location", "data_locations")
 DATA_FIELDS = ("data_categories", "data_subjects", "consent_basis", "consent_ref", "consent_evidence_id", "retention_period", "cross_border")
 CODE_LABELS = {"type": TYPE_LABELS, "sourcing": SOURCING_LABELS, "stage": STAGE_LABELS, "ai_provider": AI_PROVIDERS, "algorithm_type": ALGORITHM_TYPES, "hosting": HOSTING,
                "vendor_trains_on_data": TRAINS_LABELS, "vendor_documents": VENDOR_DOCS, "autonomy": AUTONOMY_LABELS, "agentassure_status": AGENTASSURE,
@@ -139,7 +148,7 @@ def latest_bias_test(db: Session, s: RegisterSystem) -> BiasTest | None:
 # ---- risk tier (§11 applied to the register: first match wins)
 def calc_tier(s: RegisterSystem, d: RegisterSystemData | None) -> tuple[int, str]:
     cats = set(d.data_categories or []) if d else set()
-    subjects = [DATA_SUBJECTS[x].lower() for x in (d.data_subjects or []) if x in DATA_SUBJECTS and x != "none"] if d else []
+    subjects = [DATA_SUBJECTS[x].lower() for x in (d.data_subjects or []) if x in DATA_SUBJECTS and x not in NOT_PEOPLE] if d else []
     if s.decision_impact == "consequential":
         return 3, "makes or substantially makes decisions about people" + (f" ({', '.join(subjects)})" if subjects else "")
     reasons = [DATA_CATEGORIES[c].split(" (")[0].lower().replace("information", "data") for c in DATA_CATEGORIES if c in cats]
@@ -169,6 +178,19 @@ def display(db: Session, field: str, value) -> str | None:
     if field == "vendor_id":
         v = db.get(Vendor, value)
         return v.legal_name if v else value
+    if field == "department_ids":
+        return ", ".join((d.name if d else i) for i, d in ((i, db.get(Department, i)) for i in value))
+    if field == "user_selection":
+        parts = [", ".join(JOB_LEVELS.get(x, x) for x in value.get("job_levels") or []), ", ".join(ROLE_NAMES.get(x, x) for x in value.get("compliance_roles") or []),
+                 ", ".join(value.get("job_titles") or [])]
+        ids = value.get("user_ids") or []
+        if ids:
+            parts.append(", ".join((u.name if u else i) for i, u in ((i, db.get(User, i)) for i in ids[:20])) + (f" and {len(ids) - 20} more" if len(ids) > 20 else ""))
+        return "; ".join(p for p in parts if p) or None
+    if field == "run_location":
+        return place_label(db, value)
+    if field == "data_locations":
+        return "; ".join(x for x in (place_label(db, p) for p in value) if x)
     if isinstance(value, bool):
         return "Yes" if value else "No"
     if isinstance(value, date):
@@ -281,6 +303,22 @@ def clean(db: Session, org: Organization, data: dict, current: RegisterSystem | 
         if "consent_evidence_id" in dd:
             dv["consent_evidence_id"] = _file(db, org.id, dd.get("consent_evidence_id"), "data.consent_evidence_id", errs)
         out["_data"] = dv
+    if "department_ids" in data:
+        out["department_ids"] = _departments(db, org.id, data.get("department_ids"), errs)
+    if "user_selection" in data:
+        out["user_selection"] = _selection(db, org.id, data.get("user_selection"), errs)
+    if "run_location" in data:
+        v = data.get("run_location")
+        out["run_location"] = _place(db, v, "run_location", errs) if v else None
+    if "data_locations" in data:
+        v = data.get("data_locations")
+        if v in (None, "", []):
+            out["data_locations"] = None
+        elif not isinstance(v, list) or len(v) > 50:
+            errs.append({"field": "data_locations", "message": "List up to 50 places."})
+        else:
+            places = [p for p in (_place(db, x, "data_locations", errs) for x in v) if p]
+            out["data_locations"] = list({json.dumps(p, sort_keys=True): p for p in places}.values()) or None
     if "actions" in data and data["actions"] is not None:
         acts = data["actions"]
         if not isinstance(acts, list) or not all(isinstance(a, dict) and a.get("action_code") in ACTION_CODES for a in acts):
@@ -303,6 +341,116 @@ def clean(db: Session, org: Organization, data: dict, current: RegisterSystem | 
     if out.get("stage") == "live" and (current is None or current.stage != "live"):
         raise Conflict("Live needs the Chief AI Compliance Officer's approval. Use Submit for go-live approval.")
     return out
+
+
+def _departments(db: Session, org_id: str, v, errs: list) -> list[str] | None:
+    """The departments that use a tool used by several (not all) departments (11-03 C9)."""
+    if v in (None, "", []):
+        return None
+    if not isinstance(v, list) or not all(isinstance(x, str) for x in v):
+        errs.append({"field": "department_ids", "message": "Choose departments from the list."})
+        return None
+    out = []
+    for i in dict.fromkeys(v):
+        d = db.get(Department, i)
+        if d is None or d.deleted_at is not None or d.organization_id != org_id:
+            errs.append({"field": "department_ids", "message": "Choose departments from the company's list."})
+            return None
+        out.append(d.id)
+    return out
+
+
+def _selection(db: Session, org_id: str, v, errs: list) -> dict | None:
+    """Who uses it (11-03 C10): job levels, AI compliance roles and job titles (role level), or named users."""
+    if v in (None, "", {}):
+        return None
+    if not isinstance(v, dict):
+        errs.append({"field": "user_selection", "message": "Choose who uses it from the lists."})
+        return None
+    out: dict = {}
+    for key, allowed in (("job_levels", JOB_LEVELS), ("compliance_roles", COMPLIANCE_ROLES)):
+        vals = v.get(key) or []
+        if not isinstance(vals, list) or not all(isinstance(x, str) and x in allowed for x in vals):
+            errs.append({"field": "user_selection", "message": "Choose job levels and AI compliance roles from the lists."})
+            return None
+        if vals:
+            out[key] = list(dict.fromkeys(vals))
+    titles = v.get("job_titles") or []
+    if not isinstance(titles, list) or len(titles) > 200 or not all(isinstance(x, str) for x in titles):
+        errs.append({"field": "user_selection", "message": "Choose job titles from the list."})
+        return None
+    titles = [t for t in dict.fromkeys(" ".join(x.split())[:160] for x in titles) if t]
+    if titles:
+        out["job_titles"] = titles
+    ids = v.get("user_ids") or []
+    if not isinstance(ids, list) or len(ids) > 5000 or not all(isinstance(x, str) for x in ids):
+        errs.append({"field": "user_selection", "message": "Choose people from the company's users."})
+        return None
+    ids = list(dict.fromkeys(ids))
+    if ids:
+        found = set(db.scalars(select(User.id).where(User.id.in_(ids), User.organization_id == org_id, User.deleted_at.is_(None))))
+        if len(found) != len(ids):
+            errs.append({"field": "user_selection", "message": "Choose people from the company's users."})
+            return None
+        out["user_ids"] = ids
+    return out or None
+
+
+def _place(db: Session, v, field: str, errs: list) -> dict | None:
+    """A place: a country code, optionally a state or region code within it and a city name (11-03 C14)."""
+    from app.reference.models import Jurisdiction
+
+    if not isinstance(v, dict):
+        errs.append({"field": field, "message": "Choose a country."})
+        return None
+    country = str(v.get("country") or "").strip().upper()
+    c = db.scalar(select(Jurisdiction).where(Jurisdiction.code == country, Jurisdiction.level == "country")) if country else None
+    if c is None:
+        errs.append({"field": field, "message": "Choose a country."})
+        return None
+    out = {"country": c.code}
+    region = str(v.get("region") or "").strip().upper()
+    if region:
+        r = db.scalar(select(Jurisdiction).where(Jurisdiction.code == region, Jurisdiction.level == "state"))
+        if r is None or not r.code.startswith(f"{c.code}-"):
+            errs.append({"field": field, "message": f"Choose a state or region of {c.name}."})
+            return None
+        out["region"] = r.code
+    city = " ".join(str(v.get("city") or "").split())[:120]
+    if city:
+        out["city"] = city
+    return out
+
+
+def place_label(db: Session, p: dict | None) -> str | None:
+    if not p:
+        return None
+    from app.reference.models import Jurisdiction
+
+    names = {j.code: j.name for j in db.scalars(select(Jurisdiction).where(Jurisdiction.code.in_([x for x in (p.get("region"), p.get("country")) if x])))}
+    return ", ".join(x for x in (p.get("city"), names.get(p.get("region") or ""), names.get(p.get("country") or "", p.get("country"))) if x)
+
+
+def count_users(db: Session, s: RegisterSystem) -> int | None:
+    """The number of users from the selection: the named people, or everyone matching a chosen job level, AI compliance
+    role or job title, within the system's departments (all departments for a company-wide tool). None without a selection."""
+    sel = s.user_selection or {}
+    if not sel or s.users_scope not in ("role", "named"):
+        return None
+    people = list(db.scalars(select(User).where(User.organization_id == s.organization_id, User.deleted_at.is_(None), User.status != "disabled")))
+    if s.users_scope == "named":
+        ids = set(sel.get("user_ids") or [])
+        return sum(1 for u in people if u.id in ids)
+    from app.tenancy.models import RoleAssignment
+
+    depts = {d for d in [s.department_id, *(s.department_ids or [])] if d}
+    if depts and not s.company_wide:
+        people = [u for u in people if u.department_id in depts]
+    levels, roles = set(sel.get("job_levels") or []), set(sel.get("compliance_roles") or [])
+    titles = {t.casefold() for t in sel.get("job_titles") or []}
+    holders = set(db.scalars(select(RoleAssignment.user_id).where(RoleAssignment.organization_id == s.organization_id, RoleAssignment.deleted_at.is_(None),
+                                                                  RoleAssignment.role.in_(roles)))) if roles else set()
+    return sum(1 for u in people if getattr(u, "job_level", None) in levels or u.id in holders or (u.job_title or "").strip().casefold() in titles)
 
 
 def _file(db: Session, org_id: str, v, field: str, errs: list) -> str | None:
@@ -345,6 +493,9 @@ def _write(db: Session, actor: User, org: Organization, s: RegisterSystem, v: di
         setattr(s, k, val)
     if s.type != "agent":
         s.autonomy = None
+    n = count_users(db, s)
+    if n is not None:  # calculated from the selection (11-03 C10); without one the typed number stays
+        s.user_count = n
     db.flush()
     if dv is not None:
         d = data_row(db, s)

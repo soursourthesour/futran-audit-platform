@@ -68,6 +68,12 @@ class RegisterSystem(TimestampedTenantMixin, Base):
     go_live_approved_by: Mapped[str | None] = mapped_column(String(36), ForeignKey("users.id"))
     go_live_approved_at: Mapped[datetime | None] = mapped_column(DateTime)
     retired_reason: Mapped[str | None] = mapped_column(Text)
+    # 11-03 fixes (C9, C10, C14). All nullable: systems saved before these fields keep working unchanged.
+    department_ids: Mapped[list | None] = mapped_column(JSON)  # departments that use it, when several (not all) do
+    user_selection: Mapped[dict | None] = mapped_column(JSON)  # {"job_levels", "compliance_roles", "job_titles", "user_ids"}
+    run_location: Mapped[dict | None] = mapped_column(JSON)  # {"country": "US", "region": "US-NY", "city": "New York"}
+    data_locations: Mapped[list | None] = mapped_column(JSON)  # places of the people whose data it uses, same shape
+    dismissed_law_ids: Mapped[list | None] = mapped_column(JSON)  # suggested laws the user removed from the suggestions
 
 
 class RegisterSystemLaw(TimestampedTenantMixin, Base):
@@ -83,6 +89,7 @@ class RegisterSystemLaw(TimestampedTenantMixin, Base):
     removal_requested_by: Mapped[str | None] = mapped_column(String(36))
     removal_reason: Mapped[str | None] = mapped_column(Text)
     approved_by: Mapped[str | None] = mapped_column(String(36))  # for removals
+    reason: Mapped[str | None] = mapped_column(String(600))  # why the law was suggested, when a suggestion was accepted
 
 
 class RegisterSystemData(TimestampedTenantMixin, Base):
@@ -236,6 +243,80 @@ class RequirementStatus(TimestampedTenantMixin, Base):
     evidence_ids: Mapped[list] = mapped_column(JSON, default=list)
     checked_by: Mapped[str | None] = mapped_column(String(36))
     checked_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+
+class ModelVendor(IdMixin, Base):
+    """A vendor in the AI model catalogue (11-03 C12). `code` is the value saved as a system's underlying AI provider.
+    Platform-wide reference data, kept by the Futran Admin."""
+
+    __tablename__ = "model_vendors"
+
+    code: Mapped[str] = mapped_column(String(30), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(120))
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    sort: Mapped[int] = mapped_column(Integer, default=100)
+    source_url: Mapped[str | None] = mapped_column(String(600))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+    updated_by: Mapped[str | None] = mapped_column(String(36))
+
+
+class ModelEntry(IdMixin, Base):
+    """One model or algorithm of a catalogue vendor."""
+
+    __tablename__ = "model_entries"
+    __table_args__ = (UniqueConstraint("vendor_id", "name", name="uq_model_entry_vendor_name"),)
+
+    vendor_id: Mapped[str] = mapped_column(String(36), ForeignKey("model_vendors.id"), index=True)
+    name: Mapped[str] = mapped_column(String(160))
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    origin: Mapped[str] = mapped_column(String(10), default="seed")  # seed | admin | proposal
+    source_url: Mapped[str | None] = mapped_column(String(600))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    created_by: Mapped[str | None] = mapped_column(String(36))
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+    updated_by: Mapped[str | None] = mapped_column(String(36))
+
+
+class ClientModel(TimestampedTenantMixin, Base):
+    """A model a client typed under "Other", offered again on that client's later systems."""
+
+    __tablename__ = "client_models"
+    __table_args__ = (UniqueConstraint("organization_id", "vendor_code", "name", name="uq_client_model"),)
+
+    vendor_code: Mapped[str] = mapped_column(String(30))
+    name: Mapped[str] = mapped_column(String(160))
+
+
+class ModelCatalogueRun(IdMixin, Base):
+    """The monthly catalogue check, claimed once per calendar month (`run_key` YYYY-MM)."""
+
+    __tablename__ = "model_catalogue_runs"
+
+    run_key: Mapped[str] = mapped_column(String(10), unique=True)
+    mode: Mapped[str] = mapped_column(String(10))  # ai | reminder | failed | manual
+    proposals: Mapped[int] = mapped_column(Integer, default=0)
+    error: Mapped[str | None] = mapped_column(String(300))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    created_by: Mapped[str | None] = mapped_column(String(36))
+
+
+class ModelProposal(IdMixin, Base):
+    """A catalogue addition the AI proposed. Nothing changes the catalogue until the Futran Admin accepts it."""
+
+    __tablename__ = "model_proposals"
+
+    run_id: Mapped[str | None] = mapped_column(String(36), index=True)
+    ai_interaction_id: Mapped[str | None] = mapped_column(String(36))
+    vendor_code: Mapped[str | None] = mapped_column(String(30))
+    vendor_name: Mapped[str] = mapped_column(String(120))
+    model_name: Mapped[str] = mapped_column(String(160))
+    reason: Mapped[str | None] = mapped_column(Text)
+    source_url: Mapped[str | None] = mapped_column(String(600))
+    status: Mapped[str] = mapped_column(String(10), default="pending")  # pending | accepted | rejected
+    decided_by: Mapped[str | None] = mapped_column(String(36))
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 
 # Evidence: never edited or deleted (§24.6, §27.7). Guards in the ORM and triggers in the database.

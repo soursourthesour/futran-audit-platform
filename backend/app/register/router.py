@@ -99,9 +99,18 @@ def options(db: Session, actor: Actor) -> dict:
     users = db.scalars(select(User).where(User.organization_id == org.id, User.deleted_at.is_(None), User.status != "disabled").order_by(User.name))
     vendors = db.scalars(select(Vendor).where(Vendor.organization_id == org.id, Vendor.deleted_at.is_(None)).order_by(Vendor.legal_name))
     edit_depts = departments_for(actor, Action.EDIT_REGISTER)
+    from app.tenancy.models import RoleAssignment
+
+    roles: dict[str, list[str]] = {}
+    for uid, role in db.execute(select(RoleAssignment.user_id, RoleAssignment.role).where(RoleAssignment.organization_id == org.id, RoleAssignment.deleted_at.is_(None),
+                                                                                       RoleAssignment.role.in_(svc.COMPLIANCE_ROLES)).order_by(RoleAssignment.role)):
+        roles.setdefault(uid, []).append(role)
     return {
         "departments": [{"id": d.id, "name": d.name, "can_edit": edit_depts is None or d.id in edit_depts} for d in depts],
-        "people": [{"id": u.id, "name": u.name, "job_title": u.job_title, "department_id": u.department_id} for u in users],
+        "people": [{"id": u.id, "name": u.name, "job_title": u.job_title, "department_id": u.department_id, "job_level": getattr(u, "job_level", None),
+                    "compliance_roles": list(dict.fromkeys(roles.get(u.id, [])))} for u in users],
+        "job_levels": [{"value": k, "label": v} for k, v in svc.JOB_LEVELS.items()],
+        "compliance_roles": [{"value": k, "label": svc.ROLE_NAMES[k]} for k in svc.COMPLIANCE_ROLES],
         "vendors": [{"id": v.id, "name": v.legal_name} for v in vendors],
     }
 
