@@ -103,6 +103,7 @@ def test_run_daily_runs_every_job(client, db, live, settings):
                         "regulatory_digest", "reassessment_schedule",  # wave 3 WS-H
                         "bias_raw_data_retention",  # wave 3 WS-K
                         "monitoring_monthly",  # wave 3 WS-J
-                        "opportunity_scan"}  # 11-03 F8
+                        "opportunity_scan",  # 11-03 F8
+                        "model_catalogue_monthly"}  # 11-03 C12
     # email (every minute) and incident deadlines (every 15 minutes) run on their own ticks, never also in the daily run
     assert all(isinstance(v, int) for v in out.values()), out
