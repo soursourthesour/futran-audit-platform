@@ -67,16 +67,16 @@ export function RolesTab({ s, onChanged }: { s: RegSystem; onChanged: () => unkn
       </div>
       <p className="small muted" style={{ margin: 0 }}>Which roles are required, and by when, is worked out from the laws and the stage on this system.</p>
       <section className="card">
-        <div className="card-header"><h2>Company-wide roles</h2><span className="small muted">Set by the Chief AI Compliance Officer, applied to every system</span></div>
+        <div className="card-header"><h2>Company-wide AI compliance roles</h2><span className="small muted">Set by the Chief AI Compliance Officer, applied to every system</span></div>
         <div className="card-body">
-          <DataGrid label="Company-wide roles" rows={company} rowId={(r) => r.role_id} rowLabel={(r) => r.name} columns={cols} emptyText="No company-wide role needs attention."
+          <DataGrid label="Company-wide AI compliance roles" rows={company} rowId={(r) => r.role_id} rowLabel={(r) => r.name} columns={cols} emptyText="No company-wide role needs attention."
             rowActions={(r) => [{ label: p.can.company ? 'Override for this system' : 'Set under Governance roles', disabled: !p.can.company, onSelect: () => setEditing(r) }]} />
         </div>
       </section>
       <section className="card">
-        <div className="card-header"><h2>Roles for this AI system</h2><span className="small muted">Filled by the Department Head</span></div>
+        <div className="card-header"><h2>AI compliance roles for this AI system</h2><span className="small muted">Filled by the Department Head</span></div>
         <div className="card-body">
-          <DataGrid label="Roles for this AI system" rows={own} rowId={(r) => r.role_id} rowLabel={(r) => r.name} columns={cols} emptyText="No role for this system needs attention."
+          <DataGrid label="AI compliance roles for this AI system" rows={own} rowId={(r) => r.role_id} rowLabel={(r) => r.name} columns={cols} emptyText="No role for this system needs attention."
             rowActions={(r) => [{ label: 'Edit role', disabled: !canEdit(r), onSelect: () => setEditing(r) }]} />
         </div>
       </section>

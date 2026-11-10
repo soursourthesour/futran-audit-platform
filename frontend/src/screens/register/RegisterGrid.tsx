@@ -178,7 +178,7 @@ export function RegisterGrid() {
               ]}
               bulkActions={[
                 { label: 'Edit selected', run: (rows) => setBulk({ mode: 'all', rows }), available: editable },
-                { label: 'Assign a role', run: (rows) => setBulk({ mode: 'roles', rows }), available: (rows) => rows.every((r) => r.can_fill_roles) },
+                { label: 'Assign an AI compliance role', run: (rows) => setBulk({ mode: 'roles', rows }), available: (rows) => rows.every((r) => r.can_fill_roles) },
                 { label: 'Change stage', run: (rows) => setBulk({ mode: 'stage', rows }), available: editable },
                 { label: 'Add or remove a law', run: (rows) => setBulk({ mode: 'laws', rows }), available: (rows) => rows.every((r) => r.can_add_law) },
                 { label: 'Request bias test', run: (rows) => setBulk({ mode: 'bias', rows }), available: editable },

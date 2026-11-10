@@ -138,7 +138,7 @@ test('new-system form: departments, who uses it, owner by department, model list
   await expect(page).toHaveURL(/\/register\/[^/]+\/roles$/);
 
   // C15: AI compliance role and the geography of each role's law
-  const own = page.getByRole('table', { name: 'Roles for this AI system' });
+  const own = page.getByRole('table', { name: 'AI compliance roles for this AI system', exact: true });
   await expect(own.getByRole('button', { name: 'AI compliance role', exact: true })).toBeVisible();
   await expect(own.getByRole('button', { name: 'Geography of law', exact: true })).toBeVisible();
   await expect(own.getByRole('row').filter({ hasText: 'Bias testing lead' }).getByText('New York City')).toBeVisible();

@@ -100,7 +100,7 @@ test('roles editor and the go-live gate refusal', async ({ page }) => {
   await page.getByRole('button', { name: 'Save and fill governance roles' }).click();
   await expect(page).toHaveURL(/\/register\/[^/]+\/roles$/);
   await expect(page.getByRole('heading', { name: 'Interview scheduling agent' })).toBeVisible();
-  const own = page.getByRole('table', { name: 'Roles for this AI system' });
+  const own = page.getByRole('table', { name: 'AI compliance roles for this AI system', exact: true });
   await expect(own.getByRole('row').filter({ hasText: 'Bias testing lead' }).getByText('NYC Local Law 144')).toBeVisible();
 
   // the API refuses go-live while roles needed by go-live are unanswered, and says which

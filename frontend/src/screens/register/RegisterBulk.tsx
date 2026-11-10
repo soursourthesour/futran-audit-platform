@@ -12,7 +12,7 @@ type RoleEntry = { role_id: string; status: string; user_id: string; external_pa
 type Preview = { preview: boolean; change_count: number; systems_changed: number; systems: { id: string; name: string; changes: number; conflicts: { system: string; role: string; role_id: string; current: string }[] }[] };
 
 const KEEP = '';
-const TITLES: Record<BulkMode, string> = { all: 'Edit', roles: 'Assign a role on', stage: 'Change the stage of', laws: 'Add or remove a law on', bias: 'Request a bias test for' };
+const TITLES: Record<BulkMode, string> = { all: 'Edit', roles: 'Assign an AI compliance role on', stage: 'Change the stage of', laws: 'Add or remove a law on', bias: 'Request a bias test for' };
 
 export function BulkEdit({ mode, rows, people, departments, onClose, onDone }: {
   mode: BulkMode; rows: RegSystem[]; people: { id: string; name: string; job_title: string | null }[]; departments: { id: string; name: string; can_edit: boolean }[];
@@ -107,19 +107,19 @@ export function BulkEdit({ mode, rows, people, departments, onClose, onDone }: {
         )}
         {show('roles') && (
           <FieldGroup legend={`${num()} · Governance roles`} className="reg-fieldset">
-            <p className="small muted" style={{ margin: '0 0 8px' }}>Set a role on every selected system where that role applies. Company-wide roles are filled in from company settings.</p>
+            <p className="small muted" style={{ margin: '0 0 8px' }}>Set an AI compliance role on every selected system where it applies. Company-wide AI compliance roles are filled in from company settings.</p>
             {roles.map((r, i) => (
               <div key={i} className="reg-bulk-role grid-2">
-                <SelectField label="Role" help={H.role} value={r.role_id} onChange={(e) => setRole(i, { role_id: e.target.value })} placeholder="Choose a role" options={roleOpts} />
+                <SelectField label="AI compliance role" help={H.role} value={r.role_id} onChange={(e) => setRole(i, { role_id: e.target.value })} placeholder="Choose an AI compliance role" options={roleOpts} />
                 <SelectField label="Status" help={H.roleStatus} value={r.status} onChange={(e) => setRole(i, { status: e.target.value })} options={ROLE_STATUSES} />
                 {r.status === 'assigned' && <SelectField label="Person" help={H.rolePerson} value={r.user_id} onChange={(e) => setRole(i, { user_id: e.target.value })} placeholder="Choose a person" options={personOpts} />}
                 {r.status === 'external' && <TextField label="External party" help={H.roleParty} value={r.external_party} onChange={(e) => setRole(i, { external_party: e.target.value })} />}
                 {r.status === 'pending_committee' && <TextField label="Target date" help={H.roleTarget} type="date" value={r.target_date} onChange={(e) => setRole(i, { target_date: e.target.value })} />}
                 {r.status === 'not_applicable' && <TextField label="Reason" help={H.roleReason} value={r.reason} onChange={(e) => setRole(i, { reason: e.target.value })} />}
-                {roles.length > 1 && <div><Button size="sm" variant="ghost" onClick={() => setRoles((rs) => rs.filter((_, j) => j !== i))}>Remove this role</Button></div>}
+                {roles.length > 1 && <div><Button size="sm" variant="ghost" onClick={() => setRoles((rs) => rs.filter((_, j) => j !== i))}>Remove this AI compliance role</Button></div>}
               </div>
             ))}
-            <div><Button size="sm" onClick={() => setRoles((rs) => [...rs, blankRole()])}>Add another role</Button></div>
+            <div><Button size="sm" onClick={() => setRoles((rs) => [...rs, blankRole()])}>Add another AI compliance role</Button></div>
           </FieldGroup>
         )}
         {mode === 'bias' && (
