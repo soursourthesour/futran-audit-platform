@@ -18,6 +18,11 @@ function Revision({ t }: { t: T }) {
   );
 }
 
+function fitHeight(el: HTMLTextAreaElement) {
+  el.style.height = 'auto';
+  el.style.height = `${el.scrollHeight + (el.offsetHeight - el.clientHeight)}px`;
+}
+
 export function TemplatesAdmin() {
   const { data: me } = useMe();
   const canEdit = hasRole(me ?? undefined, 'admin');
@@ -28,14 +33,25 @@ export function TemplatesAdmin() {
   const qc = useQueryClient();
   const current = q.data?.find((t) => t.key === key) ?? null;
   useEffect(() => { if (current) setBody(current.body); }, [current?.key, current?.version]); // eslint-disable-line react-hooks/exhaustive-deps
-  // the text box grows with its text, so the whole template reads without a scroll box inside the page
+  // the text box grows with its text, so the whole template reads without a scroll box inside the page. It is
+  // refitted when its width changes (window resize, zoom), since narrower lines wrap onto more rows.
   const box = useRef<HTMLTextAreaElement>(null);
   useLayoutEffect(() => {
     const el = box.current;
-    if (!el) return;
-    el.style.height = 'auto';
-    el.style.height = `${el.scrollHeight + (el.offsetHeight - el.clientHeight)}px`;
+    if (el) fitHeight(el);
   }, [body, current?.key]);
+  useEffect(() => {
+    const el = box.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    let width = el.offsetWidth;
+    const ro = new ResizeObserver(() => {
+      if (el.offsetWidth === width) return; // our own height change; nothing to refit
+      width = el.offsetWidth;
+      fitHeight(el);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [current?.key]);
 
   async function save() {
     if (!current) return;
@@ -71,7 +87,7 @@ export function TemplatesAdmin() {
                 {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
                 {current.requires_action && <p className="small muted">Client action: {current.requires_action}</p>}
                 <label className="sr-only" htmlFor="tpl-body">Template text</label>
-                <textarea id="tpl-body" ref={box} className="textarea" readOnly={!canEdit} value={body} onChange={(e) => setBody(e.target.value)} style={{ minHeight: 200, overflow: 'hidden', resize: 'none', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', fontSize: 13 }} />
+                <textarea id="tpl-body" ref={box} className="textarea" readOnly={!canEdit} value={body} onChange={(e) => setBody(e.target.value)} style={{ minHeight: 200, overflow: 'auto', resize: 'none', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', fontSize: 13 }} />
               </div>
             </Card>
           )}

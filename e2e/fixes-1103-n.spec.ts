@@ -215,6 +215,20 @@ test.describe('Futran', () => {
     await shots(page, 'templates');
   });
 
+  test('F10: a long template stays fully readable after the window narrows', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await signIn(page, 'admin@futran.demo', true);
+    await openNav(page, 'Templates');
+    const all = (await api(page, 'GET', '/admin/templates')) as { name: string; body: string }[];
+    const longest = all.reduce((a, b) => (b.body.length > a.body.length ? b : a));
+    const esc = longest.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    await page.getByRole('region', { name: 'Templates' }).getByRole('button', { name: new RegExp(`${esc}$`) }).click();
+    const box = page.locator('#tpl-body');
+    await expect(box).toHaveValue(longest.body);
+    await page.setViewportSize({ width: 800, height: 900 });
+    await expect.poll(() => box.evaluate((el) => el.scrollHeight - el.clientHeight), { message: 'no text is cut off at the bottom of the box' }).toBeLessThanOrEqual(1);
+  });
+
   test('F13: the audit log When column keeps date and time on one line', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await signIn(page, 'admin@futran.demo', true);
