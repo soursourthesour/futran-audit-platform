@@ -249,7 +249,7 @@ def run_monthly(db: Session, settings, now: datetime, app_state=None, *, manual_
     db.add(run)
     db.flush()
     admins = _futran_admins(db)
-    client = client_for(app_state, settings or _default_settings())
+    client = client_for(app_state, settings or _default_settings(), db)  # the saved AI connection, read from this session
     if client is None:
         notify(db, admins, "model_catalogue_review", "Review the AI model list", "No AI provider is connected, so the monthly check could not look for new models. "
                "Check each vendor's documentation and add what is missing.", REVIEW_LINK)

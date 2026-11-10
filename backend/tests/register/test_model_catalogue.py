@@ -83,7 +83,7 @@ def test_admin_keeps_the_catalogue_and_clients_cannot(client, db, reg, futran):
 
 
 def test_monthly_check_without_ai_reminds_the_admin_once_a_month(db, reg, futran, monkeypatch):
-    monkeypatch.setattr(catalogue, "client_for", lambda app_state, settings: None)
+    monkeypatch.setattr(catalogue, "client_for", lambda app_state, settings, db=None: None)
     catalogue.ensure_seeded(db)
     before = db.query(ModelEntry).count()
     assert catalogue.run_monthly(db, None, datetime(2026, 12, 1, 10)) == 1
@@ -101,7 +101,7 @@ def test_monthly_check_with_ai_proposes_and_a_person_decides(client, db, reg, fu
         {"vendor": "OpenAI", "model": "GPT-5.5", "reason": "Already listed."},
         {"vendor": "Newco", "model": "Newco 1", "reason": "A new vendor."},
     ]}})
-    monkeypatch.setattr(catalogue, "client_for", lambda app_state, settings: fake)
+    monkeypatch.setattr(catalogue, "client_for", lambda app_state, settings, db=None: fake)
     catalogue.ensure_seeded(db)
     before = db.query(ModelEntry).count()
     assert catalogue.run_monthly(db, None, datetime(2026, 12, 1, 10)) == 1
