@@ -21,11 +21,12 @@ export function AuditLogScreen() {
         {q.isLoading ? <Loading /> : rows.length === 0 ? <EmptyState>No entries match.</EmptyState> : (
           <div className="table-wrap">
             <table className="table">
-              <thead><tr><th>When</th><th>Who</th><th>Action</th><th>Record</th><th>Summary</th><th>IP</th></tr></thead>
+              {/* 11-03 F13: When keeps date and time on one line */}
+              <thead><tr><th style={{ whiteSpace: 'nowrap' }}>When</th><th>Who</th><th>Action</th><th>Record</th><th>Summary</th><th>IP</th></tr></thead>
               <tbody>
                 {rows.map((e) => (
                   <tr key={e.id}>
-                    <td>{fmtDateTime(e.at)}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>{fmtDateTime(e.at)}</td>
                     <td>{e.actor_name ?? '—'}</td>
                     <td><code>{e.action}</code></td>
                     <td>{e.object_type}</td>

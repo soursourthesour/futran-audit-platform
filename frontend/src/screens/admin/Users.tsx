@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
-import { ROLE_LABELS, hasRole, useMe } from '@/api/auth';
+import { ROLE_LABELS, can, useMe } from '@/api/auth';
 import { Alert, Badge, Button, Card, Checkbox, Loading, PageHeader, TextField } from '@/components/ui';
 
 type U = { id: string; name: string; email: string; job_title: string | null; status: string; mfa_enabled: boolean; roles: string[]; role_labels: string[] };
@@ -57,7 +57,7 @@ export function UsersAdmin() {
   const [adding, setAdding] = useState(false);
   const [msg, setMsg] = useState<{ tone: 'success' | 'danger'; text: string } | null>(null);
   const q = useQuery({ queryKey: ['admin-users'], queryFn: () => api.get<U[]>('/admin/users') });
-  const canManage = hasRole(me ?? undefined, 'admin');
+  const canManage = can(me, 'manage_futran_users');
   const patch = useMutation({
     mutationFn: ({ id, body }: { id: string; body: Record<string, unknown> }) => api.patch(`/admin/users/${id}`, body),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-users'] }),
@@ -73,7 +73,8 @@ export function UsersAdmin() {
   }
   return (
     <div className="page">
-      <PageHeader title="Futran users" subtitle="People at Futran who can sign in, and what they can do." actions={canManage && !adding ? <Button variant="primary" onClick={() => setAdding(true)}>Add user</Button> : undefined} />
+      <PageHeader title="Futran users" subtitle="People at Futran who can sign in, and what they can do. Adding a user sends them an invitation to set a password." actions={canManage && !adding ? <Button variant="primary" onClick={() => setAdding(true)}>Add user</Button> : undefined} />
+      {!canManage && <p className="small muted">Only a Futran Admin adds users and changes their roles.</p>}
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
       {adding && <Card title="Add a Futran user"><AddUser onDone={() => setAdding(false)} /></Card>}
       <section className="card">
