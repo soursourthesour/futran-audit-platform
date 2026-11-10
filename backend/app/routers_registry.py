@@ -35,3 +35,6 @@ ROUTER_MODULES += ["impact.router", "regupdates.router"]
 ROUTER_MODULES += ["ai.router", "ai.explain_router", "ai.obligations_router", "ai.questionnaires_router"]
 # wave 3 WS-J: integrations and AI discovery (screen 30), continuous monitoring (screen 31)
 ROUTER_MODULES += ["connectors.router", "monitoring.router"]
+
+# 11-03 fixes WS-N: counts on navigation entries (F6)
+ROUTER_MODULES += ["nav.router"]
