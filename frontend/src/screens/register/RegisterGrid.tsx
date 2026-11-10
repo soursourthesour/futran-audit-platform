@@ -142,7 +142,7 @@ export function RegisterGrid() {
         subtitle={d.can.org_wide ? 'Every AI app, agent, vendor tool and AI model used across the company.' : `Every AI app, agent, vendor tool and AI model used in ${myDept ?? 'your department'}. Company-wide tools are shown read-only.`}
         actions={<>
           {d.can.edit && <Button onClick={() => setImporting(true)}>Import from a file</Button>}
-          {d.can.import_inventory && <span className="reg-btn-help"><Button onClick={importInventory} disabled={pulling}>Import from inventory</Button><FieldHelp label="Import from inventory">{H.importInventory}</FieldHelp></span>}
+          {d.can.import_inventory && <span className="reg-btn-help"><Button onClick={importInventory} disabled={pulling}>Import from inventory</Button><FieldHelp label="What the inventory import copies">{H.importInventory}</FieldHelp></span>}
           <Button onClick={() => exportCsv()}>Export</Button>
           {d.can.edit && <Link className="btn btn-primary" to="/register/new">Add AI system</Link>}
         </>} />

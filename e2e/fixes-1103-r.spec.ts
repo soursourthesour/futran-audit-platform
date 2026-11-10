@@ -158,7 +158,7 @@ test('new-system form: departments, who uses it, owner by department, model list
 test('register grid: import from inventory help and the import template', async ({ page }) => {
   await clientUser(page, MARIA);
   await page.goto('/register');
-  await page.getByRole('button', { name: 'About Import from inventory' }).click();
+  await page.getByRole('button', { name: 'About What the inventory import copies' }).click();
   await expect(page.getByText(/Copies into the register the AI tools and agents your company declared in the AI inventory/)).toBeVisible();
   await shot(page, '1440-grid-import-inventory-help');
   await page.keyboard.press('Escape');
