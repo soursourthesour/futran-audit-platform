@@ -2,7 +2,11 @@
 
 - JSON answers: Chat Completions, `POST https://api.openai.com/v1/chat/completions`, `Authorization: Bearer <key>`, with
   `response_format: {"type": "json_schema", "json_schema": {"name", "schema", "strict": false}}` and
-  `max_completion_tokens` (reasoning models refuse `max_tokens`). The reply is `choices[0].message.content`; a
+  `max_completion_tokens` (reasoning models refuse `max_tokens`). Reasoning tokens count against that limit, so the
+  request asks for `reasoning_effort: "low"` (Chat Completions' name; the Responses API's is `reasoning.effort`) and adds
+  `REASONING_ALLOWANCE` to the caller's budget; a model that refuses either (HTTP 400 naming it) is asked once more
+  without it. Source: developers.openai.com/api/docs/guides/reasoning (checked 10 November 2026). Web research keeps
+  the model's default effort (it decides what to search) and gets the same larger budget. The reply is `choices[0].message.content`; a
   `finish_reason` of "length" means the JSON was cut off and `message.refusal` means the model declined.
   Strict mode is off because the platform's schemas do not all list every property as required; callers validate the
   reply themselves.
@@ -20,7 +24,7 @@ Tested only against httpx.MockTransport. Live calls are untested until the first
 import httpx
 
 from app.ai.client import AIError, AIReply
-from app.ai.providers.base import HttpProvider, SearchReply, bare_domains, reply_json
+from app.ai.providers.base import HttpProvider, SearchReply, bare_domains, completion_budget, reply_json, setting, without
 
 OPENAI_BASE = "https://api.openai.com/v1"
 
@@ -42,8 +46,9 @@ class OpenAIProvider(HttpProvider):
     def complete(self, *, task: str, system: str, prompt: str, schema: dict, context: dict | None = None, max_tokens: int = 8000) -> AIReply:
         body = {"model": self._request_model(), "messages": [{"role": "system", "content": system}, {"role": "user", "content": prompt}],
                 "response_format": {"type": "json_schema", "json_schema": {"name": "reply", "schema": schema, "strict": False}},
-                "max_completion_tokens": max_tokens}
-        data = self._post(f"{self.base_url}/chat/completions", body)
+                "max_completion_tokens": completion_budget(max_tokens), "reasoning_effort": "low"}
+        data = self._post(f"{self.base_url}/chat/completions", body,
+                          fallbacks=(("reasoning_effort", without("reasoning_effort")), ("max_completion_tokens", setting(("max_completion_tokens",), max_tokens))))
         choices = data.get("choices") or []
         if not choices:
             raise AIError("The AI provider's reply could not be read.")
@@ -63,10 +68,10 @@ class OpenAIProvider(HttpProvider):
         if domains:
             tool["filters"] = {"allowed_domains": domains}
         body: dict = {"model": self._request_model(), "input": prompt, "tools": [tool], "include": ["web_search_call.action.sources"],
-                      "max_output_tokens": max_tokens, "max_tool_calls": max_uses}
+                      "max_output_tokens": completion_budget(max_tokens), "max_tool_calls": max_uses}
         if system:
             body["instructions"] = system
-        data = self._post(f"{self.base_url}/responses", body)
+        data = self._post(f"{self.base_url}/responses", body, fallbacks=(("max_output_tokens", setting(("max_output_tokens",), max_tokens)),))
         texts: list[str] = []
         cited: dict[str, list[str]] = {}
         searches = 0

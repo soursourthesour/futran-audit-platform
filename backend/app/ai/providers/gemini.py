@@ -6,6 +6,11 @@
   The reply is `candidates[0].content.parts[].text`; `finishReason` "MAX_TOKENS" means it was cut off;
   `promptFeedback.blockReason` or a safety finish means the model declined. Tokens are in `usageMetadata`
   (`promptTokenCount`, `candidatesTokenCount`); the model actually used is `modelVersion`.
+- Thinking: thought tokens count toward `maxOutputTokens`, so JSON answers ask for
+  `generationConfig.thinkingConfig.thinkingLevel: "low"` and every call adds `REASONING_ALLOWANCE` to the caller's budget.
+  Gemini 3.x and later take `thinkingLevel` (gemini-4-argon and gemini-3.8-flash: low, medium, high); a model that
+  refuses it (HTTP 400 naming thinking, as Gemini 2.5 models may) or the larger budget is asked once more without it.
+  Sources: firebase.google.com/docs/ai-logic/thinking and ai.google.dev/gemini-api/docs/thinking (checked 10 November 2026).
 - Web research: the same endpoint with `tools: [{"google_search": {}}]` (Grounding with Google Search). The pages it
   used are `candidates[0].groundingMetadata.groundingChunks[].web.uri` and the queries it ran are
   `groundingMetadata.webSearchQueries`. Grounding has no domain filter, so the allowlist is written into the prompt and
@@ -24,7 +29,7 @@ from urllib.parse import urlparse
 import httpx
 
 from app.ai.client import AIError, AIReply
-from app.ai.providers.base import HttpProvider, SearchReply, bare_domains, reply_json
+from app.ai.providers.base import HttpProvider, SearchReply, bare_domains, completion_budget, reply_json, setting, without
 
 GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta"
 DECLINED = {"SAFETY", "RECITATION", "PROHIBITED_CONTENT", "BLOCKLIST", "SPII"}
@@ -80,8 +85,11 @@ class GeminiProvider(HttpProvider):
     def _headers(self) -> dict:
         return {"x-goog-api-key": self.api_key}
 
-    def _call(self, body: dict) -> tuple[dict, dict, str]:
-        data = self._post(f"{self.base_url}/models/{self.model}:generateContent", body)
+    def _call(self, body: dict, max_tokens: int) -> tuple[dict, dict, str]:
+        fallbacks = (("thinking", without("generationConfig", "thinkingConfig")),
+                     ("max_output_tokens", setting(("generationConfig", "maxOutputTokens"), max_tokens)),
+                     ("maxOutputTokens", setting(("generationConfig", "maxOutputTokens"), max_tokens)))
+        data = self._post(f"{self.base_url}/models/{self.model}:generateContent", body, fallbacks=fallbacks)
         if (data.get("promptFeedback") or {}).get("blockReason"):
             raise AIError("The model declined to answer this request.")
         cands = data.get("candidates") or []
@@ -110,8 +118,9 @@ class GeminiProvider(HttpProvider):
 
     def complete(self, *, task: str, system: str, prompt: str, schema: dict, context: dict | None = None, max_tokens: int = 8000) -> AIReply:
         body = self._body(system, prompt)
-        body["generationConfig"] = {"responseMimeType": "application/json", "responseJsonSchema": schema, "maxOutputTokens": max_tokens}
-        data, _, text = self._call(body)
+        body["generationConfig"] = {"responseMimeType": "application/json", "responseJsonSchema": schema, "maxOutputTokens": completion_budget(max_tokens),
+                                    "thinkingConfig": {"thinkingLevel": "low"}}
+        data, _, text = self._call(body, max_tokens)
         i, o = self._tokens(data)
         return AIReply(data=reply_json(text), model=data.get("modelVersion") or self.model, provider=self.provider, input_tokens=i, output_tokens=o)
 
@@ -121,8 +130,8 @@ class GeminiProvider(HttpProvider):
             prompt = f"{prompt}\n\nUse only these sources and their subdomains: {', '.join(domains)}."
         body = self._body(system, prompt)
         body["tools"] = [{"google_search": {}}]
-        body["generationConfig"] = {"maxOutputTokens": max_tokens}
-        data, cand, text = self._call(body)
+        body["generationConfig"] = {"maxOutputTokens": completion_budget(max_tokens)}
+        data, cand, text = self._call(body, max_tokens)
         meta = cand.get("groundingMetadata") or {}
         cited: dict[str, list[str]] = {}
         resolved = 0

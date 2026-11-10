@@ -26,6 +26,45 @@ ATTEMPTS = 3  # a rate limit (429), a provider outage (5xx) or a timeout is trie
 RETRY_STATUSES = {408, 429, 500, 502, 503, 504}
 BACKOFF = (2.0, 6.0)  # seconds before the second and the third attempt when the provider names no wait
 MAX_TOTAL_WAIT = 30.0  # never wait longer than this across the retries of one call; a longer Retry-After is not waited out
+# Reasoning models (OpenAI's, Gemini's thinking models) count their reasoning tokens against the output limit, so a budget
+# sized for the visible reply can be spent before the reply starts. The HTTP providers add this allowance, capped.
+# OpenAI recommends reserving at least 25,000 tokens for reasoning and outputs (developers.openai.com/api/docs/guides/reasoning);
+# Gemini's max output tokens include thought tokens (ai.google.dev/gemini-api/docs/thinking). Both checked 10 November 2026.
+REASONING_ALLOWANCE = 16000
+MAX_COMPLETION_BUDGET = 32000
+
+
+def completion_budget(max_tokens: int) -> int:
+    """The caller's budget for the visible reply plus room for reasoning, capped; never less than the caller asked for."""
+    return max(max_tokens, min(max_tokens + REASONING_ALLOWANCE, MAX_COMPLETION_BUDGET))
+
+
+def without(*path: str):
+    """A fallback that removes one optional setting from the request body (a nested key given as a path)."""
+    def fix(body: dict) -> dict:
+        import copy
+
+        out = copy.deepcopy(body)
+        node = out
+        for k in path[:-1]:
+            node = node.get(k) or {}
+        node.pop(path[-1], None)
+        return out
+    return fix
+
+
+def setting(path: tuple[str, ...], value):
+    """A fallback that sets one value in the request body (for example the caller's own token budget)."""
+    def fix(body: dict) -> dict:
+        import copy
+
+        out = copy.deepcopy(body)
+        node = out
+        for k in path[:-1]:
+            node = node.setdefault(k, {})
+        node[path[-1]] = value
+        return out
+    return fix
 
 
 @dataclass
@@ -105,7 +144,35 @@ class HttpProvider:
     def _headers(self) -> dict:
         raise NotImplementedError
 
-    def _post(self, url: str, body: dict) -> dict:
+    def _post(self, url: str, body: dict, fallbacks: tuple = ()) -> dict:
+        """POST and read the JSON reply. `fallbacks` are (mention, fix) pairs for optional settings a model may refuse:
+        when the provider answers 400 and its error names `mention` (case-blind), the request is sent once more with
+        `fix(body)`. Each fallback is used at most once. The error body is only searched, never repeated."""
+        pending = list(fallbacks)
+        while True:
+            r = self._send(url, body)
+            if r.status_code != 400:
+                break
+            try:
+                said = r.text.lower()
+            except Exception:  # noqa: BLE001 - an unreadable error body names nothing
+                said = ""
+            fb = next((f for f in pending if f[0].lower() in said), None)
+            if fb is None:
+                raise AIError(status_message(400))
+            pending.remove(fb)
+            body = fb[1](body)
+        try:
+            data = r.json()
+        except ValueError:
+            raise AIError("The AI provider's reply could not be read.") from None
+        if not isinstance(data, dict):
+            raise AIError("The AI provider's reply could not be read.")
+        return data
+
+    def _send(self, url: str, body: dict) -> httpx.Response:
+        """One request, tried again on a rate limit, an outage or a timeout. Returns a success or a 400; raises AIError
+        for anything else."""
         waited = 0.0
         for attempt in range(1, ATTEMPTS + 1):
             r, failure = None, None
@@ -116,8 +183,8 @@ class HttpProvider:
                 failure = STATUS_MESSAGES[408]
             except httpx.HTTPError as e:
                 raise AIError(f"The AI provider could not be reached ({type(e).__name__}). Check the endpoint and the network.") from None
-            if r is not None and r.status_code < 400:
-                break
+            if r is not None and r.status_code <= 400:
+                return r
             if r is not None:
                 failure = status_message(r.status_code)
                 if r.status_code not in RETRY_STATUSES:
@@ -128,13 +195,7 @@ class HttpProvider:
                 raise AIError(failure)
             _sleep(wait)
             waited += wait
-        try:
-            data = r.json()
-        except ValueError:
-            raise AIError("The AI provider's reply could not be read.") from None
-        if not isinstance(data, dict):
-            raise AIError("The AI provider's reply could not be read.")
-        return data
+        raise AIError(STATUS_MESSAGES[408])  # not reached: the last attempt returns or raises
 
     def complete(self, *, task: str, system: str, prompt: str, schema: dict, context: dict | None = None, max_tokens: int = 8000) -> AIReply:
         raise NotImplementedError

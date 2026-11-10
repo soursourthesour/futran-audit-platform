@@ -11,6 +11,7 @@ from app.ai.client import AIError
 
 SCHEMA = {"type": "object", "properties": {"answer": {"type": "string"}}, "required": ["answer"], "additionalProperties": False}
 SECRET = "sk-live-0123456789abcdef"
+REASONING_ALLOWANCE = 16000  # app.ai.providers.base.REASONING_ALLOWANCE: room for the reasoning tokens these models spend first
 
 
 def recorder(reply, status=200):
@@ -44,7 +45,7 @@ def test_openai_complete_sends_chat_completions_with_a_json_schema():
     assert str(req.url) == "https://api.openai.com/v1/chat/completions" and req.method == "POST"
     assert req.headers["authorization"] == f"Bearer {SECRET}"
     b = body_of(req)
-    assert b["model"] == "gpt-test" and b["max_completion_tokens"] == 900
+    assert b["model"] == "gpt-test" and b["max_completion_tokens"] == 900 + REASONING_ALLOWANCE and b["reasoning_effort"] == "low"
     assert b["messages"] == [{"role": "system", "content": "Be exact."}, {"role": "user", "content": "Is it?"}]
     assert b["response_format"]["type"] == "json_schema" and b["response_format"]["json_schema"]["schema"] == SCHEMA
     assert r.data == {"answer": "yes"} and r.provider == "openai" and r.model == "gpt-test-2026" and (r.input_tokens, r.output_tokens) == (120, 30)
@@ -152,7 +153,8 @@ def test_gemini_complete_asks_for_json_matching_the_schema():
     assert req.headers["x-goog-api-key"] == SECRET and SECRET not in str(req.url)
     b = body_of(req)
     assert b["systemInstruction"] == {"parts": [{"text": "Be exact."}]} and b["contents"] == [{"role": "user", "parts": [{"text": "Is it?"}]}]
-    assert b["generationConfig"] == {"responseMimeType": "application/json", "responseJsonSchema": SCHEMA, "maxOutputTokens": 700}
+    assert b["generationConfig"] == {"responseMimeType": "application/json", "responseJsonSchema": SCHEMA, "maxOutputTokens": 700 + REASONING_ALLOWANCE,
+                                     "thinkingConfig": {"thinkingLevel": "low"}}
     assert r.data == {"answer": "yes"} and r.provider == "gemini" and r.model == "gemini-test-001" and (r.input_tokens, r.output_tokens) == (210, 40)
 
 
@@ -353,3 +355,86 @@ def test_a_request_the_provider_refused_is_not_retried(slept, status):
     with pytest.raises(AIError):
         OpenAIProvider(api_key=SECRET, model="gpt-test", transport=t).complete(task="ask", system="s", prompt="p", schema=SCHEMA)
     assert len(seen) == 1 and slept == []
+
+
+# ---- reasoning models spend output tokens on reasoning first: low effort and a larger budget, so replies are not cut short
+def test_openai_complete_asks_for_low_reasoning_effort_and_leaves_room_for_reasoning():
+    from app.ai.providers import base
+    from app.ai.providers.openai import OpenAIProvider
+
+    assert base.REASONING_ALLOWANCE == REASONING_ALLOWANCE
+    seen, t = recorder(chat_reply('{"answer": "yes"}'))
+    OpenAIProvider(api_key=SECRET, model="gpt-6-astra", transport=t).complete(task="t", system="s", prompt="p", schema=SCHEMA)
+    b = body_of(seen[0])
+    assert b["reasoning_effort"] == "low" and b["max_completion_tokens"] == 8000 + REASONING_ALLOWANCE
+    seen, t = recorder(chat_reply('{"answer": "yes"}'))
+    OpenAIProvider(api_key=SECRET, model="gpt-6-astra", transport=t).complete(task="t", system="s", prompt="p", schema=SCHEMA, max_tokens=60000)
+    assert body_of(seen[0])["max_completion_tokens"] == 60000  # a caller budget above the cap is kept, never cut
+
+
+def test_web_research_budgets_leave_room_for_reasoning():
+    from app.ai.providers.base import MAX_COMPLETION_BUDGET
+    from app.ai.providers.gemini import GeminiProvider
+    from app.ai.providers.openai import OpenAIProvider
+
+    seen, t = recorder(responses_reply())
+    OpenAIProvider(api_key=SECRET, model="gpt-test", transport=t).search(system="s", prompt="p", allowed_domains=[], max_tokens=16000)
+    assert body_of(seen[0])["max_output_tokens"] == min(16000 + REASONING_ALLOWANCE, MAX_COMPLETION_BUDGET)
+    seen, t = recorder(gemini_reply("x"))
+    GeminiProvider(api_key=SECRET, model="gemini-test", transport=t).search(system="s", prompt="p", allowed_domains=[], max_tokens=8000)
+    assert body_of(seen[0])["generationConfig"]["maxOutputTokens"] == 8000 + REASONING_ALLOWANCE
+
+
+def rejecting(mention, reply):
+    """A provider that answers 400 naming `mention` while the request carries it, then `reply`."""
+    seen = []
+
+    def handler(request):
+        seen.append(request)
+        if mention in request.content.decode():
+            return httpx.Response(400, json={"error": {"message": f"Unsupported parameter: '{mention}' is not supported with this model. {SECRET}"}})
+        return httpx.Response(200, json=reply)
+
+    return seen, httpx.MockTransport(handler)
+
+
+def test_a_model_that_refuses_reasoning_effort_is_asked_again_without_it():
+    from app.ai.providers.openai import OpenAIProvider
+
+    seen, t = rejecting("reasoning_effort", chat_reply('{"answer": "yes"}'))
+    r = OpenAIProvider(api_key=SECRET, model="gpt-4o", transport=t).complete(task="t", system="s", prompt="p", schema=SCHEMA, max_tokens=900)
+    assert r.data == {"answer": "yes"} and len(seen) == 2
+    assert "reasoning_effort" in body_of(seen[0]) and "reasoning_effort" not in body_of(seen[1])
+    assert body_of(seen[1])["max_completion_tokens"] == 900 + REASONING_ALLOWANCE
+
+
+def test_a_model_that_refuses_the_larger_budget_is_asked_again_with_the_callers():
+    from app.ai.providers.openai import OpenAIProvider
+
+    seen = []
+
+    def handler(request):
+        seen.append(request)
+        if body_of(request)["max_completion_tokens"] > 16384:
+            return httpx.Response(400, json={"error": {"message": "max_completion_tokens is too large: 24000. This model supports at most 16384 completion tokens"}})
+        return httpx.Response(200, json=chat_reply('{"answer": "yes"}'))
+
+    r = OpenAIProvider(api_key=SECRET, model="gpt-4o", transport=httpx.MockTransport(handler)).complete(task="t", system="s", prompt="p", schema=SCHEMA)
+    assert r.data == {"answer": "yes"} and [body_of(q)["max_completion_tokens"] for q in seen] == [8000 + REASONING_ALLOWANCE, 8000]
+
+
+def test_a_gemini_model_without_thinking_levels_is_asked_again_without_one():
+    from app.ai.providers.gemini import GeminiProvider
+
+    seen, t = rejecting("thinkingLevel", gemini_reply('{"answer": "yes"}'))
+    r = GeminiProvider(api_key=SECRET, model="gemini-2.5-flash", transport=t).complete(task="t", system="s", prompt="p", schema=SCHEMA)
+    assert r.data == {"answer": "yes"} and len(seen) == 2 and "thinkingConfig" not in body_of(seen[1])["generationConfig"]
+
+
+def test_a_400_that_names_no_optional_parameter_is_not_retried_and_never_echoed():
+    from app.ai.providers.openai import OpenAIProvider
+
+    seen, t = rejecting('"messages"', chat_reply('{"answer": "yes"}'))
+    with pytest.raises(AIError, match="rejected the request") as ex:
+        OpenAIProvider(api_key=SECRET, model="gpt-test", transport=t).complete(task="t", system="s", prompt="p", schema=SCHEMA)
+    assert len(seen) == 1 and SECRET not in str(ex.value)
