@@ -15,7 +15,7 @@ from app.core.errors import AppError, Invalid
 from app.policy.roles import ROLE_LABELS
 from app.tenancy import people as ppl
 from app.tenancy.csv_import import (
-    DEPARTMENT_ROLES, CsvResult, Table, is_department_table, is_user_table, issue, key, parse_departments, parse_users, read_file,
+    DEPARTMENT_ROLES, CsvResult, FileRefused, Table, is_department_table, is_user_table, issue, key, parse_departments, parse_users, read_file,
 )
 from app.tenancy.job_levels import job_level_label
 from app.tenancy.models import Department, Organization, User
@@ -65,7 +65,10 @@ def _role_scope_held(db: Session, user: User, role: str, dept: Department | None
 
 def plan_import(db: Session, actor: User, org: Organization, filename: str, data: bytes, target: Department | None = None) -> Plan:
     p = Plan(target=target.name if target else None)
-    tables = read_file(filename, data, p.errors)
+    try:
+        tables = read_file(filename, data, p.errors)
+    except FileRefused as exc:
+        raise Invalid(str(exc), [issue(None, None, "file", str(exc))]) from exc
     if p.errors:
         return p
     existing = {key(d.name): d for d in ppl.departments(db, org)}

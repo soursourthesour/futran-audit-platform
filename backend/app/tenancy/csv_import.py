@@ -19,6 +19,10 @@ DEPARTMENT_ROLES = {"dept_compliance_lead", "contributor"}
 EMAIL = re.compile(r"^[^@\s,;]+@[^@\s,;]+\.[^@\s,;]+$")
 EXAMPLE_DOMAINS = {"example.com", "example.org", "example.net"}
 MAX_ROWS = 5000
+ROW_SCAN_LIMIT = MAX_ROWS + 1000  # rows read across a workbook, blank ones included
+MAX_COLUMNS = 50
+MAX_SHEETS = 250
+MAX_UNPACKED_MB = 50
 ROLE_KEYS = set(CSV_ROLE_NAMES.values())
 UNREADABLE = "The file could not be read. Save it as CSV (comma delimited) or as an Excel workbook (.xlsx) from the template and try again."
 
@@ -131,21 +135,58 @@ def read_csv(text: str, errors: list[dict]) -> list[Table]:
     return [Table(None, [c.strip() for c in first], rows)]
 
 
+class FileRefused(Exception):
+    """A workbook too large to read safely; refused before reading it."""
+
+
+def _workbook_size_check(data: bytes) -> None:
+    import zipfile
+
+    try:
+        members = zipfile.ZipFile(io.BytesIO(data)).infolist()
+    except Exception:  # not a zip: openpyxl reports it as unreadable
+        return
+    if sum(m.file_size for m in members) > MAX_UNPACKED_MB * 1024 * 1024:
+        raise FileRefused(f"This workbook unpacks to more than {MAX_UNPACKED_MB} MB. Copy your rows into the template and upload that.")
+    sheets = sum(1 for m in members if m.filename.startswith("xl/worksheets/") and m.filename.endswith(".xml"))
+    if sheets > MAX_SHEETS:
+        raise FileRefused(f"This workbook has more than {MAX_SHEETS} sheets. Upload at most {MAX_SHEETS} sheets at a time.")
+
+
 def read_workbook(data: bytes, errors: list[dict]) -> list[Table]:
+    """Read every sheet but Instructions. Refuses (FileRefused) a workbook that unpacks too large, has too many sheets,
+    or has a sheet declaring more rows or columns than an upload can hold. Every row read, blank or not, counts toward
+    ROW_SCAN_LIMIT, so a sheet with one far-away cell cannot keep the reader busy."""
     import openpyxl
 
+    _workbook_size_check(data)
     try:
         wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
     except Exception:  # not a workbook, or a damaged one
         errors.append(issue(None, None, "file", UNREADABLE))
         return []
-    tables, total = [], 0
+    tables, total, scanned = [], 0, 0
     try:
+        if len(wb.worksheets) > MAX_SHEETS:
+            raise FileRefused(f"This workbook has more than {MAX_SHEETS} sheets. Upload at most {MAX_SHEETS} sheets at a time.")
         for ws in wb.worksheets:
             if key(ws.title) == "instructions":
                 continue
+            if (ws.max_row or 0) > ROW_SCAN_LIMIT:
+                raise FileRefused(f"Sheet '{ws.title}' has more than {ROW_SCAN_LIMIT} rows. Up to {MAX_ROWS} people can be imported at once; delete the empty rows below your list, or split it into several files.")
+            if (ws.max_column or 0) > MAX_COLUMNS:
+                raise FileRefused(f"Sheet '{ws.title}' has more than {MAX_COLUMNS} columns. Keep only the template's columns and upload it again.")
             header, rows = None, []
-            for n, values in enumerate(ws.iter_rows(values_only=True), start=1):
+            budget = ROW_SCAN_LIMIT - scanned
+            if budget <= 0:
+                errors.append(issue(ws.title, None, "file", f"Only the first {MAX_ROWS} rows can be imported at once."))
+                break
+            n = 0
+            for n, values in enumerate(ws.iter_rows(min_row=1, max_row=budget + 1, max_col=MAX_COLUMNS, values_only=True), start=1):
+                if n > budget:
+                    errors.append(issue(ws.title, n, "file", f"Only the first {MAX_ROWS} rows can be imported at once."))
+                    total = MAX_ROWS + 1
+                    break
                 cells = [_cell(v) for v in values]
                 if not any(cells):
                     continue
@@ -157,6 +198,7 @@ def read_workbook(data: bytes, errors: list[dict]) -> list[Table]:
                     errors.append(issue(ws.title, n, "file", f"Only the first {MAX_ROWS} rows can be imported at once."))
                     break
                 rows.append((n, cells))
+            scanned += min(n, budget)
             if header is not None:
                 tables.append(Table(ws.title, header, rows))
             if total > MAX_ROWS:
