@@ -146,3 +146,16 @@ def test_templates_api_admin_only(client, db, seeded):
     login_as(client, db, admin)
     r = client.put("/api/v1/admin/templates/roles_note", json={"body": "New roles note for {{ client.name }}."})
     assert r.status_code == 200 and r.json()["version"] == 2
+
+
+def test_templates_api_says_who_approved_each_revision(client, db, seeded):
+    """F10: the (i) beside a template name shows its revision, when it was approved and by whom."""
+    f = make_org(db, type="futran")
+    admin = make_user(db, f, roles=["admin"], name="Ada Admin", email="admin@f.test")
+    db.commit()
+    login_as(client, db, admin)
+    first = next(t for t in client.get("/api/v1/admin/templates").json() if t["key"] == "roles_note")
+    assert first["version"] == 1 and first["approved_by"] is None and first["approved_at"]  # the platform's standard text
+    client.put("/api/v1/admin/templates/roles_note", json={"body": "New roles note for {{ client.name }}."})
+    t = next(t for t in client.get("/api/v1/admin/templates").json() if t["key"] == "roles_note")
+    assert t["version"] == 2 and t["approved_by"] == "Ada Admin" and t["approved_at"] == t["updated_at"]
