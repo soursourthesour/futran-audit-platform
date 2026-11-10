@@ -181,3 +181,93 @@ def test_formula_like_department_name_is_text_and_round_trips(client, db, people
     assert {d["name"]: d["action"] for d in pv["departments"]} == {"=1+2": "unchanged", "@Ops[EU]:*?": "unchanged"}
     gil = next(u for u in pv["users"] if u["email"] == "gil@abc.test")
     assert gil["action"] == "unchanged" and gil["department"] == "=1+2"
+
+
+# ---- P3: a department role never moves someone silently
+def _dept_rows(db, uid):
+    from sqlalchemy import select
+
+    from app.audit_log.models import AuditLog
+
+    return [(a.before or {}).get("department") and (a.before["department"], a.after["department"]) or (None, a.after["department"])
+            for a in db.scalars(select(AuditLog).where(AuditLog.action == "user.department_change", AuditLog.object_id == uid).order_by(AuditLog.at))]
+
+
+def _shown(db, cid, uid):
+    from sqlalchemy import select
+
+    from app.tenancy.models import Department, User
+    from app.tenancy.people import user_department
+
+    db.expire_all()
+    names = {d.id: d.name for d in db.scalars(select(Department).where(Department.organization_id == cid))}
+    return user_department(db, db.get(User, uid), names)
+
+
+def _dept_roles(db, uid):
+    from app.tenancy.service import roles_of
+
+    return [(r.role, r.scope_id) for r in roles_of(db, uid) if r.scope_type == "department"]
+
+
+def test_import_does_not_give_an_existing_person_a_role_in_another_department(client, db, people, live):
+    from tests.tenancy.test_people_import_1103 import NEW_HEADER, _dept, _user, apply, preview
+
+    cid, e, maria = live
+    login_as(client, db, maria)
+    _dept(client, cid, "Finance")
+    _dept(client, cid, "Legal")
+    uid = _user(client, cid, "Dee", "Org", "dee@abc.test", role="exec_sponsor", department="Finance")
+    assert _shown(db, cid, uid) == "Finance"
+    text = (NEW_HEADER + "\nDee Org,dee@abc.test,Legal,,,Contributor\n").encode()
+    pv = preview(client, cid, text, "u.csv")
+    msg = next(w["message"] for w in pv["warnings"] if w["field"] == "department")
+    assert "not moved" in msg and "Contributor" in msg and "not added" in msg
+    assert next(u for u in pv["users"] if u["email"] == "dee@abc.test")["action"] == "unchanged"
+    assert apply(client, cid, text, "u.csv").status_code == 200
+    assert _shown(db, cid, uid) == "Finance"
+    assert _dept_roles(db, uid) == []
+    assert _dept_rows(db, uid) == [(None, "Finance")]
+    users = client.get(f"/api/v1/clients/{cid}/people").json()["users"]
+    assert [u["department"] for u in users if u["email"] == "dee@abc.test"] == ["Finance"]
+
+
+def test_department_upload_does_not_move_someone_from_another_department(client, db, people, live):
+    from tests.tenancy.test_people_import_1103 import _dept, _user, apply, preview
+
+    cid, e, maria = live
+    login_as(client, db, maria)
+    _dept(client, cid, "Finance")
+    leg = _dept(client, cid, "Legal")
+    uid = _user(client, cid, "Ann", "Fin", "ann@abc.test", role="client_admin", department="Finance")
+    text = b"Full name,Work email,AI compliance role\nAnn Fin,ann@abc.test,Contributor; Data Protection Officer\n"
+    pv = preview(client, cid, text, "u.csv", department_id=leg)
+    assert any("not moved" in w["message"] and "Contributor" in w["message"] for w in pv["warnings"])
+    assert apply(client, cid, text, "u.csv", department_id=leg).status_code == 200
+    assert _shown(db, cid, uid) == "Finance"
+    assert _dept_roles(db, uid) == []
+    from app.tenancy.service import roles_of
+
+    assert "dpo" in {r.role for r in roles_of(db, uid)}  # the company-wide role in the same row is still added
+
+
+def test_adding_and_removing_a_department_role_records_the_department_change(client, db, people, live):
+    from tests.tenancy.test_people_import_1103 import _dept, _user
+
+    cid, e, maria = live
+    login_as(client, db, maria)
+    _dept(client, cid, "Finance")
+    _dept(client, cid, "Legal")
+    uid = _user(client, cid, "Hal", "Org", "hal@abc.test", role="exec_sponsor", department="Finance")
+    r = client.post(f"/api/v1/clients/{cid}/users/{uid}/roles", json={"role": "contributor", "department": "Legal"})
+    assert r.status_code == 200, r.text
+    assert _shown(db, cid, uid) == "Legal"
+    assert _dept_rows(db, uid) == [(None, "Finance"), ("Finance", "Legal")]
+    from app.tenancy.service import roles_of
+
+    ra = next(x for x in roles_of(db, uid) if x.role == "contributor")
+    assert client.delete(f"/api/v1/clients/{cid}/users/{uid}/roles/{ra.id}").status_code in (200, 204)
+    assert _shown(db, cid, uid) == "Finance"
+    assert _dept_rows(db, uid) == [(None, "Finance"), ("Finance", "Legal"), ("Legal", "Finance")]
+    hist = client.get(f"/api/v1/clients/{cid}/users/{uid}/history").json()
+    assert sum(1 for h in (hist if isinstance(hist, list) else hist.get("events", hist.get("history", []))) if h.get("kind") == "department") == 3

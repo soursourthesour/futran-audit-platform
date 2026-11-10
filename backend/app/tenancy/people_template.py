@@ -52,7 +52,7 @@ INSTRUCTIONS = [
     ("5. To add people to one department only, use Upload users to this department on that department's row, with this workbook or a CSV.", None),
     ("", None),
     ("Example rows (shown in grey, with example.com emails) are refused if uploaded. Delete them or replace them with real people.", None),
-    ("People already on the user list are recognised by work email. Uploading them again adds any new AI compliance role and fills a blank job title or job level; it never moves them to another department or removes anything.", None),
+    ("People already on the user list are recognised by work email. Uploading them again adds any new AI compliance role and fills a blank job title or job level; it never moves them to another department or removes anything. A Department Compliance Lead or Contributor role for a department other than their own is not added; move them on the People screen first.", None),
     ("The head of department is matched by work email first, then by exact full name. A name that matches nobody, or more than one person, is listed as a warning and the head is left as it was.", None),
     ("", None),
     ("Columns on the Departments sheet", "bold"),

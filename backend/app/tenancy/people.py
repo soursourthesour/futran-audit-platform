@@ -211,16 +211,17 @@ def add_user(db: Session, settings: Settings, actor: User, org: Organization, da
             user.job_title = str(data["job_title"]).strip()[:160]
         if level and not user.job_level:
             user.job_level = level
-    had_department = not created and user_department(db, user, {d.id: d.name for d in departments(db, org)}) is not None
+    names = {d.id: d.name for d in departments(db, org)}
+    shown_before = None if created else user_department(db, user, names)
     scope = ("department", dept.id) if role in DEPARTMENT_ROLES else ("org", None)
     already = any(r.role == role and r.scope_type == scope[0] and r.scope_id == scope[1] for r in roles_of(db, user.id))
     if not already:
         ra = assign_role(db, user, role, scope_type=scope[0], scope_id=scope[1], actor_id=actor.id)
         audit.record(db, actor_id=actor.id, action="role.assign", object_type="User", object_id=user.id, organization_id=org.id, after={"role": role, "department": dept.name if dept else None, "assignment_id": ra.id}, summary=f"Gave {user.name} the role {ROLE_LABELS[role]}{f' for {dept.name}' if dept else ''}")
-    if dept is not None and not had_department:
+    if dept is not None and shown_before is None:
         user.department_id = dept.id  # the person's own department, also for org-wide roles
-        if role not in DEPARTMENT_ROLES:  # a department role's own audit row already names the department
-            record_department_change(db, actor, org, user, None, dept.name)
+    db.flush()
+    record_department_change(db, actor, org, user, shown_before, user_department(db, user, names))  # also when a department role moves them
     e = current_engagement(db, org)
     if role in SIGN_OFF_KEYS or role == "client_admin":
         _sync_contact(db, e, role, user)
@@ -250,8 +251,12 @@ def remove_role(db: Session, settings: Settings, actor: User, org: Organization,
     if ra.role == "caico":
         if not [u for u in active_holders(db, org, "caico", exclude_assignment=ra.id) if u.id != user.id]:
             raise Conflict("Name another Chief AI Compliance Officer before removing this one.")
+    names = {d.id: d.name for d in departments(db, org)}
+    shown_before = user_department(db, user, names)
     ra.deleted_at, ra.updated_by = utcnow(), actor.id
+    db.flush()
     audit.record(db, actor_id=actor.id, action="role.remove", object_type="User", object_id=user.id, organization_id=org.id, before={"role": ra.role, "assignment_id": ra.id}, summary=f"Removed the role {ROLE_LABELS.get(ra.role, ra.role)} from {user.name}")
+    record_department_change(db, actor, org, user, shown_before, user_department(db, user, names))  # their department role was what placed them
     e = current_engagement(db, org)
     if ra.role in SIGN_OFF_KEYS:
         holder = db.scalar(select(User).join(RoleAssignment, RoleAssignment.user_id == User.id).where(RoleAssignment.organization_id == org.id, RoleAssignment.role == ra.role, RoleAssignment.deleted_at.is_(None)).limit(1))

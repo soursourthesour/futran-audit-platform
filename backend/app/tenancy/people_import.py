@@ -181,6 +181,13 @@ def plan_import(db: Session, actor: User, org: Organization, filename: str, data
             if not all(_role_scope_held(db, u, x, None) for x in r["roles"] if x in ppl.SIGN_OFF_KEYS):
                 p.errors.append(issue(sheet, n, "role", "You can't give yourself a sign-off role. Ask another administrator or your Futran engagement manager."))
                 continue
+        cur, skipped = None, []
+        if u is not None:
+            cur = ppl.user_department(db, u, {d.id: d.name for d in existing.values()})
+            if r["department"] and cur is not None and key(cur) != key(r["department"]):
+                # an existing person is moved only on the screen: a department role elsewhere would move them silently
+                skipped = [x for x in r["roles"] if x in DEPARTMENT_ROLES]
+                r["roles"] = [x for x in r["roles"] if x not in DEPARTMENT_ROLES]
         row = {"sheet": sheet, "row": n, "name": r["name"], "email": r["email"], "department": r["department"], "job_title": r["job_title"],
                "job_level": job_level_label(r["job_level"]), "roles": [ROLE_LABELS[x] for x in r["roles"]], "changes": [], "_src": r}
         if u is None:
@@ -188,8 +195,6 @@ def plan_import(db: Session, actor: User, org: Organization, filename: str, data
         else:
             row["name"] = u.name
             new_roles = [x for x in r["roles"] if (dept is None and x in DEPARTMENT_ROLES) or not _role_scope_held(db, u, x, dept)]
-            names = {d.id: d.name for d in existing.values()}
-            cur = ppl.user_department(db, u, names)
             if new_roles:
                 row["changes"].append("roles")
             if r["job_title"] and not u.job_title:
@@ -201,8 +206,12 @@ def plan_import(db: Session, actor: User, org: Organization, filename: str, data
             if r["department"] and cur is None:
                 row["changes"].append("department")
             elif r["department"] and key(cur) != key(r["department"]):
-                p.warnings.append(issue(sheet, n, "department", f"{u.name} is already in {cur}. They were not moved; use Department on their row to move them."
-                                         + (" The role in this file is added for " + r["department"] + "." if new_roles and DEPARTMENT_ROLES & set(new_roles) else "")))
+                if skipped:
+                    labels = " and ".join(ROLE_LABELS[x] for x in skipped)
+                    p.warnings.append(issue(sheet, n, "department", f"{u.name} is already in {cur}. They were not moved, and the {labels} role for {r['department']} was not added. "
+                                             "To move them, use Department on their row, then upload the file again."))
+                else:
+                    p.warnings.append(issue(sheet, n, "department", f"{u.name} is already in {cur}. They were not moved; use Department on their row to move them."))
         if "action" not in row:
             row["action"] = "update" if row["changes"] else "unchanged"
         p.users.append(row)
@@ -270,6 +279,12 @@ def apply_import(db: Session, settings: Settings, actor: User, org: Organization
                 ppl.edit_department(db, actor, org, d, body)
         for row in p.users:
             r = row["_src"]
+            if not r["roles"] and row["action"] == "update":  # only department roles elsewhere were given; fill blanks as add_user would
+                u = find_user_by_email(db, r["email"])
+                if r["job_title"] and not u.job_title:
+                    u.job_title = r["job_title"][:160]
+                if r["job_level"] and not u.job_level:
+                    u.job_level = r["job_level"]
             for role in r["roles"]:
                 ppl.add_user(db, settings, actor, org, {**r, "role": role, "department": r["department"] or ""}, defer=defer)
         for row in p.departments:  # heads last: they may be people this file added
