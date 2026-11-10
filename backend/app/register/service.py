@@ -324,6 +324,11 @@ def clean(db: Session, org: Organization, data: dict, current: RegisterSystem | 
         else:
             places = [p for p in (_place(db, x, "data_locations", errs) for x in v) if p]
             out["data_locations"] = list({json.dumps(p, sort_keys=True): p for p in places}.values()) or None
+    if "users_scope" in data or "user_selection" in data:  # only the part of the selection that belongs to the scope is kept
+        scope = out.get("users_scope", current.users_scope if current else None)
+        sel = out.get("user_selection", current.user_selection if current else None)
+        if sel is not None or "user_selection" in out:
+            out["user_selection"] = _for_scope(scope, sel)
     if "dismissed_law_ids" in data:
         v = data.get("dismissed_law_ids") or []
         if not isinstance(v, list) or len(v) > 500 or not all(isinstance(x, str) for x in v):
@@ -399,11 +404,22 @@ def _selection(db: Session, org_id: str, v, errs: list) -> dict | None:
         return None
     ids = list(dict.fromkeys(ids))
     if ids:
-        found = set(db.scalars(select(User.id).where(User.id.in_(ids), User.organization_id == org_id, User.deleted_at.is_(None))))
+        found = set(db.scalars(select(User.id).where(User.id.in_(ids), User.organization_id == org_id, User.deleted_at.is_(None), User.status != "disabled")))
         if len(found) != len(ids):
-            errs.append({"field": "user_selection", "message": "Choose people from the company's users."})
+            errs.append({"field": "user_selection", "message": "Choose people from the company's active users."})
             return None
         out["user_ids"] = ids
+    return out or None
+
+
+NAMED_KEYS = ("user_ids",)
+ROLE_KEYS = ("job_levels", "compliance_roles", "job_titles")
+
+
+def _for_scope(scope: str | None, sel: dict | None) -> dict | None:
+    """Named users keep the people chosen; role level keeps job levels, AI compliance roles and job titles."""
+    keys = NAMED_KEYS if scope == "named" else ROLE_KEYS if scope == "role" else ()
+    out = {k: v for k, v in (sel or {}).items() if k in keys and v}
     return out or None
 
 
@@ -445,8 +461,8 @@ def place_label(db: Session, p: dict | None) -> str | None:
 def count_users(db: Session, s: RegisterSystem) -> int | None:
     """The number of users from the selection: the named people, or everyone matching a chosen job level, AI compliance
     role or job title, within the system's departments (all departments for a company-wide tool). None without a selection."""
-    sel = s.user_selection or {}
-    if not sel or s.users_scope not in ("role", "named"):
+    sel = _for_scope(s.users_scope, s.user_selection) or {}
+    if not sel:
         return None
     people = list(db.scalars(select(User).where(User.organization_id == s.organization_id, User.deleted_at.is_(None), User.status != "disabled")))
     if s.users_scope == "named":
@@ -500,12 +516,14 @@ def _write(db: Session, actor: User, org: Organization, s: RegisterSystem, v: di
         v["vendor_id"] = _vendor_by_name(db, actor, org, vendor_name).id
     dv = v.pop("_data", None)
     acts = v.pop("_actions", None)
+    who = ("users_scope", "user_selection", "department_id", "department_ids", "company_wide")
+    who_before = [getattr(s, k) for k in who]
     for k, val in v.items():
         setattr(s, k, val)
     if s.type != "agent":
         s.autonomy = None
-    n = count_users(db, s)
-    if n is not None:  # calculated from the selection (11-03 C10); without one the typed number stays
+    n = count_users(db, s) if [getattr(s, k) for k in who] != who_before else None
+    if n is not None:  # calculated when the selection changes (11-03 C10); otherwise the saved or typed number stays
         s.user_count = n
     db.flush()
     if dv is not None:
