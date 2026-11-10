@@ -37,3 +37,9 @@ def change(law, **kw):
             "summary": "Effective date moved to 1 January 2027.", "source_url": "https://www.ilga.gov/legislation/publicacts/fulltext.asp?Name=104-0001",
             "source_quote": "This Act takes effect January 1, 2027.", "confidence": "high"}
     return base | kw
+
+
+@pytest.fixture(autouse=True)
+def _no_retry_wait(monkeypatch):
+    """The HTTP providers wait before retrying a rate limit or an outage; tests do not."""
+    monkeypatch.setattr("app.ai.providers.base._sleep", lambda s: None)

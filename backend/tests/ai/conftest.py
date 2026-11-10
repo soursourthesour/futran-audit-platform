@@ -84,3 +84,9 @@ def upload_docs(client, db, w) -> dict:
         assert r.status_code == 200, r.text
         out[name] = r.json()["id"]
     return out
+
+
+@pytest.fixture(autouse=True)
+def _no_retry_wait(monkeypatch):
+    """The HTTP providers wait before retrying a rate limit or an outage; tests do not."""
+    monkeypatch.setattr("app.ai.providers.base._sleep", lambda s: None)

@@ -8,10 +8,12 @@ A provider does two things:
   (law refresh, the litigation tracker, Draft with AI).
 
 The HTTP providers (OpenAI, Azure OpenAI, Gemini) go through `HttpProvider._post`, which turns every failure into an
-`AIError` with a fixed, generic message. Provider error bodies are never read into a message: they can echo a key, a
+`AIError` with a fixed, generic message, after up to `ATTEMPTS` tries for a rate limit, an outage or a timeout (honouring
+`Retry-After`, total wait at most `MAX_TOTAL_WAIT` seconds). Provider error bodies are never read into a message: they can echo a key, a
 prompt or an internal detail. `ResearchThenStructure` and `TextResearch` adapt any provider to the refresh pipeline's
 `propose(...)` and the drafting `research(prompt)` interfaces.
 """
+import time
 from dataclasses import dataclass, field
 
 import httpx
@@ -19,6 +21,11 @@ import httpx
 from app.ai.client import AIError, AIReply, parse_json
 
 TIMEOUT = httpx.Timeout(180.0, connect=15.0)  # a web-search turn can take minutes
+_sleep = time.sleep  # tests replace it
+ATTEMPTS = 3  # a rate limit (429), a provider outage (5xx) or a timeout is tried up to three times in all
+RETRY_STATUSES = {408, 429, 500, 502, 503, 504}
+BACKOFF = (2.0, 6.0)  # seconds before the second and the third attempt when the provider names no wait
+MAX_TOTAL_WAIT = 30.0  # never wait longer than this across the retries of one call; a longer Retry-After is not waited out
 
 
 @dataclass
@@ -51,6 +58,24 @@ def status_message(status: int) -> str:
     return f"The AI provider rejected the request (HTTP {status}). Check the model name and the provider's settings."
 
 
+def retry_after(r: httpx.Response) -> float | None:
+    """The wait a 429 or 503 asks for (`Retry-After` in seconds or as an HTTP date), or None."""
+    v = (r.headers.get("retry-after") or "").strip()
+    if not v:
+        return None
+    try:
+        return max(0.0, float(v))
+    except ValueError:
+        pass
+    try:
+        from datetime import datetime, timezone
+        from email.utils import parsedate_to_datetime
+
+        return max(0.0, (parsedate_to_datetime(v) - datetime.now(timezone.utc)).total_seconds())
+    except (TypeError, ValueError):
+        return None
+
+
 def bare_domains(domains: list[str]) -> list[str]:
     """Allowlist entries as the providers' domain filters want them: no scheme, no path, at most 100."""
     out: list[str] = []
@@ -81,15 +106,28 @@ class HttpProvider:
         raise NotImplementedError
 
     def _post(self, url: str, body: dict) -> dict:
-        try:
-            with httpx.Client(transport=self.transport, timeout=TIMEOUT) as http:
-                r = http.post(url, json=body, headers={**self._headers(), "Content-Type": "application/json"})
-        except httpx.TimeoutException:
-            raise AIError(STATUS_MESSAGES[408]) from None
-        except httpx.HTTPError as e:
-            raise AIError(f"The AI provider could not be reached ({type(e).__name__}). Check the endpoint and the network.") from None
-        if r.status_code >= 400:
-            raise AIError(status_message(r.status_code))
+        waited = 0.0
+        for attempt in range(1, ATTEMPTS + 1):
+            r, failure = None, None
+            try:
+                with httpx.Client(transport=self.transport, timeout=TIMEOUT) as http:
+                    r = http.post(url, json=body, headers={**self._headers(), "Content-Type": "application/json"})
+            except httpx.TimeoutException:
+                failure = STATUS_MESSAGES[408]
+            except httpx.HTTPError as e:
+                raise AIError(f"The AI provider could not be reached ({type(e).__name__}). Check the endpoint and the network.") from None
+            if r is not None and r.status_code < 400:
+                break
+            if r is not None:
+                failure = status_message(r.status_code)
+                if r.status_code not in RETRY_STATUSES:
+                    raise AIError(failure)
+            wait = (retry_after(r) if r is not None else None)
+            wait = BACKOFF[min(attempt, len(BACKOFF)) - 1] if wait is None else wait
+            if attempt == ATTEMPTS or waited + wait > MAX_TOTAL_WAIT:
+                raise AIError(failure)
+            _sleep(wait)
+            waited += wait
         try:
             data = r.json()
         except ValueError:

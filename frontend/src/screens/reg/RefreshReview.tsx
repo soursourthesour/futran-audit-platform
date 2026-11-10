@@ -342,7 +342,7 @@ function ScheduleDialog({ kind, st, onClose }: { kind: string; st: RunSettings; 
 }
 
 const STATUS_RUN: Record<string, ['navy' | 'danger' | 'warn' | 'success' | 'muted', string]> = {
-  queued: ['navy', 'Starting'], running: ['navy', 'Running'], failed: ['danger', 'Failed'], capped: ['warn', 'Stopped at cost cap'], completed: ['success', 'Finished'],
+  queued: ['navy', 'Starting'], running: ['navy', 'Running'], failed: ['danger', 'Failed'], capped: ['warn', 'Stopped at cost cap'], partial: ['warn', 'Finished with errors'], completed: ['success', 'Finished'],
 };
 
 function RunsCard({ kind }: { kind: string }) {
@@ -364,7 +364,7 @@ function RunsCard({ kind }: { kind: string }) {
           </div>
           <p className="small muted">{last.started_by_name} · {last.model_id ?? '—'} · prompt {last.prompt_version} · ${(last.cost_usd ?? 0).toFixed(2)}{last.cost_cap_usd ? ` of $${last.cost_cap_usd.toFixed(2)} cap` : ''}{last.alert_status ? ` · ${last.alert_status}` : ''}</p>
           {last.warnings.length > 0 && <details className="small"><summary>{last.warnings.length} {last.warnings.length === 1 ? 'note' : 'notes'} from the run</summary><ul>{last.warnings.map((w, i) => <li key={i}>{w}</li>)}</ul></details>}
-          {last.error && <Alert tone="danger">{last.error}</Alert>}
+          {last.error && <Alert tone={last.status === 'failed' ? 'danger' : 'warn'}>{last.error}</Alert>}
         </Card>
       )}
       <Card title="Recent runs">

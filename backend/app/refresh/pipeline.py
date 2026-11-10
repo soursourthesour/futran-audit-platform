@@ -432,6 +432,7 @@ def execute_run(db: Session, settings: Settings, run: RefreshRun, client: Struct
     responses: list[dict] = list(run.responses or [])
     js = [db.get(Jurisdiction, jid) for jid in run.jurisdiction_ids]
     js = [j for j in js if j is not None]
+    failed: list[tuple[str, str]] = []  # (geography, reason) for each geography the AI provider could not research
     try:
         for n, j in enumerate(js):
             if run.cost_cap_usd is not None and run.cost_usd >= run.cost_cap_usd:
@@ -455,7 +456,16 @@ def execute_run(db: Session, settings: Settings, run: RefreshRun, client: Struct
             run.records_compared += len(records)
             if commit is not None:
                 commit()
-            reply = client.propose(system=SYSTEM[run.kind], prompt=prompt, schema=SCHEMAS[run.kind], allowed_domains=domains)
+            try:
+                reply = client.propose(system=SYSTEM[run.kind], prompt=prompt, schema=SCHEMAS[run.kind], allowed_domains=domains)
+            except Exception as exc:  # noqa: BLE001 - one geography's failure (provider outage, rate limit, refused key) must not stop the others
+                reason = str(exc)[:500] or exc.__class__.__name__
+                failed.append((j.code, reason))
+                warnings.append(f"{j.code}: not checked because the AI provider failed: {reason}")
+                responses.append({"jurisdiction": j.code, "model": getattr(client, "model", None), "provider": getattr(client, "provider", None) or "anthropic",
+                                  "prompt_version": run.prompt_version, "sources": len(sources), "records": len(records), "cost_usd": 0, "reply": "",
+                                  "accepted": 0, "merged": 0, "skipped": 0, "outcome": "failed"})
+                continue
             cost = _cost(settings, reply.input_tokens, reply.output_tokens, reply.searches)
             run.input_tokens += reply.input_tokens
             run.output_tokens += reply.output_tokens
@@ -483,6 +493,12 @@ def execute_run(db: Session, settings: Settings, run: RefreshRun, client: Struct
             responses.append(entry)
         if run.status == "running":
             run.status = "completed"
+        if failed and len(failed) == len(js):
+            run.status, run.error = "failed", failed[0][1][:2000]
+        elif failed:  # completed (or capped) with errors: the other geographies' proposals stand
+            if run.status == "completed":
+                run.status = "partial"
+            run.error = f"Finished with errors. Not checked: {', '.join(code for code, _ in failed)}. Run these geographies again."[:2000]
     except Exception as exc:  # recorded, never half-applied: proposals only exist until reviewed
         run.status = "failed"
         run.error = str(exc)[:2000]

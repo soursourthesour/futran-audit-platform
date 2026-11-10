@@ -275,3 +275,81 @@ def test_gemini_search_falls_back_to_the_chunk_title_when_a_redirect_cannot_be_r
 
     r = GeminiProvider(api_key=SECRET, model="gemini-test", transport=httpx.MockTransport(handler)).search(system="s", prompt="p", allowed_domains=["ilga.gov"])
     assert r.cited == {"https://ilga.gov": []}
+
+
+# ---- retries: a rate limit, a provider outage or a timeout is tried again, with a bounded wait
+@pytest.fixture
+def slept(monkeypatch):
+    out = []
+    monkeypatch.setattr("app.ai.providers.base._sleep", out.append)
+    return out
+
+
+def sequence(*steps):
+    """A transport answering each request with the next step: (status, headers) or an exception class."""
+    seen = []
+
+    def handler(request):
+        seen.append(request)
+        step = steps[min(len(seen), len(steps)) - 1]
+        if isinstance(step, type) and issubclass(step, Exception):
+            raise step("slow", request=request)
+        status, headers = step
+        return httpx.Response(status, headers=headers, json=chat_reply('{"answer": "yes"}') if status == 200 else {"error": {"message": "busy"}})
+
+    return seen, httpx.MockTransport(handler)
+
+
+def test_a_rate_limit_is_retried_after_the_wait_the_provider_asks_for(slept):
+    from app.ai.providers.openai import OpenAIProvider
+
+    seen, t = sequence((429, {"Retry-After": "3"}), (200, {}))
+    r = OpenAIProvider(api_key=SECRET, model="gpt-test", transport=t).complete(task="ask", system="s", prompt="p", schema=SCHEMA)
+    assert r.data == {"answer": "yes"} and len(seen) == 2 and slept == [3.0]
+
+
+@pytest.mark.parametrize("first", [(500, {}), (502, {}), (503, {}), (504, {}), httpx.ReadTimeout, httpx.ConnectTimeout])
+def test_an_outage_or_a_timeout_is_retried_with_backoff(slept, first):
+    from app.ai.providers.gemini import GeminiProvider
+
+    seen = []
+
+    def handler(request):
+        seen.append(request)
+        if len(seen) == 3:
+            return httpx.Response(200, json=gemini_reply('{"answer": "yes"}'))
+        if isinstance(first, type):
+            raise first("slow", request=request)
+        return httpx.Response(first[0], json={"error": {"message": "busy"}})
+
+    r = GeminiProvider(api_key=SECRET, model="gemini-test", transport=httpx.MockTransport(handler)).complete(task="ask", system="s", prompt="p", schema=SCHEMA)
+    assert r.data == {"answer": "yes"} and len(seen) == 3 and len(slept) == 2 and slept[0] < slept[1]
+
+
+def test_retries_stop_after_three_attempts_with_a_bounded_total_wait(slept):
+    from app.ai.providers.base import MAX_TOTAL_WAIT
+    from app.ai.providers.openai import OpenAIProvider
+
+    seen, t = sequence((503, {"Retry-After": "20"}))
+    with pytest.raises(AIError, match="unavailable"):
+        OpenAIProvider(api_key=SECRET, model="gpt-test", transport=t).complete(task="ask", system="s", prompt="p", schema=SCHEMA)
+    assert len(seen) <= 3 and sum(slept) <= MAX_TOTAL_WAIT
+
+
+def test_a_wait_longer_than_the_budget_is_not_waited_out(slept):
+    from app.ai.providers.openai import OpenAIProvider
+
+    seen, t = sequence((429, {"Retry-After": "3600"}))
+    with pytest.raises(AIError, match="too many requests"):
+        OpenAIProvider(api_key=SECRET, model="gpt-test", transport=t).complete(task="ask", system="s", prompt="p", schema=SCHEMA)
+    assert len(seen) == 1 and slept == []
+
+
+@pytest.mark.parametrize("status", [400, 401, 403, 404])
+def test_a_request_the_provider_refused_is_not_retried(slept, status):
+    from app.ai.providers.openai import OpenAIProvider
+
+    seen, t = sequence((status, {}))
+    with pytest.raises(AIError):
+        OpenAIProvider(api_key=SECRET, model="gpt-test", transport=t).complete(task="ask", system="s", prompt="p", schema=SCHEMA)
+    assert len(seen) == 1 and slept == []

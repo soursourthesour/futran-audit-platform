@@ -35,7 +35,7 @@ class RefreshRun(IdMixin, Base):
     records_compared: Mapped[int] = mapped_column(Integer, default=0)
     model_id: Mapped[str | None] = mapped_column(String(80))
     prompt_version: Mapped[str | None] = mapped_column(String(40))
-    status: Mapped[str] = mapped_column(String(12), default="queued")  # queued | running | completed | failed | capped
+    status: Mapped[str] = mapped_column(String(12), default="queued")  # queued | running | completed | partial (some geographies failed) | failed | capped
     error: Mapped[str | None] = mapped_column(Text)
     warnings: Mapped[list] = mapped_column(JSON, default=list)
     cost_usd: Mapped[float] = mapped_column(Float, default=0.0)
