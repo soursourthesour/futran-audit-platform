@@ -148,7 +148,7 @@ def test_applicability_screen_and_letter_flow(client, db, seeded, submitted):
 def test_draft_with_claude_is_disabled_without_a_key(client, db, seeded):
     login_as(client, db, seeded["chief"])
     r = client.post(f"{API}/reg/laws/draft", json={"ref": "https://leg.colorado.gov/bills/sb26-189"})
-    assert r.status_code == 409 and "Anthropic API key" in r.json()["detail"]
+    assert r.status_code == 409 and "Connect an AI provider" in r.json()["detail"]
     assert client.get(f"{API}/reg/laws").json()["claude_available"] is False
 
 

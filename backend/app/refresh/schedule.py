@@ -12,13 +12,13 @@ from app.refresh.models import RefreshRun
 from app.refresh.pipeline import execute_run, get_run_setting, start_run
 
 log = logging.getLogger(__name__)
-CLIENT_FACTORY = None  # tests set a factory; otherwise client_for decides (fake in demo, Anthropic with a key)
+CLIENT_FACTORY = None  # tests set a factory; otherwise client_for decides (fake in demo, the connected AI provider, Anthropic with a key)
 
 
-def _client(settings: Settings):
+def _client(settings: Settings, db: Session | None = None):
     if CLIENT_FACTORY is not None:
         return CLIENT_FACTORY(settings)
-    return client_for(None, settings)
+    return client_for(None, settings, db)
 
 
 def _execute_in_thread(bind, settings: Settings, run_id: str) -> None:
@@ -37,7 +37,7 @@ def _execute_in_thread(bind, settings: Settings, run_id: str) -> None:
             if run is None:
                 log.error("Scheduled refresh %s was never saved", run_id)
                 return
-            execute_run(db, settings, run, _client(settings), commit=db.commit)
+            execute_run(db, settings, run, _client(settings, db), commit=db.commit)
             db.commit()
         except Exception:
             log.exception("Scheduled refresh %s failed", run_id)
@@ -51,7 +51,7 @@ def _execute_in_thread(bind, settings: Settings, run_id: str) -> None:
 def run_scheduled(db: Session, settings: Settings, now, background: bool = True) -> int:
     """Start every refresh that is due. With background=True the research runs in its own thread and session, so the
     daily jobs' transaction is not held open while Claude searches."""
-    if _client(settings) is None:
+    if _client(settings, db) is None:
         return 0
     started = 0
     for kind in ("law", "litigation"):
@@ -69,7 +69,7 @@ def run_scheduled(db: Session, settings: Settings, now, background: bool = True)
         if background:
             _execute_in_thread(db.get_bind(), settings, run.id)
         else:
-            execute_run(db, settings, run, _client(settings))
+            execute_run(db, settings, run, _client(settings, db))
         started += 1
     return started
 

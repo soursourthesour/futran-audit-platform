@@ -19,6 +19,7 @@ for _mod in ["monitoring", "connectors"]:
 
 # Wave 3 WS-G: AI interactions, obligations, extracted document text, questionnaires and the answer library (§21)
 importlib.import_module("app.ai.models")
+importlib.import_module("app.ai.connection")  # 11-03 F1: the platform's AI provider connection
 
 # Wave 3 WS-H: regulatory change alerts (F4) and impact assessment with reassessment triggers (F8)
 for _mod in ["regupdates", "impact"]:

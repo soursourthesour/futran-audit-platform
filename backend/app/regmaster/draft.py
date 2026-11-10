@@ -1,7 +1,8 @@
 """M1b "Draft with Claude": Claude reads the official text of a bill and fills the add-a-law form.
 
 Nothing is saved here. The person checks every field and sends the form for approval, which creates a ProposedChange
-for the Chief Auditor (§25.1 principle 1). Uses the Claude client from app.laws.refresh."""
+for the Chief Auditor (§25.1 principle 1). The client comes from app.ai.client.drafting_client_for: the connected AI
+provider (11-03 F1), else the Anthropic client from app.laws.refresh."""
 import json
 import re
 
@@ -49,7 +50,7 @@ def draft_law(db: Session, client, ref: str) -> dict:
     try:
         data = _object(reply)
     except (ValueError, json.JSONDecodeError):
-        return {"draft": None, "warnings": ["Claude's reply could not be read as a law record. Try again or fill the form by hand."], "prompt_version": PROMPT_VERSION}
+        return {"draft": None, "warnings": ["The AI provider's reply could not be read as a law record. Try again or fill the form by hand."], "prompt_version": PROMPT_VERSION}
     warnings: list[str] = []
     sources = []
     for s in data.get("sources") or []:
@@ -74,7 +75,7 @@ def draft_law(db: Session, client, ref: str) -> dict:
             "source_quote": str(r["source_quote"]), "source_url": str(r.get("source_url") or (sources[0]["url"] if sources else ""))[:600], "verify_flag": True,
         })
     if not sources:
-        warnings.append("Claude gave no source link. Add the official source before sending for approval.")
+        warnings.append("The AI provider gave no source link. Add the official source before sending for approval.")
     draft = {k: data.get(k) for k in ("short_name", "citation", "jurisdiction_code", "type", "binding", "status", "signed_on", "effective_on", "compliance_on", "enforcer", "private_right_of_action", "penalty_text", "cure_period", "scope_text", "exemptions_text")}
     if draft.get("status") not in VERSION_STATUSES:
         draft["status"] = None

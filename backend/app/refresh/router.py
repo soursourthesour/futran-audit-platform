@@ -107,6 +107,12 @@ class RunIn(BaseModel):
         return v
 
 
+def _provider_label(c) -> str | None:
+    from app.ai.providers import LABELS
+
+    return LABELS.get(getattr(c, "provider", "anthropic")) if c is not None else None
+
+
 def run_in_background(app, run_id: str) -> None:
     from app.refresh.pipeline import execute_run
 
@@ -115,7 +121,7 @@ def run_in_background(app, run_id: str) -> None:
         run = db.get(RefreshRun, run_id)
         client = client_for(app.state, app.state.settings)
         if client is None:
-            run.status, run.error = "failed", "No Claude client is configured."
+            run.status, run.error = "failed", "No AI provider is connected."
         else:
             execute_run(db, app.state.settings, run, client, commit=db.commit)
         db.commit()
@@ -134,7 +140,7 @@ def start(body: RunIn, background: BackgroundTasks, request: Request, actor: Act
     authorize(db, actor, _run_action(body.kind))
     settings = request.app.state.settings
     if client_for(request.app.state, settings) is None:
-        raise Conflict("Add an Anthropic API key in settings to use law updates.")
+        raise Conflict("Connect an AI provider in Platform settings to use law and case updates.")
     if body.scope_mode == "chosen" and not body.jurisdiction_codes:
         raise Invalid(errors=[{"field": "jurisdiction_codes", "message": "Choose at least one geography."}])
     run = start_run(db, kind=body.kind, actor=actor.user, settings=settings, scope_mode=body.scope_mode, jurisdiction_codes=body.jurisdiction_codes,
@@ -205,7 +211,8 @@ def get_run_settings(kind: str, request: Request, actor: Actor = Depends(current
     if kind not in CHECKS:
         raise NotFound()
     authorize(db, actor, Action.VIEW_REG_CHANGES if kind == "law" else Action.VIEW_LITIGATION)
-    return _setting_out(db, kind) | {"enabled": client_for(request.app.state, request.app.state.settings) is not None, "model": request.app.state.settings.claude_model}
+    c = client_for(request.app.state, request.app.state.settings, db)
+    return _setting_out(db, kind) | {"enabled": c is not None, "model": getattr(c, "model", None) or request.app.state.settings.claude_model, "provider": _provider_label(c)}
 
 
 class RunSettingIn(BaseModel):

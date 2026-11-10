@@ -361,6 +361,10 @@ _WS_F: dict[R, dict[A, S]] = {
 for _role, _grants in _WS_F.items():
     MATRIX.setdefault(_role, {}).update(_grants)
 
+# ---- 11-03 F1: the platform's AI connection. Read with VIEW_PLATFORM_SETTINGS (Admin, Chief Auditor); only the Futran Admin
+# changes, tests or removes it.
+MATRIX.setdefault(R.ADMIN, {}).update({A.MANAGE_AI_CONNECTION: S.ALL})
+
 
 # ---- wave 3 WS-K (spec §21 F11, F13, F6, F15, F16). Bias runs: the engagement's auditors and the Chief Auditor; QA reads.
 # Heat map and lineage: Lead Auditor (team role), Chief Auditor and QA; auditors on the engagement read it as they read scores.

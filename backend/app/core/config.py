@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     # model in test mode, else off), anthropic, or fake (demo and browser tests)
     ai_client: str = "auto"
     ai_model: str | None = None  # blank: CLAUDE_MODEL
+    # AI providers connected in Platform settings: live, or fake (browser tests: an in-process stand-in answers and
+    # nothing reaches the network)
+    ai_provider_http: str = "live"
     refresh_client: str = "anthropic"  # anthropic | fake (demo and browser tests; never calls the network)
     refresh_max_searches: int = 8  # web searches per jurisdiction
     claude_input_usd_per_mtok: float = 3.0  # for the refresh cost log and cap; set to the model's current price

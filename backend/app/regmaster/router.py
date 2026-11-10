@@ -126,7 +126,10 @@ def _authorize_propose(db: Session, actor: Actor) -> None:
 
 
 def _claude_available(request: Request) -> bool:
-    return bool(request.app.state.settings.anthropic_api_key)
+    """Draft with AI is on when an AI provider is connected (11-03 F1) or ANTHROPIC_API_KEY is set."""
+    from app.ai.client import drafting_client_for
+
+    return drafting_client_for(request.app.state, request.app.state.settings) is not None
 
 
 # ------------------------------------------------------------------ M1 law library
@@ -478,21 +481,28 @@ class DraftIn(BaseModel):
 @router.post("/reg/laws/draft")
 def draft_with_claude(body: DraftIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.PROPOSE_REG_CHANGE)
-    if not _claude_available(request):
-        raise Conflict("Drafting with Claude needs an Anthropic API key in settings. Fill the form by hand, or ask an administrator to add the key.")
+    from app.ai.client import AIError, drafting_client_for
+    from app.ai.providers import LABELS
+
+    client = drafting_client_for(request.app.state, request.app.state.settings, db)
+    if client is None:
+        raise Conflict("Drafting with AI needs an AI provider. Connect an AI provider in Platform settings, or fill the form by hand.")
     ref = body.ref.strip()
     if not ref or len(ref) > 500:
         raise Invalid(errors=[{"field": "ref", "message": "Paste the bill number or the official link."}])
-    from app.laws.refresh import default_factory
     from app.regmaster.draft import draft_law
 
-    factory = getattr(request.app.state, "claude_factory", None) or default_factory
+    provider = getattr(client, "provider", None) or "anthropic"
+    model = getattr(client, "model", None)
     try:
-        result = draft_law(db, factory(request.app.state.settings), ref)
-    except Exception as exc:  # network or API failure: the form stays usable
-        raise Conflict(f"Claude could not draft this law: {str(exc)[:300]}")
+        result = draft_law(db, client, ref)
+    except AIError as exc:  # fixed messages only; provider error bodies are never shown
+        raise Conflict(f"The AI provider could not draft this law: {exc} Fill the form by hand or try again.")
+    except Exception as exc:  # network or SDK failure: the form stays usable
+        raise Conflict(f"The AI provider could not draft this law ({type(exc).__name__}). Fill the form by hand or try again.")
     audit.record(db, actor_id=actor.id, action="regmaster.draft_with_claude", object_type="Regulation", object_id=None, organization_id=actor.organization.id,
-                 after={"ref": ref, "prompt_version": result["prompt_version"], "warnings": result["warnings"]}, summary=f"Drafted a law record with Claude from {ref[:120]}")
+                 after={"ref": ref, "prompt_version": result["prompt_version"], "warnings": result["warnings"], "provider": provider, "model": model},
+                 summary=f"Drafted a law record with {LABELS.get(provider, 'the AI provider')} from {ref[:120]}")
     return result
 
 

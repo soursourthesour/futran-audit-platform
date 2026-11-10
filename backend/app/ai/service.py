@@ -27,7 +27,7 @@ MAX_PROMPT_CHARS = 160_000  # document text sent in one call; longer sets are cu
 class AIUnavailable(AppError):
     status_code = 503
 
-    def __init__(self, detail: str = "The AI model is not set up on this platform. Ask the Futran Admin to add the model key."):
+    def __init__(self, detail: str = "The AI model is not set up on this platform. Ask the Futran Admin to connect an AI provider in Platform settings."):
         super().__init__(detail)
 
 

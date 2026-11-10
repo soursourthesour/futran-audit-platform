@@ -462,7 +462,7 @@ def execute_run(db: Session, settings: Settings, run: RefreshRun, client: Struct
             run.searches += reply.searches
             run.cost_usd = round((run.cost_usd or 0) + cost, 6)
             run.model_id = reply.model or run.model_id
-            entry = {"jurisdiction": j.code, "model": reply.model, "prompt_version": run.prompt_version, "sources": len(sources), "records": len(records),
+            entry = {"jurisdiction": j.code, "model": reply.model, "provider": getattr(reply, "provider", None) or "anthropic", "prompt_version": run.prompt_version, "sources": len(sources), "records": len(records),
                      "cost_usd": round(cost, 4), "reply": reply.text[:20000], "accepted": 0, "merged": 0, "skipped": 0, "outcome": "ok"}
             try:
                 items = ReplyIn.model_validate(json.loads(reply.text)).changes

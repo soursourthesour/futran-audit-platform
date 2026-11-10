@@ -100,7 +100,7 @@ def test_refresh_without_key_409(client, db, world):
     login_as(client, db, admin)
     r = client.post("/api/v1/admin/laws/refresh", json={"jurisdiction_codes": ["US-IL"]})
     assert r.status_code == 409
-    assert r.json()["detail"] == "Add an Anthropic API key in settings to use law updates."
+    assert r.json()["detail"] == "Connect an AI provider in Platform settings to use law and case updates."
 
 
 def test_earlier_runs_stay_readable_and_decidable(client, db, world):

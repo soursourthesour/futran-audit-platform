@@ -128,6 +128,7 @@ class FakeRefreshClient:
     searches: int = 3
     calls: list = field(default_factory=list)
     citations: dict = field(default_factory=dict)
+    provider: str = "fake"
 
     def propose(self, *, system: str, prompt: str, schema: dict, allowed_domains: list[str]) -> ClaudeReply:
         key = _key_from(prompt)
@@ -137,7 +138,7 @@ class FakeRefreshClient:
             reply = reply(prompt)
         text = reply if isinstance(reply, str) else json.dumps(reply)
         cited = self.citations[key] if key in self.citations else cites_of(reply)
-        return ClaudeReply(text=text, model=self.model, input_tokens=self.tokens[0], output_tokens=self.tokens[1], searches=self.searches, cited=cited, provider="fake")
+        return ClaudeReply(text=text, model=self.model, input_tokens=self.tokens[0], output_tokens=self.tokens[1], searches=self.searches, cited=cited, provider=self.provider)
 
 
 def _key_from(prompt: str) -> str:
@@ -147,16 +148,10 @@ def _key_from(prompt: str) -> str:
     return ""
 
 
-def client_for(app_state, settings: Settings) -> StructuredClaude | None:
-    """The client a run uses: an injected factory (tests), the fake (REFRESH_CLIENT=fake: demo, browser tests),
-    else Anthropic when a key is set. None when refresh cannot run."""
-    factory = getattr(app_state, "refresh_client_factory", None) if app_state is not None else None
-    if factory is not None:
-        return factory(settings)
-    if settings.refresh_client == "fake":
-        from app.refresh.demo import demo_client
+def client_for(app_state, settings: Settings, db=None) -> StructuredClaude | None:
+    """The client a run uses. Chosen in app.ai.client.research_client_for: an injected factory (tests), the fake
+    (REFRESH_CLIENT=fake: demo, browser tests), the AI provider the Futran Admin connected, else Anthropic when a key is
+    set. None when refresh cannot run."""
+    from app.ai.client import research_client_for
 
-        return demo_client()
-    if settings.anthropic_api_key:
-        return AnthropicStructuredClient(settings)
-    return None
+    return research_client_for(app_state, settings, db)

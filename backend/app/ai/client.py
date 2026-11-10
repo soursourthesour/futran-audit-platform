@@ -95,16 +95,101 @@ class FakeAIClient:
         return AIReply(data=reply, model=self.model, provider=self.provider, input_tokens=len(prompt) // 4, output_tokens=len(json.dumps(reply)) // 4)
 
 
-def client_for(app_state, settings: Settings) -> AIClient | None:
-    """An injected factory (pytest), the fake (AI_CLIENT=fake: demo and browser tests), else Anthropic when a key is set,
-    else (AI_CLIENT=auto in test mode) the fake. None when no model is available. The fake's rows record provider "fake"."""
+# ---- choosing the model (F1, 11-03 notes: "refresh with LLM of choice"). Every AI feature gets its client here.
+def saved_connection(app_state, settings: Settings, db=None):
+    """The AI connection the Futran Admin saved (app.ai.connection), with its key, or None. Read from `db` when given,
+    else from a short session of the app's own (the scheduler passes its session; tests without an app have neither)."""
+    from app.ai import connection
+
+    if db is not None:
+        return connection.config(settings, connection.get(db))
+    maker = getattr(app_state, "sessionmaker", None) if app_state is not None else None
+    if maker is None:
+        return None
+    with maker() as s:
+        return connection.config(settings, connection.get(s))
+
+
+def connected_provider(app_state, settings: Settings, db=None):
+    """The provider object for the saved connection, or None. Tests inject HTTP through app.state.ai_http_transport."""
+    cfg = saved_connection(app_state, settings, db)
+    if cfg is None:
+        return None
+    from app.ai.providers import build
+
+    return build(cfg, settings, transport=getattr(app_state, "ai_http_transport", None) if app_state is not None else None)
+
+
+def client_for(app_state, settings: Settings, db=None) -> AIClient | None:
+    """JSON answers for the copilot, obligations, questionnaires, Explain this question. In order: an injected factory
+    (pytest); the fake (AI_CLIENT=fake: demo and browser tests; never the connection); the saved connection; Anthropic
+    when ANTHROPIC_API_KEY is set; else (AI_CLIENT=auto in test mode) the fake. None when no model is available. The
+    fake's rows record provider "fake"."""
     factory = getattr(app_state, "ai_client_factory", None) if app_state is not None else None
     if factory is not None:
         return factory(settings)
     if settings.ai_client == "fake":
         return FakeAIClient()
+    provider = connected_provider(app_state, settings, db)
+    if provider is not None:
+        return provider
     if settings.anthropic_api_key:
         return AnthropicAIClient(settings)
     if settings.ai_client == "auto" and settings.test_mode:  # the demo laptop with no key: the demonstration model
         return FakeAIClient()
     return None
+
+
+def research_client_for(app_state, settings: Settings, db=None):
+    """Law and litigation refresh (`propose(...)`). In order: an injected factory (tests); the demo client
+    (REFRESH_CLIENT=fake: demo, browser tests); the saved connection; Anthropic when ANTHROPIC_API_KEY is set. None when
+    refresh cannot run (it has no demonstration fallback, as before)."""
+    factory = getattr(app_state, "refresh_client_factory", None) if app_state is not None else None
+    if factory is not None:
+        return factory(settings)
+    if settings.refresh_client == "fake":
+        from app.refresh.demo import demo_client
+
+        return demo_client()
+    provider = connected_provider(app_state, settings, db)
+    if provider is not None:
+        return provider.refresh_client(settings)
+    if settings.anthropic_api_key:
+        from app.refresh.claude import AnthropicStructuredClient
+
+        return AnthropicStructuredClient(settings)
+    return None
+
+
+def drafting_client_for(app_state, settings: Settings, db=None):
+    """Draft with AI (`research(prompt) -> str`). In order: an injected factory (tests: app.state.claude_factory); the
+    saved connection (not under AI_CLIENT=fake); Anthropic when ANTHROPIC_API_KEY is set. None when drafting is off."""
+    factory = getattr(app_state, "claude_factory", None) if app_state is not None else None
+    if factory is not None:
+        return factory(settings)
+    provider = connected_provider(app_state, settings, db) if settings.ai_client != "fake" else None
+    if provider is not None:
+        return provider.drafting_client(settings)
+    if settings.anthropic_api_key:
+        from app.laws.refresh import default_factory
+
+        return default_factory(settings)
+    return None
+
+
+def ai_status(app_state, settings: Settings, db=None) -> dict:
+    """What the AI features use right now, for the settings screens: source is connection, environment, demonstration
+    or None."""
+    from app.ai.providers import LABELS
+
+    if settings.ai_client != "fake":
+        cfg = saved_connection(app_state, settings, db)
+        if cfg is not None:
+            return {"source": "connection", "provider": cfg.provider, "provider_label": LABELS[cfg.provider], "model": cfg.model}
+    if settings.ai_client == "fake":
+        return {"source": "demonstration", "provider": "fake", "provider_label": LABELS["fake"], "model": "fake-ai"}
+    if settings.anthropic_api_key:
+        return {"source": "environment", "provider": "anthropic", "provider_label": LABELS["anthropic"], "model": settings.ai_model or settings.claude_model}
+    if settings.ai_client == "auto" and settings.test_mode:
+        return {"source": "demonstration", "provider": "fake", "provider_label": LABELS["fake"], "model": "fake-ai"}
+    return {"source": None, "provider": None, "provider_label": None, "model": None}

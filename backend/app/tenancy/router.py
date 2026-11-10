@@ -143,6 +143,16 @@ def _futran_resend_ok(db: Session, actor: Actor, org: Organization) -> None:
         raise Forbidden()
 
 
+def _ai_settings(request: Request, s, db: Session) -> dict:
+    """What law refresh and Draft with AI use: the connected AI provider, else ANTHROPIC_API_KEY (11-03 F1)."""
+    from app.ai.client import ai_status, research_client_for
+
+    st = ai_status(request.app.state, s, db)
+    on = research_client_for(request.app.state, s, db) is not None
+    return {"law_refresh_enabled": on, "claude_model": st["model"] if on else s.claude_model,
+            "ai_label": f"{st['provider_label']} · {st['model']}" if on and st["source"] in ("connection", "environment") else ("Demonstration model" if on else None)}
+
+
 @router.get("/admin/settings")
 def platform_settings(request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.VIEW_FUTRAN_USERS)
@@ -153,8 +163,7 @@ def platform_settings(request: Request, actor: Actor = Depends(current_actor), d
         "email_mode": s.email_mode,
         "smtp_host": s.smtp_host,
         "data_region": s.data_region_label,
-        "law_refresh_enabled": bool(s.anthropic_api_key),
-        "claude_model": s.claude_model,
+        **_ai_settings(request, s, db),
         "session_idle_min": s.session_idle_min,
         "session_max_hours": s.session_max_hours,
         "retention_years_default": s.retention_years_default,
