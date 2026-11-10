@@ -9,6 +9,7 @@ from openpyxl.worksheet.datavalidation import DataValidation
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.documents.csvsafe import FORMULA_START
 from app.policy.roles import CSV_ROLE_NAMES, ROLE_LABELS
 from app.tenancy import people as ppl
 from app.tenancy.csv_import import DEPARTMENT_HEADER, DEPARTMENT_ROLES, USER_HEADER
@@ -67,6 +68,20 @@ INSTRUCTIONS = [
 ]
 
 
+def _as_text(ws) -> None:
+    """Values that start like a formula (= + - @, tab or return) stay text in the last row written, so the workbook
+    never runs anything and uploads back with the same values (OWASP CSV injection; FORMULA_START as in csvsafe)."""
+    for c in ws[ws.max_row]:
+        if isinstance(c.value, str) and c.value.startswith(FORMULA_START):
+            c.data_type = "s"
+            c.quotePrefix = True
+
+
+def _append(ws, values: list) -> None:
+    ws.append(values)
+    _as_text(ws)
+
+
 def _header(ws, names: list[str], help_text: dict[str, str], widths: list[int]) -> None:
     ws.append(names)
     for i, cell in enumerate(ws[1], start=1):
@@ -88,7 +103,7 @@ def _people_sheet(wb: Workbook, title: str, dept: str, rows: list[list], example
     ws = wb.create_sheet(title)
     _header(ws, USER_HEADER, USER_HELP, [26, 32, 22, 28, 16, 34])
     for r in rows:
-        ws.append(r)
+        _append(ws, r)
         if example:
             for c in ws[ws.max_row]:
                 c.font = EXAMPLE
@@ -108,7 +123,7 @@ def department_workbook(db: Session, org: Organization) -> bytes:
     ins = wb.active
     ins.title = "Instructions"
     ins.column_dimensions["A"].width = 130
-    ins.append([f"{org.name}: departments and people"])
+    _append(ins, [f"{org.name}: departments and people"])
     ins["A1"].font = Font(bold=True, size=14)
     ins.append([])
     for text, style in INSTRUCTIONS:
@@ -125,14 +140,14 @@ def department_workbook(db: Session, org: Organization) -> bytes:
     example = False
     if depts:
         for d in depts:
-            ds.append([d.name, names.get(d.parent_id) if d.parent_id else None, d.head_email or d.head_name, d.headcount])
+            _append(ds, [d.name, names.get(d.parent_id) if d.parent_id else None, d.head_email or d.head_name, d.headcount])
         sheets = [(d.name, d) for d in depts]
     else:
         e = ppl.current_engagement(db, org)
         scope = [n for n in ((e.wizard_state or {}).get("departments") or [] if e else []) if str(n).strip()]
         if scope:
             for n in scope:
-                ds.append([n, None, None, None])
+                _append(ds, [n, None, None, None])
             sheets = [(n, None) for n in scope]
         else:
             example = True
@@ -149,7 +164,7 @@ def department_workbook(db: Session, org: Organization) -> bytes:
     ds.add_data_validation(pv)
     ds.add_data_validation(hc)
 
-    used = {"instructions", "departments"}
+    used = {"instructions", "departments", "history"}  # Excel keeps "History" for itself
     users = list(db.scalars(select(User).where(User.organization_id == org.id, User.deleted_at.is_(None), User.status != "disabled").order_by(User.name)))
     for name, d in sheets:
         title, i = sheet_title(name), 2
