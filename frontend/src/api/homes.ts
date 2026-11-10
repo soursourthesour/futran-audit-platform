@@ -1,3 +1,4 @@
+import type { ChangeEvent } from '@/components/PersonHistory';
 import type { SignOffView } from '@/components/SignPanel';
 
 /** Role home data (spec §13.1); one endpoint per home, each behind its own permission. */
@@ -27,7 +28,7 @@ export type ClientAdminData = {
   departments: { total: number; items: { id: string; name: string; has_lead: boolean; in_scope: boolean }[]; without_lead: { id: string; name: string }[]; blocks_stage: number | null };
   email: { status: string; done: boolean; link: string };
   sso: { available: boolean };
-  role_changes: { summary: string | null; by: string | null; at: string; sign_off_role: boolean }[];
+  role_changes: ChangeEvent[];
   todos: { kind: string; text: string; link: string }[];
 };
 

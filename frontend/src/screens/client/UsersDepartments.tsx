@@ -8,20 +8,27 @@ import { DataGrid, type GridColumn, type GridRowAction } from '@/components/ui/D
 import { DownloadIcon } from '@/components/DownloadLinks';
 import { DocReader } from '@/components/DocReader';
 import { peopleHelp as H } from '@/help/client';
+import { PersonHistory } from '@/components/PersonHistory';
 import '@/styles/client-people.css';
 
 type Role = { id: string; role: string; role_label: string; department: string | null; sign_off_role: boolean };
 type NoticeStatus = { status: 'acknowledged' | 'pending' | 'not_sent' | 'not_required'; at: string | null; version: number | null };
-type Person = { id: string; name: string; email: string; job_title: string | null; status: string; invite_status: string; roles: Role[]; department: string | null; signed_in: boolean; notice: NoticeStatus };
-type Dept = { id: string; name: string; headcount: number | null; head_name: string | null; head_email: string | null; in_scope: boolean; lead: string | null; people: number };
+type Person = { id: string; name: string; email: string; job_title: string | null; job_level: string | null; job_level_label: string | null; status: string; invite_status: string; roles: Role[]; department: string | null; signed_in: boolean; notice: NoticeStatus };
+type Dept = { id: string; name: string; parent: string | null; parent_id: string | null; headcount: number | null; head_name: string | null; head_email: string | null; in_scope: boolean; lead: string | null; people: number };
 type Holder = { user: { id: string; name: string } | null; not_appointed: boolean };
 type People = {
   client: { id: string; name: string }; can_manage: boolean; departments: Dept[]; users: Person[]; role_holders: Record<string, Holder>;
   gate: { stage: number; ready: boolean; unmet: string[] } | null; departments_confirmed: boolean; scope_locked: boolean; is_caico: boolean;
   notice: { version: number; sent_at: string } | null;
 };
-type CsvError = { row: number | null; field: string; message: string };
-type Preview = { rows_ok: Record<string, string | null>[]; errors: CsvError[] };
+type Issue = { sheet?: string; row: number | null; field: string; message: string };
+type PlanDept = { sheet: string | null; row: number; name: string; action: 'add' | 'update' | 'unchanged'; parent: string | null; head: string | null; headcount: number | null; changes: string[] };
+type PlanUser = { sheet: string | null; row: number; name: string; email: string; department: string | null; job_title: string | null; job_level: string | null; roles: string[]; action: 'add' | 'update' | 'unchanged'; changes: string[] };
+type Plan = {
+  target: string | null; ready: boolean; departments: PlanDept[]; users: PlanUser[]; errors: Issue[]; warnings: Issue[];
+  summary: { departments_added: number; departments_updated: number; users_added: number; users_updated: number; heads_set: number; changes: number };
+};
+type Upload = { file: File; dept: Dept | null; plan: Plan };
 type Msg = { tone: 'success' | 'danger' | 'warn'; text: string } | null;
 
 const ROLES = [
@@ -33,6 +40,11 @@ const ROLES = [
   { value: 'caico', label: 'Chief AI Compliance Officer' },
 ];
 const DEPT_ROLES = new Set(['dept_compliance_lead', 'contributor']);
+const JOB_LEVELS = [
+  { value: 'executive', label: 'Executive' }, { value: 'department_head', label: 'Department head' }, { value: 'manager', label: 'Manager' },
+  { value: 'level_3', label: 'Level 3' }, { value: 'level_2', label: 'Level 2' }, { value: 'level_1', label: 'Level 1' },
+];
+const UPLOAD_TYPES = '.csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 const NONE = '__none';
 
 /** Turn a failed request into the message to show: the field's own message when there is one. */
@@ -54,30 +66,43 @@ export function UsersDepartments({ tab }: { tab: 'departments' | 'users' }) {
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ['people', cid], queryFn: () => api.get<People>(`/clients/${cid}/people`), enabled: !!cid });
   const [msg, setMsg] = useState<Msg>(null);
-  const [upload, setUpload] = useState<{ kind: 'users' | 'departments'; text: string; preview: Preview } | null>(null);
+  const [upload, setUpload] = useState<Upload | null>(null);
   const refresh = () => qc.invalidateQueries();
 
   if (q.isLoading || !q.data) return <div className="page">{q.error ? <Alert tone="danger">{errorMessage(q.error)}</Alert> : <Loading />}</div>;
   const p = q.data;
 
-  async function pick(kind: 'users' | 'departments', file?: File) {
+  function form(file: File, dept: Dept | null) {
+    const f = new FormData();
+    f.append('file', file);
+    if (dept) f.append('department_id', dept.id);
+    return f;
+  }
+  async function pick(file?: File, dept: Dept | null = null) {
     if (!file) return;
     setMsg(null);
-    const text = await file.text();
     try {
-      const preview = await api.post<Preview>(`/clients/${cid}/${kind}/import/preview`, { csv_text: text });
-      setUpload({ kind, text, preview });
+      const plan = await api.upload<Plan>(`/clients/${cid}/people/import/preview`, form(file, dept));
+      setUpload({ file, dept, plan });
     } catch (e) { setMsg({ tone: 'danger', text: errorMessage(e) }); }
   }
   async function runImport() {
     if (!upload) return;
     try {
-      const r = await api.post<{ imported: number; errors: CsvError[] }>(`/clients/${cid}/${upload.kind}/import`, { csv_text: upload.text });
-      const bad = new Set(r.errors.map((x) => x.row)).size;
-      setMsg({ tone: r.errors.length ? 'warn' : 'success', text: `Imported ${plural(r.imported, upload.kind === 'users' ? 'user' : 'department')}.${r.errors.length ? ` ${bad === 1 ? '1 row was' : `${bad} rows were`} not imported; fix and upload again.` : ''}${upload.kind === 'users' && r.imported ? ' Invitations have been sent.' : ''}` });
+      const r = await api.upload<{ imported: number; invited: number; summary: Plan['summary']; warnings: Issue[] }>(`/clients/${cid}/people/import`, form(upload.file, upload.dept));
+      const s = r.summary;
+      const parts = [
+        s.departments_added && `${plural(s.departments_added, 'department')} added`, s.departments_updated && `${plural(s.departments_updated, 'department')} updated`,
+        s.users_added && `${plural(s.users_added, 'person', 'people')} added and invited`, s.users_updated && `${plural(s.users_updated, 'person', 'people')} updated`,
+      ].filter(Boolean);
+      setMsg({ tone: 'success', text: `Imported ${upload.file.name}: ${parts.join(', ') || 'nothing needed changing'}.` });
       setUpload(null);
       await refresh();
-    } catch (e) { setMsg({ tone: 'danger', text: errorMessage(e) }); }
+    } catch (e) {
+      const fe = (e as { errors?: Issue[] }).errors;
+      if (fe?.length) setUpload({ ...upload, plan: { ...upload.plan, ready: false, errors: fe } });
+      setMsg({ tone: 'danger', text: errorMessage(e) });
+    }
   }
 
   const shared = { p, cid, setMsg, refresh, pick };
@@ -90,33 +115,83 @@ export function UsersDepartments({ tab }: { tab: 'departments' | 'users' }) {
       </nav>
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
       {p.gate && p.gate.stage === 2 && !p.gate.ready && <Alert tone="info"><strong>To finish setup:</strong> {p.gate.unmet.join(' ')}</Alert>}
-      {upload && upload.kind === (tab === 'users' ? 'users' : 'departments') && (
-        <Card title={`${upload.kind === 'users' ? 'User' : 'Department'} CSV: ${upload.preview.rows_ok.length} rows ready${upload.preview.errors.length ? `, ${new Set(upload.preview.errors.map((e) => e.row)).size} need fixing before import` : ''}`}
-          actions={<><Button variant="primary" onClick={runImport} disabled={!upload.preview.rows_ok.length}>Import {upload.preview.rows_ok.length} ready rows</Button><Button onClick={() => setUpload(null)}>Cancel</Button></>}>
-          {upload.preview.errors.length === 0 ? <p className="small">Every row is ready.</p> : (
-            <ul className="small" style={{ margin: 0, paddingLeft: 18 }}>
-              {upload.preview.errors.map((e, i) => <li key={i}>{e.row ? `Row ${e.row}: ` : ''}{e.message}</li>)}
-            </ul>
-          )}
-        </Card>
-      )}
+      {upload && <ImportPreview upload={upload} onImport={runImport} onCancel={() => setUpload(null)} />}
       {tab === 'departments' ? <DepartmentsTab {...shared} /> : <UsersTab {...shared} meId={me?.user.id ?? ''} isClient={!clientId} />}
     </div>
   );
 }
 
-type TabProps = { p: People; cid: string; setMsg: (m: Msg) => void; refresh: () => Promise<unknown>; pick: (kind: 'users' | 'departments', f?: File) => Promise<void> };
+type TabProps = { p: People; cid: string; setMsg: (m: Msg) => void; refresh: () => Promise<unknown>; pick: (f?: File, dept?: Dept | null) => Promise<void> };
 
-function CsvButtons({ kind, pick, templateHref }: { kind: 'users' | 'departments'; pick: TabProps['pick']; templateHref: string }) {
+function UploadButtons({ kind, pick, templateHref }: { kind: 'users' | 'departments'; pick: TabProps['pick']; templateHref: string }) {
   const file = useRef<HTMLInputElement>(null);
-  const noun = kind === 'users' ? 'user' : 'department';
+  const label = kind === 'users' ? 'Upload users' : 'Upload departments and people';
   return (
     <>
-      <a className="btn" href={templateHref} download><DownloadIcon />Download template</a>
-      <Button onClick={() => file.current?.click()}>Upload {noun} CSV</Button>
-      <input ref={file} type="file" accept=".csv,text/csv" hidden aria-label={kind === 'users' ? 'User list CSV' : 'Department list CSV'}
-        onChange={(e) => { void pick(kind, e.target.files?.[0]); e.target.value = ''; }} />
+      <a className="btn" href={templateHref} download><DownloadIcon />{kind === 'users' ? 'Download template' : 'Download workbook'}</a>
+      {kind === 'departments' && <FieldHelp label="Department workbook">{H.departmentWorkbook}</FieldHelp>}
+      <Button onClick={() => file.current?.click()}>{label}</Button>
+      <input ref={file} type="file" accept={UPLOAD_TYPES} hidden aria-label={kind === 'users' ? 'User list file' : 'Department workbook or CSV'}
+        onChange={(e) => { void pick(e.target.files?.[0]); e.target.value = ''; }} />
     </>
+  );
+}
+
+const where = (x: { sheet?: string | null; row: number | null }) => [x.sheet && `Sheet ${x.sheet}`, x.row && `row ${x.row}`].filter(Boolean).join(', ').replace(/^row/, 'Row');
+const ACTION_LABEL: Record<string, string> = { add: 'Add', update: 'Update' };
+const CHANGE_LABEL: Record<string, string> = { roles: 'new AI compliance role', job_title: 'job title', job_level: 'job level', department: 'department', parent: 'parent department', headcount: 'headcount', head: 'head of department' };
+
+/** What an upload would change, checked before anything is written (11-03 review C5). */
+function ImportPreview({ upload, onImport, onCancel }: { upload: Upload; onImport: () => void; onCancel: () => void }) {
+  const { plan, file, dept } = upload;
+  const s = plan.summary;
+  const bad = plan.errors.length;
+  const changes = [...plan.departments.map((d) => ({ ...d, kind: 'Department' as const })), ...plan.users.map((u) => ({ ...u, kind: 'Person' as const }))].filter((x) => x.action !== 'unchanged');
+  const counts = [
+    s.departments_added && `${plural(s.departments_added, 'department')} to add`, s.departments_updated && `${plural(s.departments_updated, 'department')} to update`,
+    s.users_added && `${plural(s.users_added, 'person', 'people')} to add`, s.users_updated && `${plural(s.users_updated, 'person', 'people')} to update`,
+  ].filter(Boolean).join(', ');
+  return (
+    <Card className="import-preview" title={<h2>{dept ? `Upload to ${dept.name}: ${file.name}` : `Upload: ${file.name}`}</h2>}
+      actions={<><Button variant="primary" onClick={onImport} disabled={!!bad || !s.changes}>{bad ? 'Fix the file to import' : `Import ${plural(s.changes, 'change')}`}</Button><Button onClick={onCancel}>Cancel</Button></>}>
+      <div className="stack">
+        <p className="small" style={{ margin: 0 }}>
+          {bad ? <><strong>{plural(bad, 'problem')} to fix.</strong> Nothing is imported until every row is correct. Fix the file and upload it again.</>
+            : s.changes ? <><strong>Ready:</strong> {counts}. Nothing has been imported yet.</> : 'Everything in this file is already on the lists. There is nothing to import.'}
+          {' '}<FieldHelp label="How uploads work">{H.upload}</FieldHelp>
+        </p>
+        {bad > 0 && (
+          <ul className="import-issues" aria-label="Problems to fix">
+            {plan.errors.map((e, i) => <li key={i}>{where(e) && <strong>{where(e)}: </strong>}{e.message}</li>)}
+          </ul>
+        )}
+        {plan.warnings.length > 0 && (
+          <details className="import-warnings" open={!bad}>
+            <summary>{plural(plan.warnings.length, 'warning')}: imported, but check these</summary>
+            <ul className="import-issues">{plan.warnings.map((w, i) => <li key={i}>{where(w) && <strong>{where(w)}: </strong>}{w.message}</li>)}</ul>
+          </details>
+        )}
+        {changes.length > 0 && (
+          <div className="import-changes">
+            <table className="table" aria-label="Changes in this file">
+              <thead><tr><th>Where</th><th>Change</th><th>Name</th><th>Details</th></tr></thead>
+              <tbody>{changes.map((x) => (
+                <tr key={`${x.kind}-${x.sheet}-${x.row}`}>
+                  <td className="small">{where(x)}</td>
+                  <td>{ACTION_LABEL[x.action]} {x.kind.toLowerCase()}</td>
+                  <td><strong>{x.name}</strong>{x.kind === 'Person' && <div className="small muted">{x.email}</div>}</td>
+                  <td className="small">{x.kind === 'Department'
+                    ? [x.parent && `Under ${x.parent}`, x.head && `Head: ${x.head}`, x.headcount != null && `Headcount ${x.headcount}`].filter(Boolean).join(' · ') || '—'
+                    : x.action === 'add'
+                      ? [x.roles.join(', '), x.department, x.job_title, x.job_level].filter(Boolean).join(' · ')
+                      : `Adds ${x.changes.map((c) => CHANGE_LABEL[c] ?? c).join(', ')}`}</td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </Card>
   );
 }
 
@@ -125,8 +200,14 @@ function DepartmentsTab({ p, cid, setMsg, refresh, pick }: TabProps) {
   const [newDept, setNewDept] = useState('');
   const [editing, setEditing] = useState<Dept | null>(null);
   const [deleting, setDeleting] = useState<Dept | null>(null);
+  const uploadFor = useRef<Dept | null>(null);
+  const deptFile = useRef<HTMLInputElement>(null);
   const manage = p.can_manage;
   const locked = p.scope_locked;
+  function uploadTo(d: Dept) {
+    uploadFor.current = d;
+    deptFile.current?.click();
+  }
 
   async function addDept(e: FormEvent) {
     e.preventDefault();
@@ -170,9 +251,11 @@ function DepartmentsTab({ p, cid, setMsg, refresh, pick }: TabProps) {
     { key: 'people', header: 'Users', value: (d) => d.people },
     { key: 'lead', header: 'Compliance lead', value: (d) => d.lead ?? '', render: (d) => (!d.in_scope ? <span className="muted">—</span> : d.lead ? d.lead : <Badge tone="warn">No lead yet</Badge>) },
     { key: 'scope', header: 'Scope', value: (d) => (d.in_scope ? 'In scope' : 'Out of scope'), render: (d) => (d.in_scope ? <Badge tone="success">In scope</Badge> : <Badge tone="muted">Out of scope</Badge>) },
+    { key: 'parent', header: 'Parent department', value: (d) => d.parent ?? '', render: (d) => d.parent ?? <span className="muted">—</span> },
   ];
   const rowActions = manage ? (d: Dept): GridRowAction[] => [
     { label: 'Edit', onSelect: () => setEditing(d) },
+    { label: 'Upload users to this department', onSelect: () => uploadTo(d) },
     ...(locked ? [] : [d.in_scope ? { label: 'Exclude from scope', onSelect: () => void setScope([d], false) } : { label: 'Include in scope', onSelect: () => void setScope([d], true) }]),
     ...(locked ? [] : [{ label: 'Delete', danger: true, onSelect: () => setDeleting(d) }]),
   ] : undefined;
@@ -181,7 +264,9 @@ function DepartmentsTab({ p, cid, setMsg, refresh, pick }: TabProps) {
     <>
       {manage && (
         <div className="people-actions">
-          <CsvButtons kind="departments" pick={pick} templateHref={`/api/v1/clients/${cid}/departments/template.csv`} />
+          <UploadButtons kind="departments" pick={pick} templateHref={`/api/v1/clients/${cid}/departments/template.xlsx`} />
+          <input ref={deptFile} type="file" accept={UPLOAD_TYPES} hidden aria-label="Users for one department"
+            onChange={(e) => { void pick(e.target.files?.[0], uploadFor.current); e.target.value = ''; }} />
         </div>
       )}
       <Card title={<h2><WithHelp help={H.departments}>Departments</WithHelp></h2>}
@@ -219,7 +304,7 @@ function DepartmentsTab({ p, cid, setMsg, refresh, pick }: TabProps) {
           )}
         </div>
       </Card>
-      {editing && <EditDept cid={cid} d={editing} onClose={() => setEditing(null)} onDone={async () => { setEditing(null); await refresh(); }} />}
+      {editing && <EditDept cid={cid} d={editing} all={p.departments} onClose={() => setEditing(null)} onDone={async () => { setEditing(null); await refresh(); }} />}
       {deleting && (
         <Dialog title="Delete department" onClose={() => setDeleting(null)}>
           <div className="stack">
@@ -232,8 +317,8 @@ function DepartmentsTab({ p, cid, setMsg, refresh, pick }: TabProps) {
   );
 }
 
-function EditDept({ cid, d, onClose, onDone }: { cid: string; d: Dept; onClose: () => void; onDone: () => void }) {
-  const [f, setF] = useState({ name: d.name, head_name: d.head_name ?? '', head_email: d.head_email ?? '', headcount: d.headcount?.toString() ?? '' });
+function EditDept({ cid, d, all, onClose, onDone }: { cid: string; d: Dept; all: Dept[]; onClose: () => void; onDone: () => void }) {
+  const [f, setF] = useState({ name: d.name, head_name: d.head_name ?? '', head_email: d.head_email ?? '', headcount: d.headcount?.toString() ?? '', parent_id: d.parent_id ?? '' });
   const [err, setErr] = useState<string | null>(null);
   const [fe, setFe] = useState<Record<string, string>>({});
   async function save(e: FormEvent) {
@@ -250,7 +335,11 @@ function EditDept({ cid, d, onClose, onDone }: { cid: string; d: Dept; onClose: 
           <TextField label="Head of department" help={H.headName} value={f.head_name} onChange={(e) => setF({ ...f, head_name: e.target.value })} error={fe.head_name} />
           <TextField label="Head's email" help={H.headEmail} type="email" value={f.head_email} onChange={(e) => setF({ ...f, head_email: e.target.value })} error={fe.head_email} />
         </div>
-        <TextField label="Headcount" help={H.headcount} inputMode="numeric" value={f.headcount} onChange={(e) => setF({ ...f, headcount: e.target.value })} error={fe.headcount} />
+        <div className="grid-2">
+          <TextField label="Headcount" help={H.headcount} inputMode="numeric" value={f.headcount} onChange={(e) => setF({ ...f, headcount: e.target.value })} error={fe.headcount} />
+          <SelectField label="Parent department" help={H.parent} value={f.parent_id} onChange={(e) => setF({ ...f, parent_id: e.target.value })} error={fe.parent_id}
+            options={[{ value: '', label: 'None' }, ...all.filter((x) => x.id !== d.id).map((x) => ({ value: x.id, label: x.name }))]} />
+        </div>
         <div className="row"><Button type="submit" variant="primary">Save</Button><Button onClick={onClose}>Cancel</Button></div>
       </form>
     </Dialog>
@@ -273,6 +362,8 @@ function UsersTab({ p, cid, setMsg, refresh, pick, meId, isClient }: TabProps & 
   const [rolesFor, setRolesFor] = useState<Person | null>(null);
   const [moving, setMoving] = useState<Person[] | null>(null);
   const [removing, setRemoving] = useState<Person[] | null>(null);
+  const [leveling, setLeveling] = useState<Person | null>(null);
+  const [history, setHistory] = useState<Person | null>(null);
   const manage = p.can_manage;
   const inScope = p.departments.filter((d) => d.in_scope);
   const deptOptions = p.departments.map((d) => ({ value: d.name, label: d.name }));
@@ -317,9 +408,11 @@ function UsersTab({ p, cid, setMsg, refresh, pick, meId, isClient }: TabProps & 
       edit: manage ? { label: (u) => `Email of ${u.name}`, canEdit: (u) => !u.signed_in, onSave: (u, v) => patch(u, { email: v }, 'email') } : undefined },
     { key: 'job_title', header: 'Job title', value: (u) => u.job_title ?? '', render: (u) => u.job_title || <span className="muted">—</span>,
       edit: manage ? { label: (u) => `Job title of ${u.name}`, onSave: (u, v) => patch(u, { job_title: v }, 'job_title') } : undefined },
+    { key: 'job_level', header: 'Job level', value: (u) => u.job_level_label ?? '', render: (u) => u.job_level_label ?? <span className="muted">—</span>,
+      edit: manage ? { type: 'select', label: (u) => `Job level of ${u.name}`, options: [{ value: '', label: 'Not given' }, ...JOB_LEVELS], onSave: (u, v) => patch(u, { job_level: v }, 'job_level') } : undefined },
     { key: 'department', header: 'Department', value: (u) => u.department ?? '', render: (u) => u.department ?? <span className="muted">—</span>,
       edit: manage ? { type: 'select', label: (u) => `Department of ${u.name}`, options: (u) => [...(u.roles.some((r) => DEPT_ROLES.has(r.role)) ? [] : [{ value: '', label: 'No department' }]), ...deptOptions], onSave: (u, v) => patch(u, { department: v }, 'department') } : undefined },
-    { key: 'roles', header: 'Roles', value: (u) => u.roles.map((r) => r.role_label).join(', '),
+    { key: 'roles', header: 'AI compliance roles', value: (u) => u.roles.map((r) => r.role_label).join(', '),
       render: (u) => <div className="stack-sm" style={{ gap: 2 }}>{u.roles.map((r) => <span key={r.id} className="small">{r.role_label}{r.sign_off_role && <span className="muted"> · sign-off</span>}</span>)}</div> },
     { key: 'invite', header: 'Invitation', value: (u) => u.invite_status, render: inviteBadge },
   ];
@@ -328,14 +421,18 @@ function UsersTab({ p, cid, setMsg, refresh, pick, meId, isClient }: TabProps & 
       render: (u) => (u.notice.status === 'acknowledged' ? <Badge tone="success">Acknowledged {fmtDate(u.notice.at)}</Badge> : u.notice.status === 'pending' ? <Badge tone="warn">Pending</Badge> : <span className="muted">{NOTICE_LABEL[u.notice.status]}</span>) });
   }
   const rowActions = manage ? (u: Person): GridRowAction[] => [
-    { label: 'Edit', onSelect: () => setEditing(u) },
+    { label: 'Edit details', onSelect: () => setEditing(u) },
+    { label: 'AI compliance role', onSelect: () => setRolesFor(u) },
+    { label: 'Department', onSelect: () => setMoving([u]) },
+    { label: 'Job level', onSelect: () => setLeveling(u) },
     ...(canResend(u) ? [{ label: 'Resend invitation', onSelect: () => void resend([u]) }] : []),
-    { label: 'Change role', onSelect: () => setRolesFor(u) },
+    { label: 'Change history', onSelect: () => setHistory(u) },
     ...(u.status === 'disabled' ? [] : [{ label: u.id === meId ? 'Remove (not yourself)' : 'Remove', danger: true, disabled: u.id === meId, onSelect: () => setRemoving([u]) }]),
   ] : undefined;
   const filters = [
     { key: 'department', label: 'Department', options: [...deptOptions, { value: NONE, label: 'No department' }], test: (u: Person, v: string) => (v === NONE ? !u.department : u.department === v) },
-    { key: 'role', label: 'Role', options: roleOptions, test: (u: Person, v: string) => u.roles.some((r) => r.role === v) },
+    { key: 'role', label: 'AI compliance role', options: roleOptions, test: (u: Person, v: string) => u.roles.some((r) => r.role === v) },
+    { key: 'job_level', label: 'Job level', options: [...JOB_LEVELS, { value: NONE, label: 'Not given' }], test: (u: Person, v: string) => (v === NONE ? !u.job_level : u.job_level === v) },
     { key: 'invite', label: 'Invitation', options: inviteOptions, test: (u: Person, v: string) => u.invite_status === v },
     ...(p.notice ? [{ key: 'notice', label: 'Data notice', options: [{ value: 'acknowledged', label: 'Acknowledged' }, { value: 'pending', label: 'Pending' }], test: (u: Person, v: string) => u.notice.status === v }] : []),
   ];
@@ -344,7 +441,7 @@ function UsersTab({ p, cid, setMsg, refresh, pick, meId, isClient }: TabProps & 
     <>
       {manage && (
         <div className="people-actions">
-          <CsvButtons kind="users" pick={pick} templateHref={`/api/v1/clients/${cid}/users/template.csv`} />
+          <UploadButtons kind="users" pick={pick} templateHref={`/api/v1/clients/${cid}/users/template.csv`} />
           <Button variant="primary" onClick={() => setAdding(true)}>Add user</Button>
         </div>
       )}
@@ -363,7 +460,7 @@ function UsersTab({ p, cid, setMsg, refresh, pick, meId, isClient }: TabProps & 
               );
             })}
           </div>
-          <p className="small muted" style={{ margin: 0 }}>To name someone, add them as a user with that role, or use Change role on their row. Each in-scope department also needs a Department Compliance Lead. Assigning or removing a sign-off role notifies Futran and is recorded in the audit log.</p>
+          <p className="small muted" style={{ margin: 0 }}>To name someone, add them as a user with that AI compliance role, or choose AI compliance role in the menu on their row. Each in-scope department also needs a Department Compliance Lead. Assigning or removing a sign-off role notifies Futran and is recorded in the audit log.</p>
           {rolesNote && (
             <details className="roles-note">
               <summary>What each role does <FieldHelp label="What each role does">{H.rolesNote}</FieldHelp></summary>
@@ -388,9 +485,11 @@ function UsersTab({ p, cid, setMsg, refresh, pick, meId, isClient }: TabProps & 
           emptyText="No users yet. Upload the user CSV or add people one at a time." />
       </Card>
       {adding && <AddUser cid={cid} departments={inScope} onClose={() => setAdding(false)} onDone={async (name) => { setAdding(false); setMsg({ tone: 'success', text: `${name} was added and invited.` }); await refresh(); }} />}
-      {editing && <EditUser cid={cid} u={editing} departments={p.departments} onClose={() => setEditing(null)} onDone={async () => { setEditing(null); await refresh(); }} />}
+      {editing && <EditUser cid={cid} u={editing} onClose={() => setEditing(null)} onDone={async () => { setEditing(null); await refresh(); }} />}
       {rolesFor && <ChangeRoles cid={cid} u={p.users.find((x) => x.id === rolesFor.id) ?? rolesFor} departments={inScope} onClose={() => setRolesFor(null)} refresh={refresh} />}
       {moving && <MoveDialog people={moving} departments={inScope} onClose={() => setMoving(null)} onMove={async (d) => { const list = moving; setMoving(null); await moveTo(list, d); }} />}
+      {leveling && <JobLevelDialog u={leveling} onClose={() => setLeveling(null)} onSave={async (v) => { await patch(leveling, { job_level: v }, 'job_level'); setLeveling(null); setMsg({ tone: 'success', text: `Job level saved for ${leveling.name}.` }); }} />}
+      {history && <PersonHistory cid={cid} userId={history.id} name={history.name} onClose={() => setHistory(null)} />}
       {removing && (
         <Dialog title={removing.length === 1 ? `Remove ${removing[0].name}` : `Remove ${removing.length} people`} onClose={() => setRemoving(null)}>
           <div className="stack">
@@ -404,39 +503,57 @@ function UsersTab({ p, cid, setMsg, refresh, pick, meId, isClient }: TabProps & 
 }
 
 function MoveDialog({ people, departments, onClose, onMove }: { people: Person[]; departments: Dept[]; onClose: () => void; onMove: (department: string) => void }) {
-  const [d, setD] = useState(departments[0]?.name ?? '');
+  const one = people.length === 1 ? people[0] : null;
+  const [d, setD] = useState(one?.department && departments.some((x) => x.name === one.department) ? one.department : departments[0]?.name ?? '');
   return (
-    <Dialog title="Change department" onClose={onClose}>
+    <Dialog title={one ? `Department for ${one.name}` : 'Change department'} onClose={onClose}>
       <div className="stack">
         <p className="small" style={{ margin: 0 }}>{people.length === 1 ? people[0].name : `${people.length} people`}: {people.slice(0, 5).map((u) => u.name).join(', ')}{people.length > 5 ? ' and others' : ''}.</p>
         <SelectField label="Move to" help={H.changeDepartment} value={d} onChange={(e) => setD(e.target.value)} options={departments.map((x) => ({ value: x.name, label: x.name }))} />
-        <div className="row"><Button variant="primary" disabled={!d} onClick={() => onMove(d)}>Move</Button><Button onClick={onClose}>Cancel</Button></div>
+        <p className="small muted" style={{ margin: 0 }}>The change is recorded in the audit log and shows in their change history.</p>
+        <div className="row"><Button variant="primary" disabled={!d || (!!one && d === one.department)} onClick={() => onMove(d)}>Move</Button><Button onClick={onClose}>Cancel</Button></div>
       </div>
     </Dialog>
   );
 }
 
-function EditUser({ cid, u, departments, onClose, onDone }: { cid: string; u: Person; departments: Dept[]; onClose: () => void; onDone: () => void }) {
-  const needsDept = u.roles.some((r) => DEPT_ROLES.has(r.role));
-  const [f, setF] = useState({ name: u.name, email: u.email, job_title: u.job_title ?? '', department: u.department ?? '' });
+function EditUser({ cid, u, onClose, onDone }: { cid: string; u: Person; onClose: () => void; onDone: () => void }) {
+  const [f, setF] = useState({ name: u.name, email: u.email, job_title: u.job_title ?? '' });
   const [err, setErr] = useState<string | null>(null);
   const [fe, setFe] = useState<Record<string, string>>({});
   async function save(e: FormEvent) {
     e.preventDefault();
     setErr(null); setFe({});
-    const body: Record<string, string> = { name: f.name, job_title: f.job_title, department: f.department };
+    const body: Record<string, string> = { name: f.name, job_title: f.job_title };
     if (!u.signed_in) body.email = f.email;
     try { await api.patch(`/clients/${cid}/users/${u.id}`, body); onDone(); } catch (ex) { setErr(errorMessage(ex)); setFe(fieldErrors(ex)); }
   }
   return (
-    <Dialog title={`Edit ${u.name}`} onClose={onClose}>
+    <Dialog title={`Edit details: ${u.name}`} onClose={onClose}>
       <form className="stack" onSubmit={save} noValidate>
         {err && <Alert tone="danger">{err}</Alert>}
         <TextField label="Full name" help={H.firstName} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} error={fe.name} />
         <TextField label="Work email" help={H.email} type="email" value={f.email} disabled={u.signed_in} hint={u.signed_in ? 'This person has signed in, so their email stays as it is.' : undefined} onChange={(e) => setF({ ...f, email: e.target.value })} error={fe.email} />
         <TextField label="Job title" help={H.jobTitle} value={f.job_title} onChange={(e) => setF({ ...f, job_title: e.target.value })} error={fe.job_title} />
-        <SelectField label="Department" help={H.department} value={f.department} onChange={(e) => setF({ ...f, department: e.target.value })} error={fe.department}
-          options={[...(needsDept ? [] : [{ value: '', label: 'No department' }]), ...departments.map((d) => ({ value: d.name, label: d.name }))]} />
+        <div className="row"><Button type="submit" variant="primary">Save</Button><Button onClick={onClose}>Cancel</Button></div>
+      </form>
+    </Dialog>
+  );
+}
+
+function JobLevelDialog({ u, onClose, onSave }: { u: Person; onClose: () => void; onSave: (level: string) => Promise<void> }) {
+  const [v, setV] = useState(u.job_level ?? '');
+  const [err, setErr] = useState<string | null>(null);
+  async function save(e: FormEvent) {
+    e.preventDefault();
+    setErr(null);
+    try { await onSave(v); } catch (ex) { setErr((ex as Error).message); }
+  }
+  return (
+    <Dialog title={`Job level for ${u.name}`} onClose={onClose}>
+      <form className="stack" onSubmit={save} noValidate>
+        {err && <Alert tone="danger">{err}</Alert>}
+        <SelectField label="Job level" help={H.jobLevel} value={v} onChange={(e) => setV(e.target.value)} options={[{ value: '', label: 'Not given' }, ...JOB_LEVELS]} />
         <div className="row"><Button type="submit" variant="primary">Save</Button><Button onClick={onClose}>Cancel</Button></div>
       </form>
     </Dialog>
@@ -459,10 +576,10 @@ function ChangeRoles({ cid, u, departments, onClose, refresh }: { cid: string; u
     try { await api.delete(`/clients/${cid}/users/${u.id}/roles/${r.id}`); await refresh(); } catch (ex) { setErr(errorMessage(ex)); }
   }
   return (
-    <Dialog title={`Roles for ${u.name}`} onClose={onClose}>
+    <Dialog title={`AI compliance roles for ${u.name}`} onClose={onClose}>
       <div className="stack">
         {err && <Alert tone="danger">{err}</Alert>}
-        {u.roles.length === 0 ? <p className="small muted" style={{ margin: 0 }}>No roles. Add one below so this person can work in the audit.</p> : (
+        {u.roles.length === 0 ? <p className="small muted" style={{ margin: 0 }}>No AI compliance role. Add one below so this person can work in the audit.</p> : (
           <ul className="list-rows">
             {u.roles.map((r) => (
               <li key={r.id}>
@@ -473,9 +590,10 @@ function ChangeRoles({ cid, u, departments, onClose, refresh }: { cid: string; u
           </ul>
         )}
         <form className="stack-sm" onSubmit={add} noValidate>
-          <SelectField label="Add a role" help={H.addRole} value={role} onChange={(e) => setRole(e.target.value)} options={ROLES} error={fe.role} />
+          <SelectField label="Add an AI compliance role" help={H.addRole} value={role} onChange={(e) => setRole(e.target.value)} options={ROLES} error={fe.role} />
           {needsDept && <SelectField label="Department" help={H.department} value={dept} onChange={(e) => setDept(e.target.value)} options={departments.map((d) => ({ value: d.name, label: d.name }))} error={fe.department} />}
           <div className="row"><Button type="submit" variant="primary">Add role</Button><Button onClick={onClose}>Done</Button></div>
+          <p className="small muted" style={{ margin: 0 }}>Each change is recorded in the audit log and shows in their change history.</p>
         </form>
       </div>
     </Dialog>
@@ -483,7 +601,7 @@ function ChangeRoles({ cid, u, departments, onClose, refresh }: { cid: string; u
 }
 
 function AddUser({ cid, departments, onClose, onDone }: { cid: string; departments: Dept[]; onClose: () => void; onDone: (name: string) => void }) {
-  const [f, setF] = useState({ first_name: '', last_name: '', email: '', job_title: '', role: 'contributor', department: departments[0]?.name ?? '' });
+  const [f, setF] = useState({ first_name: '', last_name: '', email: '', job_title: '', job_level: '', role: 'contributor', department: departments[0]?.name ?? '' });
   const [err, setErr] = useState<string | null>(null);
   const [fe, setFe] = useState<Record<string, string>>({});
   const needsDept = DEPT_ROLES.has(f.role);
@@ -504,8 +622,11 @@ function AddUser({ cid, departments, onClose, onDone }: { cid: string; departmen
           <TextField label="Last name" help={H.lastName} value={f.last_name} onChange={(e) => setF({ ...f, last_name: e.target.value })} error={fe.last_name} />
         </div>
         <TextField label="Work email" help={H.email} type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} error={fe.email} />
-        <TextField label="Job title" help={H.jobTitle} value={f.job_title} onChange={(e) => setF({ ...f, job_title: e.target.value })} />
-        <SelectField label="Role" help={H.role} value={f.role} onChange={(e) => setF({ ...f, role: e.target.value })} options={ROLES} />
+        <div className="grid-2">
+          <TextField label="Job title" help={H.jobTitle} value={f.job_title} onChange={(e) => setF({ ...f, job_title: e.target.value })} />
+          <SelectField label="Job level" help={H.jobLevel} value={f.job_level} onChange={(e) => setF({ ...f, job_level: e.target.value })} options={[{ value: '', label: 'Not given' }, ...JOB_LEVELS]} error={fe.job_level} />
+        </div>
+        <SelectField label="AI compliance role" help={H.role} value={f.role} onChange={(e) => setF({ ...f, role: e.target.value })} options={ROLES} />
         {needsDept && <SelectField label="Department" help={H.department} value={f.department} onChange={(e) => setF({ ...f, department: e.target.value })} options={departments.map((d) => ({ value: d.name, label: d.name }))} error={fe.department} />}
         <div className="row"><Button type="submit" variant="primary">Add and send invitation</Button><Button onClick={onClose}>Cancel</Button></div>
       </form>

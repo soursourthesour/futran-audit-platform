@@ -25,3 +25,9 @@
 .notice-status .badge { white-space: normal; }
 .notice-editor { width: 100%; min-height: 360px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13.5px; line-height: 1.5; }
 .ack-page { max-width: 760px; margin: 0 auto; padding: 32px 16px; display: flex; flex-direction: column; gap: 16px; }
+/* Upload preview (11-03 review C5): problems, warnings and the changes the file makes */
+.import-issues { margin: 0; padding-left: 18px; font-size: 14px; display: flex; flex-direction: column; gap: 4px; max-height: 240px; overflow-y: auto; overflow-wrap: anywhere; }
+.import-warnings summary { cursor: pointer; font-weight: 600; color: var(--navy); min-height: 44px; display: flex; align-items: center; }
+.import-changes { max-height: 360px; overflow: auto; border: 1px solid var(--line-soft); border-radius: var(--radius-sm); }
+.import-changes .table { min-width: 560px; }
+.import-changes thead th { position: sticky; top: 0; background: var(--surface); }

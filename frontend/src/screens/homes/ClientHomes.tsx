@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
@@ -5,6 +6,9 @@ import type { ClientAdminData, DepartmentData, DeptSection, DpoData, MyTasksData
 import { Alert, Badge, ButtonLink, Card, EmptyState, Loading, PageHeader, fmtDate, fmtDateTime } from '@/components/ui';
 import { RATING_LABEL, RoleNote, SEVERITY_TONE, SignOffBadge, Tile, cap, signOffStatus } from './common';
 import { ReassessmentCard } from '@/screens/regupdates/Reassessment';
+import { useMe } from '@/api/auth';
+import { DataGrid, type GridColumn } from '@/components/ui/DataGrid';
+import { PersonHistory, type ChangeEvent } from '@/components/PersonHistory';
 
 function useHome<T>(key: string) {
   return useQuery({ queryKey: ['home', key], queryFn: () => api.get<T>(`/home/${key}`) });
@@ -17,6 +21,49 @@ function Shell<T>({ q, children }: { q: { isLoading: boolean; data?: T; error: u
 }
 
 const NO_ENGAGEMENT = 'Your organization has no audit engagement yet. This page fills in once Futran sends the initiation package.';
+
+const uniq = (xs: (string | null)[]) => [...new Set(xs.filter((x): x is string => !!x))].sort().map((v) => ({ value: v, label: v }));
+
+/** Role and department changes as a grid, newest first (11-03 review C2). A person's name opens their full history. */
+function RoleChanges({ rows }: { rows: ChangeEvent[] }) {
+  const { data: me } = useMe();
+  const [open, setOpen] = useState<{ id: string; name: string } | null>(null);
+  const person = (c: ChangeEvent) => (c.user_id ? { id: c.user_id, name: c.name ?? 'Removed user' } : null);
+  const columns: GridColumn<ChangeEvent>[] = [
+    { key: 'name', header: 'Name', value: (c) => c.name ?? '', render: (c) => (c.user_id
+      ? <button type="button" className="link-btn" onClick={() => setOpen(person(c))} aria-label={`Change history for ${c.name ?? 'removed user'}`}>{c.name ?? 'Removed user'}</button>
+      : <span className="muted">Sign-off role</span>) },
+    { key: 'role', header: 'AI compliance role', value: (c) => (c.kind === 'role' ? c.role : c.current_roles.join(', ')) ?? '',
+      render: (c) => (c.kind === 'role'
+        ? <span>{c.change === 'Role removed' ? <s>{c.role}</s> : c.role}{c.sign_off_role && <Badge tone="navy">Futran notified</Badge>}</span>
+        : <span className="muted">{c.current_roles.join(', ') || '—'}</span>) },
+    { key: 'department', header: 'Department', value: (c) => c.department ?? '',
+      render: (c) => (c.kind === 'department' && c.from ? <span>{c.department ?? 'None'} <span className="small muted">(was {c.from})</span></span> : c.department ?? <span className="muted">—</span>) },
+    { key: 'change', header: 'Change', value: (c) => c.change },
+    { key: 'by', header: 'Changed by', value: (c) => c.by ?? 'System' },
+    { key: 'at', header: 'When', value: (c) => c.at, render: (c) => <span className="nowrap">{fmtDateTime(c.at)}</span> },
+  ];
+  return (
+    <Card title="Role and department changes" actions={<span className="small muted">Futran is told of every change to a sign-off role</span>}>
+      {rows.length === 0 ? <EmptyState>No role or department changes yet.</EmptyState> : (
+        <div className="changes-grid">
+          <DataGrid label="Role and department changes" rows={rows} rowId={(c) => c.id} rowLabel={(c) => `${c.name ?? 'Sign-off role'}, ${c.change}`} columns={columns}
+            rowActions={(c) => (c.user_id ? [{ label: 'Change history', onSelect: () => setOpen(person(c)) }] : [])}
+            filters={[
+              { key: 'change', label: 'Change', options: uniq(rows.map((c) => c.change)), test: (c, v) => c.change === v },
+              { key: 'department', label: 'Department', options: uniq(rows.map((c) => c.department)), test: (c, v) => c.department === v || c.from === v },
+              { key: 'role', label: 'AI compliance role', options: uniq(rows.map((c) => c.role)), test: (c, v) => c.role === v },
+              { key: 'by', label: 'Changed by', options: uniq(rows.map((c) => c.by)), test: (c, v) => c.by === v },
+            ]}
+            search={{ label: 'Search by name', placeholder: 'Name', text: (c) => `${c.name ?? ''}` }}
+            initialSort={{ key: 'at', dir: 'desc' }}
+            noMatchText="No changes match these filters." />
+        </div>
+      )}
+      {open && me && <PersonHistory cid={me.organization.id} userId={open.id} name={open.name} onClose={() => setOpen(null)} />}
+    </Card>
+  );
+}
 
 /** Client Admin home (spec §13.1): users, SSO, connectors and the role-change log. No audit content. */
 export function ClientAdminHome() {
@@ -38,13 +85,7 @@ export function ClientAdminHome() {
               ))}</ul>
             )}
           </Card>
-          <Card title="Role changes" actions={<span className="small muted">Futran is told of every change to a sign-off role</span>}>
-            {d.role_changes.length === 0 ? <EmptyState>No role changes yet.</EmptyState> : (
-              <ul className="home-rows">{d.role_changes.map((c, i) => (
-                <li key={i}><div className="what">{c.summary}<div className="small muted">{c.by ?? 'System'} · {fmtDateTime(c.at)}</div></div>{c.sign_off_role && <Badge tone="navy">Futran notified</Badge>}</li>
-              ))}</ul>
-            )}
-          </Card>
+          <RoleChanges rows={d.role_changes} />
         </div>
         <div className="side stack">
           <Card title="Users and departments">
