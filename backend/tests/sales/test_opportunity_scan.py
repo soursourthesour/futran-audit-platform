@@ -12,7 +12,7 @@ from app.laws.publish import current_regulations
 from app.regmaster.models import ClientLawApplicability, LawVersion, ProposedChange
 from app.regupdates.models import RegulatoryAlert, RegulatoryUpdate
 from app.sales import scan
-from app.sales.models import Opportunity, OpportunityScanRun
+from app.sales.models import Opportunity, OpportunityScanRun, OpportunityScanSetting
 from tests.factories import login_as
 
 NOW = datetime(2026, 11, 10, 10, 0)
@@ -113,7 +113,7 @@ def test_the_daily_job_list_has_the_scan(db, world, settings):
     from app.notifications.jobs import JOBS, run_daily
 
     assert "opportunity_scan" in JOBS
-    scan.set_interval(db, world["admin"], 30)
+    scan.set_interval(db, world["admin"], 30, now=NOW - timedelta(days=30))
     db.commit()
     out = run_daily(db, settings, NOW)
     assert out["opportunity_scan"] == 1
@@ -156,10 +156,54 @@ def test_only_changes_since_the_last_scan_count(db, world, settings):
     assert sorted(o.trigger_ref for o in _mine(db, "law_change")) == sorted([f"lawver:{world['version'].id}", f"lawver:{v2.id}"])
 
 
-def test_first_run_looks_back_one_interval(db, world, settings):
-    scan.set_interval(db, world["admin"], 7)
+def test_first_run_looks_back_to_when_the_scan_was_switched_on_or_30_days(db, world, settings):
+    """11-10 review O4: a long custom interval no longer floods the list on the first scan."""
+    scan.set_interval(db, world["admin"], 7, now=NOW - timedelta(days=3))
+    assert scan.run_now(db, world["admin"], now=NOW).since == NOW - timedelta(days=3)
+
+
+def test_first_run_after_a_long_time_switched_on_looks_back_30_days(db, world, settings):
+    scan.set_interval(db, world["admin"], 365, now=NOW - timedelta(days=200))
+    assert scan.run_now(db, world["admin"], now=NOW).since == NOW - timedelta(days=30)
+
+
+def test_changing_the_interval_keeps_when_it_was_switched_on(db, world, settings):
+    scan.set_interval(db, world["admin"], 7, now=NOW - timedelta(days=3))
+    scan.set_interval(db, world["admin"], 15, now=NOW - timedelta(days=1))
+    assert scan.run_now(db, world["admin"], now=NOW).since == NOW - timedelta(days=3)
+
+
+def test_run_now_while_off_looks_back_30_days_at_most(db, world, settings):
+    assert scan.run_now(db, world["admin"], now=NOW).since == NOW - timedelta(days=30)
+    assert scan.run_now(db, world["admin"], now=NOW + timedelta(days=90)).since == NOW + timedelta(days=60)
+    assert scan.run_now(db, world["admin"], now=NOW + timedelta(days=95)).since == NOW + timedelta(days=90)  # since the last scan
+
+
+def test_the_first_scan_after_switching_on_again_starts_from_then(db, world, settings):
+    scan.run_now(db, world["admin"], now=NOW - timedelta(days=100))
+    scan.set_interval(db, world["admin"], 30, now=NOW - timedelta(days=2))
+    assert scan.run_now(db, world["admin"], now=NOW).since == NOW - timedelta(days=2)
+    assert scan.run_now(db, world["admin"], now=NOW + timedelta(days=1)).since == NOW  # then since the last scan
+
+
+def test_first_run_with_a_long_interval_does_not_backfill_a_year(db, world):
+    for i in range(12):
+        _published_update(db, world["nw"], NOW - timedelta(days=25 * i + 1), ref=f"RU-{100 + i}")
+    db.commit()
+    scan.set_interval(db, world["admin"], 365, now=NOW - timedelta(days=365))
     run = scan.run_now(db, world["admin"], now=NOW)
-    assert run.since == NOW - timedelta(days=7)
+    assert run.counts["regulatory_updates"] == 1 + 2  # ABC's from the world, and Northwind's from 1 and 26 days ago
+
+
+def test_renewals_are_opened_no_more_than_90_days_ahead(db, world):
+    world["prior"].completed_at = NOW - timedelta(days=365 - 91)
+    db.commit()
+    scan.run_now(db, world["admin"], now=NOW)
+    assert _mine(db, "renewal_audit") == []
+    world["prior"].completed_at = NOW - timedelta(days=365 - 90)
+    db.commit()
+    scan.run_now(db, world["admin"], now=NOW + timedelta(hours=1))
+    assert len(_mine(db, "renewal_audit")) == 1
 
 
 def test_laws_out_of_scope_or_changed_only_in_wording_are_not_opportunities(db, world):
@@ -300,6 +344,11 @@ def test_admin_sets_the_interval_and_runs_now(client, db, world):
     r = client.put("/api/v1/admin/opportunity-scan", json={"every_days": 15})
     assert r.status_code == 200 and r.json()["every_days"] == 15
     assert db.scalar(select(AuditLog).where(AuditLog.action == "opportunity_scan.settings"))
+    db.expire_all()
+    s = db.scalar(select(OpportunityScanSetting))
+    assert s.enabled_at is not None
+    s.enabled_at = NOW - timedelta(days=30)  # switched on a month ago, so the first scan sees last week's changes
+    db.commit()
     r = client.post("/api/v1/admin/opportunity-scan/run")
     assert r.status_code == 200, r.text
     last = r.json()["last_run"]

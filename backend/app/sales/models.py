@@ -69,6 +69,7 @@ class OpportunityScanSetting(IdMixin, Base):
 
     key: Mapped[str] = mapped_column(String(20), unique=True, default="platform")
     every_days: Mapped[int | None] = mapped_column(Integer)  # 1-365; null = off
+    enabled_at: Mapped[datetime | None] = mapped_column(DateTime)  # when it was last switched on: the first scan looks back no further
     updated_by: Mapped[str | None] = mapped_column(String(36), ForeignKey("users.id"))
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
 

@@ -2,8 +2,9 @@
 
 The Futran Admin sets "Look for new opportunities every N days" (off by default). The daily jobs run the scan once N days
 have passed since the last completed scan (by date, so a run that starts a few minutes later still counts); "Run now"
-runs it at once. Each scan looks at what changed since the last completed scan (the first one looks back one interval,
-or 30 days when the setting is off) and opens opportunities through `open_from_trigger`, once per client and reference:
+runs it at once. Each scan looks at what changed since the last completed scan (the first one after the setting is
+switched on looks back no further than that moment, or 30 days, whichever is shorter; "Run now" while it is off looks
+back 30 days at most) and opens opportunities through `open_from_trigger`, once per client and reference:
 
 - laws added or materially changed in the law library (versions a person approved) that the scope engine puts the
   client in scope of;
@@ -80,7 +81,7 @@ def _futran_org_id(db: Session) -> str | None:
     return db.scalar(select(Organization.id).where(Organization.type == "futran", Organization.deleted_at.is_(None)).order_by(Organization.created_at).limit(1))
 
 
-def set_interval(db: Session, actor: User, every_days: int | None, request=None) -> OpportunityScanSetting:
+def set_interval(db: Session, actor: User, every_days: int | None, request=None, now: datetime | None = None) -> OpportunityScanSetting:
     if every_days is not None and not MIN_DAYS <= every_days <= MAX_DAYS:
         raise Invalid(errors=[{"field": "every_days", "message": f"Choose a number of days from {MIN_DAYS} to {MAX_DAYS}."}])
     s = _setting(db)
@@ -88,6 +89,10 @@ def set_interval(db: Session, actor: User, every_days: int | None, request=None)
         s = OpportunityScanSetting(key="platform")
         db.add(s)
     before = s.every_days
+    if every_days is None:
+        s.enabled_at = None
+    elif before is None or s.enabled_at is None:
+        s.enabled_at = now or utcnow()  # switched on now; changing the number of days keeps the moment it was switched on
     s.every_days, s.updated_by = every_days, actor.id
     db.flush()
     audit.record(db, actor_id=actor.id, action="opportunity_scan.settings", obj=s, organization_id=actor.organization_id, request=request,
@@ -165,10 +170,15 @@ def run_scan(db: Session, *, trigger: str, actor: User | None, now: datetime | N
 
 
 def _since(db: Session, now: datetime) -> datetime:
+    """Changes after the last completed scan count. The first scan after the setting is switched on looks back no
+    further than that moment, or 30 days, whichever is shorter; "Run now" while it is off looks back 30 days at most."""
+    s = _setting(db)
     last = last_completed(db)
-    if last is not None:
+    floor = now - timedelta(days=LOOKBACK_WHEN_OFF)
+    on = s.enabled_at if s is not None and s.every_days is not None else None
+    if last is not None and s is not None and s.every_days is not None and (on is None or last.started_at >= on):
         return last.started_at
-    return now - timedelta(days=interval(db) or LOOKBACK_WHEN_OFF)
+    return max(x for x in (floor, on, last.started_at if last else None) if x is not None)
 
 
 def _execute(db: Session, run: OpportunityScanRun, actor: User | None, request=None) -> None:

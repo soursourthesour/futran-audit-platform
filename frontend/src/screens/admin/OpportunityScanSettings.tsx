@@ -19,7 +19,8 @@ const HELP = {
   interval: (
     <>
       Off by default. When on, the daily jobs (06:00 New York time) run the scan once this many days have passed since the last completed scan.
-      Each scan looks at what changed since the one before; the first looks back one interval. It opens an opportunity, once per client and reason, for
+      Each scan looks at what changed since the one before. The first after switching it on looks back to that moment, or 30 days, whichever is
+      shorter; Run now while it is off looks back 30 days at most. It opens an opportunity, once per client and reason, for
       laws added or changed in the law library that apply to the client, regulatory updates published and matched to the client, and renewal audits due
       within 90 days where no annual review has been started. Offers to current audit clients still need Chief Auditor approval, and Futran never sells the
       fix for a finding it raised.
