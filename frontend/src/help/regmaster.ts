@@ -17,7 +17,7 @@ export const bulkHelp = {
   topics: 'Adds a topic to every selected law. This is a content change and goes to the review queue.',
   appliesTo: 'Adds a party the selected laws apply to. This is a content change and goes to the review queue.',
   roleLevel: 'Sets this role on every selected law once approved. The role catalogue (M4) and every client system under these laws follow.',
-  neededBy: "The point in an AI system's life by which the role must be filled. A required role still empty then blocks the system's go-live approval.",
+  neededBy: "The point in the system's life by which the role should be filled. Required roles needed at or before go-live are checked when the system is submitted for go-live; ongoing and yearly roles are not.",
   reason: 'Saved with each proposed change and in each law version history.',
 };
 
@@ -69,7 +69,7 @@ export const roleHelp = {
   level: 'Company roles are filled once for the whole client; system roles for each AI system; agent roles for each AI agent.',
   stage: 'The stage by which the role must be filled when no law sets an earlier one.',
   /** 11-03 F2: what "Needed by" means for the client, wherever the column appears. */
-  neededBy: "The point in an AI system's life by which the role must be filled: program set-up, procurement, development or go-live. If a required role is still empty then, the system cannot be approved for go-live in the client's AI system register; on a system already live the empty role shows as a finding. Ongoing roles must stay filled and yearly roles are re-confirmed each year; neither blocks go-live.",
+  neededBy: "The point in the system's life by which the role should be filled. Every required role needed at program set-up, procurement, development or go-live is checked when the system is submitted for go-live: an empty one blocks approval, and on a system already live it is raised as a finding. Roles needed for ongoing or yearly work are not checked at go-live and raise no finding.",
   checks: 'Extra confirmations recorded when the role is assigned, such as training and authority to override for human oversight.',
   description: 'The responsibility, as shown in the intro letter.',
   lawLevel: 'Required by the law, recommended, or not required. Changes go to the Chief Auditor as proposed changes.',

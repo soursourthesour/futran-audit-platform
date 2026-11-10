@@ -230,9 +230,13 @@ test.describe('Futran', () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await signIn(page, 'admin@futran.demo', true);
     await openNav(page, 'Roles and committees');
-    await expect(page.getByText(/Needed by is the point in an AI system's life/)).toBeVisible();
+    // every gate-stage role is checked once, when the system is submitted for go-live; ongoing and yearly are not
+    await expect(page.getByText(/Needed by is the point in the system's life/)).toBeVisible();
+    await expect(page.getByText(/checked when the system is submitted for go-live/).first()).toBeVisible();
+    await expect(page.getByText(/Roles needed for ongoing or yearly work are not checked at go-live/).first()).toBeVisible();
     await page.getByRole('button', { name: 'About Needed by' }).first().click();
-    await expect(page.getByRole('tooltip')).toContainText(/go-live/);
+    await expect(page.getByRole('tooltip')).toContainText(/checked when the system is submitted for go-live/);
+    await expect(page.getByRole('tooltip')).toContainText(/not checked at go-live/);
     await page.screenshot({ path: `${SHOTS}/roles-needed-by-1440.png` });
   });
 });

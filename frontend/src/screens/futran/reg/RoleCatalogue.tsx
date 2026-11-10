@@ -25,7 +25,7 @@ export function RoleCatalogue() {
       <PageHeader title="Role and committee catalogue"
         subtitle="The 21 governance roles and which law requires each. A client's required roles are the union of the columns for the laws that apply to them; where laws differ, the stricter level and the earlier stage win. A refresh can propose a change to any cell." />
       <RegTabs />
-      <p className="small" style={{ marginTop: 0, maxWidth: 880 }}>Needed by is the point in an AI system's life by which a role must be filled. A required role still empty at program set-up, procurement, development or go-live blocks that system's go-live approval in the client's AI system register; on a system already live the empty role shows as a finding. Ongoing and yearly roles never block go-live.</p>
+      <p className="small" style={{ marginTop: 0, maxWidth: 880 }}>Needed by is the point in the system's life by which the role should be filled. Every required role needed at program set-up, procurement, development or go-live is checked when the system is submitted for go-live in the client's AI system register: an empty one blocks approval, and on a system already live it is raised as a finding. Roles needed for ongoing or yearly work are not checked at go-live and raise no finding.</p>
       {flash && <Alert tone="success">{flash}</Alert>}
       <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 12 }}>
         <div style={{ minWidth: 220 }}><SelectField label="Show laws" help={H.show} value={show} onChange={(e) => setShow(e.target.value)} options={[{ value: 'top', label: '10 most used' }, { value: 'all', label: `All laws with role maps` }]} /></div>
