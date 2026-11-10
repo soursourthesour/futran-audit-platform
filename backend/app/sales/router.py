@@ -335,3 +335,59 @@ def send_proposal(opp_id: str, body: ProposalIn, request: Request, actor: Actor 
         o.stage = "proposal"
     audit.record(db, actor_id=actor.id, action="opportunity.proposal", obj=o, request=request, organization_id=actor.organization.id, summary=f"Proposal logged: {o.service}")
     return opp_out(db, o)
+
+
+# ---- 11-03 F8: the periodic opportunity scan (Futran Admin settings)
+class ScanSettingIn(BaseModel):
+    every_days: int | None = Field(default=None, ge=1, le=365)
+
+
+def _run_out(db: Session, run) -> dict | None:
+    if run is None:
+        return None
+    found = []
+    for oid in run.found or []:
+        o = db.get(Opportunity, oid)
+        if o is not None:
+            org = db.get(Organization, o.organization_id)
+            found.append({"id": o.id, "client_name": org.name if org else "", "trigger_label": TRIGGER_LABELS.get(o.trigger, o.trigger), "service": o.service,
+                          "why_now": o.why_now})
+    return {"id": run.id, "trigger": run.trigger, "status": run.status, "started_at": run.started_at.isoformat(), "finished_at": run.finished_at.isoformat() if run.finished_at else None,
+            "since": run.since.isoformat(), "by": _name(db, run.started_by) or "Scheduled", "counts": run.counts or {}, "errors": run.errors or [], "found": found}
+
+
+def _scan_out(db: Session, actor: Actor) -> dict:
+    from app.sales import scan
+
+    try:
+        authorize(db, actor, Action.MANAGE_FUTRAN_USERS)
+        can_edit = True
+    except Exception:
+        can_edit = False
+    nxt = scan.next_run_on(db)
+    return {"every_days": scan.interval(db), "choices": list(scan.CHOICES), "min_days": scan.MIN_DAYS, "max_days": scan.MAX_DAYS,
+            "last_run": _run_out(db, scan.last_run(db)), "next_run_on": nxt.isoformat() if nxt else None, "can_edit": can_edit}
+
+
+@router.get("/admin/opportunity-scan")
+def get_scan(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+    authorize(db, actor, Action.VIEW_PLATFORM_SETTINGS)
+    return _scan_out(db, actor)
+
+
+@router.put("/admin/opportunity-scan")
+def put_scan(body: ScanSettingIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+    from app.sales import scan
+
+    authorize(db, actor, Action.MANAGE_FUTRAN_USERS)  # the Futran Admin: "Manage Futran users and platform settings" (§5)
+    scan.set_interval(db, actor.user, body.every_days, request=request)
+    return _scan_out(db, actor)
+
+
+@router.post("/admin/opportunity-scan/run")
+def run_scan_now(request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+    from app.sales import scan
+
+    authorize(db, actor, Action.MANAGE_FUTRAN_USERS)
+    scan.run_now(db, actor.user, request=request)
+    return _scan_out(db, actor)

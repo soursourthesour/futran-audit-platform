@@ -318,3 +318,4 @@ def _wsh(module: str, name: str):
 
 
 JOBS |= {"regulatory_digest": _wsh("app.regupdates.service", "run_weekly_digest"), "reassessment_schedule": _wsh("app.impact.schedule", "run_reassessment_schedule")}
+JOBS["opportunity_scan"] = _wsh("app.sales.scan", "run_scheduled")  # 11-03 F8: every N days once the Futran Admin turns it on
