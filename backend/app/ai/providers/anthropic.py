@@ -15,6 +15,9 @@ class AnthropicProvider(AnthropicAIClient):
         self.settings = settings
         self.api_key = api_key
 
+    def __repr__(self) -> str:  # the key stays out of logs and tracebacks
+        return f"{type(self).__name__}(model={self.model!r})"
+
     def refresh_client(self, settings):
         from app.refresh.claude import AnthropicStructuredClient
 

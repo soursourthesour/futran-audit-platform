@@ -5,7 +5,7 @@ connection. Anthropic goes through the `anthropic` SDK already installed; the ot
 Model names are free text: the suggestions below are the providers' current names on 10 November 2026 (sources in each
 module's docstring) and go stale, which is why any name is accepted.
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 CATALOGUE: list[dict] = [
     {"id": "anthropic", "label": "Anthropic Claude", "needs_endpoint": False,
@@ -24,7 +24,7 @@ LABELS = {p["id"]: p["label"] for p in CATALOGUE} | {"fake": "Demonstration mode
 class ConnectionConfig:
     provider: str
     model: str
-    api_key: str
+    api_key: str = field(repr=False)  # never in a log line, a traceback or a debugger
     endpoint: str | None = None
     deployment: str | None = None
 

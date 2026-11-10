@@ -207,3 +207,23 @@ def test_text_research_returns_the_search_text_for_drafting():
 
     _, t = recorder(gemini_reply('```json\n{"short_name": "X"}\n```'))
     assert TextResearch(GeminiProvider(api_key=SECRET, model="gemini-test", transport=t)).research("Draft it.").startswith("```json")
+
+
+# ---- the key never shows in a repr (a log line, a traceback's locals, a debugger)
+def test_connection_config_and_providers_keep_the_key_out_of_their_repr():
+    from types import SimpleNamespace as NS
+
+    from app.ai.providers import ConnectionConfig
+    from app.ai.providers.anthropic import AnthropicProvider
+    from app.ai.providers.azure_openai import AzureOpenAIProvider
+    from app.ai.providers.gemini import GeminiProvider
+    from app.ai.providers.openai import OpenAIProvider
+
+    cfg = ConnectionConfig(provider="openai", model="gpt-test", api_key=SECRET)
+    assert SECRET not in repr(cfg) and "gpt-test" in repr(cfg)
+    providers = [OpenAIProvider(api_key=SECRET, model="gpt-test"), GeminiProvider(api_key=SECRET, model="gemini-test"),
+                 AzureOpenAIProvider(api_key=SECRET, endpoint="https://x.openai.azure.com", deployment="dep"),
+                 AnthropicProvider(NS(ai_model=None, claude_model="claude-x", anthropic_api_key=None), api_key=SECRET, model="claude-x", client=object())]
+    for p in providers:
+        assert SECRET not in repr(p) and SECRET not in str(p), type(p).__name__
+        assert p.model in repr(p)

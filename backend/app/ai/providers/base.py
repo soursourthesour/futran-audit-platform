@@ -74,6 +74,9 @@ class HttpProvider:
         self.model = model
         self.transport = transport
 
+    def __repr__(self) -> str:  # the key stays out of logs and tracebacks
+        return f"{type(self).__name__}(model={self.model!r})"
+
     def _headers(self) -> dict:
         raise NotImplementedError
 
