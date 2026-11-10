@@ -71,3 +71,31 @@ def role_catalog(actor: Actor = Depends(current_actor), db: Session = Depends(ge
     authorize(db, actor, Action.VIEW_REGISTER, org_id=org.id, list_view=True)
     return [{"id": r.id, "code": r.code, "number": r.number, "name": r.name, "level": r.level, "default_stage": r.default_stage, "main_sources": r.main_sources, "extra_checks": r.extra_checks}
             for r in catalog_roles(db)]
+
+
+@router.post("/register/law-suggestions")
+def law_suggestions(data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+    """Laws for a system being added or edited, from its places and features (11-03 C14). Nothing is saved."""
+    from app.register.geo_laws import Draft, suggest
+    from app.tenancy.models import Department
+
+    org = client_org(actor)
+    authorize(db, actor, Action.VIEW_REGISTER, org_id=org.id, list_view=True)
+    v = svc.clean(db, org, {k: data[k] for k in ("run_location", "data_locations", "data", "type", "sourcing", "decision_impact", "algorithm_type") if k in data}, current=_Blank(),
+                  require_department=False)
+    dept = db.get(Department, data["department_id"]) if isinstance(data.get("department_id"), str) else None
+    dd = v.get("_data") or {}
+    d = Draft(name=str(data.get("name") or "")[:160], purpose=str(data.get("purpose") or "")[:4000], department_name=dept.name if dept and dept.organization_id == org.id else "",
+              type=v.get("type"), sourcing=v.get("sourcing"), algorithm_type=v.get("algorithm_type"), decision_impact=v.get("decision_impact"),
+              data_categories=dd.get("data_categories") or [], data_subjects=dd.get("data_subjects") or [], run_location=v.get("run_location"), data_locations=v.get("data_locations") or [])
+    exclude = {x for x in data.get("exclude") or [] if isinstance(x, str)} if isinstance(data.get("exclude"), list) else set()
+    return suggest(db, org.id, d, exclude=exclude)
+
+
+class _Blank:
+    """Stands in for a saved system when a draft is checked: nothing is required."""
+
+    type = None
+    department_id = None
+    company_wide = False
+    stage = "proposed"

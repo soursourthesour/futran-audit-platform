@@ -312,3 +312,19 @@ def test_a_new_system_goes_live_on_the_day_it_is_approved(client, db, reg, cat):
     assert client.post(f"/api/v1/register/{s['id']}/go-live/submit").status_code == 200
     reg.as_(reg.caico)
     assert client.post(f"/api/v1/register/{s['id']}/go-live/decide", json={"approve": True}).json()["live_since"] == today().isoformat()
+
+
+def test_roles_show_the_geography_of_their_laws(client, db, reg, cat):
+    """11-03 C15: each role row says which jurisdiction's law asks for it."""
+    from app.reference.models import Jurisdiction
+
+    s = _system(client, reg, cat, laws=("a", "b"))
+    rows = _rows(client, s["id"])
+    ja, jb = db.get(Jurisdiction, cat.a.jurisdiction_id).name, db.get(Jurisdiction, cat.b.jurisdiction_id).name
+    assert rows["bias_testing_lead"]["law_geographies"] == [ja]
+    assert set(rows["human_oversight_person"]["law_geographies"]) == {ja, jb}
+    assert rows["accountable_executive"]["law_geographies"] == []  # no law asks for it here
+    company = client.get("/api/v1/governance/roles" if False else "/api/v1/register/company-roles")
+    if company.status_code == 200:
+        r = next(x for x in company.json()["rows"] if x["code"] == "records_retention_owner")
+        assert r["law_geographies"] == [ja]

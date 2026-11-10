@@ -25,6 +25,8 @@ class ReasonIn(BaseModel):
 class LawIn(BaseModel):
     regulation_id: str
     reason: str | None = None
+    source: str | None = None  # "suggested" when the user accepted a suggestion
+    suggestion_reason: str | None = None
 
 
 class GoLiveIn(BaseModel):
@@ -153,8 +155,10 @@ def post_register(data: dict, actor: Actor = Depends(current_actor), db: Session
     if laws:
         check(db, actor, Action.ADD_SYSTEM_LAW, department_id=v.get("department_id"))
     s = svc.create_system(db, actor.user, org, data, cleaned=v)
+    reasons = data.get("law_reasons") if isinstance(data.get("law_reasons"), dict) else {}
     for rid in laws:
-        svc.add_law(db, actor.user, s, rid, source="manual")
+        why = reasons.get(rid) if isinstance(rid, str) else None
+        svc.add_law(db, actor.user, s, rid, source="suggested" if isinstance(why, str) and why.strip() else "manual", suggestion_reason=why if isinstance(why, str) else None)
     if isinstance(data.get("history_answers"), dict):
         from app.register.history import answer_questions
 
@@ -211,7 +215,7 @@ def get_changes(system_id: str, actor: Actor = Depends(current_actor), db: Sessi
 def post_law(system_id: str, body: LawIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     s = load(db, actor, system_id)
     check(db, actor, Action.ADD_SYSTEM_LAW, s)
-    svc.add_law(db, actor.user, s, body.regulation_id, reason=body.reason)
+    svc.add_law(db, actor.user, s, body.regulation_id, reason=body.reason, source="suggested" if body.source == "suggested" else "manual", suggestion_reason=body.suggestion_reason)
     return system_out(db, s, actor, full=True)
 
 

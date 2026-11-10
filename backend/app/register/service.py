@@ -319,6 +319,12 @@ def clean(db: Session, org: Organization, data: dict, current: RegisterSystem | 
         else:
             places = [p for p in (_place(db, x, "data_locations", errs) for x in v) if p]
             out["data_locations"] = list({json.dumps(p, sort_keys=True): p for p in places}.values()) or None
+    if "dismissed_law_ids" in data:
+        v = data.get("dismissed_law_ids") or []
+        if not isinstance(v, list) or len(v) > 500 or not all(isinstance(x, str) for x in v):
+            errs.append({"field": "dismissed_law_ids", "message": "Choose suggestions from the list."})
+        else:
+            out["dismissed_law_ids"] = list(dict.fromkeys(v)) or None
     if "actions" in data and data["actions"] is not None:
         acts = data["actions"]
         if not isinstance(acts, list) or not all(isinstance(a, dict) and a.get("action_code") in ACTION_CODES for a in acts):
@@ -620,7 +626,8 @@ def current_regulation(db: Session, regulation_id: str):
     return r
 
 
-def add_law(db: Session, actor: User, s: RegisterSystem, regulation_id: str, *, source: str = "manual", reason: str | None = None, batch_id: str | None = None) -> RegisterSystemLaw | None:
+def add_law(db: Session, actor: User, s: RegisterSystem, regulation_id: str, *, source: str = "manual", reason: str | None = None, batch_id: str | None = None,
+            suggestion_reason: str | None = None) -> RegisterSystemLaw | None:
     from app.laws.models import Regulation
 
     reg = db.get(Regulation, regulation_id) if isinstance(regulation_id, str) else None
@@ -632,10 +639,10 @@ def add_law(db: Session, actor: User, s: RegisterSystem, regulation_id: str, *, 
         if cur is not None and cur.id == reg.id:
             return None  # already there
     link = RegisterSystemLaw(organization_id=s.organization_id, register_system_id=s.id, regulation_id=reg.id, source=source if source in ("suggested", "manual") else "manual",
-                             status="active", added_by=actor.id, created_by=actor.id)
+                             status="active", added_by=actor.id, created_by=actor.id, reason=_text(suggestion_reason, 600) if source == "suggested" else None)
     db.add(link)
     db.flush()
-    log_change(db, actor, s, "laws", None, f"Added {reg.short_name}", reason, entity="RegisterSystemLaw", entity_id=link.id, batch_id=batch_id, raw=True)
+    log_change(db, actor, s, "laws", None, f"Added {reg.short_name}" + (" (suggested)" if link.source == "suggested" else ""), reason or (link.reason if link.source == "suggested" else None), entity="RegisterSystemLaw", entity_id=link.id, batch_id=batch_id, raw=True)
     audit.record(db, actor_id=actor.id, action="register.law_add", obj=s, after={"regulation": reg.short_name}, summary=f"Added {reg.short_name} to {s.reference} {s.name}")
     from app.impact.detect import detect_law_added  # wave 3 WS-H: a law from a new jurisdiction (§21 F8)
 
@@ -756,6 +763,12 @@ def suggested_laws(db: Session, s: RegisterSystem) -> list[dict]:
         cur = current_regulation(db, link.regulation_id)
         if cur is not None:
             have.add(cur.id)
+    dismissed = {r.id for r in (current_regulation(db, i) for i in s.dismissed_law_ids or []) if r is not None}
+    if s.run_location or s.data_locations:  # 11-03 C14: from the system's own places and features
+        from app.register.geo_laws import draft_of, suggest
+
+        return suggest(db, s.organization_id, draft_of(db, s, data_row(db, s)), exclude=have | dismissed)
+    have |= dismissed
     ran = db.scalar(select(ClientLawApplicability.id).where(ClientLawApplicability.organization_id == s.organization_id, ClientLawApplicability.deleted_at.is_(None)).limit(1)) is not None
     if ran:
         reasons = {r.regulation_id: r.reason_text for r in db.scalars(select(ClientLawApplicability).where(ClientLawApplicability.organization_id == s.organization_id, ClientLawApplicability.deleted_at.is_(None)))}
