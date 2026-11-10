@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
-import { useMe } from '@/api/auth';
+import { hasRole, useMe } from '@/api/auth';
 import { type AdminEntry, type SendDetail, type SendRow, downloadBlob } from '@/api/mail';
 import { Alert, Badge, Card, Dialog, EmptyState, Loading, PageHeader, SelectField, fmtDateTime } from '@/components/ui';
 import { DataGrid, type GridColumn } from '@/components/ui/DataGrid';
 import { emailHelp as H } from '@/help/email';
+import { OutboxPanel } from '@/screens/admin/Outbox';
 import './email.css';
 
 type Sends = { sends: SendRow[]; templates: [string, string][]; groups: [string, string][] };
@@ -20,7 +21,7 @@ const dash = (n: number, show: boolean) => (show ? n.toLocaleString() : '—');
 export function EmailLog() {
   const qc = useQueryClient();
   const { data: me } = useMe();
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const clientId = params.get('client') ?? '';
   const [template, setTemplate] = useState('');
   const [group, setGroup] = useState('');
@@ -33,6 +34,14 @@ export function EmailLog() {
   const admin = useQuery({ queryKey: ['mail-admin-log', clientId, category], queryFn: () => api.get<Admin>(`/mail/log/admin?${qsBase}${category ? `category=${category}` : ''}`) });
   const refresh = () => qc.invalidateQueries({ queryKey: ['mail-log'] });
   const isFutran = me?.organization.type === 'futran';
+  // 11-03 F14b: the outbox is a tab here for the people who can read it (Futran Admin and Chief Auditor)
+  const outboxAllowed = isFutran && hasRole(me ?? undefined, 'admin', 'chief_auditor');
+  const tab = outboxAllowed && params.get('tab') === 'outbox' ? 'outbox' : 'log';
+  const showTab = (t: 'log' | 'outbox') => {
+    const next = new URLSearchParams(params);
+    if (t === 'outbox') next.set('tab', 'outbox'); else next.delete('tab');
+    setParams(next, { replace: true });
+  };
 
   async function act(fn: () => Promise<{ reminded?: number; resent?: number }>, kind: 'remind' | 'resend') {
     setMsg(null);
@@ -65,7 +74,19 @@ export function EmailLog() {
   return (
     <div className="page">
       <PageHeader title="Email and admin log" subtitle={`Every email sent from the platform, with delivery and response counts, and every change to email, groups and sync.${isFutran ? ' Futran sees its own emails and those of its engagements.' : ' Futran sees the same log for its engagements.'}`} />
-      <div className="stack">
+      {outboxAllowed && (
+        <div className="tabs" role="tablist" aria-label="Email log views">
+          <button type="button" role="tab" id="tab-log" aria-controls={tab === 'log' ? 'panel-log' : undefined} aria-selected={tab === 'log'} className={tab === 'log' ? 'active' : ''} onClick={() => showTab('log')}>Email and admin log</button>
+          <button type="button" role="tab" id="tab-outbox" aria-controls={tab === 'outbox' ? 'panel-outbox' : undefined} aria-selected={tab === 'outbox'} className={tab === 'outbox' ? 'active' : ''} onClick={() => showTab('outbox')}>Outbox (test mode)</button>
+        </div>
+      )}
+      {tab === 'outbox' ? (
+        <div id="panel-outbox" role="tabpanel" aria-labelledby="tab-outbox" className="stack">
+          <p className="small muted" style={{ margin: 0 }}>Every email the platform has sent or would send, with its full text. In test mode nothing leaves the platform: open a message to read it or copy an invitation link.</p>
+          <Card><OutboxPanel /></Card>
+        </div>
+      ) : (
+      <div className="stack" {...(outboxAllowed ? { id: 'panel-log', role: 'tabpanel', 'aria-labelledby': 'tab-log' } : {})}>
         {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
         <Card title="Emails sent">
           <div className="stack">
@@ -116,6 +137,7 @@ export function EmailLog() {
           </div>
         </Card>
       </div>
+      )}
       {open && <SendDialog id={open.id} tab={open.tab} onTab={(tab) => setOpen({ ...open, tab })} onClose={() => setOpen(null)} />}
     </div>
   );

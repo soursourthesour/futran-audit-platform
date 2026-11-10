@@ -1,7 +1,6 @@
 import { Navigate, type RouteObject } from 'react-router-dom';
 import { UsersAdmin } from '@/screens/admin/Users';
 import { AuditLogScreen } from '@/screens/admin/AuditLog';
-import { OutboxScreen } from '@/screens/admin/Outbox';
 import { SettingsScreen } from '@/screens/admin/Settings';
 import { ReferenceData } from '@/screens/admin/ReferenceData';
 import { TemplatesAdmin } from '@/screens/admin/Templates';
@@ -69,7 +68,7 @@ export const futranRoutes: RouteObject[] = [
   { path: '/staff/admin/email', element: <FutranEmail /> },
   { path: '/clients/:clientId/groups', element: <ClientGroupsForFutran /> },
   { path: '/admin/audit-log', element: <AuditLogScreen /> },
-  { path: '/admin/outbox', element: <OutboxScreen /> },
+  { path: '/admin/outbox', element: <Navigate to="/admin/log?tab=outbox" replace /> },  // 11-03 F14b: the outbox is a tab of the email log
   { path: '/admin/settings', element: <SettingsScreen /> },
   { path: '/admin/reference', element: <ReferenceData /> },
   { path: '/admin/templates', element: <TemplatesAdmin /> },

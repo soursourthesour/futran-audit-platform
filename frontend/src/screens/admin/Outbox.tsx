@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/api/client';
-import { Badge, Button, Card, Dialog, EmptyState, Loading, PageHeader, fmtDateTime } from '@/components/ui';
+import { Badge, Button, Dialog, EmptyState, Loading, fmtDateTime } from '@/components/ui';
 import '@/styles/staff-forms.css';
 
 type Msg = { id: string; to: string[]; cc: string[] | null; subject: string; body_html: string; template_key: string; status: string; error: string | null; created_at: string };
@@ -24,34 +24,33 @@ function statusBadge(status: string) {
   return status === 'sent' ? <Badge tone="success">Sent</Badge> : status === 'failed' ? <Badge tone="danger">Failed</Badge> : <Badge>Queued</Badge>;
 }
 
-export function OutboxScreen() {
+/** The outbox: every email the platform has sent or would send (in test mode nothing leaves the platform). Shown as the
+ *  "Outbox (test mode)" tab of the email log (11-03 F14b); /admin/outbox redirects there. */
+export function OutboxPanel() {
   const q = useQuery({ queryKey: ['outbox'], queryFn: () => api.get<Msg[]>('/admin/outbox') });
   const [open, setOpen] = useState<string | null>(null);
   const selected = q.data?.find((m) => m.id === open);
   return (
-    <div className="page">
-      <PageHeader title="Outbox" subtitle="Every email the platform has sent or would send. In test mode nothing leaves the platform; open a message to read it." />
-      <Card>
-        {q.isLoading ? <Loading /> : !q.data?.length ? <EmptyState>No emails yet.</EmptyState> : (
-          <div className="table-wrap">
-            <table className="table">
-              <thead><tr><th>When</th><th>To</th><th>Subject</th><th>Status</th></tr></thead>
-              <tbody>
-                {q.data.map((m) => (
-                  <tr key={m.id} className="clickable" onClick={(e) => { e.currentTarget.querySelector('button')?.focus(); setOpen(m.id); }}>
-                    <td>{fmtDateTime(m.created_at)}</td>
-                    <td>{m.to.join(', ')}</td>
-                    <td><button type="button" className="link-btn" onClick={(e) => { e.stopPropagation(); setOpen(m.id); }} aria-haspopup="dialog">{m.subject}</button></td>
-                    <td>{statusBadge(m.status)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Card>
+    <>
+      {q.isLoading ? <Loading /> : !q.data?.length ? <EmptyState>No emails yet.</EmptyState> : (
+        <div className="table-wrap">
+          <table className="table" aria-label="Outbox">
+            <thead><tr><th style={{ whiteSpace: 'nowrap' }}>When</th><th>To</th><th>Subject</th><th>Status</th></tr></thead>
+            <tbody>
+              {q.data.map((m) => (
+                <tr key={m.id} className="clickable" onClick={(e) => { e.currentTarget.querySelector('button')?.focus(); setOpen(m.id); }}>
+                  <td style={{ whiteSpace: 'nowrap' }}>{fmtDateTime(m.created_at)}</td>
+                  <td className="break">{m.to.join(', ')}</td>
+                  <td><button type="button" className="link-btn" onClick={(e) => { e.stopPropagation(); setOpen(m.id); }} aria-haspopup="dialog">{m.subject}</button></td>
+                  <td>{statusBadge(m.status)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
       {selected && <MessageDialog m={selected} onClose={() => setOpen(null)} />}
-    </div>
+    </>
   );
 }
 
