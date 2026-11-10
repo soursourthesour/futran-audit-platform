@@ -141,7 +141,7 @@ def test_templates_api_admin_only(client, db, seeded):
     aud = make_user(db, f, roles=["auditor"], name="Al Aud", email="al@f.test")
     db.commit()
     login_as(client, db, aud)
-    assert client.get("/api/v1/admin/templates").status_code == 200
+    assert client.get("/api/v1/admin/templates").status_code == 403
     assert client.put("/api/v1/admin/templates/roles_note", json={"body": "x"}).status_code == 403
     login_as(client, db, admin)
     r = client.put("/api/v1/admin/templates/roles_note", json={"body": "New roles note for {{ client.name }}."})
@@ -159,3 +159,18 @@ def test_templates_api_says_who_approved_each_revision(client, db, seeded):
     client.put("/api/v1/admin/templates/roles_note", json={"body": "New roles note for {{ client.name }}."})
     t = next(t for t in client.get("/api/v1/admin/templates").json() if t["key"] == "roles_note")
     assert t["version"] == 2 and t["approved_by"] == "Ada Admin" and t["approved_at"] == t["updated_at"]
+
+
+def test_template_reads_need_a_template_permission(client, db, seeded):
+    """Who approved each revision is shown only to people who configure or approve templates; clients see nothing."""
+    f = make_org(db, type="futran")
+    c = make_org(db, type="client")
+    admin = make_user(db, f, roles=["admin"], name="Ada Admin", email="admin@f.test")
+    chief = make_user(db, f, roles=["chief_auditor"], name="Cy Chief", email="cy@f.test")
+    legal = make_user(db, f, roles=["legal_reviewer"], name="Lee Legal", email="lee@f.test")
+    cadmin = make_user(db, c, roles=["client_admin"], name="Cal Client", email="cal@c.test")
+    db.commit()
+    for who, code in ((admin, 200), (chief, 200), (legal, 403), (cadmin, 404)):
+        login_as(client, db, who)
+        assert client.get("/api/v1/admin/templates").status_code == code, who.name
+        assert client.get("/api/v1/admin/templates/roles_note/versions").status_code == code, who.name

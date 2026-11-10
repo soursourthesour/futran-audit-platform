@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.deps import Actor, current_actor
 from app.core.db import get_db
-from app.core.errors import NotFound
+from app.core.errors import Forbidden, NotFound
 from app.policy.actions import Action
 from app.policy.authorize import authorize
 from app.reference.models import DocumentTemplate
@@ -28,18 +28,27 @@ def t_out(t: DocumentTemplate, db: Session | None = None) -> dict:
             "updated_at": t.created_at.isoformat(), "approved_at": t.created_at.isoformat(), "approved_by": by.name if by else None}
 
 
-@router.get("")
-def list_templates(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+def _may_read(db: Session, actor: Actor) -> None:
+    """Reading templates (and who approved each revision) needs a template permission: configure or approve.
+    Client users get 404, as the screen does not exist for them."""
     if not actor.is_futran:
         raise NotFound()
+    try:
+        authorize(db, actor, Action.CONFIGURE_TEMPLATES)
+    except Forbidden:
+        authorize(db, actor, Action.APPROVE_TEMPLATES)
+
+
+@router.get("")
+def list_templates(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+    _may_read(db, actor)
     rows = db.scalars(select(DocumentTemplate).where(DocumentTemplate.active.is_(True)).order_by(DocumentTemplate.package_item.is_(None), DocumentTemplate.package_item, DocumentTemplate.name))
     return [t_out(t, db) for t in rows]
 
 
 @router.get("/{key}/versions")
 def versions(key: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
-    if not actor.is_futran:
-        raise NotFound()
+    _may_read(db, actor)
     return [t_out(t, db) | {"active": t.active} for t in db.scalars(select(DocumentTemplate).where(DocumentTemplate.key == key).order_by(DocumentTemplate.version.desc()))]
 
 
