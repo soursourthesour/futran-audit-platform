@@ -6,7 +6,7 @@ export const refreshHelp = {
   check: "What the AI provider compares against the approved record in this run. Leave all ticked for a full check.",
   geographies: 'Which geographies the AI provider checks. Client geographies are the places your current clients operate in (from the new-client wizard and the applicability screen).',
   checks: 'What the AI provider looks for. Fewer checks make the run cheaper and faster.',
-  sources: 'The AI provider searches only allowlisted sources. Law-firm alerts are secondary: a change that rests on one is always low confidence and needs a second reviewer.',
+  sources: 'Claude, OpenAI and Azure OpenAI can search only the allowlisted sites: their web search is limited to them. Gemini has no such limit, so it is asked to use only these sources. Every proposed change is checked against the allowlist, and one that rests on a page off the list is low confidence and needs a second reviewer. Law-firm alerts are secondary: a change that rests on one is always low confidence and needs a second reviewer.',
   alert: 'Who hears when the run finishes. The default comes from the refresh alert settings.',
   schedule: 'The refresh also runs on its own every few days with these settings. Runs that would cost more than the cap stop early and say which geographies were not checked.',
   everyDays: 'Days between scheduled runs. The default is 14.',
