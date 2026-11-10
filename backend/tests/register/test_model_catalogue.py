@@ -102,6 +102,7 @@ def test_monthly_check_with_ai_proposes_and_a_person_decides(client, db, reg, fu
         {"vendor": "Newco", "model": "Newco 1", "reason": "A new vendor."},
     ]}})
     monkeypatch.setattr(catalogue, "client_for", lambda app_state, settings, db=None: fake)
+    monkeypatch.setattr(catalogue, "ai_status", lambda app_state, settings, db=None: {"source": "connection", "provider": "openai"})
     catalogue.ensure_seeded(db)
     before = db.query(ModelEntry).count()
     assert catalogue.run_monthly(db, None, datetime(2026, 12, 1, 10)) == 1

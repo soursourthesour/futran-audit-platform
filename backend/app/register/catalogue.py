@@ -2,7 +2,7 @@
 
 Vendors and their models are platform reference data kept by the Futran Admin. A client's "Other" model is saved for
 that client and offered again on its later systems. Once a month the daily job checks the list: with an AI provider
-connected (`app.ai.client.client_for`) it asks the model for additions, records the call as an AIInteraction and holds
+connected (`app.ai.client.ai_status`: a saved connection or an environment key, not the demonstration model) it asks the model for additions, records the call as an AIInteraction and holds
 each addition as a proposal for the Futran Admin to accept or reject; without one it reminds the Futran Admin to review
 the list. Nothing changes the catalogue without a person accepting.
 """
@@ -16,7 +16,7 @@ import yaml
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.ai.client import AIError, client_for
+from app.ai.client import AIError, ai_status, client_for
 from app.audit_log import service as audit
 from app.core.clock import utcnow
 from app.core.errors import Conflict, Invalid, NotFound
@@ -262,7 +262,7 @@ def run_monthly(db: Session, settings, now: datetime, app_state=None, *, manual_
     db.add(run)
     db.flush()
     admins = _futran_admins(db)
-    client = client_for(app_state, settings or _default_settings(), db)  # the saved AI connection, read from this session
+    client = _model_client(app_state, settings or _default_settings(), db)
     if client is None:
         notify(db, admins, "model_catalogue_review", "Review the AI model list", "No AI provider is connected, so the monthly check could not look for new models. "
                "Check each vendor's documentation and add what is missing.", REVIEW_LINK)
@@ -314,6 +314,16 @@ def run_monthly(db: Session, settings, now: datetime, app_state=None, *, manual_
            "Accept or reject each one. Nothing is added until you accept it." if made else "The monthly check proposed nothing new. Check the list against each vendor's documentation.",
            REVIEW_LINK)
     return 1
+
+
+def _model_client(app_state, settings, db: Session):
+    """A real AI model for the check: the saved AI connection or the environment's key (read from this session). The
+    demonstration model of test mode has nothing to say about new models, so without a real one the check reminds."""
+    injected = app_state is not None and getattr(app_state, "ai_client_factory", None) is not None
+    status = ai_status(app_state, settings, db)
+    if not injected and (status.get("source") in (None, "demonstration") or status.get("provider") == "fake"):
+        return None
+    return client_for(app_state, settings, db)
 
 
 def _default_settings():
