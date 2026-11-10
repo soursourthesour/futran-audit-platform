@@ -23,7 +23,7 @@ export function RegTabs({ pending }: { pending?: number }) {
     library && <NavLink key="roles" to="/reg/roles">Roles and committees</NavLink>,
   ].filter(Boolean);
   if (tabs.length < 2) return null;  // a single tab is just the page heading again
-  return <nav className="reg-tabs" aria-label="Regulatory master">{tabs}</nav>;
+  return <nav className="reg-tabs" aria-label="Law library sections">{tabs}</nav>;
 }
 
 export function LawLibrary() {
@@ -50,7 +50,11 @@ export function LawLibrary() {
           {d.can_edit && <Button variant="primary" onClick={() => nav('/reg/new')}>Add a law</Button>}
         </>} />
       <RegTabs pending={d.kpis.pending} />
-      <p className="small muted" style={{ marginTop: -8 }}>
+      <div className="alert" role="note" style={{ marginBottom: 12 }}>
+        <p style={{ margin: 0 }}>The law library is the laws themselves: each law's versions, statutory requirements, scope tests, required roles and penalties. Every change is reviewed before it goes live. <strong>Reference data</strong> is the lists the platform uses around the laws: the law matrix rows, the jurisdictions client sites are matched to, and the workbook import and its versions.</p>
+        {can(me, 'manage_reference_data', 'run_law_refresh') && <p style={{ margin: '8px 0 0' }}><Link to="/admin/reference">Open reference data</Link></p>}
+      </div>
+      <p className="small muted" style={{ marginTop: 0 }}>
         {d.last_refresh ? `Last refresh: ${fmtDateTime(d.last_refresh.started_at)} · ${d.last_refresh.open} items open` : 'No refresh has run yet.'}
       </p>
       {flash && <Alert tone="success">{flash}</Alert>}

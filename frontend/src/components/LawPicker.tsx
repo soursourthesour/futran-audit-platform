@@ -76,7 +76,7 @@ export function LawPicker({ presets = [], selectedIds, mode = 'pick', onAdd, onO
                       ) : (
                         <button type="button" onClick={() => onOpen?.(law)} style={{ all: 'unset', cursor: 'pointer', display: 'flex', flex: 1, minHeight: 44 }}>{body}</button>
                       )}
-                      <span className="small muted" style={{ whiteSpace: 'nowrap' }}>{law.feature_label}</span>
+                      <span className="small muted" style={{ maxWidth: '40%', textAlign: 'right', overflowWrap: 'anywhere' }}>{law.feature_label}</span>
                     </div>
                   );
                 })}

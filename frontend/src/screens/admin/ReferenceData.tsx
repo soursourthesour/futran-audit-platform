@@ -1,4 +1,5 @@
-import { Fragment, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
 import { hasRole, useMe } from '@/api/auth';
@@ -24,6 +25,10 @@ export function ReferenceData() {
   return (
     <div className="page">
       <PageHeader title="Reference data" subtitle="The law matrix behind every client's laws in scope. Changes create a new version; laws a client already references are never deleted." />
+      <div className="alert" role="note" style={{ marginBottom: 16 }}>
+        <p style={{ margin: 0 }}>Reference data is the lists the platform uses around the laws: the law matrix rows, the jurisdictions client sites are matched to, the workbook import and its version history. The <strong>law library</strong> holds the laws themselves: each law's versions, statutory requirements, scope tests, required roles and penalties, with every change reviewed before it goes live.</p>
+        <p style={{ margin: '8px 0 0' }}><Link to="/reg">Open the law library</Link></p>
+      </div>
       <div className="pills" role="tablist" aria-label="Reference data sections">
         {tabs.filter((t) => !t.admin || isAdmin).map((t) => (
           <button key={t.id} role="tab" className="pill" aria-selected={tab === t.id} onClick={() => setTab(t.id)}>{t.label}</button>
@@ -39,42 +44,28 @@ export function ReferenceData() {
   );
 }
 
+/** Laws in the matrix. A law opens its own law record page (11-03 F11); an administrator edits the matrix row in the
+ *  side panel instead, with a link to pop the full record out. */
 function LawsTab({ canEdit }: { canEdit: boolean }) {
   const [open, setOpen] = useState<Law | null>(null);
   const [adding, setAdding] = useState(false);
+  const nav = useNavigate();
+  const browse = (
+    <Card title="Browse laws" actions={canEdit ? <Button size="sm" onClick={() => { setOpen(null); setAdding(true); }}>Add a law</Button> : undefined}>
+      <p className="small muted" style={{ marginTop: 0 }}>{canEdit ? 'Select a law to edit its matrix row here, or open its full law record.' : 'Select a law to open its full law record.'}</p>
+      <LawPicker mode="browse" onOpen={(l) => { if (!canEdit) { nav(`/reg/${l.id}`); return; } setAdding(false); setOpen(l); }} presets={[{ value: 'US', label: 'United States — federal', codes: ['US'] }]} />
+    </Card>
+  );
+  if (!canEdit) return browse;
   return (
     <div className="split">
-      <div className="main">
-        <Card title="Browse laws" actions={canEdit ? <Button size="sm" onClick={() => { setOpen(null); setAdding(true); }}>Add a law</Button> : undefined}>
-          <LawPicker mode="browse" onOpen={(l) => { setAdding(false); setOpen(l); }} presets={[{ value: 'US', label: 'United States — federal', codes: ['US'] }]} />
-        </Card>
-      </div>
+      <div className="main">{browse}</div>
       <div className="side">
         {adding && <LawEditor key="new" onDone={() => setAdding(false)} />}
-        {open && !adding && (canEdit ? <LawEditor key={open.id} law={open} onDone={() => setOpen(null)} /> : <LawDetail law={open} />)}
-        {!open && !adding && <Card><EmptyState>Select a law to see its details{canEdit ? ' or edit it' : ''}.</EmptyState></Card>}
+        {open && !adding && <LawEditor key={open.id} law={open} onDone={() => setOpen(null)} />}
+        {!open && !adding && <Card><EmptyState>Select a law to edit it or open its full record.</EmptyState></Card>}
       </div>
     </div>
-  );
-}
-
-function LawDetail({ law }: { law: Law }) {
-  const rows: [string, ReactNode][] = [
-    ['Jurisdiction', law.jurisdiction_name],
-    ['Feature', law.feature_label],
-    ['Type', law.type_text ?? TYPE_LABELS[law.type]],
-    ['Enforcer', law.enforcer],
-    ['When it reaches AI', law.trigger_text],
-    ['Obligations', law.obligations_text ?? law.summary],
-    ['Developments', law.developments_text],
-    ['Most affected', law.most_affected],
-    ['Applies to', law.applies_to === 'developer' ? 'Developers only' : law.applies_to === 'both' ? 'Developers and deployers' : 'Deployers'],
-  ];
-  return (
-    <Card title={law.short_name}>
-      {law.verify_flag && <Alert tone="warn">Part of this entry is marked "verify" in the source: its status or date has not been confirmed from a primary source.</Alert>}
-      <dl className="kv" style={{ marginTop: 12 }}>{rows.filter(([, v]) => v).map(([k, v]) => <Fragment key={k}><dt>{k}</dt><dd>{v}</dd></Fragment>)}</dl>
-    </Card>
   );
 }
 
@@ -116,7 +107,7 @@ function LawEditor({ law, onDone }: { law?: Law; onDone: () => void }) {
     }
   }
   return (
-    <Card title={law ? 'Edit law' : 'Add a law'}>
+    <Card title={law ? `Edit ${law.short_name}` : 'Add a law'} actions={law ? <Link className="btn btn-sm" to={`/reg/${law.id}`}>Open the full law record</Link> : undefined}>
       <form className="stack" onSubmit={save} noValidate>
         {err && <Alert tone="danger">{err}</Alert>}
         <p className="small muted">Saving creates a new version of the law matrix. The previous text stays on record.</p>
@@ -327,7 +318,7 @@ function LawUpdatesMoved() {
   return (
     <Card title="Law updates">
       <div className="stack">
-        <p style={{ margin: 0 }}>Claude law updates now run from <strong>Regulatory master › Refresh and review</strong>, with a review queue, second review for low-confidence and new-law changes, a schedule and a cost log. Earlier runs are listed there too.</p>
+        <p style={{ margin: 0 }}>Claude law updates now run from <strong>Law library › Refresh and review</strong>, with a review queue, second review for low-confidence and new-law changes, a schedule and a cost log. Earlier runs are listed there too.</p>
         <div><ButtonLink to="/reg/refresh" variant="primary">Open refresh and review</ButtonLink></div>
       </div>
     </Card>
