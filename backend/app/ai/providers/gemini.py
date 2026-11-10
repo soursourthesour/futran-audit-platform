@@ -9,13 +9,18 @@
 - Web research: the same endpoint with `tools: [{"google_search": {}}]` (Grounding with Google Search). The pages it
   used are `candidates[0].groundingMetadata.groundingChunks[].web.uri` and the queries it ran are
   `groundingMetadata.webSearchQueries`. Grounding has no domain filter, so the allowlist is written into the prompt and
-  the refresh pipeline still marks anything off the allowlist as low confidence. Chunk URIs can be Google redirect links
-  rather than the publisher's page; such a link never matches an allowlisted page, so those changes stay low confidence.
+  the refresh pipeline still marks anything off the allowlist as low confidence. Chunk URIs are usually Google redirect
+  links (`https://vertexaisearch.cloud.google.com/grounding-api-redirect/...`) rather than the publisher's page.
+  `resolve_redirect` asks that host once per link, without following the redirect and without the API key, and reads the
+  `Location` header, so the cited page is the publisher's and the allowlist check works as for the other providers. When
+  that fails the chunk's `web.title` (normally the publisher's domain) stands in as `https://<domain>`.
 - Model names at the time of writing (ai.google.dev/gemini-api/docs/generate-content/latest-model and the grounding
   guide, 10 November 2026): gemini-4-argon, gemini-3.8-flash. The model is free text, so a newer name works.
 
 Tested only against httpx.MockTransport. Live calls are untested until the first real connection.
 """
+from urllib.parse import urlparse
+
 import httpx
 
 from app.ai.client import AIError, AIReply
@@ -23,6 +28,45 @@ from app.ai.providers.base import HttpProvider, SearchReply, bare_domains, reply
 
 GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta"
 DECLINED = {"SAFETY", "RECITATION", "PROHIBITED_CONTENT", "BLOCKLIST", "SPII"}
+REDIRECT_HOST = "vertexaisearch.cloud.google.com"
+REDIRECT_TIMEOUT = httpx.Timeout(5.0)
+MAX_REDIRECTS_RESOLVED = 20
+
+
+def is_redirect(uri: str) -> bool:
+    p = urlparse(uri)
+    return p.scheme == "https" and (p.hostname or "").lower() == REDIRECT_HOST and p.path.startswith("/grounding-api-redirect/")
+
+
+def _target(location: str | None) -> str | None:
+    p = urlparse(location or "")
+    if p.scheme not in ("http", "https") or not p.hostname or p.hostname.lower() == REDIRECT_HOST:
+        return None
+    return location
+
+
+def resolve_redirect(uri: str, transport: httpx.BaseTransport | None = None) -> str | None:
+    """The page a grounding redirect points at, read from its Location header, or None. Only the redirect host is asked;
+    the redirect is never followed, no API key or other credential is sent, and the timeout is short."""
+    if not is_redirect(uri):
+        return None
+    try:
+        with httpx.Client(transport=transport, timeout=REDIRECT_TIMEOUT, follow_redirects=False) as http:
+            r = http.head(uri)
+            if not r.is_redirect:  # some redirectors refuse HEAD: ask with GET, still without following
+                with http.stream("GET", uri) as r:
+                    return _target(r.headers.get("location")) if r.is_redirect else None
+            return _target(r.headers.get("location"))
+    except httpx.HTTPError:
+        return None
+
+
+def _title_page(title: str | None) -> str | None:
+    """Gemini's chunk title is normally the publisher's domain; it stands in when a redirect cannot be resolved."""
+    t = (title or "").strip().lower().rstrip(".")
+    if not t or " " in t or "." not in t or "/" in t:
+        return None
+    return _target(f"https://{t}")
 
 
 class GeminiProvider(HttpProvider):
@@ -81,8 +125,16 @@ class GeminiProvider(HttpProvider):
         data, cand, text = self._call(body)
         meta = cand.get("groundingMetadata") or {}
         cited: dict[str, list[str]] = {}
+        resolved = 0
         for chunk in meta.get("groundingChunks") or []:
-            uri = ((chunk or {}).get("web") or {}).get("uri") if isinstance(chunk, dict) else None
+            web = ((chunk or {}).get("web") or {}) if isinstance(chunk, dict) else {}
+            uri = web.get("uri")
+            if uri and is_redirect(uri):
+                page = None
+                if resolved < MAX_REDIRECTS_RESOLVED:
+                    resolved += 1
+                    page = resolve_redirect(uri, self.transport)
+                uri = page or _title_page(web.get("title")) or uri
             if uri:
                 cited.setdefault(uri, [])
         i, o = self._tokens(data)

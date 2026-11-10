@@ -227,3 +227,51 @@ def test_connection_config_and_providers_keep_the_key_out_of_their_repr():
     for p in providers:
         assert SECRET not in repr(p) and SECRET not in str(p), type(p).__name__
         assert p.model in repr(p)
+
+
+# ---- Gemini's grounding chunks are Google redirect links; the platform resolves them to the publisher's page
+REDIRECT = "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQabc123"
+
+
+def test_gemini_search_resolves_redirect_chunks_without_following_them_or_sending_the_key():
+    from app.ai.providers.gemini import GeminiProvider
+
+    grounding = {"webSearchQueries": ["q"], "groundingChunks": [{"web": {"uri": REDIRECT, "title": "ilga.gov"}},
+                                                               {"web": {"uri": "https://www.ftc.gov/x", "title": "ftc.gov"}}]}
+    seen = []
+
+    def handler(request):
+        seen.append(request)
+        if request.url.host == "vertexaisearch.cloud.google.com":
+            return httpx.Response(302, headers={"Location": "https://www.ilga.gov/legislation/publicacts/fulltext.asp?Name=104-0001"})
+        if request.url.host == "www.ilga.gov":
+            raise AssertionError("the redirect must not be followed")
+        return httpx.Response(200, json=gemini_reply("Illinois amended it.", grounding=grounding))
+
+    r = GeminiProvider(api_key=SECRET, model="gemini-test", transport=httpx.MockTransport(handler)).search(system="s", prompt="p", allowed_domains=["ilga.gov"])
+    assert r.cited == {"https://www.ilga.gov/legislation/publicacts/fulltext.asp?Name=104-0001": [], "https://www.ftc.gov/x": []}
+    resolve = [q for q in seen if q.url.host == "vertexaisearch.cloud.google.com"]
+    assert len(resolve) == 1 and str(resolve[0].url) == REDIRECT
+    assert "x-goog-api-key" not in resolve[0].headers and SECRET not in str(resolve[0].headers) and SECRET not in str(resolve[0].url)
+    assert not [q for q in seen if q.url.host == "www.ftc.gov"]  # only the redirect host is ever asked
+
+
+@pytest.mark.parametrize("outcome", ["timeout", "no_location", "error", "loop"])
+def test_gemini_search_falls_back_to_the_chunk_title_when_a_redirect_cannot_be_resolved(outcome):
+    from app.ai.providers.gemini import GeminiProvider
+
+    grounding = {"groundingChunks": [{"web": {"uri": REDIRECT, "title": "ilga.gov"}}]}
+
+    def handler(request):
+        if request.url.host == "vertexaisearch.cloud.google.com":
+            if outcome == "timeout":
+                raise httpx.ReadTimeout("slow", request=request)
+            if outcome == "error":
+                return httpx.Response(500)
+            if outcome == "loop":
+                return httpx.Response(302, headers={"Location": REDIRECT + "x"})
+            return httpx.Response(200, text="no redirect")
+        return httpx.Response(200, json=gemini_reply("Illinois amended it.", grounding=grounding))
+
+    r = GeminiProvider(api_key=SECRET, model="gemini-test", transport=httpx.MockTransport(handler)).search(system="s", prompt="p", allowed_domains=["ilga.gov"])
+    assert r.cited == {"https://ilga.gov": []}
