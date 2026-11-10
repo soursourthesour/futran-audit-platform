@@ -20,8 +20,8 @@ const HELP = {
     <>
       Off by default. When on, the daily run (10:00 UTC, which is 05:00 New York in winter and 06:00 in summer, or the first time the app is open
       after that) runs the scan once this many days have passed since the last completed scan.
-      Each scan looks at what changed since the one before. The first after switching it on looks back to that moment, or 30 days, whichever is
-      shorter; Run now while it is off looks back 30 days at most. It opens an opportunity, once per client and reason, for
+      Each scan looks at what changed since the one before. The first after switching it on, and Run now while it is off, look back
+      30 days at most. It opens an opportunity, once per client and reason, for
       laws added or changed in the law library that apply to the client, regulatory updates published and matched to the client, and renewal audits due
       within 90 days where no annual review has been started. Offers to current audit clients still need Chief Auditor approval, and Futran never sells the
       fix for a finding it raised.

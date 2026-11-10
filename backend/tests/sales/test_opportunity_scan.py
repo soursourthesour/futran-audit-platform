@@ -156,10 +156,11 @@ def test_only_changes_since_the_last_scan_count(db, world, settings):
     assert sorted(o.trigger_ref for o in _mine(db, "law_change")) == sorted([f"lawver:{world['version'].id}", f"lawver:{v2.id}"])
 
 
-def test_first_run_looks_back_to_when_the_scan_was_switched_on_or_30_days(db, world, settings):
-    """11-10 review O4: a long custom interval no longer floods the list on the first scan."""
-    scan.set_interval(db, world["admin"], 7, now=NOW - timedelta(days=3))
-    assert scan.run_now(db, world["admin"], now=NOW).since == NOW - timedelta(days=3)
+def test_first_run_looks_back_30_days_even_just_after_switching_on(db, world, settings):
+    """11-10 review O4: a long custom interval no longer floods the list on the first scan, and switching the scan on
+    then pressing "Run now" still finds the last month's changes (a user testing the feature sees it work)."""
+    scan.set_interval(db, world["admin"], 7, now=NOW - timedelta(minutes=1))
+    assert scan.run_now(db, world["admin"], now=NOW).since == NOW - timedelta(days=30)
 
 
 def test_first_run_after_a_long_time_switched_on_looks_back_30_days(db, world, settings):
@@ -167,10 +168,10 @@ def test_first_run_after_a_long_time_switched_on_looks_back_30_days(db, world, s
     assert scan.run_now(db, world["admin"], now=NOW).since == NOW - timedelta(days=30)
 
 
-def test_changing_the_interval_keeps_when_it_was_switched_on(db, world, settings):
+def test_changing_the_interval_does_not_change_the_first_lookback(db, world, settings):
     scan.set_interval(db, world["admin"], 7, now=NOW - timedelta(days=3))
     scan.set_interval(db, world["admin"], 15, now=NOW - timedelta(days=1))
-    assert scan.run_now(db, world["admin"], now=NOW).since == NOW - timedelta(days=3)
+    assert scan.run_now(db, world["admin"], now=NOW).since == NOW - timedelta(days=30)
 
 
 def test_run_now_while_off_looks_back_30_days_at_most(db, world, settings):
@@ -179,11 +180,16 @@ def test_run_now_while_off_looks_back_30_days_at_most(db, world, settings):
     assert scan.run_now(db, world["admin"], now=NOW + timedelta(days=95)).since == NOW + timedelta(days=90)  # since the last scan
 
 
-def test_the_first_scan_after_switching_on_again_starts_from_then(db, world, settings):
+def test_the_first_scan_after_switching_on_again_looks_back_30_days_at_most(db, world, settings):
     scan.run_now(db, world["admin"], now=NOW - timedelta(days=100))
     scan.set_interval(db, world["admin"], 30, now=NOW - timedelta(days=2))
-    assert scan.run_now(db, world["admin"], now=NOW).since == NOW - timedelta(days=2)
+    assert scan.run_now(db, world["admin"], now=NOW).since == NOW - timedelta(days=30)
     assert scan.run_now(db, world["admin"], now=NOW + timedelta(days=1)).since == NOW  # then since the last scan
+
+def test_a_recent_scan_while_off_is_where_the_next_one_starts(db, world, settings):
+    scan.run_now(db, world["admin"], now=NOW - timedelta(days=5))
+    scan.set_interval(db, world["admin"], 30, now=NOW - timedelta(days=2))
+    assert scan.run_now(db, world["admin"], now=NOW).since == NOW - timedelta(days=5)
 
 
 def test_first_run_with_a_long_interval_does_not_backfill_a_year(db, world):

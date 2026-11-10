@@ -173,15 +173,16 @@ def run_scan(db: Session, *, trigger: str, actor: User | None, now: datetime | N
 
 
 def _since(db: Session, now: datetime) -> datetime:
-    """Changes after the last completed scan count. The first scan after the setting is switched on looks back no
-    further than that moment, or 30 days, whichever is shorter; "Run now" while it is off looks back 30 days at most."""
+    """Changes after the last completed scan count. The first scan after the setting is switched on, and "Run now"
+    while it is off, look back 30 days at most (or to the last scan, if that was more recent), so a long interval
+    never floods the list and switching the scan on then pressing "Run now" still finds the last month's changes."""
     s = _setting(db)
     last = last_completed(db)
     floor = now - timedelta(days=LOOKBACK_WHEN_OFF)
     on = s.enabled_at if s is not None and s.every_days is not None else None
     if last is not None and s is not None and s.every_days is not None and (on is None or last.started_at >= on):
         return last.started_at
-    return max(x for x in (floor, on, last.started_at if last else None) if x is not None)
+    return max(floor, last.started_at) if last is not None else floor
 
 
 def _execute(db: Session, run: OpportunityScanRun, actor: User | None, request=None) -> None:
