@@ -87,7 +87,7 @@ export function Litigation() {
   return (
     <div className="page">
       <PageHeader title="AI litigation tracker" subtitle="Court cases and decisions that shape how AI laws are read. Use them to explain risk to clients and to see which clients use similar AI. Visible to the Chief Auditor, Auditors and Sales Team; clients receive briefings, not the tracker."
-        actions={canEdit ? <><Link className="btn" to="/reg/refresh?kind=litigation">Refresh with Claude</Link><Button variant="primary" onClick={() => setAdding(true)}>Add case</Button></> : undefined} />
+        actions={canEdit ? <><Link className="btn" to="/reg/refresh?kind=litigation">Refresh with AI</Link><Button variant="primary" onClick={() => setAdding(true)}>Add case</Button></> : undefined} />
       <p className="small muted">
         {lr ? <>Last refresh {fmtDateTime(lr.started_at)} · {lr.open ? <Link to="/reg/refresh?kind=litigation">{lr.open} {lr.open === 1 ? 'update' : 'updates'} waiting for review</Link> : 'nothing waiting for review'}{lr.alert_status ? ` · ${lr.alert_status}` : ''}</> : 'No litigation refresh has run yet.'}
         {canEdit && <> · <Link to="/staff/alerts">alert settings</Link></>}

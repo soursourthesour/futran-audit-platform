@@ -165,7 +165,7 @@ test('the Auditor is not sent to a review queue they cannot open', async ({ page
     await expect(page.getByRole('heading', { level: 1, name: 'Law library' })).toBeVisible();
   });
   expect(bad).toEqual([]);
-  await expect(page.getByRole('link', { name: 'Refresh laws with Claude' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Refresh laws with AI' })).toHaveCount(0);
   await expect(page.getByRole('navigation', { name: 'Regulatory master' }).getByRole('link', { name: /Refresh and review/ })).toHaveCount(0);
   const bad2 = await apiErrors(page, async () => {
     await page.goto('/reg/refresh?kind=law');

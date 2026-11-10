@@ -1,0 +1,13 @@
+/* 11-03 F1: the AI provider section of Platform settings */
+.ai-conn > * + * { margin-top: 12px; }
+.ai-conn .kv dd { min-width: 0; overflow-wrap: anywhere; }
+.ai-conn-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; }
+.ai-conn-form .field { min-width: 0; }
+.ai-conn-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; }
+.ai-conn-note { grid-column: 1 / -1; margin: 8px 0 0; }
+@media (max-width: 600px) {
+  .ai-conn-form { grid-template-columns: 1fr; }
+  .ai-conn .kv { grid-template-columns: 1fr; gap: 2px 0; }
+  .ai-conn .kv dd { margin-bottom: 10px; }
+  .ai-conn-actions .btn { flex: 1 1 100%; min-height: 44px; }
+}

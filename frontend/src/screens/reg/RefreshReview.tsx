@@ -80,7 +80,7 @@ export function RefreshReview() {
   return (
     <div className="page">
       <PageHeader title={kind === 'law' ? 'Refresh laws and review changes' : 'Refresh cases and review updates'}
-        subtitle="Claude only proposes. Nothing changes in the law library, the litigation tracker, client letters or AI system roles until the Chief Auditor approves it." />
+        subtitle="The AI provider only proposes. Nothing changes in the law library, the litigation tracker, client letters or AI system roles until the Chief Auditor approves it." />
       <RegTabs pending={kind === 'law' ? queue.data?.counts.open : undefined} />
       {lawsOk && casesOk && (
         <div className="pills" role="tablist" aria-label="What to review" style={{ margin: '12px 0' }}>
@@ -274,9 +274,9 @@ function RunCard({ kind, lawId, onStarted }: { kind: 'law' | 'litigation'; lawId
   return (
     <Card title="Run a refresh">
       <div className="stack">
-        {!st.enabled && <Alert tone="warn">Refresh is switched off. Add an Anthropic API key (ANTHROPIC_API_KEY) to the server's .env file and restart.</Alert>}
+        {!st.enabled && <Alert tone="warn">Refresh is switched off. Ask the Futran Admin to connect an AI provider in Platform settings.</Alert>}
         {err && <Alert tone="danger">{err}</Alert>}
-        {law.data && <Alert>Checks the geography of {law.data.short_name}. Claude compares every approved law there, so related changes are found too.</Alert>}
+        {law.data && <Alert>Checks the geography of {law.data.short_name}. The AI provider compares every approved law there, so related changes are found too.</Alert>}
         <fieldset className="stack-sm">
           <legend><WithHelp help={H.geographies}>Geographies</WithHelp></legend>
           {[['all', `All ${st.counts.all} geographies`], ['client_geographies', `Only geographies our clients operate in (${st.counts.client_geographies})`], ['chosen', 'Choose geographies']].map(([v, l]) => (
@@ -303,7 +303,7 @@ function RunCard({ kind, lawId, onStarted }: { kind: 'law' | 'litigation'; lawId
           <label className="check"><input type="radio" name={`al-${kind}`} checked={alertMode === 'me'} onChange={() => setAlertMode('me')} /><span>Only me</span></label>
           <Link className="small" to="/staff/alerts">Alert settings</Link>
         </fieldset>
-        <Button variant="primary" block disabled={!st.enabled || busy || (scope === 'chosen' && !codes.length) || !chosen.length} onClick={run}>{busy ? 'Starting…' : 'Run refresh with Claude'}</Button>
+        <Button variant="primary" block disabled={!st.enabled || busy || (scope === 'chosen' && !codes.length) || !chosen.length} onClick={run}>{busy ? 'Starting…' : 'Run refresh with AI'}</Button>
         <p className="small muted" style={{ margin: 0 }}>{st.schedule_enabled ? `Scheduled every ${st.every_days} days${st.next_due ? `, next ${fmtDateTime(st.next_due)}` : ''}` : 'Schedule off'} · cost cap ${st.cost_cap_usd.toFixed(2)} · <button type="button" className="linklike small" onClick={() => setSched(true)}>change</button></p>
       </div>
       {sched && <ScheduleDialog kind={kind} st={st} onClose={() => setSched(false)} />}

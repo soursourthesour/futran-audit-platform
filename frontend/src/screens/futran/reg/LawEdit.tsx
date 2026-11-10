@@ -129,14 +129,14 @@ export function LawEdit() {
       {flash && <Alert tone="success">{flash}</Alert>}
       {err && <Alert tone="danger">{err}</Alert>}
       {!lawId && (
-        <Card title="Draft with Claude">
-          {!claude && <Alert tone="warn">Drafting with Claude needs an Anthropic API key in settings. Fill the form by hand, or ask an administrator to add the key.</Alert>}
+        <Card title="Draft with AI">
+          {!claude && <Alert tone="warn">Drafting with AI needs an AI provider. Fill the form by hand, or ask the Futran Admin to connect one in Platform settings.</Alert>}
           <div className="row" style={{ alignItems: 'flex-end', gap: 12, flexWrap: 'wrap' }}>
             <div style={{ flex: '1 1 320px' }}><TextField label="Bill number or official link" help={H.draftRef} placeholder="https://leg.colorado.gov/bills/sb26-189" value={ref} onChange={(e) => setRef(e.target.value)} disabled={!claude} /></div>
             <Button disabled={!claude || busy || !ref.trim()} onClick={draft}>{busy ? 'Drafting…' : 'Draft the record'}</Button>
           </div>
-          <p className="small muted">Claude fills the fields below from the official text, with a quote for each requirement. Check every field before sending for approval.</p>
-          {drafted && <Alert tone="info">Drafted by Claude. Every requirement is marked Verify until the Chief Auditor approves it.</Alert>}
+          <p className="small muted">The AI provider fills the fields below from the official text, with a quote for each requirement. Check every field before sending for approval.</p>
+          {drafted && <Alert tone="info">Drafted with AI. Every requirement is marked Verify until the Chief Auditor approves it.</Alert>}
           {warnings.map((w) => <Alert key={w} tone="warn">{w}</Alert>)}
         </Card>
       )}
@@ -191,7 +191,7 @@ export function LawEdit() {
           ))}
         </Card>
         {!lawId && f.requirements.length > 0 && (
-          <Card title={`Requirements drafted by Claude (${f.requirements.length})`}>
+          <Card title={`Requirements drafted with AI (${f.requirements.length})`}>
             <ul className="reg-law-list">{f.requirements.map((r) => <li key={r.code}><strong>{r.code}</strong> {r.text} <Badge tone="warn">Verify</Badge><div className="reg-sub">{r.citation}</div>{r.source_quote && <div className="reg-quote">“{r.source_quote}”</div>}</li>)}</ul>
           </Card>
         )}

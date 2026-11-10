@@ -50,7 +50,7 @@ test.describe.serial('refresh, alerts, litigation, sales and client alerts', () 
     await expect(page.getByRole('heading', { name: 'Refresh laws and review changes' })).toBeVisible();
     await page.getByLabel('Choose geographies').check();
     await page.getByRole('button', { name: 'Illinois', exact: true }).click();
-    await page.getByRole('button', { name: 'Run refresh with Claude' }).click();
+    await page.getByRole('button', { name: 'Run refresh with AI' }).click();
     await expect(page.getByText('The refresh has started.')).toBeVisible();
     const grid = page.getByRole('table', { name: 'Changes waiting for review' });
     await expect(grid.getByText('Test client proposal, not research: litigation note', { exact: false })).toBeVisible({ timeout: 30_000 });

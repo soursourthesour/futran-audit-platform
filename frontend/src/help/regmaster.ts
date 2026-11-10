@@ -24,7 +24,7 @@ export const bulkHelp = {
 export const lawHelp = {
   sourceName: "The name of the page as its publisher titles it, for example “NYC Admin. Code § 20-870” or “DCWP final rule”.",
   sourceKind: "Official: the legislature, regulator or official journal. Secondary: a law firm alert or commentary, useful for context but never the basis of a requirement.",
-  draftRef: 'Paste the bill number or the official legislature or regulator link. Claude reads the official text and fills the form; nothing is saved until you send it for approval.',
+  draftRef: 'Paste the bill number or the official legislature or regulator link. The connected AI provider reads the official text and fills the form; nothing is saved until you send it for approval.',
   region: 'The group the law is listed under in the library.',
   geography: 'The jurisdiction code, for example US-CO, US-NYC, EU or IN.',
   shortName: 'The name auditors use, for example Colorado AI Act.',

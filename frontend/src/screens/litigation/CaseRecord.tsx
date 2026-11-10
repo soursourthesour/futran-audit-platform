@@ -83,7 +83,7 @@ export function CaseRecord() {
               <ul className="tight">{(laws.data ?? []).filter(Boolean).map((l) => <li key={l!.id}>{can(me, 'view_reg_master') ? <Link to={`/reg/${l!.id}`}>{l!.short_name}</Link> : <span>{l!.short_name}</span>} <span className="small muted">{l!.jurisdiction_name}</span></li>)}</ul>
             )}
           </Card>
-          <Card title="Record"><p className="small muted" style={{ margin: 0 }}>Version {c.version} · last checked {fmtDate(c.last_update_on)} · {c.origin === 'claude' ? 'added from a Claude refresh' : c.origin === 'seed' ? 'starter case' : 'added by hand'}</p></Card>
+          <Card title="Record"><p className="small muted" style={{ margin: 0 }}>Version {c.version} · last checked {fmtDate(c.last_update_on)} · {c.origin === 'claude' ? 'added from an AI refresh' : c.origin === 'seed' ? 'starter case' : 'added by hand'}</p></Card>
         </div>
       </div>
       {editing && <CaseForm initial={c} onClose={() => setEditing(false)} onSaved={() => { setEditing(false); refresh(); }} />}

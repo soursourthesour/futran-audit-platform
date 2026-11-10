@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { AIConnection } from './AIConnection';
 import { OpportunityScanSettings } from './OpportunityScanSettings';
 import { api } from '@/api/client';
 import { Alert, Card, Loading, PageHeader } from '@/components/ui';
@@ -19,7 +20,7 @@ export function SettingsScreen() {
               <dt>Sign-in codes (MFA)</dt><dd>{s.mfa_required ? 'Required' : 'Off (test mode)'}</dd>
               <dt>Email</dt><dd>{s.email_mode === 'smtp' ? `Sent through ${s.smtp_host}` : 'Kept in the outbox'}</dd>
               <dt>Data region label</dt><dd>{s.data_region}</dd>
-              <dt>Claude law updates</dt><dd>{s.law_refresh_enabled ? `On (${s.claude_model})` : 'Off — no Anthropic API key set'}</dd>
+              <dt>AI law updates</dt><dd>{s.law_refresh_enabled ? `On (${s.ai_label ?? s.claude_model})` : 'Off — no AI provider connected'}</dd>
               <dt>Session timeouts</dt><dd>{s.session_idle_min} minutes idle · {s.session_max_hours} hours maximum</dd>
               <dt>Default retention</dt><dd>{s.retention_years_default} years after completion</dd>
               <dt>Upload limit</dt><dd>{s.max_upload_mb} MB per file</dd>
@@ -27,6 +28,7 @@ export function SettingsScreen() {
               <dt>Address</dt><dd>{s.base_url}</dd>
             </dl>
           </Card>
+          <AIConnection />
           <OpportunityScanSettings />
         </>
       )}

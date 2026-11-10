@@ -46,7 +46,7 @@ export function LawLibrary() {
       <PageHeader title="Law library"
         subtitle="Every geography with AI rules in force or enacted: scope, statutory requirements, the roles and committees each law requires, and penalties. Feeds client set-up, the intro letter and every AI system's required roles."
         actions={<>
-          {review && <Link className="btn" to="/reg/refresh">Refresh laws with Claude</Link>}
+          {review && <Link className="btn" to="/reg/refresh">Refresh laws with AI</Link>}
           {d.can_edit && <Button variant="primary" onClick={() => nav('/reg/new')}>Add a law</Button>}
         </>} />
       <RegTabs pending={d.kpis.pending} />
@@ -97,7 +97,7 @@ export function LawLibrary() {
         rowActions={(r) => [
           { label: 'Open law record', onSelect: () => nav(`/reg/${r.id}`) },
           ...(d.can_edit ? [{ label: 'Edit details', onSelect: () => nav(`/reg/${r.id}/edit`) }, { label: 'Edit requirements and roles', onSelect: () => nav(`/reg/${r.id}#requirements`) }] : [{ label: 'Suggest a change', onSelect: () => nav(`/reg/${r.id}#suggest`) }]),
-          { label: 'Refresh this law with Claude', onSelect: () => nav(`/reg/refresh?law=${r.id}`) },
+          { label: 'Refresh this law with AI', onSelect: () => nav(`/reg/refresh?law=${r.id}`) },
           { label: 'View version history', onSelect: () => nav(`/reg/${r.id}#history`) },
           ...(d.can_edit && r.status !== 'repealed' ? [{ label: 'Mark repealed or lapsed', danger: true, onSelect: () => setRepeal(r) }] : []),
         ]}
