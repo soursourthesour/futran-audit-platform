@@ -131,7 +131,8 @@ test.describe.serial('refresh, alerts, litigation, sales and client alerts', () 
     await expect(page.frameLocator('iframe[title="Email preview"]').getByText('List every hiring tool that ranks, scores or filters applicants.')).toBeVisible();
     await page.getByRole('dialog').getByRole('button', { name: 'Approve and send' }).click();
     await expect(page.getByText(/1 alert sent/)).toBeVisible();
-    await expect(page.getByText('Nothing is waiting.')).toBeVisible();
+    // the briefing has left the queue; other specs on this server may leave their own alerts waiting
+    await expect(page.getByRole('table', { name: /Waiting: Case briefing: Mobley/ })).toHaveCount(0);
   });
 
   test('S1: the Sales Team works opportunities and is refused audit findings', async ({ page }) => {

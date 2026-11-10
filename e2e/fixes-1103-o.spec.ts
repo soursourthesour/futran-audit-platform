@@ -53,7 +53,7 @@ test('Futran Admin turns on the opportunity scan and runs it now; a change alrea
   await expect(interval).toHaveValue('off'); // off until someone turns it on
   await expect(card.getByText('Not run yet')).toBeVisible();
   await card.getByRole('button', { name: /About Look for new opportunities/ }).click();
-  await expect(page.getByText(/Off by default\. When on, the daily jobs/)).toBeVisible();
+  await expect(page.getByText(/Off by default\. When on, the daily run/)).toBeVisible();
   await page.keyboard.press('Escape');
 
   await interval.selectOption('custom');
