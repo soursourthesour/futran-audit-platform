@@ -128,7 +128,7 @@ def test_new_system_saves_accepted_suggestions_with_their_reason(client, lib, re
     ll144 = find_law(db, "US-NYC", "Local Law 144")
     s = new_system(client, **HIRING, department_id=reg.hr.id, run_location=NYC, regulation_ids=[ll144.id], law_reasons={ll144.id: "Runs in New York City"})
     link = db.scalar(select(RegisterSystemLaw).where(RegisterSystemLaw.register_system_id == s["id"]))
-    assert link.source == "suggested" and link.reason == "Runs in New York City"
+    assert link.source == "suggested" and link.reason.startswith("Runs in New York City")  # the server's reason
 
 
 def test_existing_system_without_geography_keeps_its_laws_and_old_suggestions(client, lib, reg, db):

@@ -26,7 +26,7 @@ class LawIn(BaseModel):
     regulation_id: str
     reason: str | None = None
     source: str | None = None  # "suggested" when the user accepted a suggestion
-    suggestion_reason: str | None = None
+    suggestion_reason: str | None = None  # ignored: the server works the reason out again
 
 
 class GoLiveIn(BaseModel):
@@ -154,11 +154,17 @@ def post_register(data: dict, actor: Actor = Depends(current_actor), db: Session
     laws = data.get("regulation_ids") or []
     if laws:
         check(db, actor, Action.ADD_SYSTEM_LAW, department_id=v.get("department_id"))
+    if v.get("_accept"):
+        check(db, actor, Action.ADD_SYSTEM_LAW, department_id=v.get("department_id"))
     s = svc.create_system(db, actor.user, org, data, cleaned=v)
+    # a law sent with a reason was accepted from the suggestions: it is checked against the server's suggestions and
+    # saved with the server's reason (review R5); the others were picked from the law library
     reasons = data.get("law_reasons") if isinstance(data.get("law_reasons"), dict) else {}
+    suggested = [rid for rid in laws if isinstance(rid, str) and rid in reasons]
+    svc.accept_suggestions(db, actor.user, s, suggested)
     for rid in laws:
-        why = reasons.get(rid) if isinstance(rid, str) else None
-        svc.add_law(db, actor.user, s, rid, source="suggested" if isinstance(why, str) and why.strip() else "manual", suggestion_reason=why if isinstance(why, str) else None)
+        if rid not in suggested:
+            svc.add_law(db, actor.user, s, rid)
     if isinstance(data.get("history_answers"), dict):
         from app.register.history import answer_questions
 
@@ -176,6 +182,8 @@ def patch_system(system_id: str, data: dict, request: Request, actor: Actor = De
     s = load(db, actor, system_id)
     check(db, actor, Action.EDIT_REGISTER, s)
     check_edit_payload(db, actor, data, s)
+    if data.get("accept_suggested_law_ids"):
+        check(db, actor, Action.ADD_SYSTEM_LAW, s)
     reason = " ".join(str(data.get("reason") or "").split()) or None
     svc.update_system(db, actor.user, s, {k: v for k, v in data.items() if k != "reason"}, reason=reason, settings=request.app.state.settings)
     return system_out(db, s, actor, full=True)
@@ -215,7 +223,10 @@ def get_changes(system_id: str, actor: Actor = Depends(current_actor), db: Sessi
 def post_law(system_id: str, body: LawIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     s = load(db, actor, system_id)
     check(db, actor, Action.ADD_SYSTEM_LAW, s)
-    svc.add_law(db, actor.user, s, body.regulation_id, reason=body.reason, source="suggested" if body.source == "suggested" else "manual", suggestion_reason=body.suggestion_reason)
+    if body.source == "suggested":  # the reason is the server's, worked out again now (review R5)
+        svc.accept_suggestions(db, actor.user, s, [body.regulation_id], reason=body.reason)
+    else:
+        svc.add_law(db, actor.user, s, body.regulation_id, reason=body.reason)
     return system_out(db, s, actor, full=True)
 
 

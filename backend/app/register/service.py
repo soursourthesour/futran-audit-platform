@@ -59,7 +59,7 @@ FIELD_LABELS = {
     "decision_impact": "Effect on decisions about people", "risk_tier": "Risk tier", "company_wide": "Company-wide", "bias_next_due": "Next bias test due",
     "data_categories": "Data used", "data_subjects": "Whose data", "consent_basis": "Consent or lawful basis", "consent_ref": "Consent date or version",
     "consent_evidence_id": "Consent evidence", "retention_period": "Retention period", "cross_border": "Data leaves the country", "actions": "Actions and tools", "laws": "Laws that apply",
-    "created": "Added to the register", "department_ids": "Used by departments", "user_selection": "Users chosen",
+    "created": "Added to the register", "department_ids": "Used by departments", "law_suggestions": "Suggested laws", "user_selection": "Users chosen",
     "run_location": "Where it runs", "data_locations": "Where the people whose data it uses are", "evidence": "Evidence", "history": "History log", "retired_reason": "Retirement reason", "go_live": "Go-live", "history_answers": "History questions",
 }
 SYSTEM_FIELDS = ("name", "type", "sourcing", "department_id", "stage", "purpose", "users_scope", "users_description", "user_count", "owner_user_id", "vendor_id", "ai_provider",
@@ -329,12 +329,14 @@ def clean(db: Session, org: Organization, data: dict, current: RegisterSystem | 
         sel = out.get("user_selection", current.user_selection if current else None)
         if sel is not None or "user_selection" in out:
             out["user_selection"] = _for_scope(scope, sel)
-    if "dismissed_law_ids" in data:
-        v = data.get("dismissed_law_ids") or []
-        if not isinstance(v, list) or len(v) > 500 or not all(isinstance(x, str) for x in v):
-            errs.append({"field": "dismissed_law_ids", "message": "Choose suggestions from the list."})
-        else:
-            out["dismissed_law_ids"] = list(dict.fromkeys(v)) or None
+    # suggestion decisions are operations (review R5): dismiss_law_ids adds to the removed suggestions, undismiss_law_ids
+    # brings them back. dismissed_law_ids (the new-system form, and older pages) is read as dismiss_law_ids.
+    for key, target in (("dismissed_law_ids", "_dismiss"), ("dismiss_law_ids", "_dismiss"), ("undismiss_law_ids", "_undismiss"),
+                        ("accept_suggested_law_ids", "_accept")):
+        if key in data:
+            ids = _law_ids(db, data.get(key), key, errs)
+            if ids:
+                out[target] = list(dict.fromkeys([*out.get(target, []), *ids]))
     if "actions" in data and data["actions"] is not None:
         acts = data["actions"]
         if not isinstance(acts, list) or not all(isinstance(a, dict) and a.get("action_code") in ACTION_CODES for a in acts):
@@ -356,6 +358,23 @@ def clean(db: Session, org: Organization, data: dict, current: RegisterSystem | 
         raise Invalid(errors=errs)
     if out.get("stage") == "live" and (current is None or current.stage != "live"):
         raise Conflict("Live needs the Chief AI Compliance Officer's approval. Use Submit for go-live approval.")
+    return out
+
+
+def _law_ids(db: Session, v, field: str, errs: list) -> list[str]:
+    """Laws from the law library, as the ids of their newest versions."""
+    if v in (None, "", []):
+        return []
+    if not isinstance(v, list) or len(v) > 500 or not all(isinstance(x, str) for x in v):
+        errs.append({"field": field, "message": "Choose suggestions from the list."})
+        return []
+    out = []
+    for i in dict.fromkeys(v):
+        r = current_regulation(db, i)
+        if r is None:
+            errs.append({"field": field, "message": "Choose suggestions from the list."})
+            return []
+        out.append(r.id)
     return out
 
 
@@ -551,8 +570,10 @@ def create_system(db: Session, actor: User, org: Organization, data: dict, *, or
     s = RegisterSystem(organization_id=org.id, reference=next_reference(db, org.id), origin=origin, created_by=actor.id, updated_by=actor.id,
                        vendor_documents=[], source_refs=[], history_answers={}, company_wide=False, name=v.get("name"), type=v.get("type"), sourcing=v.get("sourcing"))
     db.add(s)
+    decisions = _pop_decisions(v)
     _write(db, actor, org, s, v)
     log_change(db, actor, s, "created", None, f"{s.reference} {s.name}", reason, raw=True)
+    suggestion_decisions(db, actor, s, decisions, reason)
     _remember_model(db, actor, s)
     _engine_facts_changed(db, s)
     audit.record(db, actor_id=actor.id, action="register.create", obj=s, after={"name": s.name, "reference": s.reference, "stage": s.stage, "origin": origin},
@@ -569,8 +590,10 @@ def update_system(db: Session, actor: User, s: RegisterSystem, data: dict, *, re
         v.pop("name")
     before = _snapshot(db, s)
     tier_before = s.risk_tier
+    decisions = _pop_decisions(v)
     _write(db, actor, org, s, v)
     s.updated_by = actor.id
+    suggestion_decisions(db, actor, s, decisions, reason, batch_id=batch_id)
     after = _snapshot(db, s)
     changed = {k: (before[k], after[k]) for k in after if before.get(k) != after[k]}
     for k, (old, new) in changed.items():
@@ -592,6 +615,54 @@ def update_system(db: Session, actor: User, s: RegisterSystem, data: dict, *, re
         audit.record(db, actor_id=actor.id, action="register.edit", obj=s, before={k: display(db, k, o) for k, (o, _) in changed.items()},
                      after={k: display(db, k, n) for k, (_, n) in changed.items()} | ({"reason": reason} if reason else {}), summary=f"Edited {s.reference} {s.name}")
     return changed
+
+
+def _pop_decisions(v: dict) -> dict:
+    return {k: v.pop(k) for k in ("_dismiss", "_undismiss", "_accept") if k in v}
+
+
+def suggestion_decisions(db: Session, actor: User, s: RegisterSystem, decisions: dict, reason: str | None, *, batch_id: str | None = None) -> None:
+    """Remove or restore suggested laws, then accept suggestions (review R5). Each decision is in the change history. The
+    accepted ones are worked out again here, from the saved system, after the rest of the edit is written."""
+    if not decisions:
+        return
+    from app.laws.models import Regulation
+
+    dismissed = list(s.dismissed_law_ids or [])
+    current = {r.id for r in (current_regulation(db, i) for i in dismissed) if r is not None}
+    for rid in decisions.get("_dismiss", []):
+        if rid in current:
+            continue
+        dismissed.append(rid)
+        current.add(rid)
+        name = db.get(Regulation, rid).short_name
+        log_change(db, actor, s, "law_suggestions", None, f"Removed suggestion {name}", reason, entity="Regulation", entity_id=rid, batch_id=batch_id, raw=True)
+        audit.record(db, actor_id=actor.id, action="register.suggestion_dismiss", obj=s, after={"regulation": name}, summary=f"Removed the suggestion {name} from {s.reference} {s.name}")
+    for rid in decisions.get("_undismiss", []):
+        if rid not in current:
+            continue
+        dismissed = [i for i in dismissed if getattr(current_regulation(db, i), "id", i) != rid]
+        current.discard(rid)
+        name = db.get(Regulation, rid).short_name
+        log_change(db, actor, s, "law_suggestions", f"Removed suggestion {name}", f"Restored suggestion {name}", reason, entity="Regulation", entity_id=rid, batch_id=batch_id, raw=True)
+        audit.record(db, actor_id=actor.id, action="register.suggestion_restore", obj=s, after={"regulation": name}, summary=f"Restored the suggestion {name} on {s.reference} {s.name}")
+    s.dismissed_law_ids = dismissed or None
+    db.flush()
+    if decisions.get("_accept"):
+        accept_suggestions(db, actor, s, decisions["_accept"], reason=reason, batch_id=batch_id)
+
+
+def accept_suggestions(db: Session, actor: User, s: RegisterSystem, regulation_ids: list[str], *, reason: str | None = None, batch_id: str | None = None) -> None:
+    """Add suggested laws with the reason the server gives now. A law the server does not suggest for this system is refused."""
+    have = {r.id for r in (current_regulation(db, link.regulation_id) for link in law_links(db, s)) if r is not None}
+    wanted = [r.id for r in (current_regulation(db, i) for i in regulation_ids) if r is not None and r.id not in have]
+    if not wanted:
+        return
+    now = {x["regulation_id"]: x["reason"] for x in suggested_laws(db, s)}
+    if any(i not in now for i in wanted):
+        raise Invalid(errors=[{"field": "regulation_id", "message": "This law is no longer suggested for the system. Save the places first, or add it from the law library."}])
+    for i in wanted:
+        add_law(db, actor, s, i, source="suggested", reason=reason, batch_id=batch_id, suggestion_reason=now[i])
 
 
 def _remember_model(db: Session, actor: User | None, s: RegisterSystem) -> None:
