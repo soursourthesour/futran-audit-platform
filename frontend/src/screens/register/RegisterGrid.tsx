@@ -228,6 +228,7 @@ export function RetireDialog({ s, onClose, onDone }: { s: RegSystem; onClose: ()
 function CsvImport({ onClose, onDone }: { onClose: () => void; onDone: (m: string) => void }) {
   const [file, setFile] = useState<File | null>(null);
   const [errors, setErrors] = useState<{ row: number; field: string; message: string }[]>([]);
+  const [warnings, setWarnings] = useState<string[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   async function go() {
@@ -236,8 +237,10 @@ function CsvImport({ onClose, onDone }: { onClose: () => void; onDone: (m: strin
     const fd = new FormData();
     fd.append('file', file);
     try {
-      const r = await api.upload<{ created: number; errors: { row: number; field: string; message: string }[] }>('/register/import', fd);
-      if (r.errors.length) setErrors(r.errors); else onDone(`${r.created} AI system${r.created === 1 ? '' : 's'} imported.`);
+      const r = await api.upload<{ created: number; errors: { row: number; field: string; message: string }[]; warnings?: { message: string }[] }>('/register/import', fd);
+      const notes = (r.warnings ?? []).map((w) => w.message);
+      setWarnings(notes);
+      if (r.errors.length) setErrors(r.errors); else onDone(`${r.created} AI system${r.created === 1 ? '' : 's'} imported.${notes.length ? ` ${notes.join(' ')}` : ''}`);
     } catch (e) { setErr(errorMessage(e)); } finally { setBusy(false); }
   }
   return (
@@ -250,7 +253,8 @@ function CsvImport({ onClose, onDone }: { onClose: () => void; onDone: (m: strin
           <FieldHelp label="Import template">{H.importTemplate}</FieldHelp>
         </div>
         {err && <Alert tone="danger">{err}</Alert>}
-        <TextField label="CSV or Excel file" help={H.importFile} type="file" accept=".csv,text/csv,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={(e) => { setFile(e.target.files?.[0] ?? null); setErrors([]); }} />
+        <TextField label="CSV or Excel file" help={H.importFile} type="file" accept=".csv,text/csv,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={(e) => { setFile(e.target.files?.[0] ?? null); setErrors([]); setWarnings([]); }} />
+        {errors.length > 0 && warnings.length > 0 && <Alert tone="info">{warnings.join(' ')}</Alert>}
         {errors.length > 0 && (
           <div className="stack-sm">
             <Alert tone="danger">{errors.length} problem{errors.length === 1 ? '' : 's'} found. Fix them in the file and import it again.</Alert>

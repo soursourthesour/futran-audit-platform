@@ -132,7 +132,7 @@ def test_missing_required_column_is_a_header_error(client, db, reg):
     assert body["created"] == 0 and body["errors"][0]["row"] == 1 and "Type" in body["errors"][0]["message"]
 
 
-def test_unknown_column_is_reported(client, db, reg):
+def test_unknown_column_is_ignored_with_a_warning(client, db, reg):
     reg.as_(reg.hr_lead)
     body = _upload(client, "systems.csv", ("Name *,Type *,Built or bought *,Department *,Colour\nX,AI agent,Bought from vendor,Human Resources,Red\n").encode())
-    assert body["created"] == 0 and "Colour" in body["errors"][0]["message"]
+    assert body["created"] == 1 and body["errors"] == [] and "Colour" in body["warnings"][0]["message"]

@@ -215,9 +215,11 @@ def _key(h: str) -> str:
     return " ".join(str(h or "").replace("*", " ").split()).casefold()
 
 
-def parse_import(db: Session, org: Organization, text_or_rows, editable_depts: set[str] | None, *, can_add_law: bool = True) -> tuple[list[tuple[int, dict]], list[dict]]:
+def parse_import(db: Session, org: Organization, text_or_rows, editable_depts: set[str] | None, *, can_add_law: bool = True,
+                 warnings: list[dict] | None = None) -> tuple[list[tuple[int, dict]], list[dict]]:
     """Rows as create payloads, and every error with its row number. Rows are checked with the same validation as the form.
-    Columns are found by their header (the 11-03 template's, or the template's before it), in any order."""
+    Columns are found by their header (the 11-03 template's, or the template's before it), in any order. A column that is
+    not in the template (a note column added to an old file) is ignored, with a warning added to `warnings`."""
     errors: list[dict] = []
     try:
         rows = list(csv.reader(io.StringIO(text_or_rows.lstrip("\ufeff")))) if isinstance(text_or_rows, str) else text_or_rows
@@ -234,7 +236,9 @@ def parse_import(db: Session, org: Organization, text_or_rows, editable_depts: s
             continue
         c = by_key.get(_key(h)) or by_key.get(h.strip().lower())
         if c is None:
-            return [], [{"row": 1, "field": "header", "message": f"'{h}' is not a column of the template. Download the template and copy your rows into it."}]
+            if warnings is not None:
+                warnings.append({"row": 1, "field": h, "message": f"The column '{h}' is not in the template and was ignored."})
+            continue
         found[i] = c
     missing = [c.header.rstrip(" *") for c in cols if c.required and c not in found.values()]
     if missing:
@@ -425,9 +429,10 @@ def _law(db: Session, name: str, head: str, errs: list) -> str | None:
 
 
 def import_csv(db: Session, actor: User, org: Organization, text_or_rows, editable_depts: set[str] | None, *, can_add_law: bool = True) -> dict:
-    rows, errors = parse_import(db, org, text_or_rows, editable_depts, can_add_law=can_add_law)
+    warnings: list[dict] = []
+    rows, errors = parse_import(db, org, text_or_rows, editable_depts, can_add_law=can_add_law, warnings=warnings)
     if errors:
-        return {"created": 0, "errors": errors}
+        return {"created": 0, "errors": errors} | ({"warnings": warnings} if warnings else {})
     for _, payload in rows:
         laws = payload.pop("regulation_ids", [])
         s = svc.create_system(db, actor, org, payload, origin="csv", reason="Imported from CSV")
@@ -435,7 +440,7 @@ def import_csv(db: Session, actor: User, org: Organization, text_or_rows, editab
             svc.add_law(db, actor, s, rid, reason="Imported from CSV")
     if rows:
         audit.record(db, actor_id=actor.id, action="register.csv_import", organization_id=org.id, object_type="RegisterSystem", summary=f"Imported {len(rows)} AI systems from CSV")
-    return {"created": len(rows), "errors": []}
+    return {"created": len(rows), "errors": []} | ({"warnings": warnings} if warnings else {})
 
 
 # ---- import from inventory
