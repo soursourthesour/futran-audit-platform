@@ -1,0 +1,15 @@
+/* 11-03 F8: the opportunity scan section of Platform settings */
+.opp-scan > * + * { margin-top: 12px; }
+.opp-scan-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0 16px; }
+.opp-scan-form .field { flex: 1 1 220px; min-width: 0; }
+.opp-scan-actions { padding-bottom: 16px; }
+
+.opp-scan .kv dd { min-width: 0; overflow-wrap: anywhere; }
+.opp-scan-found { margin: 8px 0 0; padding-left: 18px; }
+.opp-scan-found li + li { margin-top: 6px; }
+@media (max-width: 600px) {
+  .opp-scan .kv { grid-template-columns: 1fr; gap: 2px 0; }
+  .opp-scan .kv dd { margin-bottom: 10px; }
+  .opp-scan-actions { width: 100%; }
+  .opp-scan-actions .btn { width: 100%; }
+}

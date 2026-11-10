@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { OpportunityScanSettings } from './OpportunityScanSettings';
 import { api } from '@/api/client';
 import { Alert, Card, Loading, PageHeader } from '@/components/ui';
 
@@ -26,6 +27,7 @@ export function SettingsScreen() {
               <dt>Address</dt><dd>{s.base_url}</dd>
             </dl>
           </Card>
+          <OpportunityScanSettings />
         </>
       )}
     </div>

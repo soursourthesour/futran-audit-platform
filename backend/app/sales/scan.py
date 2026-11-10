@@ -5,8 +5,8 @@ have passed since the last completed scan (by date, so a run that starts a few m
 runs it at once. Each scan looks at what changed since the last completed scan (the first one looks back one interval,
 or 30 days when the setting is off) and opens opportunities through `open_from_trigger`, once per client and reference:
 
-- laws added or materially changed in the law library (approved versions) that the scope engine puts the client in
-  scope of;
+- laws added or materially changed in the law library (versions a person approved) that the scope engine puts the
+  client in scope of;
 - regulatory updates published since the last scan that were matched to the client (`RegulatoryAlert`);
 - renewal audits: a client's latest completed engagement reaches its anniversary within 90 days and no annual review or
   newer engagement has been started.
@@ -257,14 +257,16 @@ def _day(d: date | datetime) -> str:
 # ------------------------------------------------------------------ sources
 
 def _law_items(db: Session, since: datetime, now: datetime) -> list[Item]:
-    """(a) The newest version of each law approved in the window, when it is a new law or changes more than wording."""
+    """(a) The newest version of each law a person approved in the window, when it is a new law or changes more than
+    wording. Versions the platform wrote itself (seeding, a matrix re-import carrying content forward) have no
+    approver and are not news."""
     from app.laws.models import Regulation
     from app.laws.publish import chain_ids, current_version_of
     from app.regmaster.engine import law_label
     from app.regmaster.models import ClientLawApplicability, LawVersion, ProposedChange
 
     latest: dict[str, tuple[Regulation, object, list[str]]] = {}
-    for v in db.scalars(select(LawVersion).where(LawVersion.approved_at.is_not(None), LawVersion.approved_at > since, LawVersion.approved_at <= now)
+    for v in db.scalars(select(LawVersion).where(LawVersion.approved_by.is_not(None), LawVersion.approved_at > since, LawVersion.approved_at <= now)
                         .order_by(LawVersion.approved_at)):
         reg = current_version_of(db, v.regulation_id)
         if reg is None or reg.retired_in_version_id is not None:

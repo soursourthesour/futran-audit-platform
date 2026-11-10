@@ -23,7 +23,7 @@ def _ll144(db):
 
 
 def _approve_version(db, reg, at, field_path="law.penalty_text", summary="Penalties raised to $1,500 a day"):
-    v = LawVersion(regulation_id=reg.id, version_no=9, approved_at=at, change_summary=summary)
+    v = LawVersion(regulation_id=reg.id, version_no=9, approved_at=at, approved_by="chief-auditor", change_summary=summary)
     db.add(v)
     db.flush()
     db.add(ProposedChange(change_type="amendment", regulation_id=reg.id, field_path=field_path, summary=summary, status="approved", applied_version_id=v.id, reviewed_at=at))
@@ -169,6 +169,19 @@ def test_laws_out_of_scope_or_changed_only_in_wording_are_not_opportunities(db, 
     reg3 = [r for r in current_regulations(db) if r.id not in (world["reg"].id, reg2.id)][0]
     v3 = _approve_version(db, reg3, NOW - timedelta(days=1), field_path="law.verify_flag", summary="Verified against the official text")
     _in_scope(db, world["nw"], reg3, v3)
+    db.commit()
+    scan.run_now(db, world["admin"], now=NOW)
+    assert [o.organization_id for o in _mine(db, "law_change", "new_law")] == [world["abc"].id]
+
+
+def test_versions_the_platform_wrote_itself_are_not_news(db, world):
+    """Seeding and matrix re-imports stamp approved_at without a reviewer: only a person's approval counts."""
+    reg2 = next(r for r in current_regulations(db) if r.id != world["reg"].id)
+    v2 = LawVersion(regulation_id=reg2.id, version_no=1, approved_at=NOW - timedelta(hours=1), change_summary="Law matrix re-import: content carried forward")
+    db.add(v2)
+    db.flush()
+    reg2.current_version_id = v2.id
+    _in_scope(db, world["nw"], reg2, v2)
     db.commit()
     scan.run_now(db, world["admin"], now=NOW)
     assert [o.organization_id for o in _mine(db, "law_change", "new_law")] == [world["abc"].id]
