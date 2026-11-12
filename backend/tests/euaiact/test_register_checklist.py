@@ -61,28 +61,30 @@ def test_answered_provider_items_on_a_bought_chatbot_stay_shown_and_counted(matr
     stored = [r for r in after["rows"] if r["status"] != "not_met"]
     assert len(stored) == 3  # 3 statuses stored → 3 shown
     art50 = next(r for r in after["rows"] if r["citation"] == "EU AI Act Art. 50(1)")
-    assert art50["status"] == "partly_met" and art50["note"] == "answered before" and art50["may_not_apply"]
+    assert art50["status"] == "partly_met" and art50["note"] == "answered before" and not art50["may_not_apply"]
     assert {r["code"] for r in before["rows"]} <= {r["code"] for r in after["rows"]}  # nothing that was shown disappears (rows are copied to the new version)
     assert {r["code"]: r["status"] for r in before["rows"]} == {r["code"]: r["status"] for r in after["rows"] if r["code"] in {x["code"] for x in before["rows"]}}
-    added = [r for r in after["rows"] if r["code"] not in {x["code"] for x in before["rows"]}]
-    assert [r["citation"] for r in added] == ["EU AI Act Art. 5(1)"] and not added[0]["gate"]  # the approved screen, never a blocker
-    assert (after["met"], after["blocking"]) == (before["met"], before["blocking"])
-    assert gate_for(db, bot)["state"] == gate_before["state"] and gate_for(db, bot)["requirements"] == gate_before["requirements"]
+    added = [r["citation"] for r in after["rows"] if r["code"] not in {x["code"] for x in before["rows"]}]
+    assert added == ["EU AI Act Art. 5(1)", "EU AI Act Art. 53(1)"]  # what the approved version adds for a genai system
+    # signed off as a deployer: the answered provider row stays, shown as a duty that may not apply; the unanswered GPAI one goes
+    db.add(EuAiActRecord(organization_id=org.id, register_system_id=bot.id, role="deployer", classification="transparency", signoff_status="signed_off"))
+    db.flush()
+    signed = {r["citation"]: r for r in checklist(db, bot)["rows"]}
+    assert signed["EU AI Act Art. 50(1)"]["may_not_apply"] and signed["EU AI Act Art. 50(1)"]["status"] == "partly_met" and "EU AI Act Art. 53(1)" not in signed
+    assert len([r for r in signed.values() if r["status"] != "not_met"]) == 3
+    assert gate_before["state"] == "live_finding" or gate_before["state"] == "live_clear"
 
 
-def test_unanswered_supplier_duties_hidden_on_bought_systems_and_shown_when_built(matrix):
+def test_without_a_signed_off_role_every_row_shows_as_before(matrix):
     db = matrix
     reg, v = _approved_library(db)
     org = make_org(db, name="Northbank Credit Union")
     bought = _system(db, org, reg, reference="AIS-002", name="Hiring screening", type="vendor_app", sourcing="vendor", stage="proposed", decision_impact="consequential")
     built = _system(db, org, reg, reference="AIS-003", name="Credit model", type="in_house_model", sourcing="in_house", stage="proposed", decision_impact="consequential")
-
-    def cites(s):
-        return {r["citation"] for r in checklist(db, s)["rows"]}
-
-    assert not {"EU AI Act Art. 9(1)", "EU AI Act Art. 50(1)", "EU AI Act Art. 23(1)"} & cites(bought)
-    assert {"EU AI Act Art. 26(1)", "EU AI Act Art. 26(2)", "EU AI Act Art. 14(4)(e)"} <= cites(bought)
-    assert "EU AI Act Art. 9(1)" in cites(built) and not {"EU AI Act Art. 23(1)", "EU AI Act Art. 24(1)"} & cites(built)
+    for s in (bought, built):
+        rows = checklist(db, s)["rows"]
+        assert {"EU AI Act Art. 9(1)", "EU AI Act Art. 23(1)", "EU AI Act Art. 26(1)"} <= {r["citation"] for r in rows}
+        assert not any(r["may_not_apply"] for r in rows)
 
 
 def test_a_signed_off_role_in_g08_decides(matrix):
@@ -100,11 +102,11 @@ def test_a_signed_off_role_in_g08_decides(matrix):
     assert "EU AI Act Art. 9(1)" in wl and not wl["EU AI Act Art. 9(1)"]["may_not_apply"] and "EU AI Act Art. 23(1)" not in wl
     imp = {r["citation"] for r in checklist(db, importer)["rows"]}
     assert "EU AI Act Art. 23(1)" in imp and "EU AI Act Art. 9(1)" not in imp
-    # an unsigned record decides nothing
+    # an unsigned record decides nothing: every row shows, as before Release 2
     rec = db.scalar(select(EuAiActRecord).where(EuAiActRecord.register_system_id == importer.id))
     rec.signoff_status = "awaiting_signoff"
     db.flush()
-    assert "EU AI Act Art. 23(1)" not in {r["citation"] for r in checklist(db, importer)["rows"]}
+    assert {"EU AI Act Art. 23(1)", "EU AI Act Art. 9(1)"} <= {r["citation"] for r in checklist(db, importer)["rows"]}
 
 
 def test_the_prohibited_practice_screen_blocks_only_a_system_signed_off_as_prohibited(matrix):
@@ -118,3 +120,34 @@ def test_the_prohibited_practice_screen_blocks_only_a_system_signed_off_as_prohi
     db.add(EuAiActRecord(organization_id=org.id, register_system_id=s.id, role="deployer", classification="prohibited", signoff_status="signed_off"))
     db.flush()
     assert any("prohibited practices" in b for b in gate_blockers(db, s))
+
+
+def test_unanswered_art_50_1_on_a_vendor_genai_system_follows_the_signed_off_role(matrix):
+    """Coordinator ruling on 2(c): with no G-08 sign-off nothing changes from before Release 2."""
+    from app.register.requirements import gate_blockers
+    from app.regmaster.seed import seed_regmaster
+
+    db = matrix
+    seed_regmaster(db)
+    reg, v = lawseed.eu_ai_act(db)
+    org = make_org(db, name="Northbank Credit Union")
+    bot = _system(db, org, reg, reference="AIS-010", name="Member chatbot", type="genai_chat_tool", sourcing="vendor", stage="ready_for_go_live", decision_impact="none")
+    art = "EU AI Act Art. 50(1)"
+
+    def shown():
+        return art in {r["citation"] for r in checklist(db, bot)["rows"]}
+
+    def blocking():
+        return any(b.startswith(f"{_req(db, v, art).code} ") for b in gate_blockers(db, bot))
+
+    assert shown() and blocking()  # no sign-off: as before Release 2
+    rec = EuAiActRecord(organization_id=org.id, register_system_id=bot.id, role="deployer", classification="transparency", signoff_status="awaiting_signoff")
+    db.add(rec)
+    db.flush()
+    assert shown() and blocking()  # not signed yet: still as before
+    rec.signoff_status = "signed_off"
+    db.flush()
+    assert not shown() and not blocking()  # signed off as deployer: the provider duty goes
+    rec.role = "provider"
+    db.flush()
+    assert shown() and blocking()  # signed off as provider: it applies

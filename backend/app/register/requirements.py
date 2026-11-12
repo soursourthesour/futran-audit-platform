@@ -51,9 +51,9 @@ def requirements_for(db: Session, s: RegisterSystem) -> list[tuple]:
 
 
 # ---- EU AI Act supplier-side duties (R6b, G-08). Provider, importer and distributor rows apply to whoever builds,
-# imports or distributes a system. The role the legal reviewer signed off in the EU AI Act workspace decides; without
-# one, a system the client built takes provider duties and a bought one does not. A row that already has an answer on
-# the system always stays (shown as "may not apply"), so nothing recorded disappears or stops counting.
+# imports or distributes a system. Until the legal reviewer signs off the system's role in the EU AI Act workspace,
+# every row shows exactly as before Release 2. A signed-off role hides only the unanswered supplier rows it does not
+# carry (a deployer sign-off hides unanswered provider rows); a row with an answer always stays, marked "may not apply".
 SUPPLIER_ROLES = {"provider", "importer", "distributor"}
 SIGNED_ROLE_DUTIES = {"provider": {"provider"}, "product_manufacturer": {"provider"}, "importer": {"importer"}, "distributor": {"distributor"}, "deployer": set()}
 
@@ -75,25 +75,19 @@ def signed_supplier_roles(db: Session, s: RegisterSystem) -> set[str] | None:
     return set(SIGNED_ROLE_DUTIES.get(rec.role, set()))
 
 
-def _default_duties(s: RegisterSystem) -> set[str]:
-    return set() if s.sourcing in BOUGHT else {"provider"}
-
-
 def _supplier_applies(db: Session, s: RegisterSystem, req, signed: set[str] | None) -> bool:
-    duties = signed if signed is not None else _default_duties(s)
-    if set(req.applies_to or []) & duties:
+    if signed is None or set(req.applies_to or []) & signed:  # no signed-off role: unchanged from before Release 2
         return True
     st, _ = _status(db, s, req)
     return st is not None
 
 
 def may_not_apply(db: Session, s: RegisterSystem, req) -> bool:
-    """A supplier-side row shown only because it was answered: a duty that may not apply to this system."""
+    """A supplier-side row kept only because it was answered, on a system whose signed-off role does not carry it."""
     if not supplier_only(req.applies_to):
         return False
     signed = signed_supplier_roles(db, s)
-    duties = signed if signed is not None else _default_duties(s)
-    return not (set(req.applies_to or []) & duties)
+    return signed is not None and not (set(req.applies_to or []) & signed)
 
 
 def _status(db: Session, s: RegisterSystem, req) -> tuple[RequirementStatus | None, bool]:

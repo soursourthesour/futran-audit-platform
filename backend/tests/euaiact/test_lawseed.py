@@ -91,10 +91,9 @@ def test_approving_the_proposal_applies_it_as_a_new_version(matrix):
     assert db.scalar(select(func.count()).select_from(Requirement).where(Requirement.law_version_id == new.id)) == 29
     for o in rules.data()["obligations"]:  # every obligation on the workspace now has a library row
         assert lawseed.library_row(db, o["ref"]) is not None, o["key"]
-    # a bought system takes no unanswered provider, importer or distributor duty; the in-house system takes provider duties only
+    # approved content reaches the systems; which supplier rows apply is decided by the role signed off in G-08
     cites = lambda s: {r["citation"] for r in checklist(db, s)["rows"]}  # noqa: E731
-    assert not {"EU AI Act Art. 9(1)", "EU AI Act Art. 23(1)"} & cites(hiring)
-    assert "EU AI Act Art. 9(1)" in cites(credit) and not {"EU AI Act Art. 23(1)", "EU AI Act Art. 24(1)"} & cites(credit)
+    assert "EU AI Act Art. 9(1)" in cites(credit) and "EU AI Act Art. 9(1)" in cites(hiring)
     assert all("Art. 5(" not in b for b in gate_for(db, chatbot)["requirements"])
     assert lawseed.ensure_requirements(db)["proposed"] == []
 
