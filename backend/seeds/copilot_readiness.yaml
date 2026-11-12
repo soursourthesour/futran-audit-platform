@@ -1,0 +1,13 @@
+# G-07 Copilot readiness: the controls checklist a new workspace starts with (spec B6 "Copilot readiness" template:
+# Microsoft's Pilot / Deploy / Operate oversharing blueprint mapped to checks). Data, not code. When the engagement's
+# service template (G-06) lists its own checklist, that list is used instead.
+controls:
+  - {key: oversharing_report, phase: pilot, label: "Oversharing report reviewed (evidence attached)"}
+  - {key: audit_logging, phase: pilot, label: "Audit logging on for Copilot"}
+  - {key: usage_policy, phase: pilot, label: "Copilot usage policy approved"}
+  - {key: pilot_group, phase: pilot, label: "Pilot group defined"}
+  - {key: dlp, phase: deploy, label: "DLP for Copilot on labelled content"}
+  - {key: restricted_discovery, phase: deploy, label: "Restricted content discovery on high-risk sites"}
+  - {key: label_coverage, phase: deploy, label: "Sensitivity label coverage above target"}
+  - {key: training, phase: deploy, label: "User training (EU staff: AI literacy)"}
+  - {key: register_entry, phase: operate, label: "Copilot added to AI register with roles"}
