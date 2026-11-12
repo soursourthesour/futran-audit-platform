@@ -1,7 +1,7 @@
 """R6a review fixes: DiscoveryImport.unmatched_count and ServiceTemplateVersion.editor_ids (nullable columns only).
 
 Revision ID: 3da8dc91be8a
-Revises: 54201ee2ce56
+Revises: 6520a93f8d1e
 Create Date: 2026-11-11 23:50:25.468009
 """
 from alembic import op
@@ -9,7 +9,7 @@ import sqlalchemy as sa
 
 
 revision = '3da8dc91be8a'
-down_revision = '54201ee2ce56'
+down_revision = '6520a93f8d1e'
 branch_labels = None
 depends_on = None
 
