@@ -122,3 +122,10 @@ def test_convert_calls_the_proposal_builder(client, db, seeded, staff, opp, monk
     r = client.post(f"{API}/{e['id']}/convert")
     assert r.status_code == 200 and r.json()["proposal_id"] == "prop-1" and calls == [(e["id"], staff["sales"].id)]
     assert client.get(f"{API}/{e['id']}").json()["converted_proposal_id"] == "prop-1"
+
+
+def test_side_panel_usage_counts_saved_estimates(client, db, seeded, staff, opp):
+    as_(client, db, staff["sales"]).post(API, json={"name": "N", "opportunity_id": opp.id, "lines": GOVERNED})
+    usage = client.get("/api/v1/catalog/items/A-02a/history").json()["usage"]
+    assert usage["estimates"] == 1
+    assert client.get("/api/v1/catalog/items/L-01/history").json()["usage"]["estimates"] == 0

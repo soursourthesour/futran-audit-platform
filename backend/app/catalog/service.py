@@ -504,7 +504,7 @@ def history(db: Session, code: str) -> list[dict]:
 
 def versions(db: Session, limit: int = 50) -> list[dict]:
     rows = db.scalars(select(CatalogVersion).order_by(CatalogVersion.version.desc()).limit(limit))
-    return [{"version": v.version, "saved_by": _name(db, v.saved_by) or "Futran Audit Platform", "saved_at": v.saved_at.isoformat(), "reason": v.reason,
+    return [{"version": v.version, "saved_by": _name(db, v.saved_by) or ("Starter data" if v.source == "seed" else "Futran Audit Platform"), "saved_at": v.saved_at.isoformat(), "reason": v.reason,
              "source": v.source, "change_count": v.change_count} for v in rows]
 
 
@@ -637,3 +637,23 @@ def rule_flags(db: Session) -> list[dict]:
 def run_effective_dates(db: Session, settings, now) -> int:
     """Daily job entry point (notifications.jobs): apply the price list changes whose effective date has come."""
     return apply_due_changes(db, now.date() if hasattr(now, "date") else now)
+
+
+def usage(db: Session, code: str) -> dict:
+    """Where an item is used now: saved estimates (latest version of each) and, once R4 lands, draft proposals."""
+    from app.catalog.models import Estimate
+
+    latest: dict[str, Estimate] = {}
+    for e in db.scalars(select(Estimate)):
+        if e.thread_id not in latest or e.version > latest[e.thread_id].version:
+            latest[e.thread_id] = e
+    estimates = sum(any(ln.get("code") == code for ln in e.lines or []) for e in latest.values())
+    proposals = None
+    try:
+        from app.proposals.models import Proposal, ProposalLine
+
+        proposals = db.scalar(select(func.count(func.distinct(Proposal.id))).join(ProposalLine, ProposalLine.proposal_id == Proposal.id)
+                              .where(ProposalLine.catalog_code == code, Proposal.status.in_(("draft", "awaiting_approval", "approved"))))
+    except Exception:  # the proposal builder is not installed yet, or its tables differ
+        proposals = None
+    return {"estimates": estimates, "proposals": proposals}

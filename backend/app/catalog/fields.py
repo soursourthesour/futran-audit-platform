@@ -189,6 +189,8 @@ def display(field: str, value) -> str:
     if value is None or value == "" or value == [] or value == {}:
         return ""
     if field in NUMBER_FIELDS:
+        if isinstance(value, float) and value.is_integer():
+            value = int(value)
         return f"{value:,}" if isinstance(value, (int, float)) else str(value)
     if field == "billing":
         return BILLING.get(value, value)

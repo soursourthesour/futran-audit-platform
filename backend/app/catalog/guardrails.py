@@ -76,9 +76,11 @@ def summary(lines: list[dict], approvals: list[dict]) -> str:
     if inside:
         n = len(inside)
         parts.append(f"{n} line{'s' if n != 1 else ''} edited, still inside the Low–High range: no extra approval.")
-    for a in approvals:
-        if a["kind"] == "approval":
-            parts.append(f"{a['rule']} · {a['message']}")
+    needed = [a for a in approvals if a["kind"] == "approval"]
+    if needed:
+        who = sorted({a["approver"] for a in needed})
+        parts.append(f"A proposal built from this needs {len(needed)} approval{'s' if len(needed) != 1 else ''} before sending "
+                     f"({', '.join(a['rule'] for a in needed)}: {' and '.join(who)}).")
     if not parts:
         parts.append("No approvals needed: every line is at an approved or existing list price with no discount.")
     return " ".join(parts)

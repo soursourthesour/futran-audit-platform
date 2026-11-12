@@ -154,7 +154,7 @@ def history(code: str, actor: Actor = Depends(current_actor), db: Session = Depe
     authorize(db, actor, Action.VIEW_CATALOG)
     if svc.get_item(db, code, include_retired=True) is None:
         raise NotFound()
-    return {"items": svc.history(db, code), "pending": svc.pending_for(db, code)}
+    return {"items": svc.history(db, code), "pending": svc.pending_for(db, code), "usage": svc.usage(db, code)}
 
 
 class BulkIn(BaseModel):

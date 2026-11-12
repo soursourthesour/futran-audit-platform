@@ -9,6 +9,7 @@ import importlib
 from app.demo.seed_demo import Demo
 
 STEPS = ["wave3_g", "wave3_h", "wave3_i", "wave3_j", "wave3_k", "wave3_l"]
+STEPS += ["release2_r1"]  # Release 2 R1: price list and Estimator
 
 
 def seed(m: Demo, ids: dict) -> dict:

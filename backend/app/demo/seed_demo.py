@@ -25,6 +25,11 @@ FUTRAN_STAFF = [
     ("Quinn Taylor", "qa@futran.demo", "qa_reviewer", "QA Reviewer"),
     ("Elena Brooks", "em@futran.demo", "engagement_manager", "Engagement Manager"),
     ("Sam Seller", "sales@futran.demo", "sales_team", "Sales"),  # v0.6.1 WS-F: every role's home is checked in the browser
+    # Release 2 R1: the Price List Owners (CEO and President; the CEO is also the Pricing Approver) and a Sales Manager
+    ("Jordan Ellis", "ceo@futran.demo", "price_list_owner", "Chief Executive Officer"),
+    ("Jordan Ellis", "ceo@futran.demo", "pricing_approver", "Chief Executive Officer"),
+    ("Morgan Hale", "president@futran.demo", "price_list_owner", "President"),
+    ("Riya Mehta", "salesmanager@futran.demo", "sales_manager", "Sales Manager"),
 ]
 APPROVAL = {"client_message": "Thank you for choosing Futran. Your engagement letter and getting-started pack are attached.",
             "checklist": {"scope_ok": True, "no_conflict": True, "letter_previewed": True}}

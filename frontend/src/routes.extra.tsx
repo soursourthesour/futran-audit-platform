@@ -56,6 +56,7 @@ import { ConsentResult, TestConsent } from '@/screens/email/Consent';
 import { MailboxPrompt } from '@/screens/email/MailboxPrompt';
 import { wsiClientRoutes, wsiFutranRoutes, wsiPublicRoutes } from '@/routes.wsi';
 import { r5ClientRoutes, r5FutranRoutes } from '@/routes.r5';  // Release 2 R5
+import { r1FutranRoutes } from '@/routes.r1';  // Release 2 R1: price list and Estimator
 
 /** Screens added by later tasks register here, so routes.tsx stays stable. */
 export const futranRoutes: RouteObject[] = [
@@ -69,6 +70,7 @@ export const futranRoutes: RouteObject[] = [
   ...wshFutranRoutes,
   ...futranHomeRoutes,
   ...wsjFutranRoutes,
+  ...r1FutranRoutes,
   { path: '/admin/users', element: <UsersAdmin /> },
   { path: '/admin/client-users', element: <ClientUsers /> },  // feedback 10 Nov F1
   { path: '/staff/admin/email', element: <FutranEmail /> },

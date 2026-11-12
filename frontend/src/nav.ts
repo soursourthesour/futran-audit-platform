@@ -32,6 +32,11 @@ export const FUTRAN_GROUPS: NavGroup[] = [
     { to: '/alerts', label: 'Client alerts', requires: ['manage_client_alerts'] },
     { to: '/insights', label: 'Insights', requires: ['view_benchmarks', 'view_practice_insights'] }, // WS-K screen 34
   ] },
+  { id: 'sales', label: 'Sales', entries: [
+    // Release 2 R1 (SM-15, SM-14); R2 adds the rest of the Sales group (Sales home, Opportunities, Approvals, Partners)
+    { to: '/sales/estimate', label: 'Estimator', requires: ['use_estimator'] },
+    { to: '/staff/admin/catalog', label: 'Price list', requires: ['view_catalog'] },
+  ] },
   { id: 'assurance', label: 'Assurance', entries: [
     // wave 3 WS-I: Trust Center confirmations (32) and client policy reviews (27, independence rule)
     { to: '/trust-confirmations', label: 'Trust Center confirmations', requires: ['confirm_trust_items'] },

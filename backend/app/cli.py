@@ -134,6 +134,8 @@ def cmd_seed_e2e(args) -> int:
         ("Chris Chief", "chief@futran.demo", "chief_auditor"),
         ("Alex Auditor", "auditor1@futran.demo", "auditor"),
         ("Erin Manager", "manager@futran.demo", "engagement_manager"),
+        ("Morgan Hale", "president@futran.demo", "price_list_owner"),  # Release 2 R1: price list (SM-14) in the browser tests
+        ("Jordan Ellis", "ceo@futran.demo", "price_list_owner"),
     ]
     for name, email, role in people:
         u = db.scalar(select(User).where(User.email == email)) or create_user(db, org, name=name, email=email)
