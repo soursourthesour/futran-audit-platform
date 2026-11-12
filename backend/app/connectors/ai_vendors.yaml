@@ -6,6 +6,8 @@
 #   domains:      web domains (a CASB or proxy row matches the domain or any subdomain of it)
 #   expense:      card statement descriptors (matched case-insensitively as a phrase inside the description or merchant)
 #   attestation:  the attestation answer values (app.attestation.service.TOOLS) that declare this product
+#   eu_high_risk: (optional) the EU AI Act Annex III area a typical use of the product falls in; with an EU-scoped client a
+#                 manual discovery import raises an EU AI Act readiness finding (Release 2 B5, G-05)
 # Futran maintains this list; add a product by appending an entry. Keep keys unchanged once used.
 vendors:
   - key: openai_chatgpt
@@ -176,6 +178,7 @@ vendors:
     domains: [hirevue.com]
     expense: ["HIREVUE"]
     attestation: []
+    eu_high_risk: annex_iii_4_employment
   - key: eightfold
     vendor: Eightfold AI
     product: Eightfold Talent Intelligence
@@ -184,6 +187,7 @@ vendors:
     domains: [eightfold.ai]
     expense: ["EIGHTFOLD"]
     attestation: []
+    eu_high_risk: annex_iii_4_employment
   - key: salesforce_agentforce
     vendor: Salesforce
     product: Agentforce

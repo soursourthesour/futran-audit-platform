@@ -555,3 +555,21 @@ _R6B: dict[R, dict[A, S]] = {
 }
 for _role, _grants in _R6B.items():
     MATRIX.setdefault(_role, {}).update(_grants)
+
+
+# ---- Release 2 R6a: discovery import (B5 G-05), service templates (B6 G-06), Agent Assure and AgentWarden (B9 G-09).
+# Futran auditors import on their engagement's client and decide on what the import found; the Client Admin imports from
+# Integrations. The Futran Admin maintains service templates; the Chief Auditor approves a version before use. Futran
+# records Agent Assure releases and syncs AgentWarden licences; the client's CAICO and Client Admin read them.
+_R6A: dict[R, dict[A, S]] = {
+    R.AUDITOR: {A.IMPORT_DISCOVERY: S.ASSIGNED, A.VIEW_AGENT_ASSURANCE: S.ASSIGNED, A.RECORD_AGENT_ASSURANCE: S.ASSIGNED, A.SYNC_AGENTWARDEN: S.ASSIGNED},
+    R.ENGAGEMENT_MANAGER: {A.IMPORT_DISCOVERY: S.ASSIGNED, A.VIEW_AGENT_ASSURANCE: S.ASSIGNED},
+    R.CHIEF_AUDITOR: {A.IMPORT_DISCOVERY: S.ALL, A.VIEW_SERVICE_TEMPLATES: S.ALL, A.APPROVE_SERVICE_TEMPLATES: S.ALL, A.VIEW_AGENT_ASSURANCE: S.ALL,
+                      A.RECORD_AGENT_ASSURANCE: S.ALL, A.MANAGE_ASSURANCE_CHECKLIST: S.ALL, A.SYNC_AGENTWARDEN: S.ALL},
+    R.ADMIN: {A.VIEW_SERVICE_TEMPLATES: S.ALL, A.MANAGE_SERVICE_TEMPLATES: S.ALL, A.VIEW_AGENT_ASSURANCE: S.ALL, A.MANAGE_ASSURANCE_CHECKLIST: S.ALL,
+              A.SYNC_AGENTWARDEN: S.ALL},
+    R.CLIENT_ADMIN: {A.IMPORT_DISCOVERY: S.ORG, A.VIEW_AGENT_ASSURANCE: S.ORG},
+    R.CAICO: {A.VIEW_AGENT_ASSURANCE: S.ORG},
+}
+for _role, _grants in _R6A.items():
+    MATRIX.setdefault(_role, {}).update(_grants)

@@ -16,7 +16,7 @@ OAUTH_TYPES = ("entra_id", "microsoft_365", "google_workspace")
 CREDENTIAL_TYPES = ("okta",)
 UPLOAD_TYPES = ("expense_csv", "casb_csv")
 TYPES = ("okta", "entra_id", "google_workspace", "microsoft_365", "expense_csv", "casb_csv")
-SIGNALS = ("sso_app", "oauth_grant", "licence", "expense", "traffic")
+SIGNALS = ("sso_app", "oauth_grant", "licence", "expense", "traffic", "manual_import")  # manual_import: G-05 (Release 2 B5)
 TOOL_STATUSES = ("new", "confirmed", "mapped", "dismissed")
 
 
@@ -66,7 +66,7 @@ class DiscoveredTool(TimestampedTenantMixin, Base):
     vendor: Mapped[str] = mapped_column(String(120))
     product: Mapped[str] = mapped_column(String(120))
     category: Mapped[str | None] = mapped_column(String(120))
-    signal: Mapped[str] = mapped_column(String(12))  # sso_app | oauth_grant | licence | expense | traffic
+    signal: Mapped[str] = mapped_column(String(20))  # sso_app | oauth_grant | licence | expense | traffic | manual_import
     department_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("departments.id"), index=True)
     department_name: Mapped[str | None] = mapped_column(String(120))  # as the source named it
     department_key: Mapped[str] = mapped_column(String(160))  # department id, or "name:<lowercased name>", or "unknown"
@@ -79,6 +79,9 @@ class DiscoveredTool(TimestampedTenantMixin, Base):
     dismiss_reason: Mapped[str | None] = mapped_column(Text)
     decided_by: Mapped[str | None] = mapped_column(String(36))
     decided_at: Mapped[datetime | None] = mapped_column(DateTime)
+    # G-05 manual discovery import (Release 2 B5). Null for connector and F2 upload rows.
+    import_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("discovery_imports.id"), index=True)  # the import that last reported it
+    import_type: Mapped[str | None] = mapped_column(String(30))  # export type, see app.connectors.manual_import.EXPORT_TYPES
 
 
 class DiscoveredToolUser(TimestampedTenantMixin, Base):
@@ -90,3 +93,39 @@ class DiscoveredToolUser(TimestampedTenantMixin, Base):
     discovered_tool_id: Mapped[str] = mapped_column(String(36), ForeignKey("discovered_tools.id"), index=True)
     email: Mapped[str | None] = mapped_column(String(254))
     name: Mapped[str | None] = mapped_column(String(160))
+
+
+class DiscoveryImport(TimestampedTenantMixin, Base):
+    """One manual discovery import (G-05, Release 2 B5): a standard admin export uploaded by a Futran auditor on an
+    engagement or by the Client Admin. The file is kept as an evidence item (`evidence_file_id`); for expense and
+    proxy/CASB exports only a summary of the AI rows is kept, and `source_sha256` is the hash of the file as uploaded."""
+
+    __tablename__ = "discovery_imports"
+
+    engagement_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("engagements.id"), index=True)
+    connector_id: Mapped[str] = mapped_column(String(36), ForeignKey("connectors.id"), index=True)
+    export_type: Mapped[str] = mapped_column(String(30))
+    filename: Mapped[str] = mapped_column(String(255))
+    source_sha256: Mapped[str] = mapped_column(String(64))
+    source_size: Mapped[int] = mapped_column(Integer, default=0)
+    mapping: Mapped[dict] = mapped_column(JSON, default=dict)  # field key -> column heading
+    rows_read: Mapped[int] = mapped_column(Integer, default=0)
+    rows_matched: Mapped[int] = mapped_column(Integer, default=0)
+    tools_found: Mapped[int] = mapped_column(Integer, default=0)
+    unmatched: Mapped[list] = mapped_column(JSON, default=list)  # [{name, department, user_count, matched_tool_id}]
+    findings: Mapped[list] = mapped_column(JSON, default=list)  # [{key, label, service, tool_ids, opportunity_id}]
+    evidence_file_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("files.id"))
+    imported_by: Mapped[str | None] = mapped_column(String(36), ForeignKey("users.id"))
+    imported_at: Mapped[datetime] = mapped_column(DateTime)
+
+
+class ImportMappingPreset(TimestampedTenantMixin, Base):
+    """A saved column mapping for one export type (G-05). organization_id is the owner: Futran's presets are shared by
+    Futran staff across clients; a client's are its own."""
+
+    __tablename__ = "import_mapping_presets"
+    __table_args__ = (UniqueConstraint("organization_id", "export_type", "name", name="uq_import_preset"),)
+
+    export_type: Mapped[str] = mapped_column(String(30))
+    name: Mapped[str] = mapped_column(String(120))
+    mapping: Mapped[dict] = mapped_column(JSON, default=dict)

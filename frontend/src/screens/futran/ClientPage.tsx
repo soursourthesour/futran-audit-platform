@@ -151,7 +151,7 @@ export function ClientPage() {
               <p className="small" style={{ marginBottom: 0 }}><button type="button" className="linklike" onClick={() => setTab('activity')}>View all activity</button></p>
             </Card>
           </div>
-          {live && <Card title="Work areas"><WorkAreas clientId={clientId} /></Card>}
+          {live && <Card title="Work areas"><WorkAreas clientId={clientId} engagementId={e.id} /></Card>}
         </div>
       )}
       {tab === 'engagements' && (
@@ -161,7 +161,7 @@ export function ClientPage() {
             <tbody><tr><td>{e.type_label}</td><td>{e.audit_ref}</td><td>{e.stage} · {e.stage_label}</td><td><Badge tone="navy">{e.status_label}</Badge></td>
               {can(me, 'view_engagement_fees') && <td><Link to={`/e/${e.id}/commercial`}>Fee and change orders</Link></td>}{/* Release 2 R5 (G-02) */}</tr></tbody>
           </table></div>
-          {live && <div style={{ marginTop: 16 }}><WorkAreas clientId={clientId} /></div>}
+          {live && <div style={{ marginTop: 16 }}><WorkAreas clientId={clientId} engagementId={e.id} /></div>}
         </Card>
       )}
       {tab === 'laws' && (
@@ -269,6 +269,7 @@ export const WORK_AREAS = [
   ['integrations', 'AI discovery'], ['monitoring', 'Monitoring'],
 ] as const;
 
-function WorkAreas({ clientId }: { clientId: string }) {
-  return <div className="work-areas">{WORK_AREAS.map(([path, label]) => <Link key={path} to={`/clients/${clientId}/${path}`}>{label}</Link>)}</div>;
+function WorkAreas({ clientId, engagementId }: { clientId: string; engagementId?: string }) {
+  return <div className="work-areas">{WORK_AREAS.map(([path, label]) => <Link key={path} to={`/clients/${clientId}/${path}`}>{label}</Link>)}
+    {engagementId && <Link to={`/e/${engagementId}/discovery/import`}>Discovery import</Link>}</div>;
 }

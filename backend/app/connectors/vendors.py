@@ -22,6 +22,7 @@ class AIVendor:
     domains: tuple[str, ...] = field(default_factory=tuple)
     expense: tuple[str, ...] = field(default_factory=tuple)
     attestation: tuple[str, ...] = field(default_factory=tuple)
+    eu_high_risk: str | None = None  # Annex III area (G-05 EU-scoped high-risk finding)
 
 
 @lru_cache
@@ -29,7 +30,8 @@ def all_vendors() -> tuple[AIVendor, ...]:
     data = yaml.safe_load(PATH.read_text(encoding="utf-8"))
     return tuple(AIVendor(key=v["key"], vendor=v["vendor"], product=v["product"], category=v.get("category") or "AI tool",
                           names=tuple(v.get("names") or ()), domains=tuple(d.lower() for d in v.get("domains") or ()),
-                          expense=tuple(v.get("expense") or ()), attestation=tuple(v.get("attestation") or ())) for v in data["vendors"])
+                          expense=tuple(v.get("expense") or ()), attestation=tuple(v.get("attestation") or ()),
+                          eu_high_risk=v.get("eu_high_risk")) for v in data["vendors"])
 
 
 def by_key(key: str | None) -> AIVendor | None:

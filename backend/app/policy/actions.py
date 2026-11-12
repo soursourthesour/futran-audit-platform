@@ -226,3 +226,12 @@ class Action(StrEnum):
     VIEW_EU_AI_ACT = "view_eu_ai_act"  # per-system role, classification, deadline (client: signed-off summary only)
     EDIT_EU_AI_ACT = "edit_eu_ai_act"  # role, classification, obligations, Annex IV tracker, FRIA
     SIGN_EU_CLASSIFICATION = "sign_eu_classification"  # Legal/Compliance Reviewer only (spec B8)
+    # Release 2 R6a: discovery import (B5 G-05), service templates (B6 G-06), agent assurance and AgentWarden (B9 G-09)
+    IMPORT_DISCOVERY = "import_discovery"  # upload admin exports, map columns, decide on what they found (Futran: on the engagement)
+    VIEW_SERVICE_TEMPLATES = "view_service_templates"
+    MANAGE_SERVICE_TEMPLATES = "manage_service_templates"  # Futran Admin maintains each type's template versions
+    APPROVE_SERVICE_TEMPLATES = "approve_service_templates"  # Chief Auditor approves a version before use
+    VIEW_AGENT_ASSURANCE = "view_agent_assurance"  # Agent Assure records and AgentWarden licence status of an agent
+    RECORD_AGENT_ASSURANCE = "record_agent_assurance"  # record a release: eval set, 15-point check, red team, outcome, letter
+    MANAGE_ASSURANCE_CHECKLIST = "manage_assurance_checklist"  # the editable 15-point pre-deploy check list (FATF supplies it)
+    SYNC_AGENTWARDEN = "sync_agentwarden"  # AgentWarden licence sync by CSV until the API exists

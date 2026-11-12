@@ -41,9 +41,11 @@ from app.core.errors import AppError, Conflict, Forbidden, Invalid, NotFound
 from app.inventory.models import AITool
 from app.mail import tokens
 from app.tenancy.models import Department, Organization, RoleAssignment, User
+from app.connectors.manual_import import EXPORT_TYPES as IMPORT_TYPES, LABELS as IMPORT_LABELS  # noqa: E402  (G-05)
 
+LABELS = {**LABELS, **IMPORT_LABELS}  # connector labels, and the export type of each manual-import connector (G-05)
 STATE_MAX_AGE = 3600
-SIGNAL_LABELS = {"sso_app": "SSO app", "oauth_grant": "OAuth grant", "licence": "Licence", "expense": "Expense", "traffic": "Network traffic"}
+SIGNAL_LABELS = {"sso_app": "SSO app", "oauth_grant": "OAuth grant", "licence": "Licence", "expense": "Expense", "traffic": "Network traffic", "manual_import": "Manual import"}
 ACCOUNT_FOR_SIGNAL = {"sso_app": "enterprise", "licence": "enterprise", "expense": "personal_paid", "oauth_grant": "unknown", "traffic": "unknown"}
 MIN_REASON = 10
 
@@ -278,7 +280,8 @@ def match_department(name: str | None, depts: list[Department]) -> Department | 
 
 
 # ---------------------------------------------------------------- ingest
-def ingest(db: Session, conn: Connector, observations: list[Observation], now: datetime) -> int:
+def ingest(db: Session, conn: Connector, observations: list[Observation], now: datetime, extra: dict | None = None) -> int:
+    """Store observations as discovered tools. `extra` sets further columns on every row (G-05: the import behind it)."""
     depts = list(db.scalars(select(Department).where(Department.organization_id == conn.organization_id, Department.deleted_at.is_(None))))
     merged: dict[tuple[str, str, str], tuple[Observation, Department | None]] = {}
     for o in observations:
@@ -311,6 +314,8 @@ def ingest(db: Session, conn: Connector, observations: list[Observation], now: d
         row.vendor, row.product, row.category = v.vendor, v.product, v.category
         row.department_id, row.department_name = (d.id if d else None), (o.department or None)
         row.user_count, row.detail, row.last_seen = o.user_count, o.detail, now
+        for k, v in (extra or {}).items():
+            setattr(row, k, v)
         db.flush()
         db.execute(delete(DiscoveredToolUser).where(DiscoveredToolUser.discovered_tool_id == row.id))
         for person, name in (o.people or {}).items():
@@ -414,7 +419,8 @@ def confirm(db: Session, settings: Settings, user: User, org: Organization, tool
         raise Conflict("This tool is already in the AI inventory.")
     existing = db.scalar(select(AITool).where(AITool.organization_id == org.id, AITool.deleted_at.is_(None), func.lower(AITool.vendor) == t.vendor.lower(),
                                               func.lower(AITool.product) == t.product.lower()).limit(1))
-    tool = existing or AITool(organization_id=org.id, vendor=t.vendor, product=t.product, account_type=ACCOUNT_FOR_SIGNAL.get(t.signal, "unknown"), source="discovery",
+    account = IMPORT_TYPES[t.import_type].account_type if t.signal == "manual_import" and t.import_type in IMPORT_TYPES else ACCOUNT_FOR_SIGNAL.get(t.signal, "unknown")
+    tool = existing or AITool(organization_id=org.id, vendor=t.vendor, product=t.product, account_type=account, source="discovery",
                               approval_status="unreviewed", created_by=user.id)
     if existing is None:
         db.add(tool)
@@ -428,6 +434,10 @@ def confirm(db: Session, settings: Settings, user: User, org: Organization, tool
     notify(db, _leads_for(db, org.id, t.department_id), "discovered_tool_confirmed", f"Add the use case for {t.product}",
            f"{t.product} was found through {LABELS[db.get(Connector, t.connector_id).type]} in {dept} ({t.user_count} people) and confirmed by {user.name}. "
            "Describe what it is used for in the AI inventory.", "/inventory/new", settings=settings)
+    if t.signal == "manual_import":  # G-05: a finding this tool backs is now final and opens its opportunity
+        from app.connectors.manual_import import after_confirm
+
+        after_confirm(db, t, user)
     db.flush()
     return t
 
@@ -499,13 +509,14 @@ def _dept_label(db: Session, t: DiscoveredTool) -> str:
 def tool_out(db: Session, t: DiscoveredTool, conn: Connector, declared: set[str], has_campaign: bool, tools_by_id: dict[str, AITool], systems_by_tool: dict[str, str]) -> dict:
     matched = tools_by_id.get(t.matched_tool_id) if t.matched_tool_id else None
     src = LABELS[conn.type]
-    sig = f"{src} · {t.detail}" if t.signal in ("expense", "traffic") and t.detail else (f"{src} {SIGNAL_LABELS[t.signal]}" + (f" ({t.detail})" if t.detail else ""))
+    sig = (f"Manual import · {src}" + (f" ({t.detail})" if t.detail else "")) if t.signal == "manual_import" else \
+        f"{src} · {t.detail}" if t.signal in ("expense", "traffic") and t.detail else (f"{src} {SIGNAL_LABELS[t.signal]}" + (f" ({t.detail})" if t.detail else ""))
     return {"id": t.id, "vendor": t.vendor, "product": t.product, "category": t.category, "signal": t.signal, "signal_label": sig, "source": conn.type, "source_label": src,
             "department_id": t.department_id, "department": _dept_label(db, t), "department_matched": bool(t.department_id), "user_count": t.user_count, "detail": t.detail,
             "declared": t.vendor_key in declared, "attestation_exists": has_campaign, "status": t.status, "dismiss_reason": t.dismiss_reason,
             "matched_tool": {"id": matched.id, "label": f"{matched.vendor} {matched.product}"} if matched else None,
             "system_reference": systems_by_tool.get(matched.id) if matched else None, "first_seen": t.first_seen.isoformat(), "last_seen": t.last_seen.isoformat(),
-            "decided_at": t.decided_at.isoformat() if t.decided_at else None}
+            "decided_at": t.decided_at.isoformat() if t.decided_at else None, "import_type": t.import_type, "import_id": t.import_id}
 
 
 def tools(db: Session, org: Organization) -> list[dict]:

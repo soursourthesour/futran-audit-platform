@@ -120,7 +120,8 @@ export function Integrations() {
 
   return (
     <div className="page dsc-page">
-      <PageHeader title="Integrations and AI discovery" crumbs={back} subtitle={H.page} />
+      <PageHeader title="Integrations and AI discovery" crumbs={back} subtitle={H.page}
+        actions={d.can_manage && !clientId ? <Link className="btn" to="/integrations/import">Import an admin export</Link> : undefined} />
       {flash && <Alert tone={flash.tone}>{flash.text}</Alert>}
       {clientId && <Alert tone="info">Read-only view of {d.organization.name}’s connectors and discovered tools. The client confirms, maps or dismisses each tool; dismissal reasons are shown below.</Alert>}
       <section aria-labelledby="dsc-conn-h" className="stack">
@@ -195,9 +196,9 @@ function RunLog({ page }: { page: IntegrationsPage }) {
           columns={[
             { key: 'at', header: 'When', value: (r) => r.started_at, render: (r) => fmtDateTime(r.started_at) },
             { key: 'source', header: 'Source', value: (r) => r.connector },
-            { key: 'kind', header: 'Run', value: (r) => r.kind, render: (r) => (r.kind === 'upload' ? `Upload${r.filename ? ` (${r.filename})` : ''}` : 'Sync') },
+            { key: 'kind', header: 'Run', value: (r) => r.kind, render: (r) => (r.kind === 'upload' || r.kind === 'import' ? `${r.kind === 'import' ? 'Manual import' : 'Upload'}${r.filename ? ` (${r.filename})` : ''}` : 'Sync') },
             { key: 'by', header: 'By', value: (r) => r.by },
-            { key: 'result', header: 'Result', value: (r) => r.status, render: (r) => (r.status === 'failed' ? <span className="dsc-error small">{r.error ?? 'Failed'}</span> : <span className="small">{r.kind === 'upload' ? `${r.rows_matched} of ${r.rows_read} rows matched; ` : ''}{r.tools_found} tool and department pair{r.tools_found === 1 ? '' : 's'}</span>) },
+            { key: 'result', header: 'Result', value: (r) => r.status, render: (r) => (r.status === 'failed' ? <span className="dsc-error small">{r.error ?? 'Failed'}</span> : <span className="small">{r.kind === 'upload' || r.kind === 'import' ? `${r.rows_matched} of ${r.rows_read} rows matched; ` : ''}{r.tools_found} tool and department pair{r.tools_found === 1 ? '' : 's'}</span>) },
           ]} />
       </div>
     </section>

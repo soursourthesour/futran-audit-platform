@@ -41,3 +41,23 @@ tr.dsc-focus td { background: #fff7e0; }
   .dsc-need-act { width: 100%; }
   .dsc-need-act .btn { flex: 1; justify-content: center; }
 }
+
+/* Release 2 R6a: G-05 discovery import */
+.dimp-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.dimp-steps li { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 14px; }
+.dimp-steps li span { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--line); display: inline-flex; align-items: center; justify-content: center; font-weight: 600; background: var(--surface); }
+.dimp-steps li.current { color: var(--ink); font-weight: 600; }
+.dimp-steps li.current span { background: var(--navy); border-color: var(--navy); color: #fff; }
+.dimp-steps li.done span { background: var(--success-bg); border-color: var(--success-line); color: var(--success); }
+.dimp-types { border: 0; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.dimp-types legend { margin-bottom: 8px; }
+.dimp-types .row { grid-column: 1 / -1; }
+.dimp-type { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; background: var(--surface); cursor: pointer; min-width: 0; }
+.dimp-type.on { border-color: var(--blue); box-shadow: var(--focus); }
+.dimp-type input { margin-top: 3px; }
+.dimp-map { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 0 16px; }
+.dimp-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.dimp-findings { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.dimp-findings li { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between; border: 1px solid var(--line-soft); border-radius: var(--radius); padding: 8px 12px; }
+.dimp-hash { overflow-wrap: anywhere; }
+.dimp-errs { margin: 6px 0 0; padding-left: 18px; }

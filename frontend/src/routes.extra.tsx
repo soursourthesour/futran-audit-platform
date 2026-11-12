@@ -55,6 +55,7 @@ import { LinkLanding } from '@/screens/email/LinkLanding';
 import { ConsentResult, TestConsent } from '@/screens/email/Consent';
 import { MailboxPrompt } from '@/screens/email/MailboxPrompt';
 import { wsiClientRoutes, wsiFutranRoutes, wsiPublicRoutes } from '@/routes.wsi';
+import { r6aClientRoutes, r6aFutranRoutes } from '@/routes.r6a';
 import { r5ClientRoutes, r5FutranRoutes } from '@/routes.r5';  // Release 2 R5
 import { r1FutranRoutes } from '@/routes.r1';  // Release 2 R1: price list and Estimator
 
@@ -71,6 +72,7 @@ export const futranRoutes: RouteObject[] = [
   ...futranHomeRoutes,
   ...wsjFutranRoutes,
   ...r1FutranRoutes,
+  ...r6aFutranRoutes,
   { path: '/admin/users', element: <UsersAdmin /> },
   { path: '/admin/client-users', element: <ClientUsers /> },  // feedback 10 Nov F1
   { path: '/staff/admin/email', element: <FutranEmail /> },
@@ -107,7 +109,7 @@ export const futranRoutes: RouteObject[] = [
   { path: '/reg/:lawId/edit', element: <LawEdit /> },
   { path: '/clients/:clientId/applicability', element: <Applicability /> },
 ];
-export const clientRoutes: RouteObject[] = [...r5ClientRoutes, ...clientHomeRoutes, ...wskClientRoutes, ...wslClientRoutes, ...wsgClientRoutes, ...wsiClientRoutes, ...wsjClientRoutes, ...wshClientRoutes, { path: '/admin/email', element: <ClientEmailSetup /> }, { path: '/admin/groups', element: <GroupsScreen /> }, { path: '/people', element: <Navigate to="/people/departments" replace /> }, { path: '/people/departments', element: <UsersDepartments tab="departments" /> }, { path: '/people/users', element: <UsersDepartments tab="users" /> }, { path: '/users', element: <Navigate to="/people/users" replace /> }, { path: '/governance', element: <Governance /> }, { path: '/attestation', element: <AttestationTracker /> }, { path: '/my-attestation', element: <MyAttestation /> }, { path: '/inventory', element: <ListPreset preset={{ type: 'inventory', all: '1' }} /> }, { path: '/inventory/new', element: <UseCaseForm /> }, { path: '/inventory/:useCaseId', element: <UseCaseForm /> }, { path: '/systems', element: <ListPreset preset={{ audit: 'yes' }} /> }, { path: '/systems/:systemId', element: <SystemPrefill /> }, { path: '/documents', element: <DocumentUploads /> }, { path: '/review', element: <InventoryReview /> }, { path: '/report', element: <ClientReport /> }, { path: '/responses', element: <ManagementResponse /> }, { path: '/remediation', element: <Remediation /> },
+export const clientRoutes: RouteObject[] = [...r6aClientRoutes, ...r5ClientRoutes, ...clientHomeRoutes, ...wskClientRoutes, ...wslClientRoutes, ...wsgClientRoutes, ...wsiClientRoutes, ...wsjClientRoutes, ...wshClientRoutes, { path: '/admin/email', element: <ClientEmailSetup /> }, { path: '/admin/groups', element: <GroupsScreen /> }, { path: '/people', element: <Navigate to="/people/departments" replace /> }, { path: '/people/departments', element: <UsersDepartments tab="departments" /> }, { path: '/people/users', element: <UsersDepartments tab="users" /> }, { path: '/users', element: <Navigate to="/people/users" replace /> }, { path: '/governance', element: <Governance /> }, { path: '/attestation', element: <AttestationTracker /> }, { path: '/my-attestation', element: <MyAttestation /> }, { path: '/inventory', element: <ListPreset preset={{ type: 'inventory', all: '1' }} /> }, { path: '/inventory/new', element: <UseCaseForm /> }, { path: '/inventory/:useCaseId', element: <UseCaseForm /> }, { path: '/systems', element: <ListPreset preset={{ audit: 'yes' }} /> }, { path: '/systems/:systemId', element: <SystemPrefill /> }, { path: '/documents', element: <DocumentUploads /> }, { path: '/review', element: <InventoryReview /> }, { path: '/report', element: <ClientReport /> }, { path: '/responses', element: <ManagementResponse /> }, { path: '/remediation', element: <Remediation /> },
   // AI system register (spec §24, §27.2)
   { path: '/register', element: <RegisterGrid /> }, { path: '/register/new', element: <RegisterNew /> },
   { path: '/register/:systemId', element: <RegisterSystemPage tab="details" /> }, { path: '/register/:systemId/roles', element: <RegisterSystemPage tab="roles" /> },
