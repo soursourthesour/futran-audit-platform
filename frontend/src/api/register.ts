@@ -19,7 +19,7 @@ export type RegSystem = {
   department: { id: string; name: string } | null; company_wide: boolean; purpose: string | null; users_scope: string | null; users_description: string | null; user_count: number | null;
   owner: PersonRef; vendor: { id: string; name: string } | null; ai_provider: string | null; ai_provider_label: string | null; model_name: string | null; model_version: string | null;
   algorithm_type: string | null; algorithm_label: string | null; hosting: string | null; vendor_trains_on_data: string | null; vendor_documents: string[]; autonomy: string | null;
-  guardrail_policy_ref: string | null; agentassure_status: string | null; decision_impact: string | null; risk_tier: number | null; risk_tier_reason: string | null;
+  guardrail_policy_ref: string | null; agentassure_status: string | null; agentassure_computed?: boolean; decision_impact: string | null; risk_tier: number | null; risk_tier_reason: string | null;
   bias_next_due: string | null; origin: string; live_since: string | null; data: SystemData; actions: { action_code: string; label: string; description: string | null }[];
   laws: LawLink[]; bias: Bias; consent: { label: string; missing: boolean }; roles: RoleSummary; gate: Gate;
   go_live: { requested_by: PersonRef; requested_at: string | null; approved_by: PersonRef; approved_at: string | null };
@@ -111,6 +111,8 @@ export const ACTIONS: Opt[] = [
 ];
 export const AUTONOMY: Opt[] = [{ value: 'suggest_only', label: 'Suggests only; a person acts' }, { value: 'acts_with_approval', label: 'Acts, but a person approves first-time or unusual actions' }, { value: 'autonomous', label: 'Acts on its own' }];
 export const AGENTASSURE: Opt[] = [{ value: 'planned', label: 'Futran AgentAssure: planned' }, { value: 'passed', label: 'Futran AgentAssure: passed' }, { value: 'vendor_only', label: 'Vendor testing only' }, { value: 'none', label: 'None' }];
+/** Every value of the register field, including those computed from Agent Assure records (Release 2 B9). */
+export const AGENTASSURE_ALL: Record<string, string> = { ...Object.fromEntries(AGENTASSURE.map((o) => [o.value, o.label])), conditional: 'Agent Assure: conditional pass', failed: 'Agent Assure: failed', recertification_due: 'Agent Assure: re-certification due' };
 export const DATA_CATEGORIES: Opt[] = [
   { value: 'personal', label: 'Personal information' }, { value: 'health', label: 'Health information' }, { value: 'biometric', label: 'Biometric data (face, voice)' },
   { value: 'sensitive', label: 'Sensitive categories (race, sex, age)' }, { value: 'children', label: "Children's data" }, { value: 'confidential', label: 'Company confidential' },

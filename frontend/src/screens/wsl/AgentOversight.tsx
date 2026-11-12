@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
 import type { AgentRow, AgentsPage, Sample } from '@/api/wsl';
@@ -32,7 +32,7 @@ export function AgentOversight() {
       {d.agents.length === 0 && <EmptyState>This client has no agents in its register.</EmptyState>}
       {d.agents.map((a) => (
         <Card key={a.id} title={<h2>{a.reference} {a.name} {a.department && <span className="small muted">· {a.department}</span>}</h2>}
-          actions={<Button variant="primary" onClick={() => setDrawing(a)} disabled={a.decisions === 0}>Sample decisions</Button>}>
+          actions={<div className="row"><Link className="btn" to={`/clients/${clientId}/register/${a.id}/assurance`}>Agent assurance</Link><Button variant="primary" onClick={() => setDrawing(a)} disabled={a.decisions === 0}>Sample decisions</Button></div>}>
           <div className="stack">
             {!a.registration && <Alert tone="warn">The client has not registered this agent's tools and permissions.</Alert>}
             {a.registration && <p className="small" style={{ margin: 0 }}><strong>{a.registration.autonomy_label}</strong> · {plural(a.registration.tools.length, 'tool')} ({a.registration.tools.filter((t) => t.access === 'act').length} that act{a.registration.tools.filter((t) => t.access === 'act').length === 1 ? 's' : ''}) · {plural(a.registration.approval_points.length, 'approval point')} · kill switch {a.registration.kill_switch ? 'recorded' : 'not recorded'}</p>}

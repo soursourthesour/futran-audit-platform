@@ -1,0 +1,16 @@
+/* Release 2 R6a: G-09 agent assurance */
+.aa-page { min-width: 0; }
+.aa-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.aa-actions { margin-left: auto; flex-wrap: wrap; gap: 8px; }
+.aa-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.aa-warn { color: var(--warn); }
+.aa-points { margin: 0; padding-left: 22px; display: grid; gap: 4px; font-size: 14px; }
+.aa-list > summary { cursor: pointer; list-style: none; }
+.aa-fieldset { border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.aa-fieldset legend { font-weight: 600; padding: 0 4px; }
+.aa-fieldset select, .aa-fieldset input:not([type]) { min-height: 36px; border: 1px solid var(--input-line); border-radius: var(--radius-sm); padding: 4px 6px; max-width: 100%; }
+.aa-red { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0 12px; }
+@media (max-width: 640px) {
+  .aa-actions { margin-left: 0; }
+  .aa-actions .btn { min-height: 44px; }
+}

@@ -7,7 +7,7 @@ import { SignPanel, type SignOffView } from '@/components/SignPanel';
 import { SEV_TONE } from '@/screens/futran/FieldworkUseCase';
 
 type Declaration = { kind: string; label: string; signed_by: string; signed_at: string; text: string; commitment: string | null; disputed_refs: string[] };
-export type ReportRow = { id: string; version: string; version_label: string; status: string; created_at: string; docx_file_id: string | null; pdf_file_id: string | null; released_to_client_at: string | null; signed_at: string | null; declarations: Declaration[] };
+export type ReportRow = { id: string; version: string; version_label: string; status: string; created_at: string; docx_file_id: string | null; pdf_file_id: string | null; released_to_client_at: string | null; signed_at: string | null; declarations: Declaration[]; engagement_id?: string };
 type Roadmap = { id: string; ref: string; action: string; owner: string | null; priority: string; target_date: string | null; how_futran_can_help: string | null; finding_ids: string[]; finding_refs: string[] };
 type Ratio = { category: string; group: string; selection_rate: number | null; impact_ratio: number | null; applicants?: number; rate_kind?: string; excluded?: boolean; justification?: string; not_calculable?: boolean; reason?: string };
 type Summary = { ai_system_id: string | null; tool_name: string | null; audit_date: string | null; distribution_date: string | null; data_source: string | null; notes: string | null; unknown_category_count: number | null; impact_ratios: Ratio[]; evidence_file_ids: string[] };
@@ -108,7 +108,8 @@ export function ReportTable({ rows }: { rows: ReportRow[] }) {
             <td><strong>{r.version_label}</strong></td>
             <td><Badge tone={st.tone}>{st.label}</Badge>{r.released_to_client_at && <div className="small muted">Released {fmtDate(r.released_to_client_at)}</div>}</td>
             <td>{fmtDateTime(r.created_at)}</td>
-            <td>{r.pdf_file_id && <a href={fileUrl(r.pdf_file_id)}>PDF</a>}{r.docx_file_id && <> · <a href={fileUrl(r.docx_file_id)}>Word</a></>}</td>
+            <td>{r.pdf_file_id && <a href={fileUrl(r.pdf_file_id)}>PDF</a>}{r.docx_file_id && <> · <a href={fileUrl(r.docx_file_id)}>Word</a></>}
+              {r.status === 'final' && r.engagement_id && <div className="small"><a href={`/api/v1/engagements/${r.engagement_id}/board-readout.pdf`}>Board readout pack (PDF)</a></div>}</td>
             <td className="small">{r.declarations.length === 0 ? '—' : r.declarations.map((x) => `${x.label}: ${x.signed_by}`).join('; ')}</td>
           </tr>
         );

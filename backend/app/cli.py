@@ -152,6 +152,9 @@ def cmd_seed_e2e(args) -> int:
     from app.demo.r5 import seed as seed_r5  # Release 2 R5: a won proposal handed off, an ordered plan, hours and a change order
 
     seed_r5(db)
+    from app.demo.r6a import seed as seed_r6a  # Release 2 R6a: Delta Logistics with an agent, for G-05 and G-09
+
+    seed_r6a(db, hash_password(DEMO_PASSWORD))
     db.commit()
     print("e2e users ready")
     return 0

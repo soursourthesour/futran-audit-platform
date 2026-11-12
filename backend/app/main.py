@@ -88,6 +88,9 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
         from app.euaiact.lawseed import seed_on_start as eu_requirements_on_start  # Release 2 R6b: EU AI Act rows the law library lacks
 
         eu_requirements_on_start(app)
+        from app.servicetemplates.startup import seed_if_empty as service_templates_on_start  # Release 2 R6a: G-06 starter templates
+
+        service_templates_on_start(app)
     _start_scheduler(app, settings)
     return app
 

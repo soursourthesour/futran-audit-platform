@@ -1,6 +1,6 @@
 import { useId, type ReactNode } from 'react';
 import {
-  ACTIONS, AGENTASSURE, ALGORITHMS, AUTONOMY, CONSENT, CROSS_BORDER, DATA_CATEGORIES, DATA_SUBJECTS, HOSTING, IMPACT, PROVIDERS, SOURCING, STAGES, TRAINS, TYPES, VENDOR_DOCS,
+  ACTIONS, AGENTASSURE, AGENTASSURE_ALL, ALGORITHMS, AUTONOMY, CONSENT, CROSS_BORDER, DATA_CATEGORIES, DATA_SUBJECTS, HOSTING, IMPACT, PROVIDERS, SOURCING, STAGES, TRAINS, TYPES, VENDOR_DOCS,
   useModelCatalogue, type Place, type Register, type RegSystem, type UserSelection,
 } from '@/api/register';
 import { Checkbox, FieldGroup, FieldHelp, SelectField, TextArea, TextField } from '@/components/ui';
@@ -10,7 +10,7 @@ import { WhoUses, countFor } from './WhoUses';
 export type Form = {
   name: string; type: string; sourcing: string; department_id: string; company_wide: boolean; stage: string; purpose: string; users_scope: string; users_description: string; user_count: string;
   owner_user_id: string; vendor_id: string; new_vendor: boolean; vendor_name: string; ai_provider: string; model_name: string; model_version: string; algorithm_type: string; hosting: string;
-  vendor_trains_on_data: string; vendor_documents: string[]; autonomy: string; guardrail_policy_ref: string; agentassure_status: string; actions: string[]; other_action: string;
+  vendor_trains_on_data: string; vendor_documents: string[]; autonomy: string; guardrail_policy_ref: string; agentassure_status: string; agentassure_computed?: boolean; actions: string[]; other_action: string;
   decision_impact: string; bias_next_due: string;
   data_categories: string[]; data_subjects: string[]; consent_basis: string; consent_ref: string; retention_period: string; cross_border: string;
   // 11-03: several departments (C9), who uses it (C10), "Other" model (C12), places (C14)
@@ -34,7 +34,7 @@ export function formFrom(s: RegSystem): Form {
     users_scope: s.users_scope ?? '', users_description: s.users_description ?? '', user_count: s.user_count?.toString() ?? '', owner_user_id: s.owner?.id ?? '',
     vendor_id: s.vendor?.id ?? '', new_vendor: false, vendor_name: '', ai_provider: s.ai_provider ?? '', model_name: s.model_name ?? '', model_version: s.model_version ?? '', algorithm_type: s.algorithm_type ?? '',
     hosting: s.hosting ?? '', vendor_trains_on_data: s.vendor_trains_on_data ?? '', vendor_documents: s.vendor_documents, autonomy: s.autonomy ?? '', guardrail_policy_ref: s.guardrail_policy_ref ?? '',
-    agentassure_status: s.agentassure_status ?? '', actions: s.actions.filter((a) => a.action_code !== 'other').map((a) => a.action_code), other_action: other?.description ?? '',
+    agentassure_status: s.agentassure_status ?? '', agentassure_computed: !!s.agentassure_computed, actions: s.actions.filter((a) => a.action_code !== 'other').map((a) => a.action_code), other_action: other?.description ?? '',
     decision_impact: s.decision_impact ?? '', bias_next_due: s.bias_next_due ?? '', data_categories: s.data.data_categories, data_subjects: s.data.data_subjects,
     consent_basis: s.data.consent_basis ?? '', consent_ref: s.data.consent_ref ?? '', retention_period: s.data.retention_period ?? '', cross_border: s.data.cross_border ?? '',
     multi_dept: (s.departments ?? []).length > 0, department_ids: (s.departments ?? []).map((x) => x.id), user_selection: s.user_selection ?? {}, model_other: false,
@@ -60,7 +60,7 @@ export function payload(f: Form): Record<string, unknown> {
     users_scope: n(f.users_scope), users_description: n(f.users_description), user_count: f.user_count === '' ? null : f.user_count, owner_user_id: n(f.owner_user_id),
     vendor_id: f.new_vendor ? null : n(f.vendor_id), ...(f.new_vendor && f.vendor_name.trim() ? { vendor_name: f.vendor_name.trim() } : {}), ai_provider: n(f.ai_provider), model_name: n(f.model_name), model_version: n(f.model_version),
     algorithm_type: n(f.algorithm_type), hosting: n(f.hosting), vendor_trains_on_data: n(f.vendor_trains_on_data), vendor_documents: f.vendor_documents,
-    autonomy: agent ? n(f.autonomy) : null, guardrail_policy_ref: n(f.guardrail_policy_ref), agentassure_status: n(f.agentassure_status),
+    autonomy: agent ? n(f.autonomy) : null, guardrail_policy_ref: n(f.guardrail_policy_ref), agentassure_status: f.agentassure_computed ? undefined : n(f.agentassure_status),
     actions: agent ? [...f.actions.map((a) => ({ action_code: a })), ...(f.other_action.trim() ? [{ action_code: 'other', description: f.other_action }] : [])] : [],
     decision_impact: n(f.decision_impact), bias_next_due: n(f.bias_next_due),
     data: { data_categories: f.data_categories, data_subjects: f.data_subjects, consent_basis: n(f.consent_basis), consent_ref: n(f.consent_ref), retention_period: n(f.retention_period), cross_border: n(f.cross_border) },
@@ -197,7 +197,9 @@ export function AgentActions({ f, set, fe, disabled, n }: Props & { n?: number }
         </FieldGroup>
         <div className="grid-2">
           <TextField label="Runtime controls" help={H.guardrail} placeholder="For example Futran GuardRail policy HR-Scheduling-v1" value={f.guardrail_policy_ref} onChange={(e) => set({ ...f, guardrail_policy_ref: e.target.value })} />
-          <SelectField label="Pre-release testing" help={H.agentassure} value={f.agentassure_status} placeholder="Choose" onChange={(e) => set({ ...f, agentassure_status: e.target.value })} options={AGENTASSURE} />
+          {f.agentassure_computed
+            ? <TextField label="Pre-release testing" help={H.agentassure} value={AGENTASSURE_ALL[f.agentassure_status] ?? f.agentassure_status} readOnly hint="Set from the Agent Assure records on the Assurance tab." />
+            : <SelectField label="Pre-release testing" help={H.agentassure} value={f.agentassure_status} placeholder="Choose" onChange={(e) => set({ ...f, agentassure_status: e.target.value })} options={AGENTASSURE} />}
         </div>
       </fieldset>
     </Card>

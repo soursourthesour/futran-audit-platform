@@ -589,7 +589,8 @@ def declaration_out(d: Declaration) -> dict:
 def report_out(db: Session, r: Report, futran: bool) -> dict:
     out = {"id": r.id, "version": r.version, "version_label": VERSION_LABEL[r.version], "status": r.status, "created_at": r.created_at.isoformat(),
            "docx_file_id": r.docx_file_id, "pdf_file_id": r.pdf_file_id, "released_to_client_at": r.released_to_client_at.isoformat() if r.released_to_client_at else None,
-           "signed_at": r.signed_at.isoformat() if r.signed_at else None, "declarations": [declaration_out(d) for d in declarations_for(db, r)]}
+           "signed_at": r.signed_at.isoformat() if r.signed_at else None, "declarations": [declaration_out(d) for d in declarations_for(db, r)],
+           "engagement_id": r.engagement_id}  # Release 2 R6a: the board readout pack is exported from a signed final report
     if futran:
         out["content_hash"] = r.content_hash
     return out

@@ -32,7 +32,10 @@ TRAINS_LABELS = {"no": "No, contractually excluded", "yes": "Yes", "unknown": "U
 VENDOR_DOCS = {"contract_ai_terms": "Contract with AI terms", "dpa": "Data processing agreement", "model_card": "Model card or system documentation",
                "vendor_bias_audit": "Vendor's own bias audit", "security_report": "Security report (SOC 2 or ISO 27001)", "incident_clause": "Incident notice clause"}
 AUTONOMY_LABELS = {"suggest_only": "Suggests only; a person acts", "acts_with_approval": "Acts, but a person approves first-time or unusual actions", "autonomous": "Acts on its own"}
-AGENTASSURE = {"planned": "Futran AgentAssure: planned", "passed": "Futran AgentAssure: passed", "vendor_only": "Vendor testing only", "none": "None"}
+AGENTASSURE = {"planned": "Futran AgentAssure: planned", "passed": "Futran AgentAssure: passed", "vendor_only": "Vendor testing only", "none": "None",
+               # Release 2 B9: computed from the agent's latest Agent Assure record (app.assurance.service), never chosen by hand
+               "conditional": "Agent Assure: conditional pass", "failed": "Agent Assure: failed", "recertification_due": "Agent Assure: re-certification due"}
+AGENTASSURE_COMPUTED = ("conditional", "failed", "recertification_due")
 ACTION_CODES = {"read_records": "Read records", "send_email": "Send email", "write_calendar": "Write to calendars", "change_records": "Change records in a system of record",
                 "decide_people": "Reject or advance people", "make_payments": "Make payments", "search_knowledge": "Search internal knowledge", "other": "Other"}
 DECISION_LABELS = {"none": "No effect on decisions about people", "informs": "Supports a decision a person makes", "consequential": "Makes or substantially makes the decision"}
@@ -588,6 +591,11 @@ def update_system(db: Session, actor: User, s: RegisterSystem, data: dict, *, re
     v = cleaned if cleaned is not None else clean(db, org, data, current=s)
     if "name" in v and not v["name"]:
         v.pop("name")
+    if "agentassure_status" in v and v["agentassure_status"] != s.agentassure_status:  # Release 2 B9: computed once a record exists
+        from app.assurance.service import has_runs
+
+        if has_runs(db, s.id) or v["agentassure_status"] in AGENTASSURE_COMPUTED:
+            raise Invalid(errors=[{"field": "agentassure_status", "message": "Pre-release testing is set from the Agent Assure records on the Assurance tab."}])
     before = _snapshot(db, s)
     tier_before = s.risk_tier
     decisions = _pop_decisions(v)

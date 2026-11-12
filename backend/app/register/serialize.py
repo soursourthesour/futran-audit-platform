@@ -57,6 +57,7 @@ def system_out(db: Session, s: RegisterSystem, actor: Actor | None, *, full: boo
         "model_name": s.model_name, "model_version": s.model_version, "algorithm_type": s.algorithm_type, "algorithm_label": svc.ALGORITHM_TYPES.get(s.algorithm_type or ""),
         "hosting": s.hosting, "vendor_trains_on_data": s.vendor_trains_on_data, "vendor_documents": s.vendor_documents or [], "autonomy": s.autonomy,
         "guardrail_policy_ref": s.guardrail_policy_ref, "agentassure_status": s.agentassure_status, "decision_impact": s.decision_impact,
+        "agentassure_computed": s.type == "agent" and _assured(db, s.id),  # Release 2 B9: set from Agent Assure records
         "risk_tier": s.risk_tier, "risk_tier_reason": s.risk_tier_reason, "bias_next_due": s.bias_next_due.isoformat() if s.bias_next_due else None,
         "origin": s.origin, "live_since": s.live_since.isoformat() if s.live_since else None,
         "data": {"data_categories": d.data_categories or [], "data_subjects": d.data_subjects or [], "consent_basis": d.consent_basis, "consent_ref": d.consent_ref,
@@ -87,3 +88,9 @@ def system_out(db: Session, s: RegisterSystem, actor: Actor | None, *, full: boo
         out["history"] = history_summary(db, s)
         out["suggested_laws"] = svc.suggested_laws(db, s)
     return out
+
+
+def _assured(db: Session, system_id: str) -> bool:
+    from app.assurance.service import has_runs
+
+    return has_runs(db, system_id)

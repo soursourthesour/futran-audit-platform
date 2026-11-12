@@ -70,6 +70,9 @@ def raise_trigger(db: Session, register_system_id: str, type: str, source: str, 
                  before={"verified": cleared} if cleared else None, after={"type": type, "source": source, "detail": t.detail, "reopened": t.reopened},
                  summary=f"Reassessment trigger on {s.reference} {s.name}: {TYPE_LABELS[type]}")
     _notify(db, s, t)
+    from app.assurance.service import on_reassessment_trigger  # Release 2 B9: an agent's Agent Assure record asks for re-certification
+
+    on_reassessment_trigger(db, s, t)
     return t
 
 

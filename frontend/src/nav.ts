@@ -49,6 +49,7 @@ export const FUTRAN_GROUPS: NavGroup[] = [
     { to: '/admin/users', label: 'Users', requires: ['view_platform_settings'] },
     { to: '/admin/client-users', label: 'Client users', requires: ['view_all_client_users'] },  // feedback 10 Nov F1 (FX)
     { to: '/admin/templates', label: 'Templates', requires: ['configure_templates', 'approve_templates'] },
+    { to: '/staff/admin/service-templates', label: 'Service templates', requires: ['view_service_templates'] },  // Release 2 R6a (G-06)
     { to: '/admin/reference', label: 'Reference data', requires: ['manage_reference_data', 'run_law_refresh'] },
     { to: '/staff/admin/email', label: 'Email and groups', requires: ['manage_futran_mailbox'] },
     // the outbox (test mode) is a tab of the email log; /admin/outbox redirects there

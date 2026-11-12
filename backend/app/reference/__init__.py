@@ -99,3 +99,12 @@ def _eu_ai_act_requirements(db: Session) -> str:
 
 
 LOADERS.append(("EU AI Act requirements for the conformity workspace", _eu_ai_act_requirements))  # Release 2 R6b (spec B8)
+
+
+def _service_templates(db: Session) -> str:
+    from app.servicetemplates.service import seed
+
+    return seed(db)
+
+
+LOADERS.append(("Service templates for the Release 2 engagement types", _service_templates))  # Release 2 R6a (spec B6)
