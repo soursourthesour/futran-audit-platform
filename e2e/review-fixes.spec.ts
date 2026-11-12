@@ -184,7 +184,7 @@ test('QA reaches the review queue from the main navigation, and no screen answer
   const bad = await apiErrors(page, async () => {
     await openNav(page, 'Refresh and review');
     await expect(page.getByRole('heading', { level: 1, name: 'Refresh laws and review changes' })).toBeVisible();
-    await expect(page.getByRole('grid', { name: 'Changes waiting for review' }).or(page.getByText('Nothing is waiting for review.'))).toBeVisible();
+    await expect(page.getByRole('table', { name: 'Changes waiting for review' }).or(page.getByText('Nothing is waiting for review.'))).toBeVisible();
   });
   expect(bad).toEqual([]);
   await expect(navLink(page, 'Refresh and review')).toHaveAttribute('aria-current', 'page');
