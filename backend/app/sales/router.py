@@ -1,6 +1,8 @@
-"""S1 opportunities (spec §27.5). Sales Team and Chief Auditor; only the Chief Auditor approves offers to audit clients."""
+"""S1 opportunities (spec §27.5) and the Release 2 sales desk (spec §4.1-4.3, SM-01 to SM-04). Sales Officers, Sales
+Managers and the Chief Auditor; only the Chief Auditor approves offers to audit clients."""
 import csv
 import io
+from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import Response
@@ -12,20 +14,23 @@ from app.audit_log import service as audit
 from app.auth.deps import Actor, current_actor
 from app.core.clock import today, utcnow
 from app.core.db import get_db
-from app.core.errors import Conflict, Invalid, NotFound
+from app.core.errors import Conflict, Forbidden, Invalid, NotFound
 from app.core.models import column_snapshot
 from app.litigation.service import TYPE_LABELS
 from app.notifications.service import notify
 from app.policy.actions import Action
 from app.policy.authorize import authorize
-from app.sales.models import ACTIVITY_KINDS, SERVICE_KINDS, STAGES, TRIGGER_LABELS, Opportunity, OpportunityActivity
+from app.auth.deps import get_settings_dep
+from app.sales import desk, independence
+from app.sales.models import (ACTIVITY_KINDS, CONTACT_ROLES, INDUSTRIES, LOST_REASONS, OPEN_STAGES, PRODUCTS, SEGMENTS, SERVICE_KINDS, SIZE_BANDS, SOURCES, STAGE_LABELS,
+                              STAGES, TRIGGER_EVENTS, TRIGGER_LABELS, Opportunity, OpportunityActivity, OpportunityContact)
+from app.sales.prospects import create_prospect, domain_of, find_duplicates, kind_of
 from app.sales.service import can_send_offer, check_independence, is_current_audit_client, log
 from app.tenancy.models import Organization, User
 from app.tenancy.service import roles_of
 
 router = APIRouter(tags=["opportunities"])
 
-STAGE_LABELS = {"new": "New", "contacted": "Contacted", "proposal": "Proposal", "won": "Won", "lost": "Lost"}
 
 
 def _name(db: Session, uid: str | None) -> str | None:
@@ -33,8 +38,21 @@ def _name(db: Session, uid: str | None) -> str | None:
     return u.name if u else None
 
 
-def opp_out(db: Session, o: Opportunity) -> dict:
+def _company(org: Organization | None) -> dict:
+    if org is None:
+        return {"id": None, "name": "", "kind": "client"}
+    return {"id": org.id, "name": org.name, "kind": kind_of(org), "website": org.website, "industry": org.industry, "size_band": org.employee_band,
+            "hq": ", ".join(x for x in (org.hq_city, org.hq_state, org.hq_country) if x)}
+
+
+def _iso(v) -> str | None:
+    return v.isoformat() if v is not None else None
+
+
+def opp_out(db: Session, o: Opportunity, touches: dict | None = None) -> dict:
     org = db.get(Organization, o.organization_id)
+    if touches is None:
+        touches = desk.last_touches(db, [o.id])
     if o.needs_ca_approval:
         approval = {"approved": "Approved", "declined": "Declined"}.get(o.ca_decision or "", "Requested" if o.approval_requested_at else "Needed")
     else:
@@ -49,6 +67,15 @@ def opp_out(db: Session, o: Opportunity) -> dict:
         "ca_approved_by_name": _name(db, o.ca_approved_by), "ca_approved_at": o.ca_approved_at.isoformat() if o.ca_approved_at else None,
         "ca_note": o.ca_note, "can_send_offer": can_send_offer(o), "approval_requested_at": o.approval_requested_at.isoformat() if o.approval_requested_at else None,
         "created_at": o.created_at.isoformat(), "closed_at": o.closed_at.isoformat() if o.closed_at else None,
+        # Release 2 (spec §4.11)
+        "name": o.name or o.service, "company": _company(org), "is_automatic": o.trigger != "manual", "source": o.source,
+        "source_label": SOURCES.get(o.source or "", "Automatic trigger" if o.trigger != "manual" else None), "partner_id": o.partner_id, "segment": o.segment,
+        "segment_label": SEGMENTS.get(o.segment or ""), "trigger_event": o.trigger_event, "trigger_event_label": TRIGGER_EVENTS.get(o.trigger_event or ""),
+        "products_of_interest": list(o.products_of_interest or []), "products_labels": [PRODUCTS.get(p, p) for p in o.products_of_interest or []],
+        "est_value": o.value, "close_date": _iso(o.close_date), "next_step_due": _iso(o.next_step_due), "lost_reason": o.lost_reason,
+        "lost_reason_label": LOST_REASONS.get(o.lost_reason or ""), "lost_note": o.lost_note, "bant": o.bant or {}, "competitors": list(o.competitors or []),
+        "independence_flag": bool(o.independence_flag), "independence_reason": o.independence_reason, "last_activity_at": _iso(desk.last_touch(o, touches)),
+        "stale": desk.is_stale(o, touches),
     }
 
 
@@ -59,21 +86,42 @@ def _get(db: Session, oid: str) -> Opportunity:
     return o
 
 
+OWNER_ROLES = ("sales_team", "sales_manager", "chief_auditor")  # who can own an opportunity
+
+
+def _can(db: Session, actor: Actor, action: Action) -> bool:
+    try:
+        authorize(db, actor, action)
+        return True
+    except Exception:
+        return False
+
+
+def _check_reassign(db: Session, actor: Actor, o: Opportunity, owner_id: str | None) -> None:
+    """Spec §4.1: the Sales Manager reassigns opportunities. A Sales Officer may take an unowned opportunity, or keep
+    their own, but not move someone else's or hand one to another rep."""
+    if owner_id == o.owner_id or _can(db, actor, Action.REASSIGN_OPPORTUNITIES):
+        return
+    if owner_id == actor.id and o.owner_id is None:
+        return
+    raise Forbidden("Only a Sales Manager or the Chief Auditor reassigns an opportunity to someone else.")
+
+
 def _owners(db: Session, futran_org_id: str) -> list[User]:
     users = db.scalars(select(User).where(User.organization_id == futran_org_id, User.deleted_at.is_(None), User.status != "disabled").order_by(User.name))
-    return [u for u in users if {r.role for r in roles_of(db, u.id)} & {"sales_team", "chief_auditor"}]
+    return [u for u in users if {r.role for r in roles_of(db, u.id)} & set(OWNER_ROLES)]
 
 
 def _check_owner(db: Session, actor: Actor, owner_id: str | None) -> None:
     if owner_id and owner_id not in {u.id for u in _owners(db, actor.organization.id)}:
-        raise Invalid(errors=[{"field": "owner_id", "message": "Choose someone on the Sales Team or a Chief Auditor."}])
+        raise Invalid(errors=[{"field": "owner_id", "message": "Choose a Sales Officer, a Sales Manager or a Chief Auditor."}])
 
 
 def _kpis(db: Session) -> dict:
-    rows = list(db.scalars(select(Opportunity)))
+    rows = _visible(db, db.scalars(select(Opportunity)))
     now = utcnow()
     q_start_month = 3 * ((now.month - 1) // 3) + 1
-    open_ = [o for o in rows if o.stage not in ("won", "lost")]
+    open_ = [o for o in rows if o.stage in OPEN_STAGES]
     return {
         "open": len(open_),
         "created_by_triggers_this_month": sum(o.trigger != "manual" and o.created_at.year == now.year and o.created_at.month == now.month for o in rows),
@@ -83,26 +131,63 @@ def _kpis(db: Session) -> dict:
     }
 
 
+PRODUCT_FAMILIES = {"audit": ("audit",), "monitor": ("monitor",), "ll144": ("ll144",), "agent_assure": ("agent_assure",), "agentwarden": ("agentwarden",)}
+
+
+def _visible(db: Session, rows) -> list[Opportunity]:
+    """Opportunities whose company still exists (a lost prospect deleted after 24 months takes its opportunities)."""
+    out = []
+    for o in rows:
+        org = db.get(Organization, o.organization_id)
+        if org is not None and org.deleted_at is None:
+            out.append(o)
+    return out
+
+
 @router.get("/opportunities")
-def list_opps(trigger: str | None = None, stage: str | None = None, owner: str | None = None, q: str | None = None,
-              actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+def list_opps(trigger: str | None = None, stage: str | None = None, owner: str | None = None, q: str | None = None, source: str | None = None,
+              product: str | None = None, flag: bool = False, stale: bool = False, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.VIEW_OPPORTUNITIES)
     stmt = select(Opportunity)
     if trigger:
         stmt = stmt.where(Opportunity.trigger.in_(trigger.split(",")))
-    if stage:
+    if stage == "open":
+        stmt = stmt.where(Opportunity.stage.in_(OPEN_STAGES))
+    elif stage:
         stmt = stmt.where(Opportunity.stage.in_(stage.split(",")))
     if owner == "me":
         stmt = stmt.where(Opportunity.owner_id == actor.id)
-    items = [opp_out(db, o) for o in db.scalars(stmt.order_by(Opportunity.created_at.desc()))]
+    elif owner and owner not in ("team", "anyone"):
+        stmt = stmt.where(Opportunity.owner_id == owner)
+    if source == "manual":
+        stmt = stmt.where(Opportunity.trigger == "manual")
+    elif source == "auto":
+        stmt = stmt.where(Opportunity.trigger != "manual")
+    elif source == "partner":
+        stmt = stmt.where((Opportunity.source == "referral_partner") | Opportunity.partner_id.is_not(None))
+    elif source:
+        stmt = stmt.where(Opportunity.source == source)
+    if flag:
+        stmt = stmt.where(Opportunity.independence_flag.is_(True))
+    rows = _visible(db, db.scalars(stmt.order_by(Opportunity.created_at.desc())))
+    if product:
+        rows = [o for o in rows if product in (o.products_of_interest or []) or (product == "other" and not set(o.products_of_interest or []) & set(PRODUCT_FAMILIES))]
+    touches = desk.last_touches(db, [o.id for o in rows])
+    items = [opp_out(db, o, touches) for o in rows]
+    if stale:
+        items = [i for i in items if i["stale"]]
     if q:
         needle = q.casefold()
-        items = [i for i in items if needle in f"{i['client_name']} {i['service']} {i['why_now'] or ''}".casefold()]
+        items = [i for i in items if needle in f"{i['client_name']} {i['service']} {i['name']} {i['why_now'] or ''}".casefold()]
     clients = [{"id": o.id, "name": o.name} for o in db.scalars(select(Organization).where(Organization.type == "client", Organization.deleted_at.is_(None)).order_by(Organization.name))]
+    opts = lambda d: [{"value": k, "label": v} for k, v in d.items()]  # noqa: E731
     return {
         "items": items, "kpis": _kpis(db), "owners": [{"id": u.id, "name": u.name} for u in _owners(db, actor.organization.id)], "clients": clients,
-        "triggers": [{"value": k, "label": v} for k, v in TRIGGER_LABELS.items()], "stages": [{"value": k, "label": v} for k, v in STAGE_LABELS.items()],
-        "can_approve": Action.APPROVE_OPPORTUNITY in _actions(db, actor),
+        "triggers": opts(TRIGGER_LABELS), "stages": [{"value": k, "label": v} for k, v in STAGE_LABELS.items() if k != "contacted"],
+        "sources": opts(SOURCES), "segments": opts(SEGMENTS), "trigger_events": opts(TRIGGER_EVENTS), "products": opts(PRODUCTS), "lost_reasons": opts(LOST_REASONS),
+        "contact_roles": opts(CONTACT_ROLES), "industries": list(INDUSTRIES), "size_bands": list(SIZE_BANDS),
+        "can_approve": Action.APPROVE_OPPORTUNITY in _actions(db, actor), "can_work": _can(db, actor, Action.WORK_OPPORTUNITIES),
+        "can_reassign": _can(db, actor, Action.REASSIGN_OPPORTUNITIES),
     }
 
 
@@ -118,14 +203,24 @@ def _actions(db: Session, actor: Actor) -> set[Action]:
 
 
 @router.get("/opportunities/export.csv")
-def export(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+def export(ids: str | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+    from app.documents.csvsafe import safe_cell
+
     authorize(db, actor, Action.VIEW_OPPORTUNITIES)
     buf = io.StringIO()
     w = csv.writer(buf)
-    w.writerow(["Client", "Trigger", "Service", "Why now", "Value (USD)", "Owner", "Stage", "Next step", "Chief Auditor approval"])
-    for o in db.scalars(select(Opportunity).order_by(Opportunity.created_at.desc())):
-        x = opp_out(db, o)
-        w.writerow([x["client_name"], x["trigger_label"], x["service"], x["why_now"] or "", x["value"] or "", x["owner_name"] or "", x["stage_label"], x["next_step"] or "", x["approval"]])
+    w.writerow(["Company", "Prospect or client", "Opportunity", "Source", "Trigger", "Products", "Value (USD)", "Close date", "Owner", "Stage", "Next step", "Next step due",
+                "Independence flag", "Chief Auditor approval", "Why now"])
+    stmt = select(Opportunity).order_by(Opportunity.created_at.desc())
+    if ids:
+        stmt = stmt.where(Opportunity.id.in_(ids.split(",")))
+    rows = _visible(db, db.scalars(stmt))
+    touches = desk.last_touches(db, [o.id for o in rows])
+    for o in rows:
+        x = opp_out(db, o, touches)
+        w.writerow([safe_cell(v) for v in (x["client_name"], x["company"]["kind"].capitalize(), x["name"], x["source_label"] or "", x["trigger_label"], ", ".join(x["products_labels"]),
+                                            x["value"] or "", x["close_date"] or "", x["owner_name"] or "", x["stage_label"], x["next_step"] or "", x["next_step_due"] or "",
+                                            "Yes" if x["independence_flag"] else "No", x["approval"], x["why_now"] or "")])
     return Response(buf.getvalue(), media_type="text/csv; charset=utf-8", headers={"Content-Disposition": 'attachment; filename="opportunities.csv"'})
 
 
@@ -156,7 +251,8 @@ def create_opp(body: OppIn, request: Request, actor: Actor = Depends(current_act
     _check_owner(db, actor, owner)
     check_independence(db, org.id, body.service_kind)
     o = Opportunity(organization_id=org.id, trigger="manual", service=body.service, service_kind=body.service_kind, why_now=body.why_now, value=body.value,
-                    owner_id=owner, next_step=body.next_step, needs_ca_approval=is_current_audit_client(db, org.id), created_by=actor.id)
+                    owner_id=owner, next_step=body.next_step, needs_ca_approval=is_current_audit_client(db, org.id), created_by=actor.id, last_activity_at=utcnow())
+    independence.refresh(db, o)
     db.add(o)
     db.flush()
     audit.record(db, actor_id=actor.id, action="opportunity.create", obj=o, after=column_snapshot(o), request=request, organization_id=actor.organization.id, summary=f"Opportunity for {org.name}: {o.service}")
@@ -167,16 +263,77 @@ def create_opp(body: OppIn, request: Request, actor: Actor = Depends(current_act
 def get_opp(opp_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.VIEW_OPPORTUNITIES)
     o = _get(db, opp_id)
-    acts = db.scalars(select(OpportunityActivity).where(OpportunityActivity.opportunity_id == o.id).order_by(OpportunityActivity.at.desc()))
-    return opp_out(db, o) | {"activities": [{"id": a.id, "kind": a.kind, "summary": a.summary, "by": _name(db, a.by_id), "at": a.at.isoformat()} for a in acts]}
+    acts = list(db.scalars(select(OpportunityActivity).where(OpportunityActivity.opportunity_id == o.id).order_by(OpportunityActivity.at.desc())))
+    replies = desk.replies_for(db, [a.mail_thread_id for a in acts if a.mail_thread_id])
+    contacts = db.scalars(select(OpportunityContact).where(OpportunityContact.opportunity_id == o.id, OpportunityContact.deleted_at.is_(None)).order_by(OpportunityContact.created_at))
+    return opp_out(db, o) | {
+        "activities": [{"id": a.id, "kind": a.kind, "summary": a.summary, "by": _name(db, a.by_id), "at": a.at.isoformat(), "outcome": a.outcome, "next_step": a.next_step,
+                        "due_on": _iso(a.due_on), "done_at": _iso(a.done_at), "to": a.to_addresses or [], "replies": replies.get(a.mail_thread_id or "", [])} for a in acts],
+        "contacts": [_contact_out(c) for c in contacts], "linked": desk.linked(db, o),
+        "can_work": _can(db, actor, Action.WORK_OPPORTUNITIES), "can_reassign": _can(db, actor, Action.REASSIGN_OPPORTUNITIES),
+        "can_approve": _can(db, actor, Action.APPROVE_OPPORTUNITY), "owners": [{"id": u.id, "name": u.name} for u in _owners(db, actor.organization.id)],
+    }
 
 
-class OppPatch(BaseModel):
+def _contact_out(c: OpportunityContact) -> dict:
+    return {"id": c.id, "name": c.name, "title": c.title, "email": c.email, "phone": c.phone, "contact_role": c.contact_role,
+            "contact_role_label": CONTACT_ROLES.get(c.contact_role or "")}
+
+
+def _one_of(choices: dict | tuple, message: str):
+    def check(v):
+        if v is not None and v != "" and v not in choices:
+            raise ValueError(message)
+        return v or None
+    return check
+
+
+class Bant(BaseModel):
+    budget: str | None = Field(default=None, max_length=300)
+    authority: str | None = Field(default=None, max_length=300)
+    need: str | None = Field(default=None, max_length=600)
+    timeline: str | None = Field(default=None, max_length=300)
+
+
+class DealFields(BaseModel):
+    """Spec §4.3 deal fields shared by Log opportunity (SM-03) and the record (SM-04)."""
+    name: str | None = Field(default=None, max_length=200)
+    source: str | None = None
+    partner_id: str | None = Field(default=None, max_length=36)
+    segment: str | None = None
+    trigger_event: str | None = None
+    products_of_interest: list[str] | None = Field(default=None, max_length=12)
+    est_value: int | None = Field(default=None, ge=0, le=100_000_000)
+    close_date: date | None = None
+    next_step: str | None = Field(default=None, max_length=300)
+    next_step_due: date | None = None
+    bant: Bant | None = None
+    competitors: list[str] | None = Field(default=None, max_length=12)
+
+    _source = field_validator("source")(classmethod(lambda cls, v: _one_of(SOURCES, "Choose a source from the list.")(v)))
+    _segment = field_validator("segment")(classmethod(lambda cls, v: _one_of(SEGMENTS, "Choose a segment from the list.")(v)))
+    _trigger_event = field_validator("trigger_event")(classmethod(lambda cls, v: _one_of(TRIGGER_EVENTS, "Choose a trigger from the list.")(v)))
+
+    @field_validator("products_of_interest")
+    @classmethod
+    def _products(cls, v):
+        if v is not None and any(p not in PRODUCTS for p in v):
+            raise ValueError("Choose products from the list.")
+        return list(dict.fromkeys(v)) if v is not None else None
+
+    @field_validator("competitors")
+    @classmethod
+    def _competitors(cls, v):
+        return [c.strip()[:120] for c in v if c and c.strip()] if v is not None else None
+
+
+class OppPatch(DealFields):
     stage: str | None = None
     owner_id: str | None = None
-    next_step: str | None = Field(default=None, max_length=300)
     value: int | None = Field(default=None, ge=0)
     service: str | None = Field(default=None, min_length=2, max_length=200)
+    lost_reason: str | None = None
+    lost_note: str | None = Field(default=None, max_length=500)
 
     @field_validator("stage")
     @classmethod
@@ -185,14 +342,38 @@ class OppPatch(BaseModel):
             raise ValueError("Unknown stage.")
         return v
 
+    _lost = field_validator("lost_reason")(classmethod(lambda cls, v: _one_of(LOST_REASONS, "Choose a reason from the list.")(v)))
+
+
+BANT_GATE = (("budget", "budget"), ("authority", "decision maker"), ("timeline", "timeline"))
+
+
+def _stage_gate(o: Opportunity, new: str, data: dict) -> None:
+    """Spec §4.2: qualified once the rep confirms budget, decision maker and timeline; lost with a reason."""
+    if new == "qualified":
+        bant = data.get("bant") or o.bant or {}
+        missing = [label for k, label in BANT_GATE if not (bant.get(k) or "").strip()]
+        if missing:
+            raise Invalid(errors=[{"field": "bant", "message": f"Before Qualified, record the {', '.join(missing)} (BANT)."}])
+    if new == "lost" and not (data.get("lost_reason") or o.lost_reason):
+        raise Invalid(errors=[{"field": "lost_reason", "message": "Choose why it was lost."}])
+
 
 OFFER_STAGES = ("proposal", "won")  # an offer has gone out: a current audit client needs the Chief Auditor's approval first
 
 
-def _patch(db: Session, actor: Actor, o: Opportunity, body: OppPatch) -> None:
+def _patch(db: Session, actor: Actor, o: Opportunity, body: OppPatch, settings=None) -> None:
     data = body.model_dump(exclude_unset=True)
+    if "est_value" in data:
+        data["value"] = data.pop("est_value")
+    if "name" in data and data["name"] is not None:
+        data["name"] = data["name"].strip() or None
+    if data.get("stage") and data["stage"] != o.stage:
+        _stage_gate(o, data["stage"], data)
+    new_owner = data.get("owner_id") if "owner_id" in data and data.get("owner_id") != o.owner_id else None
     if "owner_id" in data:
         _check_owner(db, actor, data["owner_id"])
+        _check_reassign(db, actor, o, data["owner_id"])
     if "service" in data and data["service"] is not None and data["service"].strip() != o.service:
         # The approval was for the service as it stood: a new service is a new offer. Re-check the independence rule and
         # whether the client is now a current audit client, and ask for approval again.
@@ -207,18 +388,27 @@ def _patch(db: Session, actor: Actor, o: Opportunity, body: OppPatch) -> None:
             o.needs_ca_approval = o.needs_ca_approval or is_current_audit_client(db, o.organization_id)
             if not can_send_offer(o):
                 raise Conflict("This client is a current audit client. The Chief Auditor approves the offer before a proposal goes out or the opportunity is won.")
-        log(db, o, "stage", f"Stage changed from {STAGE_LABELS[o.stage]} to {STAGE_LABELS[data['stage']]}", actor.id)
+        log(db, o, "stage", f"Stage changed from {STAGE_LABELS.get(o.stage, o.stage)} to {STAGE_LABELS[data['stage']]}", actor.id)
         o.closed_at = utcnow() if data["stage"] in ("won", "lost") else None
+        if data["stage"] != "lost":
+            o.lost_reason = o.lost_reason if "lost_reason" in data else None
     for k, v in data.items():
         setattr(o, k, v)
+    independence.refresh(db, o)  # computed on every save (§4.3 rule 3)
+    if new_owner and new_owner != actor.id:
+        u = db.get(User, new_owner)
+        org = db.get(Organization, o.organization_id)
+        notify(db, [u], "opportunity_assigned", f"Opportunity assigned to you: {org.name if org else ''}", o.name or o.service, f"/sales/opportunities/{o.id}",
+               settings=settings, email_template="notification" if settings is not None else None)
 
 
 @router.patch("/opportunities/{opp_id}")
-def patch_opp(opp_id: str, body: OppPatch, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+def patch_opp(opp_id: str, body: OppPatch, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"),
+              settings=Depends(get_settings_dep)):
     authorize(db, actor, Action.WORK_OPPORTUNITIES)
     o = _get(db, opp_id)
     before = column_snapshot(o)
-    _patch(db, actor, o, body)
+    _patch(db, actor, o, body, settings)
     db.flush()
     audit.record(db, actor_id=actor.id, action="opportunity.update", obj=o, before=before, after=column_snapshot(o), request=request, organization_id=actor.organization.id, summary=f"Updated opportunity: {o.service}")
     return opp_out(db, o)
@@ -231,7 +421,7 @@ class BulkIn(BaseModel):
 
 
 @router.post("/opportunities/bulk")
-def bulk(body: BulkIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+def bulk(body: BulkIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     authorize(db, actor, Action.WORK_OPPORTUNITIES)
     patch = OppPatch(**{k: v for k, v in {"owner_id": body.owner_id, "stage": body.stage}.items() if v is not None})
     n = skipped = 0
@@ -241,25 +431,30 @@ def bulk(body: BulkIn, request: Request, actor: Actor = Depends(current_actor), 
             continue
         try:
             with db.begin_nested():
-                _patch(db, actor, o, patch)
-        except Conflict:  # waiting for the Chief Auditor's approval: left as it is
+                _patch(db, actor, o, patch, settings)
+        except (Conflict, Forbidden, Invalid):  # waiting for the Chief Auditor's approval, or not this rep's to reassign: left as it is
             skipped += 1
             continue
         n += 1
     audit.record(db, actor_id=actor.id, action="opportunity.bulk_update", object_type="Opportunity", request=request, organization_id=actor.organization.id,
-                 summary=f"Updated {n} opportunities" + (f"; {skipped} left as they were (Chief Auditor approval needed)" if skipped else ""))
+                 summary=f"Updated {n} opportunities" + (f"; {skipped} left as they were" if skipped else ""))
     return {"changed": n, "skipped": skipped}
 
 
 class ActivityIn(BaseModel):
     kind: str
     summary: str = Field(min_length=2, max_length=4000)
+    outcome: str | None = Field(default=None, max_length=500)
+    next_step: str | None = Field(default=None, max_length=300)
+    next_step_due: date | None = None
+    due_on: date | None = None  # a task's due date
+    on: date | None = None  # when it happened, if not now
 
     @field_validator("kind")
     @classmethod
     def _kind(cls, v):
         if v not in ACTIVITY_KINDS:
-            raise ValueError("Choose call, email, meeting, note, proposal or outcome.")
+            raise ValueError("Choose call, email, meeting, note, task, proposal or outcome.")
         return v
 
 
@@ -269,10 +464,215 @@ def add_activity(opp_id: str, body: ActivityIn, actor: Actor = Depends(current_a
     o = _get(db, opp_id)
     if body.kind == "proposal" and not can_send_offer(o):
         raise Conflict("This client is a current audit client. The Chief Auditor approves the offer before a proposal goes out.")
-    a = log(db, o, body.kind, body.summary, actor.id)
-    if o.stage == "new" and body.kind in ("call", "email", "meeting"):
-        o.stage = "contacted"
+    at = datetime.combine(body.on, utcnow().time()) if body.on and body.on < today() else None
+    a = log(db, o, body.kind, body.summary, actor.id, at=at)
+    a.outcome, a.next_step, a.due_on = body.outcome, body.next_step, body.due_on if body.kind == "task" else None
+    if body.next_step:
+        o.next_step, o.next_step_due = body.next_step, body.next_step_due
+    desk.touch(o, a.at)
+    db.flush()
     return {"id": a.id}
+
+
+@router.post("/opportunities/{opp_id}/activities/{activity_id}/done")
+def task_done(opp_id: str, activity_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+    authorize(db, actor, Action.WORK_OPPORTUNITIES)
+    o = _get(db, opp_id)
+    a = db.get(OpportunityActivity, activity_id)
+    if a is None or a.opportunity_id != o.id or a.kind != "task":
+        raise NotFound()
+    a.done_at = None if a.done_at else utcnow()
+    desk.touch(o)
+    return {"id": a.id, "done_at": _iso(a.done_at)}
+
+
+class EmailIn(BaseModel):
+    to: list[str] = Field(min_length=1, max_length=20)
+    subject: str = Field(min_length=1, max_length=250)
+    body: str = Field(min_length=1, max_length=20000)
+
+    @field_validator("to")
+    @classmethod
+    def _to(cls, v):
+        out = [x.strip() for x in v if x and x.strip()]
+        if not out or any("@" not in x or " " in x for x in out):
+            raise ValueError("Enter email addresses.")
+        return out
+
+
+@router.post("/opportunities/{opp_id}/email")
+def send_email(opp_id: str, body: EmailIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"),
+               settings=Depends(get_settings_dep)):
+    """Spec §4.3 rule 4: from the rep's own mailbox; replies thread back onto the opportunity."""
+    authorize(db, actor, Action.WORK_OPPORTUNITIES)
+    o = _get(db, opp_id)
+    a = desk.send_email(db, settings, actor.user, o, body.to, body.subject, body.body)
+    audit.record(db, actor_id=actor.id, action="opportunity.email", obj=o, request=request, organization_id=actor.organization.id,
+                 summary=f"Email sent from {actor.user.name}'s mailbox to {', '.join(body.to)[:200]}")
+    return {"id": a.id}
+
+
+# ---- contacts (spec §4.11 OpportunityContact)
+class ContactIn(BaseModel):
+    name: str = Field(min_length=1, max_length=160)
+    title: str | None = Field(default=None, max_length=160)
+    email: str | None = Field(default=None, max_length=254)
+    phone: str | None = Field(default=None, max_length=40)
+    contact_role: str | None = None
+
+    _role = field_validator("contact_role")(classmethod(lambda cls, v: _one_of(CONTACT_ROLES, "Choose economic buyer, champion, technical, legal or procurement.")(v)))
+
+    @field_validator("email")
+    @classmethod
+    def _email(cls, v):
+        v = (v or "").strip().lower()
+        if v and ("@" not in v or " " in v):
+            raise ValueError("Enter an email address.")
+        return v or None
+
+
+class ContactPatch(ContactIn):
+    name: str | None = Field(default=None, min_length=1, max_length=160)
+
+
+def _contact(db: Session, o: Opportunity, cid: str) -> OpportunityContact:
+    c = db.get(OpportunityContact, cid)
+    if c is None or c.opportunity_id != o.id or c.deleted_at is not None:
+        raise NotFound()
+    return c
+
+
+@router.post("/opportunities/{opp_id}/contacts")
+def add_contact(opp_id: str, body: ContactIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+    authorize(db, actor, Action.WORK_OPPORTUNITIES)
+    o = _get(db, opp_id)
+    c = OpportunityContact(opportunity_id=o.id, created_by=actor.id, **body.model_dump())
+    db.add(c)
+    db.flush()
+    return _contact_out(c)
+
+
+@router.patch("/opportunities/{opp_id}/contacts/{contact_id}")
+def edit_contact(opp_id: str, contact_id: str, body: ContactPatch, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+    authorize(db, actor, Action.WORK_OPPORTUNITIES)
+    c = _contact(db, _get(db, opp_id), contact_id)
+    for k, v in body.model_dump(exclude_unset=True).items():
+        if k != "name" or v:
+            setattr(c, k, v)
+    db.flush()
+    return _contact_out(c)
+
+
+@router.delete("/opportunities/{opp_id}/contacts/{contact_id}")
+def remove_contact(opp_id: str, contact_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+    authorize(db, actor, Action.WORK_OPPORTUNITIES)
+    c = _contact(db, _get(db, opp_id), contact_id)
+    c.deleted_at = utcnow()
+    return {"id": c.id}
+
+
+# ---- SM-03 log opportunity: an existing client or prospect, or a new prospect with the duplicate check
+@router.get("/sales/duplicates")
+def duplicates(name: str | None = None, website: str | None = None, email: str | None = None, actor: Actor = Depends(current_actor),
+               db: Session = Depends(get_db, scope="function")):
+    authorize(db, actor, Action.WORK_OPPORTUNITIES)
+    return {"matches": find_duplicates(db, name=name, website=website, emails=[e for e in (email or "").split(",") if e])}
+
+
+@router.get("/sales/independence")
+def independence_preview(organization_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+    """SM-03: the independence check shown before saving (the same check runs again on save)."""
+    authorize(db, actor, Action.WORK_OPPORTUNITIES)
+    org = db.get(Organization, organization_id)
+    if org is None or org.type not in ("client", "prospect"):
+        raise NotFound()
+    flag, reason = independence.flag_for(db, org.id)
+    return {"flag": flag, "reason": reason}
+
+
+@router.get("/sales/companies")
+def companies(q: str = "", actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+    """SM-03 company search: existing clients and prospects."""
+    authorize(db, actor, Action.WORK_OPPORTUNITIES)
+    needle = q.strip().casefold()
+    rows = db.scalars(select(Organization).where(Organization.type.in_(("client", "prospect")), Organization.deleted_at.is_(None), Organization.is_internal.is_(False))
+                      .order_by(Organization.name))
+    out = [{"id": o.id, "name": o.name, "kind": kind_of(o), "website": o.website, "domain": domain_of(o.website)} for o in rows
+           if not needle or needle in f"{o.name} {o.website or ''}".casefold()]
+    return {"items": out[:25]}
+
+
+class ProspectIn(BaseModel):
+    name: str = Field(min_length=2, max_length=200)
+    website: str | None = Field(default=None, max_length=200)
+    industry: str | None = Field(default=None, max_length=80)
+    size_band: str | None = Field(default=None, max_length=40)
+    hq_state: str | None = Field(default=None, max_length=120)
+    hq_country: str | None = Field(default=None, max_length=2)
+
+
+class LogIn(DealFields):
+    organization_id: str | None = None
+    prospect: ProspectIn | None = None
+    confirm_different: bool = False
+    owner_id: str | None = None
+    contacts: list[ContactIn] = Field(default_factory=list, max_length=20)
+
+
+@router.post("/sales/opportunities")
+def log_opportunity(body: LogIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"),
+                    settings=Depends(get_settings_dep)):
+    authorize(db, actor, Action.WORK_OPPORTUNITIES)
+    if (body.organization_id is None) == (body.prospect is None):
+        raise Invalid(errors=[{"field": "organization_id", "message": "Choose an existing company or enter a new prospect."}])
+    if body.organization_id:
+        org = db.get(Organization, body.organization_id)
+        if org is None or org.deleted_at is not None or org.type not in ("client", "prospect") or org.is_internal:
+            raise Invalid(errors=[{"field": "organization_id", "message": "Choose a client or a prospect."}])
+    else:
+        p = body.prospect
+        if not body.confirm_different:
+            dups = find_duplicates(db, name=p.name, website=p.website, emails=[c.email for c in body.contacts if c.email])
+            if dups:
+                raise Conflict("This may be a company already on file. Open it, or confirm this is a different company.", errors=dups)
+        org = create_prospect(db, name=p.name, actor_id=actor.id, website=p.website, industry=p.industry, employee_band=p.size_band, hq_state=p.hq_state,
+                              hq_country=(p.hq_country or "").upper() or None)
+        audit.record(db, actor_id=actor.id, action="prospect.create", obj=org, after=column_snapshot(org), request=request, organization_id=actor.organization.id,
+                     summary=f"New prospect {org.name}")
+    owner = body.owner_id or actor.id
+    _check_owner(db, actor, owner)
+    if owner != actor.id and not _can(db, actor, Action.REASSIGN_OPPORTUNITIES):
+        raise Forbidden("Only a Sales Manager or the Chief Auditor logs an opportunity for someone else.")
+    products = body.products_of_interest or []
+    name = (body.name or "").strip() or f"{org.name} · {', '.join(PRODUCTS[p] for p in products) or 'New opportunity'}"
+    now = utcnow()
+    o = Opportunity(organization_id=org.id, trigger="manual", service=name[:200], service_kind="other", why_now=TRIGGER_EVENTS.get(body.trigger_event or "", "")[:300],
+                    value=body.est_value, owner_id=owner, next_step=body.next_step, next_step_due=body.next_step_due, name=name[:200], source=body.source,
+                    partner_id=body.partner_id, segment=body.segment, trigger_event=body.trigger_event, products_of_interest=products, close_date=body.close_date,
+                    bant=body.bant.model_dump() if body.bant else None, competitors=body.competitors, created_by=actor.id, last_activity_at=now, stage="new")
+    independence.refresh(db, o)
+    o.needs_ca_approval = bool(o.independence_flag) or is_current_audit_client(db, org.id)
+    db.add(o)
+    db.flush()
+    for c in body.contacts:
+        db.add(OpportunityContact(opportunity_id=o.id, created_by=actor.id, **c.model_dump()))
+    log(db, o, "created", f"Logged by {actor.user.name}" + (f" from {SOURCES[body.source].lower()}" if body.source else ""), actor.id, at=now)
+    db.flush()
+    audit.record(db, actor_id=actor.id, action="opportunity.create", obj=o, after=column_snapshot(o), request=request, organization_id=actor.organization.id,
+                 summary=f"Opportunity for {org.name}: {name}")
+    if owner != actor.id:
+        notify(db, [db.get(User, owner)], "opportunity_assigned", f"Opportunity assigned to you: {org.name}", name, f"/sales/opportunities/{o.id}",
+               settings=settings, email_template="notification")
+    return get_opp(o.id, actor, db)
+
+
+# ---- SM-01 Sales home
+@router.get("/sales/home")
+def sales_home(scope: str = "mine", actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+    authorize(db, actor, Action.VIEW_OPPORTUNITIES)
+    if not (_can(db, actor, Action.VIEW_SALES_HOME) or _can(db, actor, Action.VIEW_TEAM_PIPELINE)):
+        raise Forbidden()
+    return desk.home(db, actor, scope, _can(db, actor, Action.VIEW_TEAM_PIPELINE))
 
 
 class NoteIn(BaseModel):
@@ -289,7 +689,7 @@ def request_approval(opp_id: str, body: NoteIn, actor: Actor = Depends(current_a
     org = db.get(Organization, o.organization_id)
     log(db, o, "approval_requested", body.note or "Approval requested", actor.id)
     chiefs = [u for u in db.scalars(select(User).where(User.organization_id == actor.organization.id, User.deleted_at.is_(None))) if "chief_auditor" in {r.role for r in roles_of(db, u.id)}]
-    notify(db, chiefs, "opportunity_approval", f"Approve an offer to {org.name}", f"{actor.user.name} asks to offer “{o.service}”. {body.note}".strip(), link=f"/opportunities?open={o.id}")
+    notify(db, chiefs, "opportunity_approval", f"Approve an offer to {org.name}", f"{actor.user.name} asks to offer “{o.service}”. {body.note}".strip(), link=f"/sales/opportunities/{o.id}")
     return opp_out(db, o)
 
 
@@ -315,7 +715,7 @@ def decide(opp_id: str, body: DecisionIn, request: Request, actor: Actor = Depen
     log(db, o, "approved" if body.decision == "approve" else "declined", body.note or ("Offer approved" if body.decision == "approve" else "Offer declined"), actor.id)
     audit.record(db, actor_id=actor.id, action=f"opportunity.{o.ca_decision}", obj=o, request=request, organization_id=actor.organization.id, summary=f"Offer {o.ca_decision}: {o.service}")
     if o.owner_id and o.owner_id != actor.id:
-        notify(db, [db.get(User, o.owner_id)], "opportunity_decided", f"Offer {o.ca_decision}: {o.service}", body.note or None, link=f"/opportunities?open={o.id}")
+        notify(db, [db.get(User, o.owner_id)], "opportunity_decided", f"Offer {o.ca_decision}: {o.service}", body.note or None, link=f"/sales/opportunities/{o.id}")
     return opp_out(db, o)
 
 

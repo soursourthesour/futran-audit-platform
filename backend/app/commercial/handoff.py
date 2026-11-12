@@ -133,9 +133,9 @@ def _build(db: Session, proposal, acceptance, actor: User | None) -> Handoff:
     checklist: list[dict] = []
 
     # 1. client
-    was_prospect = org.status == "prospect"
-    if was_prospect:
-        org.status = "draft"
+    from app.sales.prospects import convert_to_client  # R2: prospect → normal draft client (type, status, client reference)
+
+    was_prospect = convert_to_client(db, org)
     checklist.append(_item("client", "Client organization", "Prospect converted to draft client · contacts copied" if was_prospect else "Existing client · contacts copied",
                            "Created" if was_prospect else "Updated", "Futran Admin", f"/clients/{org.id}", org.id))
 

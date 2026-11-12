@@ -395,3 +395,7 @@ JOBS["scoping_reminders"] = _wsh("app.scoping.sending", "run_reminders")  # Rele
 JOBS["proposal_followups"] = _wsh("app.proposals.sending", "run_daily")  # Release 2 R4: proposal not opened / expiring alerts and expiry
 # Release 2 R7: retention countdown notices and end-of-retention deletion of engagement evidence (G-10), legal holds honoured
 JOBS["vault_retention"] = _wsh("app.vault.service", "run_daily")
+# Release 2 R2: the weekly stale-opportunity digest (owner and Sales Managers, once per week) and lost prospects deleted
+# after 24 months unless reopened (R2-Q10 default; legal holds respected once R7's vault is installed)
+JOBS["sales_stale_digest"] = _wsh("app.sales.desk", "run_stale_digest")
+JOBS["lost_prospect_purge"] = _wsh("app.sales.desk", "run_lost_prospect_purge")

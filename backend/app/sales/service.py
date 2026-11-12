@@ -66,8 +66,11 @@ def open_from_trigger(db: Session, org_id: str, trigger: str, trigger_ref: str |
     o = Opportunity(
         organization_id=org_id, trigger=trigger, trigger_ref=trigger_ref, service=service[:200], service_kind=service_kind, why_now=(why_now or "")[:300],
         system_ids=ids, system_types=system_types(db, ids), addon_status=addon_status, owner_id=owner_id, value=value,
-        needs_ca_approval=is_current_audit_client(db, org_id), created_by=created_by, stage="new",
+        needs_ca_approval=is_current_audit_client(db, org_id), created_by=created_by, stage="new", source="auto_trigger",
     )
+    from app.sales.independence import refresh
+
+    refresh(db, o)  # Release 2: the flag shows on the record; Chief Auditor approval keeps the v0.6 rule for automatic ones
     db.add(o)
     db.flush()
     return o

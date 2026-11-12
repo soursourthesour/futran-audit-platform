@@ -44,7 +44,8 @@ def test_a_stage_move_cannot_skip_the_chief_auditors_approval(client, db, lit, a
     assert r.status_code == 200 and r.json()["changed"] == 0 and r.json()["skipped"] == 1
     db.refresh(o)
     assert o.stage == "new"
-    assert client.patch(f"/api/v1/opportunities/{o.id}", json={"stage": "lost"}).status_code == 200  # closing it is always allowed
+    # closing it is always allowed (Release 2 §4.2: with a reason)
+    assert client.patch(f"/api/v1/opportunities/{o.id}", json={"stage": "lost", "lost_reason": "no_decision"}).status_code == 200
 
 
 def test_a_client_that_becomes_an_audit_client_needs_approval_before_won(client, db, lit):
