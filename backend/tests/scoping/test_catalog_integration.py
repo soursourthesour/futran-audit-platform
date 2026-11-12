@@ -43,3 +43,13 @@ def test_lock_and_build_proposal_uses_r4s_builder_with_removed_lines_kept(client
     lines = {pl.catalog_code: pl for pl in db.scalars(select(ProposalLine).where(ProposalLine.proposal_id == p.id))}
     assert set(lines) == {"A-02a", "A-05", "A-06b"} and lines["A-05"].removed_reason == "Client exported its own tool list"
     assert lines["A-02a"].rule_code == "MR-01a" and lines["A-02a"].source == "rule"
+
+
+def test_flags_match_the_price_lists_own_count(db, world):
+    from app.catalog.service import rule_flags
+
+    seed_starter(db)
+    rulebook.set_active(db, "MR-19", False)
+    mine = rulebook.flags(db)
+    assert "MR-19" not in mine
+    assert sorted(mine) == sorted(f["rule_code"] for f in rule_flags(db))

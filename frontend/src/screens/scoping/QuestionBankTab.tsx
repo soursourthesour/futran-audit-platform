@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
-import { Alert, Badge, Button, Checkbox, Dialog, Loading, PageHeader, SelectField, TextArea, TextField } from '@/components/ui';
+import { Alert, Badge, Button, Checkbox, Dialog, Loading, SelectField, TextArea, TextField } from '@/components/ui';
 import type { Question } from '@/api/scoping';
 import '@/styles/scoping.css';
 
@@ -84,15 +84,6 @@ export function QuestionBankTab() {
         ))}</tbody>
       </table></div>
       {edit && <Editor q={edit === 'new' ? null : edit} bank={b} onClose={() => setEdit(null)} onSaved={(m) => { setEdit(null); setMsg(m); void qc.invalidateQueries({ queryKey: ['scoping-bank'] }); }} />}
-    </div>
-  );
-}
-
-export function QuestionBankPage() {
-  return (
-    <div className="page">
-      <PageHeader title="Question bank" subtitle="The scoping questionnaire, sections A to H, as data. Mapping rules read these question codes." crumbs={[{ to: '/staff/admin/catalog', label: 'Master price list' }, { label: 'Question bank' }]} />
-      <QuestionBankTab />
     </div>
   );
 }

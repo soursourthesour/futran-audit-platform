@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
-import { Alert, Badge, Button, Dialog, Loading, PageHeader, TextArea, TextField } from '@/components/ui';
+import { Alert, Badge, Button, Dialog, Loading, TextArea, TextField } from '@/components/ui';
 import '@/styles/scoping.css';
 
 type Rule = {
@@ -113,15 +113,6 @@ export function MappingRulesTab() {
         ))}</tbody>
       </table></div>
       {edit && <Editor r={edit === 'new' ? null : edit} onClose={() => setEdit(null)} onSaved={(m) => { setEdit(null); setMsg({ tone: 'success', text: m }); void refresh(); }} />}
-    </div>
-  );
-}
-
-export function MappingRulesPage() {
-  return (
-    <div className="page">
-      <PageHeader title="Mapping rules" subtitle="How questionnaire answers become suggested line items." crumbs={[{ to: '/staff/admin/catalog', label: 'Master price list' }, { label: 'Mapping rules' }]} />
-      <MappingRulesTab />
     </div>
   );
 }

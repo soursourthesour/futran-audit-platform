@@ -65,7 +65,7 @@ test('scoping: record on the call, send the rest, client answers on a phone, rev
   await expect(page.getByText('Total:')).toContainText('6');
   await page.setViewportSize({ width: 1440, height: 1000 });
   await noSideways(page, 'SM-05');
-  await page.screenshot({ path: `${SHOTS}/SM05-scoping-call-1440.png`, fullPage: true });
+  await page.screenshot({ path: `${SHOTS}/SM05-scoping-call-1440.png`, fullPage: false });
 
   // SM-06: send the rest to the client
   await page.getByRole('button', { name: 'Send rest to client' }).click();
@@ -120,8 +120,14 @@ test('scoping: record on the call, send the rest, client answers on a phone, rev
   await row.getByLabel('Client').check();
   await row.getByRole('button', { name: 'Settle' }).click();
   await expect(page.getByText('No conflicts.')).toBeVisible();
-  await page.getByRole('button', { name: 'Lock questionnaire' }).click();
-  await expect(page.getByText('Version 1 locked.')).toBeVisible();
+  const [locked] = await Promise.all([
+    page.waitForResponse((r) => r.url().includes('/lock') && r.request().method() === 'POST'),
+    page.getByRole('button', { name: 'Lock and build proposal' }).click(),
+  ]);
+  expect(locked.status()).toBe(200);
+  expect((await locked.json()).proposal_id, 'Lock and build proposal made a proposal').toBeTruthy();
+  await page.goto(`/sales/opportunities/${opp.id}/scoping/review`);
+  await expect(page.getByText(/Version 1 is locked/)).toBeVisible();
   await expect(page.getByRole('button', { name: 'Unlock for edits' })).toBeVisible();
 });
 

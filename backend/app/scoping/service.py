@@ -102,23 +102,44 @@ def _ans(a: ScopingAnswer) -> Ans:
     return Ans(a.value, a.confidence, a.source)
 
 
+def _sum(question, parts_from: dict[str, Ans]) -> Ans | None:
+    parts = [parts_from[c] for c in question.sum_of if c in parts_from and parts_from[c].known]
+    if not parts:
+        return None
+    total = sum(float(p.value) for p in parts if isinstance(p.value, (int, float)))
+    conf = "estimate" if any(p.confidence == "estimate" for p in parts) or len(parts) < len(question.sum_of) else "confirmed"
+    return Ans(int(total) if float(total).is_integer() else total, conf, "derived")
+
+
+def _rep_totals(qs: dict, rows: dict) -> dict[str, Ans]:
+    """Totals the rep has not entered but worked out from the counts they recorded: these count as the rep's answer."""
+    rep_side = {code: _ans(slots["rep"]) for code, slots in rows.items() if "rep" in slots}
+    out = {}
+    for code, question in qs.items():
+        if question.type == "total" and question.sum_of and code not in rep_side:
+            a = _sum(question, rep_side)
+            if a is not None:
+                out[code] = a
+    return out
+
+
 def effective_answers(db: Session, q: ScopingQuestionnaire) -> dict[str, Ans]:
     """The answer each question counts as: the rep's when there is one (a conflicting client answer waits on SM-08),
-    else the client's. A total with no answer of its own is the sum of its parts."""
+    else the client's. A total with no answer of its own is the sum of its parts; worked out from the rep's counts, it
+    is the rep's answer and a different client total is a conflict."""
     qs = bank.by_code(db, q.bank_version)
-    out: dict[str, Ans] = {}
-    for code, slots in _rows(db, q).items():
+    rows = _rows(db, q)
+    out: dict[str, Ans] = dict(_rep_totals(qs, rows))
+    for code, slots in rows.items():
         if "rep" in slots:
             out[code] = _ans(slots["rep"])
-        elif "client" in slots and not (qs.get(code) and qs[code].internal_only):
+        elif "client" in slots and code not in out and not (qs.get(code) and qs[code].internal_only):
             out[code] = _ans(slots["client"])
     for code, question in qs.items():
         if question.type == "total" and code not in out and question.sum_of:
-            parts = [out[c] for c in question.sum_of if c in out and out[c].known]
-            if parts:
-                total = sum(float(p.value) for p in parts if isinstance(p.value, (int, float)))
-                conf = "estimate" if any(p.confidence == "estimate" for p in parts) or len(parts) < len(question.sum_of) else "confirmed"
-                out[code] = Ans(int(total) if float(total).is_integer() else total, conf, "derived")
+            a = _sum(question, out)
+            if a is not None:
+                out[code] = a
     return out
 
 
@@ -223,14 +244,25 @@ def save_client_answers(db: Session, q: ScopingQuestionnaire, items: list[dict],
 def conflicts(db: Session, q: ScopingQuestionnaire) -> list[dict]:
     qs = bank.by_code(db, q.bank_version)
     labels = _labels(qs)
+    rows = _rows(db, q)
+    totals = _rep_totals(qs, rows)
     out = []
-    for code, slots in _rows(db, q).items():
+    for code, slots in rows.items():
         rep, client = slots.get("rep"), slots.get("client")
-        if rep is None or client is None or not _in_conflict(rep, client):
+        if client is None:
             continue
+        if rep is None and code in totals:  # the rep's worked-out total against the client's
+            t = totals[code]
+            if _same(t.value, client.value) and client.confidence != "unknown":
+                continue
+            rep_out = _answer_out(t, labels, code)
+        elif rep is None or not _in_conflict(rep, client):
+            continue
+        else:
+            rep_out = _answer_out(rep, labels)
         question = qs.get(code)
         out.append({"code": code, "label": question.label if question else code,
-                    "rep": _answer_out(rep, labels), "client": _answer_out(client, labels), "effect": _effect(db, q, code, client)})
+                    "rep": rep_out, "client": _answer_out(client, labels), "effect": _effect(db, q, code, client)})
     order = {c.code: i for i, c in enumerate(bank.questions(db, q.bank_version, include_inactive=True))}
     return sorted(out, key=lambda c: order.get(c["code"], 999))
 
@@ -241,10 +273,15 @@ def resolve(db: Session, q: ScopingQuestionnaire, code: str, keep: str, value, a
     rows = _rows(db, q)
     slots = rows.get(code, {})
     rep, client = slots.get("rep"), slots.get("client")
+    qs = bank.by_code(db, q.bank_version)
+    question = qs.get(code)
+    if rep is None and client is not None and code in _rep_totals(qs, rows):  # settle a worked-out total: it becomes the rep's answer
+        t = _rep_totals(qs, rows)[code]
+        rep = ScopingAnswer(questionnaire_id=q.id, question_code=code, slot="rep", value=t.value, confidence=t.confidence, source="rep")
+        db.add(rep)
     if rep is None or client is None:
         raise NotFound("There is no conflict on that question.")
     now = utcnow()
-    question = bank.by_code(db, q.bank_version).get(code)
     if keep == "client":
         rep.value, rep.confidence, rep.source = client.value, client.confidence, "rep_confirmed_client"
     elif keep == "other":

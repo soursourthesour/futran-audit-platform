@@ -148,8 +148,9 @@ def set_active(db: Session, code: str, active: bool) -> MappingRule:
 
 
 def flags(db: Session, rows: list[MappingRule] | None = None) -> dict[str, str]:
-    """{rule code: why it needs repair} for rules whose line is missing from the catalog or retired. Empty when the
-    catalog is not installed (nothing to check against yet)."""
+    """{rule code: why it needs repair} for active rules whose line is missing from the catalog or retired, the same
+    test as the price list's `catalog.service.rule_flags` (the "to repair" count on its tabs). Empty when the catalog
+    is not installed (nothing to check against yet)."""
     rows = rows if rows is not None else all_rules(db)
     codes = {r.line_code for r in rows} | {(r.pending or {}).get("line_code") for r in rows if r.pending}
     codes.discard(None)
@@ -158,6 +159,8 @@ def flags(db: Session, rows: list[MappingRule] | None = None) -> dict[str, str]:
         return {}
     out = {}
     for r in rows:
+        if not r.active:  # as the price list's own count (catalog.service.rule_flags): switched-off rules need no repair
+            continue
         item = items.get(r.line_code)
         if item is None:
             out[r.code] = f"{r.line_code} is not in the price list. Add it there, or change the rule."

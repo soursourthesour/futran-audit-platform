@@ -43,6 +43,7 @@ def test_send_goes_from_the_reps_mailbox_with_a_hashed_expiring_link_and_no_inte
     codes = [x["code"] for s in view["sections"] for x in s["questions"]]
     assert codes == ["SQ-C.07", "SQ-C.08", "SQ-D.02"] and view["company"] == "Acme Staffing LLC"
     assert "Budget" not in str(view) and "SQ-A.02" not in str(view)
+    assert all(x["help"] is None for s in view["sections"] for x in s["questions"])  # rep-facing help stays internal
     assert view["questions_label"] and "not legal advice" in view["footer"].lower()
     assert client.get("/api/v1/public/q/not-a-real-token").status_code == 404
 

@@ -253,7 +253,7 @@ def view(db: Session, s: QuestionnaireSend) -> dict:
     for x in wanted:
         if not sections or sections[-1]["key"] != x.section:
             sections.append({"key": x.section, "label": bank.SECTION_LABELS.get(x.section, x.section), "questions": []})
-        sections[-1]["questions"].append({"code": x.code, "label": x.client_label or x.label, "help": None if x.internal_only else x.help, "type": x.type,
+        sections[-1]["questions"].append({"code": x.code, "label": x.client_label or x.label, "help": None, "type": x.type,  # help text is written for the rep
                                           "options": x.options or []})
     mine = {a.question_code: {"value": a.value, "confidence": a.confidence} for a in db.scalars(
         select(ScopingAnswer).where(ScopingAnswer.questionnaire_id == q.id, ScopingAnswer.slot == "client", ScopingAnswer.question_code.in_(s.question_codes)))}

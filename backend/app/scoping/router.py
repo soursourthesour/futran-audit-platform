@@ -84,7 +84,7 @@ def _view(db: Session, actor: Actor, opp: Opportunity) -> dict:
         client = rows.get(code, {}).get("client")
         if rep is not None:
             out["note"] = rep.note
-        out["client"] = service._answer_out(client, labels) if client is not None and rep is not None else None
+        out["client"] = service._answer_out(client, labels) if client is not None and a.source != "client" else None
         ans_out[code] = out
     lines = service.suggest_lines(db, q.id)
     found = bridge.catalog_items(db, [x["code"] for x in lines])

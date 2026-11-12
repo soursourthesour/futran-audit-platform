@@ -118,3 +118,19 @@ def test_running_estimate_reads_catalog_list_prices(db, world, monkeypatch):
     est = service.estimate(db, q)
     assert est["available"] is True and est["one_time"] == 15000 and est["recurring_y1"] == 12000
     assert est["missing"] == ["A-06b"]
+
+
+def test_a_total_the_rep_worked_out_from_counts_conflicts_with_a_different_client_total(db, world):
+    q = service.start(db, world["opp"], world["sales"])
+    rep(db, q, world, **{"SQ-C.01": {"value": 3, "confidence": "estimate"}, "SQ-C.02": 1, "SQ-C.03": 2})
+    service.save_client_answers(db, q, [{"code": "SQ-C.07", "value": 12}], send_id="s1", name="Pat")
+    eff = service.effective_answers(db, q)
+    assert eff["SQ-C.07"].value == 6 and eff["SQ-C.07"].source == "derived"  # the rep's sum stands until settled
+    c = service.conflicts(db, q)
+    assert [(x["code"], x["rep"]["value"], x["client"]["value"]) for x in c] == [("SQ-C.07", 6, 12)]
+    assert c[0]["effect"] == "A-02a → A-02b"
+    service.resolve(db, q, "SQ-C.07", "client", None, world["sales"])
+    assert service.effective_answers(db, q)["SQ-C.07"].value == 12 and service.conflicts(db, q) == []
+    # a client total that matches the rep's sum is no conflict
+    q2 = service.unlock(db, service.lock(db, q.id, world["sales"]).id, world["sales"])
+    assert service.conflicts(db, q2) == []
