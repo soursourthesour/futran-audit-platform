@@ -391,7 +391,7 @@ def _save_team(db: Session, actor: User, e: Engagement, team: Any) -> list[dict]
         from app.engagements.team import check_separate_team
 
         try:  # Release 2 rule I-3: the client's governance officer or separate delivery team is never on its audit team
-            check_separate_team(db, e.client_id, user.id)
+            check_separate_team(db, e.client_id, user.id, engagement_id=e.id)
         except Conflict as exc:
             errors.append({"field": f"{p}.user_id", "message": exc.detail})
             continue
@@ -601,7 +601,7 @@ def _validate_team(db: Session, e: Engagement) -> list[dict]:
         from app.engagements.team import check_separate_team
 
         try:  # Release 2 rule I-3, also for teams not saved through the wizard
-            check_separate_team(db, e.client_id, u.id)
+            check_separate_team(db, e.client_id, u.id, engagement_id=e.id)
         except Conflict as exc:
             errs.append({"field": "scope.team", "message": exc.detail})
     if len(by_role.get("chief_auditor", [])) != 1:

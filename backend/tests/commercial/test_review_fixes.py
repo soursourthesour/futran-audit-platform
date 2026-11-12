@@ -222,7 +222,7 @@ def test_drafts_with_separate_team_lines_cannot_be_staffed_or_approved_before_th
     cw.db.commit()
     e = cw.db.scalar(select(Engagement).where(Engagement.client_id == cw.prospect.id))
     try:
-        check_separate_team(cw.db, cw.prospect.id, cw.auditor.id)
+        check_separate_team(cw.db, cw.prospect.id, cw.auditor.id, engagement_id=e.id)
         raise AssertionError("staffing was allowed")
     except Conflict as exc:
         assert "separate delivery team" in str(exc.detail)
@@ -232,7 +232,7 @@ def test_drafts_with_separate_team_lines_cannot_be_staffed_or_approved_before_th
     except Conflict:
         pass
     handoff.confirm_independence(cw.db, cw.chief, h, [cw.sales2.id], None)
-    check_separate_team(cw.db, cw.prospect.id, cw.auditor.id)
+    check_separate_team(cw.db, cw.prospect.id, cw.auditor.id, engagement_id=e.id)
     require_independence_confirmed(cw.db, e)
 
 
@@ -300,3 +300,31 @@ def test_a_one_time_discount_reaches_the_order_the_engagement_fees_and_the_billi
     cw.db.commit()
     rows = plans.billing_rows(cw.db, date.today().strftime("%Y-%m"), cw.prospect.id)
     assert sum(float(r[11]) for r in rows) == 31600, rows
+
+
+def test_an_unconfirmed_hand_off_blocks_only_its_own_drafts_not_the_audit_in_progress(cw, fake_catalog):
+    from app.commercial.handoff import require_independence_confirmed
+    from app.engagements.team import check_separate_team
+
+    cw.opp.organization_id = cw.org.id  # Harbor Health, audit in progress, wins an upsell with a Fractional Officer
+    cw.db.commit()
+    p, a = proposal_for(cw, [line("A-02b", 1, 35000), line("X-01", 1, 6000, value=72000)])
+    h = handoff.create_from_acceptance(cw.db, p, a, cw.sales)
+    cw.db.commit()
+    draft = cw.db.get(Engagement, next(i["ref_id"] for i in h.items if i["kind"] == "engagement"))
+    newcomer = make_user(cw.db, cw.futran, roles=["auditor"], name="Nia New", email="nia@futran.test")
+    cw.db.commit()
+    check_separate_team(cw.db, cw.org.id, newcomer.id, engagement_id=cw.engagement.id)  # the audit in progress keeps today's rules
+    require_independence_confirmed(cw.db, cw.engagement)
+    try:
+        check_separate_team(cw.db, cw.org.id, newcomer.id, engagement_id=draft.id)
+        raise AssertionError("the hand-off's draft was staffed before confirmation")
+    except Conflict:
+        pass
+    handoff.confirm_independence(cw.db, cw.chief, h, [cw.sales2.id], None)
+    check_separate_team(cw.db, cw.org.id, newcomer.id, engagement_id=draft.id)
+    try:  # once confirmed, I-3 keeps the separate team off every engagement of the client, the audit in progress included
+        check_separate_team(cw.db, cw.org.id, cw.sales2.id, engagement_id=cw.engagement.id)
+        raise AssertionError("the separate team joined the audit")
+    except Conflict:
+        pass
