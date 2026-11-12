@@ -17,6 +17,14 @@ from app.files.storage import get_storage
 
 log = logging.getLogger(__name__)
 
+
+def _held(db: Session, run: BiasTestRun) -> bool:
+    from app.vault.service import hold_for, run_systems
+
+    return hold_for(db, run.organization_id, engagement_id=run.engagement_id, system_ids=run_systems(db, run),
+                    on_date=run.created_at.date() if run.created_at else None) is not None
+
+
 def purge_expired_raw_data(db: Session, settings, now: datetime) -> int:
     n = 0
     runs = db.scalars(select(BiasTestRun).where(BiasTestRun.deleted_at.is_(None), BiasTestRun.raw_deleted_at.is_(None), BiasTestRun.dataset_file_id.is_not(None)))
@@ -25,6 +33,8 @@ def purge_expired_raw_data(db: Session, settings, now: datetime) -> int:
             continue
         due = raw_delete_on(db, settings, run)
         if due is None or due > now.date():
+            continue
+        if _held(db, run):  # Release 2 G-10: a legal hold blocks the deletion until it is released
             continue
         try:
             with db.begin_nested():  # the file is deleted from storage last, so a failure leaves the database as it was

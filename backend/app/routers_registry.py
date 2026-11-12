@@ -63,3 +63,5 @@ ROUTER_MODULES += ["copilot_readiness.router", "euaiact.router", "euaiact.links_
 ROUTER_MODULES += ["proposals.router", "proposals.public_router"]
 # Release 2 R7: client hierarchy (G-04)
 ROUTER_MODULES += ["hierarchy.router"]
+# Release 2 R7: evidence vault and retention (G-10)
+ROUTER_MODULES += ["vault.router"]

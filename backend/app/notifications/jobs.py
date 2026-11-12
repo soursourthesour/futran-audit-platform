@@ -393,3 +393,5 @@ JOBS["catalog_effective_dates"] = _wsh("app.catalog.service", "run_effective_dat
 JOBS["commercial_usage"] = _wsh("app.commercial.plans", "run_daily_usage")
 JOBS["scoping_reminders"] = _wsh("app.scoping.sending", "run_reminders")  # Release 2 R3: day 3 and 7 reminders on client links
 JOBS["proposal_followups"] = _wsh("app.proposals.sending", "run_daily")  # Release 2 R4: proposal not opened / expiring alerts and expiry
+# Release 2 R7: retention countdown notices and end-of-retention deletion of engagement evidence (G-10), legal holds honoured
+JOBS["vault_retention"] = _wsh("app.vault.service", "run_daily")
