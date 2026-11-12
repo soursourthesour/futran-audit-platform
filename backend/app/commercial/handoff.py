@@ -142,7 +142,8 @@ def _build(db: Session, proposal, acceptance, actor: User | None) -> Handoff:
     # 2. order and lines, prices frozen
     order = Order(organization_id=org.id, ref=next_order_ref(db), proposal_id=proposal.id, opportunity_id=opp.id, status="open", start_on=start, end_on=end,
                   billing_contact=getattr(acceptance, "email", None), po_number=getattr(acceptance, "po_number", None),
-                  catalog_version=getattr(proposal, "catalog_version", None), discount_recurring_pct=getattr(proposal, "discount_recurring_pct", None), created_by=actor_id)
+                  catalog_version=getattr(proposal, "catalog_version", None), discount_recurring_pct=getattr(proposal, "discount_recurring_pct", None),
+                  discount_one_time_pct=float(terms.get("discount_one_time_pct") or 0) or None, created_by=actor_id)
     db.add(order)
     db.flush()
     olines: list[tuple[OrderLine, cat.Item | None]] = []
@@ -165,7 +166,8 @@ def _build(db: Session, proposal, acceptance, actor: User | None) -> Handoff:
         olines.append((ol, item))
     db.flush()
     # Year 1 as accepted: net of the discount on recurring and any one-time discount (R4's proposal totals), else the lines
-    y1 = money((getattr(proposal, "totals", None) or {}).get("y1_total", sum(ol.line_value for ol, _ in olines)))
+    net = sum(ol.line_value * (1 - ((order.discount_recurring_pct if ol.recurring else order.discount_one_time_pct) or 0) / 100) for ol, _ in olines)
+    y1 = money((getattr(proposal, "totals", None) or {}).get("y1_total", net))
     checklist.append(_item("order", f"Order {order.ref}", f"{len(olines)} line{'s' if len(olines) != 1 else ''}, prices frozen from v{getattr(proposal, 'version', 1)}",
                            "Created", "Finance (billing export)", f"/staff/clients/{org.id}/plan", order.id))
 
@@ -194,7 +196,7 @@ def _build(db: Session, proposal, acceptance, actor: User | None) -> Handoff:
         e = create_engagement(db, creator, org, name=f"{type_label(t)} {start.year}", type=t)
         e.wizard_state = {"auto_name": False, "prefill": {"source": "handoff", "proposal_id": proposal.id}}
         e.created_at = created_at + timedelta(seconds=i)
-        fee = money(sum(ol.line_value for ol, _ in fam_lines))
+        fee = money(sum(ol.line_value for ol, _ in fam_lines) * (1 - (order.discount_one_time_pct or 0) / 100))  # net of the one-time discount
         db.add(EngagementCommercial(organization_id=org.id, engagement_id=e.id, order_id=order.id, fee_total=fee, milestones=default_milestones(fee), created_by=actor_id))
         for ol, _ in fam_lines:
             ol.engagement_id = e.id

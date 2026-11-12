@@ -282,3 +282,21 @@ def test_price_below_low_needs_the_pricing_approver_and_the_client_never_sees_li
     cw.as_(cw.caico)
     lst = cw.client.get("/api/v1/change-orders").json()
     assert lst and "list_price" not in str(lst) and "approver" not in str(lst)
+
+
+# 11 --------------------------------------------------------------------------------------------------------------
+def test_a_one_time_discount_reaches_the_order_the_engagement_fees_and_the_billing_export(cw, fake_catalog):
+    p, a = proposal_for(cw, [line("A-02b", 1, 35000), line("A-05", 3, 1500)], discount_one_time_pct=20)
+    p.totals = {"one_time": 39500, "one_time_discount": 7900, "one_time_net": 31600, "y1_total": 31600}
+    h = handoff.create_from_acceptance(cw.db, p, a, cw.sales)
+    cw.db.commit()
+    order = cw.db.get(Order, h.order_id)
+    gross = sum(ln.line_value for ln in cw.db.scalars(select(OrderLine).where(OrderLine.order_id == order.id)))
+    assert order.discount_one_time_pct == 20 and gross * (1 - order.discount_one_time_pct / 100) == 31600
+    fees = sum(c.fee_total for c in cw.db.scalars(select(EngagementCommercial)))
+    assert fees == 31600 and h.year1_value == 31600
+    for com in cw.db.scalars(select(EngagementCommercial)):  # both milestones reached this month
+        com.milestones = [m | {"reached_on": date.today().isoformat()} for m in com.milestones]
+    cw.db.commit()
+    rows = plans.billing_rows(cw.db, date.today().strftime("%Y-%m"), cw.prospect.id)
+    assert sum(float(r[11]) for r in rows) == 31600, rows

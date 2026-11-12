@@ -309,7 +309,8 @@ def plan_view(db: Session, org: Organization, on: date | None = None) -> dict:
         "plan": {"plan": plan, "plan_label": PLAN_LABELS.get(plan, plan), "tier": sub.tier if sub else None, "start_on": _iso(sub.start_on) if sub else None,
                  "term_end_on": _iso(term_end), "renewal_alert_on": _iso(term_end - timedelta(days=90)) if term_end else None, "auto_renew": sub.auto_renew if sub else None,
                  "data_region": sub.data_region if sub else None, "support_level": sub.support_level if sub else None,
-                 "onboarding_fee_waived": sub.onboarding_fee_waived if sub else None, "order_ref": order.ref if order else None, "from_order": bool(order)},
+                 "onboarding_fee_waived": sub.onboarding_fee_waived if sub else None, "order_ref": order.ref if order else None, "from_order": bool(order),
+                 "discount_one_time_pct": order.discount_one_time_pct if order else None, "discount_recurring_pct": order.discount_recurring_pct if order else None},
         "entitlements": ents, "over_plan": [e["label"] for e in ents if e["over_plan"]], "order_lines": lines,
         "exports": [{"id": r.id, "period": r.period, "rows": r.rows, "run_at": r.run_at.isoformat(), "all_clients": r.client_id is None} for r in runs],
     }
@@ -429,7 +430,7 @@ def billing_rows(db: Session, period: str, client_id: str | None = None) -> list
                 continue  # activated incident hours are billed as worked
             for d in _billing_dates(ln):
                 if start <= d <= end:
-                    disc = order.discount_recurring_pct if ln.recurring and order.discount_recurring_pct else None
+                    disc = (order.discount_recurring_pct if ln.recurring else order.discount_one_time_pct) or None
                     amount = ln.unit_price * ln.qty * (1 - (disc or 0) / 100)
                     row("order_line", ln.catalog_code, ln.description, ln.qty, ln.unit_price, amount, d, add_months(d, 12 // max(1, ln.periods_per_year or 1)) - timedelta(days=1) if ln.recurring else None, disc)
         for com in db.scalars(select(EngagementCommercial).where(EngagementCommercial.order_id == order.id, EngagementCommercial.deleted_at.is_(None))):

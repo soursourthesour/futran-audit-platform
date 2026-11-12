@@ -21,7 +21,8 @@ export type PlanOrderLine = { id: string; order_ref: string; code: string; descr
 export type PlanPage = {
   client: { id: string; name: string; client_ref: string | null; status: string };
   plan: { plan: string; plan_label: string; tier: string | null; start_on: string | null; term_end_on: string | null; renewal_alert_on: string | null; auto_renew: boolean | null;
-    data_region: string | null; support_level: string | null; onboarding_fee_waived: boolean | null; order_ref: string | null; from_order: boolean };
+    data_region: string | null; support_level: string | null; onboarding_fee_waived: boolean | null; order_ref: string | null; from_order: boolean;
+    discount_one_time_pct: number | null; discount_recurring_pct: number | null };
   entitlements: EntitlementRow[]; over_plan: string[]; order_lines: PlanOrderLine[];
   exports: { id: string; period: string; rows: number; run_at: string; all_clients: boolean }[]; can_edit: boolean; can_export: boolean;
 };

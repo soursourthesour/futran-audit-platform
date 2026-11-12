@@ -73,6 +73,9 @@ export function Plan() {
           API access and Trust Center are switched on or off by the plan.</p>}
       </Card>
       <Card title={`Order lines${p.order_ref ? ` (${p.order_ref})` : ''}`}>
+        {(p.discount_one_time_pct || p.discount_recurring_pct) ? <p className="small muted" style={{ marginTop: 0 }}>Prices are list prices frozen from the proposal;
+          {p.discount_one_time_pct ? ` ${p.discount_one_time_pct}% off one-time lines` : ''}{p.discount_one_time_pct && p.discount_recurring_pct ? ' and' : ''}
+          {p.discount_recurring_pct ? ` ${p.discount_recurring_pct}% off recurring lines` : ''} on the billing export.</p> : null}
         {d.order_lines.length === 0 ? <EmptyState>No order lines.</EmptyState> : (
           <div className="table-wrap"><table className="table">
             <thead><tr><th>Code</th><th>Line</th><th>Qty</th><th>Billing</th><th className="num">Unit price</th><th>Start</th><th>End</th><th>Entitlement</th></tr></thead>

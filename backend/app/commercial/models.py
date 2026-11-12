@@ -36,6 +36,7 @@ class Order(TimestampedTenantMixin, Base):
     po_number: Mapped[str | None] = mapped_column(String(80))
     catalog_version: Mapped[int | None] = mapped_column(Integer)
     discount_recurring_pct: Mapped[float | None] = mapped_column(Float)
+    discount_one_time_pct: Mapped[float | None] = mapped_column(Float)  # applies to every one-time line (proposal terms, rule P-3)
 
 
 class OrderLine(TimestampedTenantMixin, Base):
