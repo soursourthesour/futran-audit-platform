@@ -79,11 +79,11 @@ export function SalesOpportunities() {
   ];
   const rowActions = (o: Opp): GridRowAction[] => [
     { label: 'Open', onSelect: () => nav(oppLink(o.id)) },
-    { label: 'Log activity', disabled: !d?.can_work, onSelect: () => nav(`${oppLink(o.id)}?tab=activity`) },
-    { label: 'Start scoping', disabled: !d?.can_work, onSelect: () => nav(`${oppLink(o.id)}/scoping`) },
-    { label: 'Build estimate', disabled: !d?.can_work, onSelect: () => nav(`/sales/estimate?opportunity=${o.id}`) },
+    { label: 'Log activity', disabled: !o.can_edit, onSelect: () => nav(`${oppLink(o.id)}?tab=activity`) },
+    { label: 'Start scoping', disabled: !o.can_edit, onSelect: () => nav(`${oppLink(o.id)}/scoping`) },
+    { label: 'Build estimate', disabled: !o.can_edit, onSelect: () => nav(`/sales/estimate?opportunity=${o.id}`) },
     { label: 'Change owner', disabled: !d?.can_reassign, onSelect: () => setBulkOwner([o]) },
-    { label: 'Mark lost', disabled: !d?.can_work || o.stage === 'lost', onSelect: () => nav(`${oppLink(o.id)}?lose=1`) },
+    { label: 'Mark lost', disabled: !o.can_edit || o.stage === 'lost', onSelect: () => nav(`${oppLink(o.id)}?lose=1`) },
   ];
 
   return (
@@ -160,10 +160,10 @@ function Board({ rows, onMove, canMove }: { rows: Opp[]; onMove: (o: Opp, stage:
       {cols.map((c) => (
         <section key={c.stage} className="sales-col" aria-label={label(c.stage)}
           onDragOver={(e) => { if (canMove) e.preventDefault(); }}
-          onDrop={(e) => { const id = e.dataTransfer.getData('text/plain'); const o = rows.find((r) => r.id === id); if (o && o.stage !== c.stage) onMove(o, c.stage); }}>
+          onDrop={(e) => { const id = e.dataTransfer.getData('text/plain'); const o = rows.find((r) => r.id === id); if (o && o.can_edit && o.stage !== c.stage) onMove(o, c.stage); }}>
           <header><strong>{label(c.stage)}</strong><span className="small muted">{c.rows.length} · {usd(c.rows.reduce((t, o) => t + (o.value ?? 0), 0))}</span></header>
           {c.rows.map((o) => (
-            <article key={o.id} className="sales-card" draggable={canMove} onDragStart={(e) => e.dataTransfer.setData('text/plain', o.id)}>
+            <article key={o.id} className="sales-card" draggable={canMove && !!o.can_edit} onDragStart={(e) => e.dataTransfer.setData('text/plain', o.id)}>
               <Link to={oppLink(o.id)}><strong>{o.company.name}</strong></Link>
               <div className="small">{o.products_labels.join(', ') || o.name}</div>
               <div className="row small"><span>{usd(o.value)}</span><span className="muted">{o.owner_name ?? 'No owner'}</span></div>
@@ -173,7 +173,7 @@ function Board({ rows, onMove, canMove }: { rows: Opp[]; onMove: (o: Opp, stage:
                 {o.independence_flag && <Badge tone="warn">Independence</Badge>}
                 {o.stale && <Badge tone="danger">Stale</Badge>}
               </div>
-              {canMove && (
+              {canMove && o.can_edit && (
                 <label className="small sales-move">Move to{' '}
                   <select value={o.stage} onChange={(e) => onMove(o, e.target.value)} aria-label={`Move ${o.company.name} to stage`}>
                     {[...PIPELINE, 'on_hold'].map((s) => <option key={s} value={s}>{label(s)}</option>)}

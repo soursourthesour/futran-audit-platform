@@ -49,10 +49,25 @@ def _iso(v) -> str | None:
     return v.isoformat() if v is not None else None
 
 
+def flag_of(db: Session, o: Opportunity) -> tuple[bool, str | None]:
+    """The stored independence flag, or for a row saved before Release 2 (flag never stored) the flag computed now.
+    Reading never writes."""
+    if o.independence_flag is not None:
+        return bool(o.independence_flag), o.independence_reason
+    flag, why = independence.flag_for(db, o.organization_id)
+    return flag, why or None
+
+
+def needs_approval(db: Session, o: Opportunity) -> bool:
+    """Chief Auditor approval (spec §4.7): a current audit client, or a logged opportunity whose company is flagged."""
+    return is_current_audit_client(db, o.organization_id) or (o.trigger == "manual" and flag_of(db, o)[0])
+
+
 def opp_out(db: Session, o: Opportunity, touches: dict | None = None) -> dict:
     org = db.get(Organization, o.organization_id)
     if touches is None:
         touches = desk.last_touches(db, [o.id])
+    flag, flag_reason = flag_of(db, o)
     if o.needs_ca_approval:
         approval = {"approved": "Approved", "declined": "Declined"}.get(o.ca_decision or "", "Requested" if o.approval_requested_at else "Needed")
     else:
@@ -74,7 +89,7 @@ def opp_out(db: Session, o: Opportunity, touches: dict | None = None) -> dict:
         "products_of_interest": list(o.products_of_interest or []), "products_labels": [PRODUCTS.get(p, p) for p in o.products_of_interest or []],
         "est_value": o.value, "close_date": _iso(o.close_date), "next_step_due": _iso(o.next_step_due), "lost_reason": o.lost_reason,
         "lost_reason_label": LOST_REASONS.get(o.lost_reason or ""), "lost_note": o.lost_note, "bant": o.bant or {}, "competitors": list(o.competitors or []),
-        "independence_flag": bool(o.independence_flag), "independence_reason": o.independence_reason, "last_activity_at": _iso(desk.last_touch(o, touches)),
+        "independence_flag": flag, "independence_reason": flag_reason, "last_activity_at": _iso(desk.last_touch(o, touches)),
         "stale": desk.is_stale(o, touches),
     }
 
@@ -105,6 +120,17 @@ def _check_reassign(db: Session, actor: Actor, o: Opportunity, owner_id: str | N
     if owner_id == actor.id and o.owner_id is None:
         return
     raise Forbidden("Only a Sales Manager or the Chief Auditor reassigns an opportunity to someone else.")
+
+
+def _can_edit(db: Session, actor: Actor, o: Opportunity) -> bool:
+    """Only the owner, or a Sales Manager or the Chief Auditor (reassign_opportunities), works an opportunity someone else
+    owns; an unowned one can be worked and taken by anyone who works opportunities."""
+    return o.owner_id in (None, actor.id) or _can(db, actor, Action.REASSIGN_OPPORTUNITIES)
+
+
+def _check_edit(db: Session, actor: Actor, o: Opportunity) -> None:
+    if not _can_edit(db, actor, o):
+        raise Forbidden("This opportunity belongs to another rep. Only its owner or a Sales Manager can change it.")
 
 
 def _owners(db: Session, futran_org_id: str) -> list[User]:
@@ -167,8 +193,6 @@ def list_opps(trigger: str | None = None, stage: str | None = None, owner: str |
         stmt = stmt.where((Opportunity.source == "referral_partner") | Opportunity.partner_id.is_not(None))
     elif source:
         stmt = stmt.where(Opportunity.source == source)
-    if flag:
-        stmt = stmt.where(Opportunity.independence_flag.is_(True))
     rows = _visible(db, db.scalars(stmt.order_by(Opportunity.created_at.desc())))
     if product:
         rows = [o for o in rows if product in (o.products_of_interest or []) or (product == "other" and not set(o.products_of_interest or []) & set(PRODUCT_FAMILIES))]
@@ -176,6 +200,11 @@ def list_opps(trigger: str | None = None, stage: str | None = None, owner: str |
     items = [opp_out(db, o, touches) for o in rows]
     if stale:
         items = [i for i in items if i["stale"]]
+    if flag:
+        items = [i for i in items if i["independence_flag"]]
+    by_id = {o.id: o for o in rows}
+    for i in items:
+        i["can_edit"] = _can_edit(db, actor, by_id[i["id"]])
     if q:
         needle = q.casefold()
         items = [i for i in items if needle in f"{i['client_name']} {i['service']} {i['name']} {i['why_now'] or ''}".casefold()]
@@ -254,6 +283,7 @@ def create_opp(body: OppIn, request: Request, actor: Actor = Depends(current_act
     o = Opportunity(organization_id=org.id, trigger="manual", service=body.service, service_kind=body.service_kind, why_now=body.why_now, value=body.value,
                     owner_id=owner, next_step=body.next_step, needs_ca_approval=is_current_audit_client(db, org.id), created_by=actor.id, last_activity_at=utcnow())
     independence.refresh(db, o)
+    o.needs_ca_approval = o.needs_ca_approval or bool(o.independence_flag)
     db.add(o)
     db.flush()
     audit.record(db, actor_id=actor.id, action="opportunity.create", obj=o, after=column_snapshot(o), request=request, organization_id=actor.organization.id, summary=f"Opportunity for {org.name}: {o.service}")
@@ -271,7 +301,7 @@ def get_opp(opp_id: str, actor: Actor = Depends(current_actor), db: Session = De
         "activities": [{"id": a.id, "kind": a.kind, "summary": a.summary, "by": _name(db, a.by_id), "at": a.at.isoformat(), "outcome": a.outcome, "next_step": a.next_step,
                         "due_on": _iso(a.due_on), "done_at": _iso(a.done_at), "to": a.to_addresses or [], "replies": replies.get(a.mail_thread_id or "", [])} for a in acts],
         "contacts": [_contact_out(c) for c in contacts], "linked": desk.linked(db, o),
-        "can_work": _can(db, actor, Action.WORK_OPPORTUNITIES), "can_reassign": _can(db, actor, Action.REASSIGN_OPPORTUNITIES),
+        "can_work": _can(db, actor, Action.WORK_OPPORTUNITIES) and _can_edit(db, actor, o), "can_reassign": _can(db, actor, Action.REASSIGN_OPPORTUNITIES),
         "can_approve": _can(db, actor, Action.APPROVE_OPPORTUNITY), "owners": [{"id": u.id, "name": u.name} for u in _owners(db, actor.organization.id)],
     }
 
@@ -389,7 +419,9 @@ OFFER_STAGES = ("proposal", "won")  # an offer has gone out: a current audit cli
 
 
 def _patch(db: Session, actor: Actor, o: Opportunity, body: OppPatch, settings=None) -> None:
+    _check_edit(db, actor, o)
     data = body.model_dump(exclude_unset=True)
+    independence.refresh(db, o)  # the flag first: it decides whether an offer needs the Chief Auditor (§4.7)
     if "est_value" in data:
         data["value"] = data.pop("est_value")
     if data.get("partner_id"):
@@ -406,14 +438,14 @@ def _patch(db: Session, actor: Actor, o: Opportunity, body: OppPatch, settings=N
         # The approval was for the service as it stood: a new service is a new offer. Re-check the independence rule and
         # whether the client is now a current audit client, and ask for approval again.
         check_independence(db, o.organization_id, o.service_kind)
-        o.needs_ca_approval = is_current_audit_client(db, o.organization_id)
+        o.needs_ca_approval = needs_approval(db, o)
         if o.ca_decision is not None or o.approval_requested_at is not None:
             o.ca_decision, o.ca_approved_by, o.ca_approved_at, o.ca_note, o.approval_requested_at = None, None, None, None, None
             log(db, o, "approval_reset", f"Service changed from “{o.service}”; the Chief Auditor's approval no longer applies", actor.id)
         data["service"] = data["service"].strip()
     if "stage" in data and data["stage"] != o.stage:
         if data["stage"] in OFFER_STAGES:
-            o.needs_ca_approval = o.needs_ca_approval or is_current_audit_client(db, o.organization_id)
+            o.needs_ca_approval = o.needs_ca_approval or needs_approval(db, o)
             if not can_send_offer(o):
                 raise Conflict("This client is a current audit client. The Chief Auditor approves the offer before a proposal goes out or the opportunity is won.")
         log(db, o, "stage", f"Stage changed from {STAGE_LABELS.get(o.stage, o.stage)} to {STAGE_LABELS[data['stage']]}", actor.id)
@@ -423,6 +455,8 @@ def _patch(db: Session, actor: Actor, o: Opportunity, body: OppPatch, settings=N
     for k, v in data.items():
         setattr(o, k, v)
     independence.refresh(db, o)  # computed on every save (§4.3 rule 3)
+    if o.trigger == "manual" and o.independence_flag:
+        o.needs_ca_approval = True  # never cleared by a later save; an approval already given stands
     if new_owner and new_owner != actor.id:
         u = db.get(User, new_owner)
         org = db.get(Organization, o.organization_id)
@@ -490,6 +524,7 @@ class ActivityIn(BaseModel):
 def add_activity(opp_id: str, body: ActivityIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.WORK_OPPORTUNITIES)
     o = _get(db, opp_id)
+    _check_edit(db, actor, o)
     if body.kind == "proposal" and not can_send_offer(o):
         raise Conflict("This client is a current audit client. The Chief Auditor approves the offer before a proposal goes out.")
     at = datetime.combine(body.on, utcnow().time()) if body.on and body.on < today() else None
@@ -506,6 +541,7 @@ def add_activity(opp_id: str, body: ActivityIn, actor: Actor = Depends(current_a
 def task_done(opp_id: str, activity_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.WORK_OPPORTUNITIES)
     o = _get(db, opp_id)
+    _check_edit(db, actor, o)
     a = db.get(OpportunityActivity, activity_id)
     if a is None or a.opportunity_id != o.id or a.kind != "task":
         raise NotFound()
@@ -534,9 +570,10 @@ def send_email(opp_id: str, body: EmailIn, request: Request, actor: Actor = Depe
     """Spec §4.3 rule 4: from the rep's own mailbox; replies thread back onto the opportunity."""
     authorize(db, actor, Action.WORK_OPPORTUNITIES)
     o = _get(db, opp_id)
+    _check_edit(db, actor, o)
     a = desk.send_email(db, settings, actor.user, o, body.to, body.subject, body.body)
     audit.record(db, actor_id=actor.id, action="opportunity.email", obj=o, request=request, organization_id=actor.organization.id,
-                 summary=f"Email sent from {actor.user.name}'s mailbox to {', '.join(body.to)[:200]}")
+                 summary=f"Email sent from {actor.user.name}'s mailbox to {len(body.to)} {'recipient' if len(body.to) == 1 else 'recipients'}")  # append-only: no addresses
     return {"id": a.id}
 
 
@@ -574,6 +611,7 @@ def _contact(db: Session, o: Opportunity, cid: str) -> OpportunityContact:
 def add_contact(opp_id: str, body: ContactIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.WORK_OPPORTUNITIES)
     o = _get(db, opp_id)
+    _check_edit(db, actor, o)
     c = OpportunityContact(opportunity_id=o.id, created_by=actor.id, **body.model_dump())
     db.add(c)
     db.flush()
@@ -583,7 +621,9 @@ def add_contact(opp_id: str, body: ContactIn, actor: Actor = Depends(current_act
 @router.patch("/opportunities/{opp_id}/contacts/{contact_id}")
 def edit_contact(opp_id: str, contact_id: str, body: ContactPatch, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.WORK_OPPORTUNITIES)
-    c = _contact(db, _get(db, opp_id), contact_id)
+    o = _get(db, opp_id)
+    _check_edit(db, actor, o)
+    c = _contact(db, o, contact_id)
     for k, v in body.model_dump(exclude_unset=True).items():
         if k != "name" or v:
             setattr(c, k, v)
@@ -594,7 +634,9 @@ def edit_contact(opp_id: str, contact_id: str, body: ContactPatch, actor: Actor 
 @router.delete("/opportunities/{opp_id}/contacts/{contact_id}")
 def remove_contact(opp_id: str, contact_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.WORK_OPPORTUNITIES)
-    c = _contact(db, _get(db, opp_id), contact_id)
+    o = _get(db, opp_id)
+    _check_edit(db, actor, o)
+    c = _contact(db, o, contact_id)
     c.deleted_at = utcnow()
     return {"id": c.id}
 
@@ -712,6 +754,7 @@ class NoteIn(BaseModel):
 def request_approval(opp_id: str, body: NoteIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.WORK_OPPORTUNITIES)
     o = _get(db, opp_id)
+    _check_edit(db, actor, o)
     if not o.needs_ca_approval:
         raise Conflict("This client is not a current audit client; no approval is needed.")
     o.approval_requested_at = utcnow()
@@ -756,6 +799,7 @@ class ProposalIn(BaseModel):
 def send_proposal(opp_id: str, body: ProposalIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.WORK_OPPORTUNITIES)
     o = _get(db, opp_id)
+    _check_edit(db, actor, o)
     if not can_send_offer(o):
         raise Conflict("This client is a current audit client. The Chief Auditor approves the offer before it is sent.")
     check_independence(db, o.organization_id, o.service_kind)

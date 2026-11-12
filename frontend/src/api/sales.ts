@@ -14,6 +14,7 @@ export type Opp = {
   trigger_event: string | null; trigger_event_label: string | null; products_of_interest: string[]; products_labels: string[]; close_date: string | null;
   lost_reason: string | null; lost_reason_label: string | null; lost_note: string | null; bant: Bant; competitors: string[];
   independence_flag: boolean; independence_reason: string | null; last_activity_at: string | null; stale: boolean;
+  can_edit?: boolean;  // list rows: the owner, a Sales Manager or the Chief Auditor, or an unowned opportunity
 };
 
 export type Reply = { id: string; from: string | null; at: string; subject: string | null; snippet: string | null };
