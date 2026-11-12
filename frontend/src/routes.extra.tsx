@@ -1,5 +1,6 @@
 import { Navigate, type RouteObject } from 'react-router-dom';
 import { UsersAdmin } from '@/screens/admin/Users';
+import { ClientUsers } from '@/screens/admin/ClientUsers';
 import { AuditLogScreen } from '@/screens/admin/AuditLog';
 import { SettingsScreen } from '@/screens/admin/Settings';
 import { ReferenceData } from '@/screens/admin/ReferenceData';
@@ -65,6 +66,7 @@ export const futranRoutes: RouteObject[] = [
   ...futranHomeRoutes,
   ...wsjFutranRoutes,
   { path: '/admin/users', element: <UsersAdmin /> },
+  { path: '/admin/client-users', element: <ClientUsers /> },  // feedback 10 Nov F1
   { path: '/staff/admin/email', element: <FutranEmail /> },
   { path: '/clients/:clientId/groups', element: <ClientGroupsForFutran /> },
   { path: '/admin/audit-log', element: <AuditLogScreen /> },

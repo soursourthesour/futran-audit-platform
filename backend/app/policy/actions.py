@@ -186,3 +186,5 @@ class Action(StrEnum):
     VIEW_MONITORING = "view_monitoring"
     ACT_ON_MONITORING = "act_on_monitoring"  # run checks now, start a reassessment, request a report, send a reminder
     MANAGE_SUBSCRIPTION = "manage_subscription"  # the client's plan (audit only, Monitor, Monitor Plus)
+    # feedback 10 Nov F1: Administration > Client users, a read-only list of every client's people (Futran Admin, Chief Auditor)
+    VIEW_ALL_CLIENT_USERS = "view_all_client_users"

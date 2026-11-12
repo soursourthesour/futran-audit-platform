@@ -39,6 +39,7 @@ export const FUTRAN_GROUPS: NavGroup[] = [
   ] },
   { id: 'admin', label: 'Administration', entries: [
     { to: '/admin/users', label: 'Users', requires: ['view_platform_settings'] },
+    { to: '/admin/client-users', label: 'Client users', requires: ['view_all_client_users'] },  // feedback 10 Nov F1 (FX)
     { to: '/admin/templates', label: 'Templates', requires: ['configure_templates', 'approve_templates'] },
     { to: '/admin/reference', label: 'Reference data', requires: ['manage_reference_data', 'run_law_refresh'] },
     { to: '/staff/admin/email', label: 'Email and groups', requires: ['manage_futran_mailbox'] },

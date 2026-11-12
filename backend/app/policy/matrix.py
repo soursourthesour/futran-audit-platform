@@ -476,3 +476,9 @@ _WS_H: dict[R, dict[A, S]] = {
 }
 for _role, _grants in _WS_H.items():
     MATRIX.setdefault(_role, {}).update(_grants)
+
+
+# ---- feedback 10 Nov F1: Administration > Client users. Both already hold VIEW_CLIENT_USERS at ALL (§5); this action keeps the
+# cross-client list to them alone, so a later grant of VIEW_CLIENT_USERS to another Futran role does not open it.
+for _role in (R.ADMIN, R.CHIEF_AUDITOR):
+    MATRIX.setdefault(_role, {})[A.VIEW_ALL_CLIENT_USERS] = S.ALL
