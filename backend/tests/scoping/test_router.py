@@ -37,7 +37,7 @@ def test_record_on_the_call_view_autosave_and_suggestions(client, db, world):
     assert sec["C"]["answered"] == 6 and sec["C"]["label"] == "AI inventory" and sec["RF"]["internal"] is True
     lines = {x["code"]: x for x in v["suggested"]}
     assert lines["A-02a"]["reason"] == "Because SQ-C.07 = 6 (estimate)" and lines["A-05"]["qty"] == 3
-    assert v["estimate"]["available"] is False
+    assert v["estimate"]["available"] is True and "A-02a" in v["estimate"]["missing"]  # an empty price list prices nothing
     assert v["answers"]["SQ-C.07"]["source"] == "derived"
     bad = client.put(f"/api/v1/scoping/{q['id']}/answers", json={"answers": [{"code": "SQ-C.08", "value": -2}]})
     assert bad.status_code == 422
@@ -73,6 +73,7 @@ def test_review_conflicts_resolve_lock_and_build_proposal_note(client, db, world
     client.put(f"/api/v1/scoping/{q['id']}/answers", json={"answers": [{"code": "SQ-C.07", "value": 6, "confidence": "estimate"}]})
     service.save_client_answers(db, service.get(db, q["id"]), [{"code": "SQ-C.07", "value": 12}], send_id="s1", name="Pat")
     db.commit()
+    monkeypatch.setattr(bridge, "proposal_builder", lambda: None)  # before the proposal builder is installed
     r = client.get(f"/api/v1/scoping/{q['id']}/review").json()
     assert r["counts"]["conflicts"] == 1 and r["conflicts"][0]["effect"] == "A-02a → A-02b"
     assert r["can_build_proposal"] is False and "proposal builder" in r["build_note"].lower()

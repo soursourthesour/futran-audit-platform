@@ -106,6 +106,7 @@ def test_lock_then_unlock_makes_a_new_version_and_the_old_one_stays_locked(db, w
 def test_running_estimate_reads_catalog_list_prices(db, world, monkeypatch):
     q = service.start(db, world["opp"], world["sales"])
     rep(db, q, world, **{"SQ-C.07": 6, "SQ-B.01": 600, "SQ-F.01": "monitor"})
+    monkeypatch.setattr(bridge, "catalog_items", lambda db, codes: None)  # price list not installed
     assert service.estimate(db, q)["available"] is False
 
     class Item:

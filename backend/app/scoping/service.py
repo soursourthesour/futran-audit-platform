@@ -384,7 +384,8 @@ def estimate(db: Session, q: ScopingQuestionnaire, lines: list[dict] | None = No
         if billing.startswith("one"):
             one_time += price * x["qty"]
         else:
-            recurring += price * x["qty"] * (getattr(item, "periods_per_year", None) or 1)
+            periods = getattr(item, "periods_per_year", None)
+            recurring += price * x["qty"] * (1 if periods is None else periods)  # partner share rows have 0 periods
     fmt = lambda v: int(v) if float(v).is_integer() else round(v, 2)  # noqa: E731
     return {"available": True, "one_time": fmt(one_time), "recurring_y1": fmt(recurring), "missing": missing, "percent": percent,
             "catalog_version": bridge.catalog_version(db), "note": None}

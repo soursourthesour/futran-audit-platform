@@ -87,12 +87,13 @@ def _view(db: Session, actor: Actor, opp: Opportunity) -> dict:
         out["client"] = service._answer_out(client, labels) if client is not None and rep is not None else None
         ans_out[code] = out
     lines = service.suggest_lines(db, q.id)
-    items = bridge.catalog_items(db, [x["code"] for x in lines]) or {}
+    found = bridge.catalog_items(db, [x["code"] for x in lines])
+    items = found or {}
     for x in lines:
         item = items.get(x["code"])
         x["name"] = getattr(item, "name", None) if item is not None else None
         x["sellable_status"] = getattr(item, "sellable_status", None) if item is not None else None
-        x["in_catalog"] = item is not None if items else None
+        x["in_catalog"] = None if found is None else (item is not None and not bridge.is_retired(item))
     pending = [s for s in ("A", "B", "C", "D", "E", "F", "G", "H") if comp.get(s, {}).get("answered", 0) == 0 and any(x.section == s for x in qs)]
     return {**head, "questionnaire": _q_out(db, q), "bank": {"version": q.bank_version, "starter": bank.STARTER_NOTE.startswith("Starter")},
             "sections": sections, "answers": ans_out, "suggested": lines, "not_answered_sections": [bank.SECTION_LABELS[s] for s in pending],

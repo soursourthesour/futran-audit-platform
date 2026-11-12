@@ -13,7 +13,7 @@ condition except `unknown`.
 
 Quantities: {"const": n}; {"answer": code, "add": k, "min": m}; {"count": code, "min": m} (options ticked);
 {"sum": [codes], "min": m}; {"first": [codes], "min": m} (the first one answered); {"excess_included": {"q": code,
-"tiers": [[line, low, high], ...], "key": "ai_systems"}} (the answer above the included quantity of the tier's catalog
+"tiers": [[line, low, high], ...], "key": "systems"}} (the answer above the included quantity of the tier's catalog
 item). A quantity of zero or less, or one that cannot be worked out, proposes nothing.
 
 Reasons: `{SQ-C.07}` is the answer as shown, `{SQ-C.07.confidence}` its confidence, `{qty}` the quantity.
@@ -131,7 +131,7 @@ def quantity(formula: dict, answers: dict, catalog: dict | None = None) -> int |
             return None
         for line, low, high in spec.get("tiers", []):
             if (low is None or total >= low) and (high is None or total <= high):
-                inc = _included(catalog.get(line), spec.get("key", "ai_systems"))
+                inc = _included(catalog.get(line), spec.get("key", "systems"))
                 return int(total - inc) if inc is not None and total > inc else None
         return None
     if n is None:
@@ -230,9 +230,9 @@ SEED: list[dict] = [
     _r("MR-01b", "A-02b", {"all": [_q("SQ-C.07", "between", [11, 50])]}, ONE, C07),
     _r("MR-01c", "A-02c", {"all": [_q("SQ-C.07", "gt", 50)]}, ONE, C07),
     _r("MR-02", "A-03", {"all": [_q("SQ-C.07", "gte", 1)]},
-       {"excess_included": {"q": "SQ-C.07", "tiers": [["A-02a", 0, 10], ["A-02b", 11, 50], ["A-02c", 51, None]], "key": "ai_systems"}},
+       {"excess_included": {"q": "SQ-C.07", "tiers": [["A-02a", 0, 10], ["A-02b", 11, 50], ["A-02c", 51, None]], "key": "systems"}},
        "SQ-C.07 = {SQ-C.07}: {qty} above the systems the audit tier includes",
-       "Reads the tier's included AI systems from the price list (included quantities, key ai_systems)."),
+       "Reads the tier's included AI systems from the price list (included quantities, key systems)."),
     _r("MR-03", "A-05", {"any": [_q("SQ-C.10", "in", ["partial", "none"]), _q("SQ-C.07", "unknown")]}, {"count": "SQ-C.11", "min": 1},
        "Inventory: {SQ-C.10}; AI systems: {SQ-C.07}; {SQ-C.11.count} sources ticked ({SQ-C.11})"),
     _r("MR-04a", "A-06a", {"all": [_q("SQ-B.01", "between", [1, 250])]}, ONE, "SQ-B.01 = {SQ-B.01} employees",

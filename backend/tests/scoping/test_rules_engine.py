@@ -73,7 +73,7 @@ def test_extra_systems_above_the_tier_included_count_need_the_catalog():
             self.included_quantities = inc
 
     assert "A-03" not in run({"SQ-C.07": 30})  # no catalog: nothing to compare against
-    assert run({"SQ-C.07": 30}, catalog={"A-02b": Item({"ai_systems": 25})})["A-03"]["qty"] == 5
+    assert run({"SQ-C.07": 30}, catalog={"A-02b": Item({"systems": 25})})["A-03"]["qty"] == 5
 
 
 def test_inactive_and_pending_rules_do_not_run():
