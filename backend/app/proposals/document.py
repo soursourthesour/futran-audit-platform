@@ -145,8 +145,7 @@ def terms_lines(p: Proposal) -> list[str]:
 
     t = p.terms or {}
     out = [f"Valid for {p.valid_days or 30} days, until {fmt_day(valid_until(p))}."]
-    pay = t.get("payment_terms") or f"Payment within {t.get('payment_days', 30)} days of invoice."
-    out.append(f"Payment: {pay}")
+    out.append(f"Payment: {t['payment_terms']}" if t.get("payment_terms") else f"Payment within {t.get('payment_days', 30)} days of invoice.")
     years = t.get("term_years") or 1
     out.append(f"Contract term: {years} year{'s' if years != 1 else ''}.")
     if t.get("sla"):
@@ -178,8 +177,7 @@ def sections(db: Session, p: Proposal) -> list[dict]:
         key = s["key"]
         parts: list[str] = []
         if key == "cover":
-            parts = [f"**{PRODUCT} · Futran Solutions**", f"Prepared for {values['Company']} · {values['Date']} · Valid until {values['Valid until']}",
-                     f"Proposal {values['Version']}", intro]
+            parts = [f"**{PRODUCT} · Futran Solutions**", intro, f"Proposal {values['Version']} · {values['Date']} · Valid until {values['Valid until']}"]
         elif key == "services":
             parts = [intro]
             for ln in offered(ls):
@@ -187,7 +185,7 @@ def sections(db: Session, p: Proposal) -> list[dict]:
                 parts.append(_bullets(merge(ln.deliverables_text or ln.description or "", values)) or "Details to follow.")
             if optional(ls):
                 parts.append("### Optional, when available")
-                parts += [f"- {_md_escape(ln.name)} ({ln.catalog_code}): {_summary(ln.deliverables_text) or 'not yet available'}. Not priced in this proposal."
+                parts += [f"- {_md_escape(ln.name)} ({ln.catalog_code}): {(_summary(ln.deliverables_text) or 'not yet available').rstrip('.')}. Not priced in this proposal."
                           for ln in optional(ls)]
         elif key == "deliverables":
             rows = ["| Service | What you receive | Typical duration |", "|---|---|---|"]

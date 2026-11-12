@@ -11,6 +11,7 @@
 .pb-add .pb-qty { flex: 0 0 90px; }
 .pb-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 .pb-table th { text-align: left; font-weight: 600; color: var(--muted); font-size: 12px; background: #f6f8fb; padding: 9px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.pb-table td:first-child { white-space: nowrap; }
 .pb-table td { padding: 8px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
 .pb-table th.num, .pb-table td.num { text-align: right; }
 .pb-num { width: 96px; min-height: 36px; text-align: right; padding: 4px 8px; }
