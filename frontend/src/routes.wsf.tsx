@@ -1,10 +1,11 @@
 import type { RouteObject } from 'react-router-dom';
-import { AdminHome, MyWork, QAQueue } from '@/screens/homes/FutranHomes';
+import { AdminHome, ChiefHome, MyWork, QAQueue } from '@/screens/homes/FutranHomes';
 import { ClientAdminHome, DPOHome, DepartmentHome, MyTasks, SponsorHome } from '@/screens/homes/ClientHomes';
 
-/** v0.6.1 WS-F role homes (spec §13.1). The Chief Auditor's Dashboard (/audits) and the CAICO's Getting started (/start)
- *  are unchanged and registered in routes.tsx. */
+/** v0.6.1 WS-F role homes (spec §13.1). The CAICO's Getting started (/start) is registered in routes.tsx. Since the 10 Nov
+ *  feedback (F2) every Futran home shows the Dashboard and /audits redirects to the person's home. */
 export const futranHomeRoutes: RouteObject[] = [
+  { path: '/staff/chief', element: <ChiefHome /> },
   { path: '/staff/admin', element: <AdminHome /> },
   { path: '/my-work', element: <MyWork /> },
   { path: '/qa', element: <QAQueue /> },

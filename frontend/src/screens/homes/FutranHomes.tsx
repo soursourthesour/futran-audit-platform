@@ -7,12 +7,40 @@ import type { AdminHomeData, MyWorkData, QaData, QaFinding, QaOverride } from '@
 import { Alert, Badge, Button, ButtonLink, Card, EmptyState, Loading, PageHeader, Progress, TextArea, fmtDate, fmtDateTime } from '@/components/ui';
 import { qaHelp } from '@/help/homes';
 import { RATING_LABEL, RoleNote, SEVERITY_TONE, Tile, cap } from './common';
+import { DashboardOverview, engagementLink, type DashboardData } from '@/screens/futran/Dashboard';
 
 const FUTRAN_ROLE_ORDER: [string, string][] = [['chief_auditor', 'Chief Auditors'], ['auditor', 'Auditors'], ['qa_reviewer', 'QA Reviewers'], ['engagement_manager', 'Engagement Managers'],
   ['legal_reviewer', 'Legal reviewers'], ['sales_team', 'Sales Team'], ['admin', 'Admins']];
 
 function useHome<T>(key: string) {
   return useQuery({ queryKey: ['home', key], queryFn: () => api.get<T>(`/home/${key}`) });
+}
+
+/** Chief Auditor home (10 Nov feedback F2): drafts waiting for approval, then the Dashboard. */
+export function ChiefHome() {
+  const drafts = useQuery({ queryKey: ['engagements', 'drafts', ''], queryFn: () => api.get<DashboardData>('/engagements?filter=drafts&q=') });
+  const waiting = (drafts.data?.rows ?? []).filter((r) => r.status === 'pending_approval');
+  return (
+    <div className="page">
+      <PageHeader title="Chief Auditor home" subtitle="Every client and engagement, and the drafts that need your approval before the initiation package goes out."
+        actions={<ButtonLink to="/audits/new" variant="primary">New client</ButtonLink>} />
+      <Card title={`Waiting for your approval · ${waiting.length}`} className="home-section">
+        {drafts.isLoading ? <Loading /> : waiting.length === 0 ? <EmptyState>No drafts are waiting for your approval.</EmptyState> : (
+          <ul className="home-rows">
+            {waiting.map((r) => (
+              <li key={r.engagement_id}>
+                <div className="what"><strong>{r.client_name}</strong><div className="small muted">{r.audit_ref} · {r.type_label}</div></div>
+                <div className="acts"><ButtonLink to={engagementLink(r)} variant="primary">Review draft</ButtonLink></div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+      <DashboardOverview />
+      <RoleNote role="Chief Auditor" can="see every client and engagement, approve drafts and send initiation packages, approve findings and sign the reports."
+        cannot="approve a draft they prepared, or review their own findings (the QA Reviewer does)." />
+    </div>
+  );
 }
 
 /** Futran Admin console (spec §13.1): users, templates, law-matrix import. */
@@ -45,6 +73,7 @@ export function AdminHome() {
           </div>
         </Card>
       </div>
+      <DashboardOverview />
       <RoleNote role="Admin" can="create clients and engagements, manage Futran and client users, templates, the question bank and the law matrix, platform settings, and view the audit log."
         cannot="record, edit or approve findings, risk tiers, scores or sign-offs (separation of duties)." />
     </div>
@@ -88,6 +117,7 @@ export function MyWork() {
           </ul>
         )}
       </Card>
+      <DashboardOverview />
       <RoleNote role="Auditor" can="draft clients, assess systems, set final tiers, request evidence, write findings and verify remediation."
         cannot="approve findings, sign reports, close remediation, send initiation packages, or see engagements they are not assigned to." />
     </div>
@@ -202,6 +232,7 @@ export function QAQueue() {
           )}
         </div>
       )}
+      <DashboardOverview />
       <RoleNote role="QA Reviewer" can="view assigned engagements, and approve or return findings and rating overrides written by a Chief Auditor."
         cannot="write findings, edit client data, sign reports, or review their own work." />
     </div>

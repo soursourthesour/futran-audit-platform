@@ -25,18 +25,18 @@ type Case = { who: string; email: string; staff: boolean; home: RegExp; heading:
 
 const CASES: Case[] = [
   { who: 'Futran Admin', email: 'admin@futran.demo', staff: true, home: /\/staff\/admin$/, heading: 'Admin console', shot: 'admin-home',
-    shown: ['Admin home', 'Dashboard', 'Clients', 'Law library', 'Client alerts', 'Templates', 'Reference data', 'Users', 'Audit log', 'Email and groups', 'Email log', 'Settings'],
-    hidden: ['My work', 'QA queue', 'Litigation', 'Opportunities'] },
-  { who: 'Chief Auditor', email: 'chief@futran.demo', staff: true, home: /\/audits$/, heading: 'Audits', shot: 'chief-auditor-dashboard',
-    shown: ['Dashboard', 'Clients', 'Law library', 'Litigation', 'Opportunities', 'Client alerts', 'Templates', 'Reference data', 'Users', 'Audit log', 'Email log', 'Settings'],
+    shown: ['Admin home', 'Clients', 'Law library', 'Client alerts', 'Templates', 'Reference data', 'Users', 'Audit log', 'Email and groups', 'Email log', 'Settings'],
+    hidden: ['Dashboard', 'Chief Auditor home', 'My work', 'QA queue', 'Litigation', 'Opportunities'] },
+  { who: 'Chief Auditor', email: 'chief@futran.demo', staff: true, home: /\/staff\/chief$/, heading: 'Chief Auditor home', shot: 'chief-auditor-home',
+    shown: ['Chief Auditor home', 'Clients', 'Law library', 'Litigation', 'Opportunities', 'Client alerts', 'Templates', 'Reference data', 'Users', 'Audit log', 'Email log', 'Settings'],
     // the outbox is a tab of the email log (11-03 F14b)
-    hidden: ['Admin home', 'My work', 'QA queue', 'Email and groups'] },
+    hidden: ['Dashboard', 'Admin home', 'My work', 'QA queue', 'Email and groups'] },
   { who: 'Auditor', email: 'auditor1@futran.demo', staff: true, home: /\/my-work$/, heading: 'My work', shot: 'auditor-my-work',
-    shown: ['My work', 'Dashboard', 'Clients', 'Law library', 'Litigation', 'Audit log', 'Email log'],
-    hidden: ['Admin home', 'QA queue', 'Users', 'Templates', 'Reference data', 'Opportunities', 'Client alerts', 'Outbox', 'Settings', 'Email and groups'] },
+    shown: ['My work', 'Clients', 'Law library', 'Litigation', 'Audit log', 'Email log'],
+    hidden: ['Dashboard', 'Chief Auditor home', 'Admin home', 'QA queue', 'Users', 'Templates', 'Reference data', 'Opportunities', 'Client alerts', 'Outbox', 'Settings', 'Email and groups'] },
   { who: 'QA Reviewer', email: 'qa@futran.demo', staff: true, home: /\/qa$/, heading: 'QA review queue', shot: 'qa-queue',
-    shown: ['QA queue', 'Dashboard', 'Clients', 'Law library'],
-    hidden: ['Admin home', 'My work', 'Users', 'Litigation', 'Opportunities', 'Templates', 'Client alerts'] },
+    shown: ['QA queue', 'Clients', 'Law library'],
+    hidden: ['Dashboard', 'Chief Auditor home', 'Admin home', 'My work', 'Users', 'Litigation', 'Opportunities', 'Templates', 'Client alerts'] },
   { who: 'Sales Team', email: 'sales@futran.demo', staff: true, home: /\/opportunities$/, heading: 'Opportunities', shot: 'sales-opportunities',
     shown: ['Opportunities', 'Litigation'],
     hidden: ['Dashboard', 'Clients', 'Law library', 'Users', 'Audit log', 'My work'] },
@@ -148,10 +148,11 @@ test('a role cannot open another role\'s home data, and old deep links still wor
   // a client user who opens a Futran address is sent to their own home
   await page.goto('/audits');
   await expect(page).toHaveURL(/\/my-tasks$/);
-  // and a Futran user's bookmark to the Dashboard still opens it
+  // and a Futran user's bookmark to the Dashboard opens their home, which shows the Dashboard (10 Nov F2)
   await signIn(page, 'auditor1@futran.demo', true);
   await page.goto('/audits');
-  await expect(page.getByRole('heading', { level: 1, name: 'Audits' })).toBeVisible();
+  await expect(page).toHaveURL(/\/my-work$/);
+  await expect(page.getByRole('heading', { level: 2, name: 'Engagements' })).toBeVisible();
   await page.goto('/');
   await expect(page).toHaveURL(/\/my-work$/);
 });

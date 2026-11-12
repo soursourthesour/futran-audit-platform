@@ -33,3 +33,7 @@
 .changes-grid .dg-table thead th { position: sticky; top: 0; z-index: 1; background: var(--surface); }
 .changes-grid .badge { margin-left: 6px; }
 .changes-grid .nowrap, .changes-grid td:first-child { white-space: nowrap; }
+/* 10 Nov F2: the Dashboard as a section of each Futran role home */
+.dash-overview { margin-top: 32px; }
+.home-section-title { font-size: 20px; margin: 0 0 4px; color: var(--navy); }
+.home-section { margin: 16px 0 0; }

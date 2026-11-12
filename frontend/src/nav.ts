@@ -11,10 +11,10 @@ export type NavGroup = { id: string; label: string; entries: NavEntry[] };
 /** Futran shell (spec §13.1), grouped. Role homes first, in the order of authority used for the landing page. */
 export const FUTRAN_GROUPS: NavGroup[] = [
   { id: 'work', label: 'Home and work', entries: [
+    { to: '/staff/chief', label: 'Chief Auditor home', requires: ['view_chief_home'] },
     { to: '/staff/admin', label: 'Admin home', requires: ['view_admin_home'] },
     { to: '/qa', label: 'QA queue', requires: ['view_qa_queue'] },
     { to: '/my-work', label: 'My work', requires: ['view_my_work'] },
-    { to: '/audits', label: 'Dashboard', requires: ['view_engagement'], end: true },
     { to: '/clients', label: 'Clients', requires: ['view_engagement'], end: true },
   ] },
   { id: 'law', label: 'Law library', entries: [

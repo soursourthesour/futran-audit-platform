@@ -3,7 +3,7 @@ import { openNav } from './nav';
 
 /** Each role lands on its own home after sign-in (spec §13.1). */
 const HOME: Record<string, RegExp> = { 'admin@futran.demo': /\/staff\/admin$/, 'auditor1@futran.demo': /\/my-work$/, 'auditor2@futran.demo': /\/my-work$/, 'em@futran.demo': /\/my-work$/, 'manager@futran.demo': /\/my-work$/, 'qa@futran.demo': /\/qa$/, 'sales@futran.demo': /\/opportunities$/ };
-const homeOf = (email: string) => HOME[email] ?? /\/audits$/;
+const homeOf = (email: string) => HOME[email] ?? /\/staff\/chief$/;  // the Chief Auditor home (10 Nov F2)
 
 async function signIn(page: Page, email: string) {
   await page.goto('/staff/login');
@@ -81,7 +81,7 @@ test('auditor sets up a client, the Chief Auditor approves and the client signs 
   await page.getByRole('button', { name: 'Next: review and submit' }).click();
 
   await page.getByRole('button', { name: 'Submit for approval' }).click();
-  await expect(page).toHaveURL(/\/audits$/, { timeout: 30_000 });  // submitting generates the initiation package
+  await expect(page).toHaveURL(/\/my-work$/, { timeout: 30_000 });  // submitting generates the initiation package; /audits opens the home (10 Nov F2)
   await expect(page.getByText('ABC Corp was sent to the Chief Auditor for approval.')).toBeVisible();
 
   await signOut(page);

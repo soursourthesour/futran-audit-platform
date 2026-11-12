@@ -99,7 +99,7 @@ test.describe('Futran', () => {
     await signIn(page, 'admin@futran.demo', true);
     for (const g of ['Home and work', 'Law library', 'Administration']) await expect(group(page, g)).toBeVisible();
     await oneRow(page);
-    await expectNav(page, ['Admin home', 'Dashboard', 'Clients', 'Law library', 'Refresh and review', 'Roles and committees', 'Client alerts', 'Templates', 'Reference data', 'Users', 'Audit log', 'Email and groups', 'Email log', 'Settings'],
+    await expectNav(page, ['Admin home', 'Clients', 'Law library', 'Refresh and review', 'Roles and committees', 'Client alerts', 'Templates', 'Reference data', 'Users', 'Audit log', 'Email and groups', 'Email log', 'Settings'],
       ['Outbox', 'Regulatory master', 'My work', 'QA queue', 'Litigation', 'Opportunities']);
     await expect(navLink(page, 'Users')).toBeHidden();  // closed until its menu opens
 

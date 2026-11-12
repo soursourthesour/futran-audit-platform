@@ -4,7 +4,7 @@ import { openNav } from './nav';
 
 /** Each role lands on its own home after sign-in (spec §13.1). */
 const HOME: Record<string, RegExp> = { 'admin@futran.demo': /\/staff\/admin$/, 'auditor1@futran.demo': /\/my-work$/, 'auditor2@futran.demo': /\/my-work$/, 'em@futran.demo': /\/my-work$/, 'manager@futran.demo': /\/my-work$/, 'qa@futran.demo': /\/qa$/, 'sales@futran.demo': /\/opportunities$/ };
-const homeOf = (email: string) => HOME[email] ?? /\/audits$/;
+const homeOf = (email: string) => HOME[email] ?? /\/staff\/chief$/;  // the Chief Auditor home (10 Nov F2)
 
 // ABC Corp at stage 6 (every finding approved) from start-server.sh … late; this walks review to close in the browser.
 const late = () => JSON.parse(readFileSync(`${__dirname}/../backend/data/e2e-late.json`, 'utf8')) as { abc: string; meridian: string; attest_link: string; confirm_link: string };
