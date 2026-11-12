@@ -36,6 +36,8 @@ export const FUTRAN_GROUPS: NavGroup[] = [
     // Release 2 R1 (SM-15, SM-14); R2 adds the rest of the Sales group (Sales home, Opportunities, Approvals, Partners)
     { to: '/sales/estimate', label: 'Estimator', requires: ['use_estimator'] },
     { to: '/staff/admin/catalog', label: 'Price list', requires: ['view_catalog'] },
+    { to: '/sales/proposals', label: 'Proposals', requires: ['view_proposals'] },  // Release 2 R4
+    { to: '/sales/approvals', label: 'Approvals', requires: ['decide_proposal_approvals'] },  // Release 2 R4 (SM-11)
   ] },
   { id: 'assurance', label: 'Assurance', entries: [
     // wave 3 WS-I: Trust Center confirmations (32) and client policy reviews (27, independence rule)
