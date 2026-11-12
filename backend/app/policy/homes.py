@@ -15,6 +15,7 @@ HOME_PRECEDENCE: list[tuple[str, str]] = [
     ("sales_team", "/sales"),  # Release 2 R2: SM-01 Sales home
     ("sales_manager", "/sales"),
     ("price_list_owner", "/staff/admin/catalog"),  # Release 2 R1: the CEO and President keep the master price list
+    ("pricing_approver", "/sales/approvals"),  # Release 2 R2: the approvals queue (SM-11); no Sales home permission
     ("caico", "/start"),
     ("exec_sponsor", "/summary"),
     ("dpo", "/data-review"),

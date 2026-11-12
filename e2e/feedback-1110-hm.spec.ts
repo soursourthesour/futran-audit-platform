@@ -105,12 +105,12 @@ test('F2: an auditor sees only assigned engagements on the home, as on the Dashb
   await expect(dash.getByRole('link', { name: 'ABC Corp' })).toHaveCount(0);  // not on the ABC team
 });
 
-test('F2: the Sales Team still has no engagement information', async ({ page }) => {
+test('F2: the Sales Officer still has no engagement information', async ({ page }) => {
   await signIn(page, 'sales@futran.demo', true);
-  await expect(page).toHaveURL(/\/opportunities$/);
+  await expect(page).toHaveURL(/\/sales$/);
   await expect(page.getByRole('region', { name: 'Engagements' })).toHaveCount(0);
   await page.goto('/audits');
-  await expect(page).toHaveURL(/\/opportunities$/);
+  await expect(page).toHaveURL(/\/sales$/);
   expect((await page.request.get('/api/v1/engagements?filter=all&q=')).status()).toBe(403);
 });
 

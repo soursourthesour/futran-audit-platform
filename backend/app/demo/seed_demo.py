@@ -828,6 +828,9 @@ def run(db: Session, settings, client: TestClient | None = None) -> dict:
         from app.demo import wave3
 
         out |= wave3.seed(m, dict(out))  # §21 extended features
+        from app.demo.r2 import seed_r2
+
+        out |= seed_r2(m)  # Release 2 R2: sample prospects on the sales desk (SM-01 to SM-04)
         from app.auth.passwords import hash_password
         from app.demo.r6b import seed_r6b  # Release 2 R6b: Copilot readiness and EU AI Act readiness clients
 

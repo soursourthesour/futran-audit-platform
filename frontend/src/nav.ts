@@ -28,12 +28,13 @@ export const FUTRAN_GROUPS: NavGroup[] = [
   ] },
   { id: 'business', label: 'Business', entries: [
     { to: '/litigation', label: 'Litigation', requires: ['view_litigation'] },
-    { to: '/opportunities', label: 'Opportunities', requires: ['view_opportunities'] },
     { to: '/alerts', label: 'Client alerts', requires: ['manage_client_alerts'] },
     { to: '/insights', label: 'Insights', requires: ['view_benchmarks', 'view_practice_insights'] }, // WS-K screen 34
   ] },
   { id: 'sales', label: 'Sales', entries: [
     // Release 2 R1 (SM-15, SM-14); R2 adds the rest of the Sales group (Sales home, Opportunities, Approvals, Partners)
+    { to: '/sales', label: 'Sales home', requires: ['view_sales_home'], end: true },  // Release 2 R2 (SM-01)
+    { to: '/sales/opportunities', label: 'Opportunities', requires: ['view_opportunities'] },  // Release 2 R2 (SM-02; /opportunities redirects here)
     { to: '/sales/estimate', label: 'Estimator', requires: ['use_estimator'] },
     { to: '/staff/admin/catalog', label: 'Price list', requires: ['view_catalog'] },
     { to: '/sales/proposals', label: 'Proposals', requires: ['view_proposals'] },  // Release 2 R4

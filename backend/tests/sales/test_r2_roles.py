@@ -28,6 +28,21 @@ def test_sales_officer_and_manager_land_on_the_sales_home():
     assert home_for({"chief_auditor", "sales_manager"}, True) == "/staff/chief"  # the role with more authority wins
 
 
+@pytest.mark.parametrize("role,home", [("sales_team", "/sales"), ("sales_manager", "/sales"), ("pricing_approver", "/sales/approvals"),
+                                       ("price_list_owner", "/staff/admin/catalog")])
+def test_every_sales_role_alone_has_a_home_it_can_open(role, home):
+    """No sales role falls through to /audits ("no Futran role yet")."""
+    from app.policy.actions import Action
+
+    assert home_for({role}, True) == home
+    needs = {"/sales": Action.VIEW_SALES_HOME, "/sales/approvals": Action.DECIDE_PROPOSAL_APPROVALS, "/staff/admin/catalog": Action.VIEW_CATALOG}[home]
+    assert MATRIX[R(role)].get(needs, S.NONE) != S.NONE
+
+
+def test_the_ceo_with_both_pricing_roles_keeps_the_price_list_home():
+    assert home_for({"price_list_owner", "pricing_approver"}, True) == "/staff/admin/catalog"
+
+
 def test_manager_can_do_everything_an_officer_can_and_reassign():
     officer = {a for a, s in MATRIX[R.SALES_TEAM].items() if s != S.NONE}
     manager = {a for a, s in MATRIX[R.SALES_MANAGER].items() if s != S.NONE}

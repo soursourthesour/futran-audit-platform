@@ -41,6 +41,7 @@ import { Applicability } from '@/screens/futran/reg/Applicability';
 import { wsdRoutes } from '@/routes.wsd';
 import { r3FutranRoutes, r3PublicRoutes } from '@/routes.r3'; // Release 2 R3: scoping questionnaire
 import { r4FutranRoutes, r4PublicRoutes } from '@/routes.r4'; // Release 2 R4: proposals, approvals, acceptance
+import { r2FutranRoutes } from '@/routes.r2'; // Release 2 R2: Sales home, opportunities list, board and record
 import { wskClientRoutes, wskFutranRoutes } from '@/routes.wsk';
 import { wsgClientRoutes, wsgFutranRoutes } from '@/routes.wsg';
 import { clientHomeRoutes, futranHomeRoutes } from '@/routes.wsf';
@@ -69,6 +70,7 @@ export const futranRoutes: RouteObject[] = [
   ...wsdRoutes,
   ...r3FutranRoutes,
   ...r4FutranRoutes,
+  ...r2FutranRoutes,
   ...wskFutranRoutes,
   ...wslFutranRoutes,
   ...wsgFutranRoutes,

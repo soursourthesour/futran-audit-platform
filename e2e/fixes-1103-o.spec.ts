@@ -4,7 +4,7 @@ import { mkdirSync } from 'node:fs';
 /** 11-03 F8: the periodic opportunity scan in Platform settings. */
 const PW = 'Demo-Password-2026';
 const SHOTS = process.env.SHOTS_DIR || 'screenshots';
-const HOME: Record<string, RegExp> = { 'admin@futran.demo': /\/staff\/admin$/, 'sales@futran.demo': /\/opportunities$/ };
+const HOME: Record<string, RegExp> = { 'admin@futran.demo': /\/staff\/admin$/, 'sales@futran.demo': /\/sales$/ };
 
 async function signIn(page: Page, email: string) {
   await page.context().clearCookies();
@@ -91,7 +91,8 @@ test('Futran Admin turns on the opportunity scan and runs it now; a change alrea
   await expect(page.getByRole('button', { name: 'Run now' })).toHaveCount(0);
 
   await signIn(page, 'sales@futran.demo');
-  await expect(page.getByRole('cell', { name: 'Law change' }).first()).toBeVisible();
+  await page.goto('/sales/opportunities');  // Release 2: the Sales home is /sales; the list moved here
+  await expect(page.getByRole('cell', { name: /Law change/ }).first()).toBeVisible();
   await page.setViewportSize({ width: 1440, height: 900 });
   await shot(page, 'o-opportunities-1440');
   await page.setViewportSize({ width: 375, height: 812 });

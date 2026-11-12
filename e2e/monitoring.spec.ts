@@ -2,7 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { navLink, openNav } from './nav';
 
 /** Each role lands on its own home after sign-in (spec §13.1). */
-const HOME: Record<string, RegExp> = { 'admin@futran.demo': /\/staff\/admin$/, 'auditor1@futran.demo': /\/my-work$/, 'auditor2@futran.demo': /\/my-work$/, 'em@futran.demo': /\/my-work$/, 'manager@futran.demo': /\/my-work$/, 'qa@futran.demo': /\/qa$/, 'sales@futran.demo': /\/opportunities$/ };
+const HOME: Record<string, RegExp> = { 'admin@futran.demo': /\/staff\/admin$/, 'auditor1@futran.demo': /\/my-work$/, 'auditor2@futran.demo': /\/my-work$/, 'em@futran.demo': /\/my-work$/, 'manager@futran.demo': /\/my-work$/, 'qa@futran.demo': /\/qa$/, 'sales@futran.demo': /\/sales$/ };
 const homeOf = (email: string) => HOME[email] ?? /\/staff\/chief$/;  // the Chief Auditor home (10 Nov F2)
 
 /* v0.6 WS-D: refresh and review (M3) with a second reviewer, refresh alerts (M6), litigation (L1, L2),
@@ -135,24 +135,25 @@ test.describe.serial('refresh, alerts, litigation, sales and client alerts', () 
     await expect(page.getByRole('table', { name: /Waiting: Case briefing: Mobley/ })).toHaveCount(0);
   });
 
-  test('S1: the Sales Team works opportunities and is refused audit findings', async ({ page }) => {
-    await signIn(page, 'sales@futran.demo', /\/opportunities$/);
+  test('S1: the Sales Officer works opportunities and is refused audit findings', async ({ page }) => {
+    await signIn(page, 'sales@futran.demo', /\/sales$/);
     await expect(navLink(page, 'Dashboard')).toHaveCount(0);
-    await page.getByRole('button', { name: 'Add opportunity' }).click();
-    await page.getByRole('combobox', { name: 'Client' }).selectOption({ label: 'Harbor Point Staffing' });
-    await page.getByRole('textbox', { name: 'Service', exact: true }).fill('Bias audit including age, hiring tools');
-    await page.getByRole('textbox', { name: 'Why now' }).fill('Mobley v. Workday');
-    await page.getByRole('spinbutton', { name: 'Value (US dollars)' }).fill('18000');
-    await page.getByRole('button', { name: 'Add opportunity' }).last().click();
-    await expect(page.getByText('Opportunity added.')).toBeVisible();
-    const grid = page.getByRole('table', { name: 'Opportunities' });
-    await grid.getByRole('button', { name: 'Harbor Point Staffing' }).first().click();
-    await page.getByRole('textbox', { name: 'Summary' }).fill('Called the Chief AI Compliance Officer; meeting booked.');
-    await page.getByRole('button', { name: 'Log it' }).click();
-    await expect(page.getByRole('dialog').getByText('Called the Chief AI Compliance Officer; meeting booked.')).toBeVisible();
+    // Release 2 SM-03: log an opportunity on an existing client, then work it on the record (SM-04)
+    await page.getByRole('button', { name: 'Log opportunity' }).click();
+    const dlg = page.getByRole('dialog', { name: 'Log opportunity' });
+    await dlg.getByRole('textbox', { name: 'Company' }).fill('Harbor Point');
+    await dlg.getByRole('button', { name: 'Harbor Point Staffing' }).click();
+    await dlg.getByRole('spinbutton', { name: 'Estimated value ($)' }).fill('18000');
+    await dlg.getByRole('checkbox', { name: 'LL144' }).check();
+    await dlg.getByRole('button', { name: 'Save and open' }).click();
+    await expect(page).toHaveURL(/\/sales\/opportunities\/[^/]+$/);
+    await page.getByRole('button', { name: 'Log call' }).click();
+    await page.getByRole('dialog').getByRole('textbox', { name: 'Summary' }).fill('Called the Chief AI Compliance Officer; meeting booked.');
+    await page.getByRole('dialog').getByRole('button', { name: 'Save' }).click();
+    await expect(page.getByText('Called the Chief AI Compliance Officer; meeting booked.')).toBeVisible();
     await shoot(page, 's1-opportunity-detail');
-    await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click();
-    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await openNav(page, 'Opportunities');
+    await expect(page.getByRole('table', { name: 'Opportunities' }).getByRole('link', { name: 'Harbor Point Staffing' }).first()).toBeVisible();
     await shoot(page, 's1-opportunities');
     // Sales sees cases but never findings, evidence, scores or reports
     await openNav(page, 'Litigation');
