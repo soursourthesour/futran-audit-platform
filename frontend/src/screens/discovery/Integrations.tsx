@@ -165,7 +165,12 @@ export function Integrations() {
               { label: 'Confirm', run: (rows) => confirm(rows), available: (rows) => rows.some((r) => r.status === 'new' || r.status === 'dismissed') },
               { label: 'Dismiss', danger: true, run: (rows) => setDismissing(rows) },
             ] : undefined} />
-          <p className="small muted" style={{ margin: 0 }}>Confirmed tools are added to the AI inventory and the department lead is asked to add the use case. Dismissals need a reason and are visible to the Futran auditor. {H.declared}</p>
+          <p className="small" style={{ margin: 0 }} id="dsc-where">
+            <strong>Where confirmed tools go.</strong> Confirm adds the tool to the AI inventory as Unreviewed, with Discovery as its source and the account type the signal points to (company for single sign-on and licences, personal paid for expense claims, otherwise not known); if the inventory already has that vendor and product, the discovery is linked to that tool instead.
+            {' '}It then shows in {clientId ? 'AI systems' : <Link to="/register?source=discovery">AI systems</Link>} as a tool or agent that came from Discovery, and the department’s compliance lead (or the Chief AI Compliance Officer, when no department or lead matches) is asked to add the use case.
+            {' '}It is not added to the AI system register: it joins the register when the inventory is imported into it, unless the tool is marked Not approved.
+            {' '}Map links the discovery to a tool already in the inventory; Dismiss adds nothing and needs a reason, which the Futran auditor sees. {H.declared}
+          </p>
         </div>
       </section>
       <RunLog page={d} />
@@ -175,7 +180,7 @@ export function Integrations() {
       {dismissing && <DismissDialog rows={dismissing} onClose={() => setDismissing(null)} onDone={done} />}
       {disconnecting && <DisconnectDialog c={disconnecting} onClose={() => setDisconnecting(null)} onDone={done} />}
       {people && clientId && <PeopleDialog clientId={clientId} t={people} onClose={() => setPeople(null)} />}
-      {!clientId && <p className="small muted">Your AI inventory: <Link to="/inventory">AI inventory</Link>. Checks that use these results: <Link to="/monitoring">Monitoring</Link>.</p>}
+      {!clientId && <p className="small muted">Your AI inventory and register in one list: <Link to="/register">AI systems</Link>. Checks that use these results: <Link to="/monitoring">Monitoring</Link>.</p>}
     </div>
   );
 }
