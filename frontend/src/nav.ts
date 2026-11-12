@@ -16,6 +16,7 @@ export const FUTRAN_GROUPS: NavGroup[] = [
     { to: '/qa', label: 'QA queue', requires: ['view_qa_queue'] },
     { to: '/my-work', label: 'My work', requires: ['view_my_work'] },
     { to: '/clients', label: 'Clients', requires: ['view_engagement'], end: true },
+    { to: '/staff/time', label: 'Time and hours', requires: ['log_time'] },  // Release 2 R5 (G-03)
   ] },
   { id: 'law', label: 'Law library', entries: [
     { to: '/reg', label: 'Law library', requires: ['view_reg_master'] },
@@ -46,6 +47,7 @@ export const FUTRAN_GROUPS: NavGroup[] = [
     // the outbox (test mode) is a tab of the email log; /admin/outbox redirects there
     { to: '/admin/log', label: 'Email log', requires: ['view_mail_log'] },
     { to: '/admin/audit-log', label: 'Audit log', requires: ['view_audit_log'] },
+    { to: '/staff/billing', label: 'Billing export', requires: ['run_billing_export'] },  // Release 2 R5 (G-01)
     { to: '/admin/settings', label: 'Settings', requires: ['view_platform_settings'] },
   ] },
 ];
@@ -68,6 +70,7 @@ export const CLIENT_GROUPS: NavGroup[] = [
     { to: '/report', label: 'Report', requires: ['view_scores'] },
     { to: '/responses', label: 'Responses', requires: ['respond_findings', 'approve_responses'] },
     { to: '/remediation', label: 'Remediation', requires: ['view_findings_responses'] },
+    { to: '/change-orders', label: 'Change orders', requires: ['approve_change_order'] },  // Release 2 R5 (G-02)
   ] },
   { id: 'governance', label: 'AI governance', entries: [
     // 11-10 U1: one list for the register, the AI inventory and the current audit's systems (/inventory and /systems redirect here)

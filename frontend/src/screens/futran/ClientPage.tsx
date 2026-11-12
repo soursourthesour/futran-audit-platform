@@ -99,6 +99,7 @@ export function ClientPage() {
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
       <div className="tabs" role="tablist" aria-label="Client sections">
         {tabs.map(([k, label]) => <button key={k} type="button" role="tab" aria-selected={tab === k} className={tab === k ? 'active' : ''} onClick={() => setTab(k)}>{label}</button>)}
+        {can(me, 'view_client_plan') && <Link role="tab" aria-selected={false} className="tab-link" to={`/staff/clients/${clientId}/plan`}>Plan and usage</Link>}{/* Release 2 R5 (G-01) */}
       </div>
       {tab === 'overview' && (
         <div className="stack">
@@ -156,8 +157,9 @@ export function ClientPage() {
       {tab === 'engagements' && (
         <Card>
           <div className="table-wrap"><table className="table">
-            <thead><tr><th>Engagement</th><th>Reference</th><th>Stage</th><th>Status</th></tr></thead>
-            <tbody><tr><td>{e.type_label}</td><td>{e.audit_ref}</td><td>{e.stage} · {e.stage_label}</td><td><Badge tone="navy">{e.status_label}</Badge></td></tr></tbody>
+            <thead><tr><th>Engagement</th><th>Reference</th><th>Stage</th><th>Status</th>{can(me, 'view_engagement_fees') && <th>Commercial</th>}</tr></thead>
+            <tbody><tr><td>{e.type_label}</td><td>{e.audit_ref}</td><td>{e.stage} · {e.stage_label}</td><td><Badge tone="navy">{e.status_label}</Badge></td>
+              {can(me, 'view_engagement_fees') && <td><Link to={`/e/${e.id}/commercial`}>Fee and change orders</Link></td>}{/* Release 2 R5 (G-02) */}</tr></tbody>
           </table></div>
           {live && <div style={{ marginTop: 16 }}><WorkAreas clientId={clientId} /></div>}
         </Card>

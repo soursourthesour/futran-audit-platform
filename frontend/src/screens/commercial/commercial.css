@@ -1,0 +1,38 @@
+/* Release 2 R5: SM-13 handoff, G-01 plan, G-02 engagement commercials, G-03 time and hours */
+.commercial .num { text-align: right; white-space: nowrap; }
+.commercial .tabs a { padding: 10px 14px; font-size: 15px; color: var(--muted); text-decoration: none; border-bottom: 2px solid transparent; white-space: nowrap; }
+.commercial .tabs a.active { color: var(--navy); border-bottom-color: var(--navy); font-weight: 600; }
+.commercial .pill-won { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-line); padding: 6px 12px; border-radius: 16px; font-size: 14px; font-weight: 600; white-space: nowrap; }
+.commercial .kv { display: grid; grid-template-columns: minmax(160px, 240px) 1fr; gap: 10px 16px; margin: 0; }
+.commercial .kv dt { font-weight: 600; color: var(--muted); font-size: 14px; }
+.commercial .kv dd { margin: 0; }
+.commercial .kv .field { margin: 0; max-width: 320px; }
+.commercial .kv .field label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.commercial .team-pick { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 8px 12px; display: flex; flex-wrap: wrap; gap: 6px 16px; max-width: 640px; }
+.commercial .team-pick legend { padding: 0 4px; }
+.plan-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 16px; }
+.plan-tiles .tile { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }
+.plan-tiles .tile-label { font-size: 13px; color: var(--muted); }
+.plan-tiles .tile-value { font-size: 20px; font-weight: 600; margin: 2px 0; color: var(--ink); }
+.ent-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px 28px; }
+.ent-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; justify-content: space-between; font-size: 14px; margin-bottom: 6px; }
+.ent .bar { height: 8px; background: var(--line-soft); border-radius: 4px; overflow: hidden; }
+.ent .bar span { display: block; height: 100%; background: var(--navy); }
+.ent.near .bar span { background: var(--warn); }
+.ent.over .bar span { background: var(--danger); }
+.ent.over .ent-head strong { color: var(--danger); }
+.commercial ul.plain { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.commercial .pre-line { white-space: pre-line; }
+.commercial .fee-note { margin: -8px 0 4px; }
+.commercial tr.co-row td { background: var(--info-bg); }
+.commercial tr.selected td { background: var(--info-bg); }
+.commercial .co-steps { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.commercial .co-steps li { color: var(--muted); }
+.commercial .co-steps li.done { color: var(--success); font-weight: 600; }
+.commercial .timesheet select { max-width: 280px; height: var(--control-h); border: 1px solid var(--input-line); border-radius: var(--radius-sm); font: inherit; font-size: 14px; padding: 0 6px; background: var(--surface); color: var(--ink); }
+.commercial .timesheet input.hours { width: 64px; height: var(--control-h); border: 1px solid var(--input-line); border-radius: var(--radius-sm); font: inherit; text-align: right; padding: 0 6px; background: var(--surface); color: var(--ink); }
+.commercial .neg { color: var(--danger); font-weight: 600; }
+.commercial .cost-form { align-items: flex-end; }
+.commercial .cost-form .field { margin: 0; }
+.commercial .ms-row { align-items: flex-end; }
+.commercial .ms-row .field { margin: 0; }
