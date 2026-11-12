@@ -11,8 +11,9 @@ Countdown and notice: an item enters the countdown 90 days before it is due. The
 to the Chief Auditors and the client's CAICO when items first enter it, and never deletes an item earlier than 90 days
 after its notice, so an item already past its date when first seen still gets the full 90 days.
 
-Legal holds: `hold_for` is the one check every deletion path calls (this module's daily job, the bias raw-data purge,
-and `org_on_hold` for whole-client deletions such as the lost-prospect clean-up). A held item is never deleted; it is
+Legal holds: `hold_for` is the one check every deletion path calls (this module's daily job and the bias raw-data
+purge). `org_on_hold` is for whole-organization deletions: R2's lost-prospect clean-up must call it and skip any
+organization it returns True for; this module does not run that job. A held item is never deleted; it is
 deleted on the first daily run after the last hold covering it is released (and its 90 days have passed).
 
 Storage metering: `storage_used_gb` feeds G-01 usage (`vault_gb`); `active_holds` feeds `legal_holds` (M-06e).
