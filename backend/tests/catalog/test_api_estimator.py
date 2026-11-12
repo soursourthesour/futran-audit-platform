@@ -129,3 +129,30 @@ def test_side_panel_usage_counts_saved_estimates(client, db, seeded, staff, opp)
     usage = client.get("/api/v1/catalog/items/A-02a/history").json()["usage"]
     assert usage["estimates"] == 1
     assert client.get("/api/v1/catalog/items/L-01/history").json()["usage"]["estimates"] == 0
+
+
+def test_convert_needs_an_opportunity(client, db, seeded, staff):
+    e = as_(client, db, staff["sales"]).post(API, json={"name": "No opportunity", "lines": GOVERNED}).json()
+    assert e["can_convert"] is False and "opportunity" in e["convert_note"].lower()
+    r = client.post(f"{API}/{e['id']}/convert")
+    assert r.status_code in (409, 422) and "opportunity" in r.json()["detail"].lower()
+
+
+def test_convert_with_the_real_proposal_builder(client, db, seeded, staff, opp):
+    from app.catalog import estimates
+
+    if estimates.proposal_builder() is None:
+        pytest.skip("the proposal builder (R4) is not installed")
+    e = as_(client, db, staff["sales"]).post(API, json={"name": "N", "opportunity_id": opp.id, "package": "governed", "lines": GOVERNED,
+                                                        "discount_recurring_pct": 5}).json()
+    assert e["can_convert"] is True
+    r = client.post(f"{API}/{e['id']}/convert")
+    assert r.status_code == 200, r.text
+    from app.proposals.models import Proposal, ProposalLine
+
+    p = db.get(Proposal, r.json()["proposal_id"])
+    lines = {ln.catalog_code: ln for ln in db.query(ProposalLine).filter_by(proposal_id=p.id)}
+    assert set(lines) == {ln["code"] for ln in GOVERNED} and lines["A-02a"].override_price == 13500
+    from app.catalog import service
+
+    assert service.get_item(db, "A-02a").list_price == 15000  # the master never changes

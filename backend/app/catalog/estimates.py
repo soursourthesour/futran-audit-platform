@@ -15,6 +15,7 @@ from app.tenancy.models import User
 REGIONS = {"us": "United States", "eu": "European Union", "uk": "United Kingdom", "in": "India", "ca": "Canada"}
 TERMS = (1, 2, 3)
 CONVERT_NOTE = "Convert to proposal opens once the Proposal builder (SM-09) is installed."
+NEEDS_OPPORTUNITY = "Choose the opportunity this estimate is for and save it; then convert it to a proposal."
 
 
 def proposal_builder():
@@ -201,7 +202,8 @@ def out(db: Session, e: Estimate, *, full: bool = True) -> dict:
          "data_region": e.data_region, "terms": e.terms or {}, "totals": {k: v for k, v in (e.totals or {}).items() if k not in ("approvals", "summary")},
          "approvals": (e.totals or {}).get("approvals", []), "summary": (e.totals or {}).get("summary"), "catalog_version": e.catalog_version,
          "saved_by": _name(db, e.saved_by), "saved_at": e.saved_at.isoformat(), "created_by": _name(db, e.created_by),
-         "converted_proposal_id": e.converted_proposal_id, "can_convert": builder is not None, "convert_note": None if builder else CONVERT_NOTE}
+         "converted_proposal_id": e.converted_proposal_id, "can_convert": builder is not None and bool(e.opportunity_id),
+         "convert_note": CONVERT_NOTE if builder is None else (None if e.opportunity_id else NEEDS_OPPORTUNITY)}
     if full:
         names = {}
         for ln in e.lines:
@@ -220,9 +222,11 @@ def convert(db: Session, actor, e: Estimate) -> str:
     builder = proposal_builder()
     if builder is None:
         raise Conflict(CONVERT_NOTE)
+    if not e.opportunity_id:
+        raise Conflict(NEEDS_OPPORTUNITY)
     if e.converted_proposal_id:
         return e.converted_proposal_id
-    proposal = builder(db, e, actor)
+    proposal = builder(db, e, getattr(actor, "user", actor))  # the proposal builder takes the signed-in User
     for v in db.scalars(select(Estimate).where(Estimate.thread_id == e.thread_id)):
         if v.id == e.id:
             v.converted_proposal_id = proposal.id
