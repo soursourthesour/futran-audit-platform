@@ -136,7 +136,7 @@ test.describe.serial('WS-I: policy builder, AI literacy training and Trust Cente
   test('32: the CAICO sets up the Trust Center; Futran confirms only against a signed report; the public page shows only confirmed items', async ({ page }) => {
     await clientUser(page, MARIA);
     await page.goto('/trust');
-    await page.getByRole('button', { name: 'Set up the page' }).click();
+    await page.getByRole('button', { name: /^(Set up the page|Page settings)$/ }).click();  // another spec on this server may have set it up
     const pd = page.getByRole('dialog', { name: 'Page settings' });
     await pd.getByLabel('Address', { exact: true }).fill('abc-corp');
     await pd.getByLabel('The page is live', { exact: true }).check();

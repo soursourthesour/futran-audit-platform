@@ -14,7 +14,7 @@
 .fx-chip .fx-count { display: inline-block; min-width: 24px; padding: 0 6px; border-radius: 999px; background: var(--navy, #1B3A6B); color: #fff; font-size: 13px; text-align: center; }
 
 /* roles pivot */
-.fx-view-toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin: 0 0 16px; }
+.fx-view-toggle { display: inline-flex; width: max-content; max-width: 100%; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin: 0 0 16px; }
 .fx-view-toggle button { min-height: 44px; padding: 8px 16px; border: 0; background: transparent; color: var(--muted); font: inherit; font-weight: 600; cursor: pointer; }
 .fx-view-toggle button[aria-pressed="true"] { background: var(--navy, #1B3A6B); color: #fff; }
 .fx-picker { border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin-bottom: 16px; }
