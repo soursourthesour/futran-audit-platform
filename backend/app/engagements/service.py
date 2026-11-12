@@ -8,6 +8,7 @@ from app.core.errors import Conflict, Invalid
 from app.engagements.models import ClientLocation, Engagement
 from app.policy.sod import assert_not_self_approval
 from app.reference.jurisdictions import resolve_jurisdictions
+from app.servicetemplates.types import ENGAGEMENT_TYPES
 from app.tenancy.models import Organization, User
 
 STATUS_LABELS = {
@@ -26,7 +27,7 @@ ALLOWED = {
     "completed": {"archived"},
     "archived": set(),
 }
-TYPES = ("initial_assessment", "ll144_bias_audit", "annual_review")
+TYPES = tuple(ENGAGEMENT_TYPES)  # Release 2 B6: the original three and the ten new types
 
 
 def next_audit_ref(db: Session) -> str:

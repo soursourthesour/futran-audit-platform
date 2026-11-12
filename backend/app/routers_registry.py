@@ -51,3 +51,6 @@ ROUTER_MODULES += ["commercial.router_handoff", "commercial.router_plan", "comme
 
 # Release 2 R1: master price list (SM-14) and Estimator (SM-15)
 ROUTER_MODULES += ["catalog.router", "catalog.estimate_router"]
+
+# Release 2 R6a: service templates and engagement types (G-06), discovery import (G-05), agent assurance (G-09)
+ROUTER_MODULES += ["servicetemplates.router"]

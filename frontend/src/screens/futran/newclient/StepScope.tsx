@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { DATA_ENVIRONMENTS, DEPARTMENT_PRESETS, ENGAGEMENT_TYPES, FRAMEWORKS, useTeamOptions, type Scope } from '@/api/clients';
+import { DATA_ENVIRONMENTS, DEPARTMENT_PRESETS, FRAMEWORKS, useEngagementTypes, useTeamOptions, type Scope } from '@/api/clients';
 import { Button, Card, Checkbox, FieldGroup, SelectField, TextArea, TextField } from '@/components/ui';
 import { scopeHelp as H } from '@/help/onboarding';
 import { useStepForm, useWizardCtx } from './Wizard';
@@ -24,6 +24,7 @@ export function rolesLabel(roles: string[]): string {
 export function StepScope() {
   const { data, errors, editable } = useWizardCtx();
   const people = useTeamOptions();
+  const engagementTypes = useEngagementTypes();
   const [f, setF] = useStepForm<Scope>('scope', data.scope);
   const [newDept, setNewDept] = useState('');
   const set = (k: string, v: unknown) => setF({ ...f, [k]: v } as Scope);
@@ -58,8 +59,8 @@ export function StepScope() {
       <Card title="Engagement">
         <div className="stack">
           <FieldGroup legend="Engagement type *" help={H.type}>
-            <div className="row" role="radiogroup" style={{ gap: 6 }}>
-              {ENGAGEMENT_TYPES.map((t) => <label key={t.value} className="radio-pill"><input type="radio" name="type" checked={f.type === t.value} onChange={() => set('type', t.value)} />{t.label}</label>)}
+            <div className="row" role="radiogroup" style={{ gap: 6, flexWrap: 'wrap' }}>
+              {engagementTypes.map((t) => <label key={t.value} className="radio-pill"><input type="radio" name="type" checked={f.type === t.value} onChange={() => set('type', t.value)} />{t.label}</label>)}
             </div>
           </FieldGroup>
           <div className="grid-2">

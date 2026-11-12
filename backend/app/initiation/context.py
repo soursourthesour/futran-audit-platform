@@ -12,7 +12,7 @@ from app.laws.models import Regulation
 from app.reference.models import GovernanceCatalogItem, Jurisdiction
 from app.tenancy.models import Organization
 
-TYPE_LABELS = {"initial_assessment": "Initial AI governance assessment", "ll144_bias_audit": "LL144 bias audit", "annual_review": "Annual review"}
+from app.servicetemplates.types import ENGAGEMENT_TYPES as TYPE_LABELS  # noqa: E402  (Release 2 B6: one list of engagement types)
 GROUPS = [
     ("document", "Governance documents", None),
     ("security_document", "Data and security documents", "Futran reviews how these cover AI; it does not audit the full security program. SOC 2 or ISO 27001 reports may be uploaded as evidence."),

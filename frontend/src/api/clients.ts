@@ -64,3 +64,8 @@ export const ENGAGEMENT_TYPES = [
   { value: 'll144_bias_audit', label: 'LL144 bias audit' },
   { value: 'annual_review', label: 'Annual review' },
 ];
+/** Release 2 B6: every engagement type, from the server's one list (servicetemplates.types); the original three until it loads. */
+export function useEngagementTypes(): { value: string; label: string; new?: boolean }[] {
+  const q = useQuery({ queryKey: ['engagement-types'], queryFn: () => api.get<{ types: { value: string; label: string; new: boolean }[] }>('/engagement-types'), staleTime: 3_600_000 });
+  return q.data?.types ?? ENGAGEMENT_TYPES;
+}
