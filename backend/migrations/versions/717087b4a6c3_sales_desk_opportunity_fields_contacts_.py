@@ -1,7 +1,7 @@
 """sales desk: opportunity fields, contacts and activity details
 
 Revision ID: 717087b4a6c3
-Revises: 54201ee2ce56
+Revises: 94101a081b66
 Create Date: 2026-11-11 22:30:13.996590
 """
 from alembic import op
@@ -9,7 +9,7 @@ import sqlalchemy as sa
 
 
 revision = '717087b4a6c3'
-down_revision = '54201ee2ce56'
+down_revision = '94101a081b66'
 branch_labels = None
 depends_on = None
 
