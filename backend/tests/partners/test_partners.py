@@ -147,3 +147,30 @@ def test_referrals_in_and_out_are_recorded(pw):
     assert {(x.direction, x.partner_id) for x in refs} == {("out", pw.law.id), ("in", pw.ats.id)}
     assert next(x for x in refs if x.direction == "in").organization_id == pw.org.id  # taken from the opportunity
     assert pw.client.post(f"/api/v1/staff/partners/{pw.ats.id}/referrals", json={"direction": "sideways"}).status_code == 422
+
+
+def test_a_partner_changed_to_law_firm_is_never_paid(pw):
+    """Fix pass 3: 1,500 due to a partner later recorded as a law firm is made void, leaves the export, and cannot be paid."""
+    _refer(pw, pw.ats, pw.opp)
+    c = partners.commission_for_win(pw.db, pw.opp, pw.order, 10000.0)
+    pw.db.commit()
+    assert c.amount == 1500.0
+    pw.as_(pw.sm)
+    r = pw.client.patch(f"/api/v1/staff/partners/{pw.ats.id}", json={"type": "law_firm"})
+    assert r.status_code == 200
+    pw.db.refresh(c)
+    assert c.status == "void" and "law firm" in c.void_reason
+    assert pw.db.scalar(select(AuditLog).where(AuditLog.action == "partner.commission_void", AuditLog.object_id == c.id)) is not None
+    assert partners.commissions_due(pw.db, date(2026, 1, 1), date(2027, 12, 31), None) == []
+    assert pw.client.post(f"/api/v1/staff/partners/commissions/{c.id}/paid").status_code == 409
+
+
+def test_a_due_row_for_a_law_firm_is_refused_wherever_it_came_from(pw):
+    c = Commission(organization_id=pw.org.id, partner_id=pw.law.id, opportunity_id=pw.opp.id, base_value=10000, rate=15, amount=1500, status="due", due_on=date(2026, 12, 1))
+    pw.db.add(c)
+    pw.db.commit()
+    assert partners.commissions_due(pw.db, date(2026, 12, 1), date(2026, 12, 31), None) == []
+    from app.core.errors import Conflict
+
+    with pytest.raises(Conflict):
+        partners.mark_paid(pw.db, pw.sm, c)

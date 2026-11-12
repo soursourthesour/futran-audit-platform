@@ -99,6 +99,8 @@ def update_partner(db: Session, actor: User, p: Partner, data: dict) -> Partner:
         p.commission_rule = _rule(p.type, data["rate_pct"])
     if p.type == "law_firm":
         p.commission_rule = None
+        for c in db.scalars(select(Commission).where(Commission.partner_id == p.id, Commission.status == "due", Commission.deleted_at.is_(None))):
+            void(db, actor, c, "The partner is now recorded as a law firm; law firms cannot be paid referral fees (bar rules).")
     _apply(p, data)
     p.updated_by = actor.id
     audit.record(db, actor_id=actor.id, action="partner.edit", obj=p, before=before, after={"name": p.name, "type": p.type, "commission": commission_label(p), "status": p.status},
@@ -179,7 +181,8 @@ def commission_for_win(db: Session, opportunity, order, first_year_value) -> Com
 
 def commissions_due(db: Session, start: date, end: date, client_id: str | None) -> list[dict]:
     q = select(Commission, Partner).join(Partner, Partner.id == Commission.partner_id).where(
-        Commission.deleted_at.is_(None), Commission.status.in_(["due", "paid"]), Commission.due_on >= start, Commission.due_on <= end)
+        Commission.deleted_at.is_(None), Commission.status.in_(["due", "paid"]), Commission.due_on >= start, Commission.due_on <= end,
+        Partner.type != "law_firm")  # bar rules: a law firm is never paid, whatever a row says
     if client_id:
         q = q.where(Commission.organization_id == client_id)
     return [{"id": c.id, "organization_id": c.organization_id, "amount": c.amount, "order_ref": c.order_ref, "partner_name": p.name, "status": c.status}
@@ -187,6 +190,9 @@ def commissions_due(db: Session, start: date, end: date, client_id: str | None) 
 
 
 def mark_paid(db: Session, actor: User, c: Commission) -> Commission:
+    p = db.get(Partner, c.partner_id)
+    if p is None or p.type == "law_firm":
+        raise Conflict("Law firms cannot be paid referral fees (bar rules). Make this commission void instead.")
     if c.status != "due":
         raise Conflict("Only a commission that is due can be marked paid.")
     c.status, c.paid_on, c.settled_by, c.updated_by = "paid", today(), actor.id, actor.id
