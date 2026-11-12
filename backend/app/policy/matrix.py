@@ -586,4 +586,16 @@ _R4: dict = {
     R.ADMIN: {A.MANAGE_PROPOSAL_TEMPLATES: S.ALL},
 }
 for _role, _grants in _R4.items():
+# ---- Release 2 R7: client hierarchy (G-04), evidence vault (G-10), partners (G-11). Commission values go to the Sales
+# Manager, Futran Admin and Chief Auditor only; the Sales Officer sees partners and referrals without them; Auditors see none.
+_R7: dict = {
+    R.ADMIN: {A.VIEW_CLIENT_HIERARCHY: S.ALL, A.MANAGE_CLIENT_HIERARCHY: S.ALL, A.VIEW_VAULT: S.ALL, A.SET_RETENTION_TIER: S.ALL,
+              A.VIEW_PARTNERS: S.ALL, A.MANAGE_PARTNERS: S.ALL, A.VIEW_COMMISSIONS: S.ALL, A.SETTLE_COMMISSIONS: S.ALL},
+    R.CHIEF_AUDITOR: {A.VIEW_CLIENT_HIERARCHY: S.ALL, A.VIEW_VAULT: S.ALL, A.SET_RETENTION_TIER: S.ALL, A.MANAGE_LEGAL_HOLDS: S.ALL,
+                      A.VIEW_PARTNERS: S.ALL, A.VIEW_COMMISSIONS: S.ALL},
+    R.SALES_MANAGER: {A.VIEW_PARTNERS: S.ALL, A.MANAGE_PARTNERS: S.ALL, A.VIEW_COMMISSIONS: S.ALL, A.SETTLE_COMMISSIONS: S.ALL},
+    R.SALES_TEAM: {A.VIEW_PARTNERS: S.ALL},
+    R.CAICO: {A.VIEW_GROUP: S.ORG, A.GIVE_ROLLUP_CONSENT: S.ORG},
+}
+for _role, _grants in _R7.items():
     MATRIX.setdefault(_role, {}).update(_grants)

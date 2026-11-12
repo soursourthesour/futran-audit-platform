@@ -59,3 +59,5 @@ for _mod in ["copilot_readiness", "euaiact"]:
 # Release 2 R6a: Agent Assure records and AgentWarden licence snapshots (G-09); service templates (G-06)
 importlib.import_module("app.assurance.models")
 importlib.import_module("app.servicetemplates.models")
+# Release 2 R7: client hierarchy (G-04)
+importlib.import_module("app.hierarchy.models")

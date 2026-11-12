@@ -61,3 +61,5 @@ ROUTER_MODULES += ["copilot_readiness.router", "euaiact.router", "euaiact.links_
 
 # Release 2 R4: proposals (SM-09, SM-10), approvals (SM-11), public acceptance (SM-12), proposal templates
 ROUTER_MODULES += ["proposals.router", "proposals.public_router"]
+# Release 2 R7: client hierarchy (G-04)
+ROUTER_MODULES += ["hierarchy.router"]

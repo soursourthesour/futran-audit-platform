@@ -32,6 +32,9 @@ class Organization(TimestampedTenantMixin, Base):
     is_internal: Mapped[bool] = mapped_column(Boolean, default=False)
     benchmark_consent: Mapped[bool | None] = mapped_column(Boolean)  # the engagement letter's benchmarking consent clause (§21 F15)
     subscription_plan: Mapped[str | None] = mapped_column(String(16))  # audit_only | monitor | monitor_plus; null = audit_only (§21 F3)
+    # Release 2 R7 (G-04, spec B4): the client hierarchy. Each entity stays its own tenant; the link grants no access.
+    parent_id: Mapped[str | None] = mapped_column(String(36), index=True)
+    relationship: Mapped[str | None] = mapped_column(String(20))  # subsidiary | end_client | customer_of_vendor (to its parent)
 
 
 class Department(TimestampedTenantMixin, Base):

@@ -240,3 +240,15 @@ class Action(StrEnum):
     WORK_PROPOSALS = "work_proposals"  # build, version, request approvals, export and send
     DECIDE_PROPOSAL_APPROVALS = "decide_proposal_approvals"  # SM-11; each rule still checks the approver's role
     MANAGE_PROPOSAL_TEMPLATES = "manage_proposal_templates"  # Futran Admin
+    # Release 2 R7: client hierarchy (G-04), evidence vault and retention (G-10), partners and referrals (G-11)
+    VIEW_CLIENT_HIERARCHY = "view_client_hierarchy"  # Futran: the entity tree of a client group
+    MANAGE_CLIENT_HIERARCHY = "manage_client_hierarchy"  # Futran Admin: add entities, set relationships and LL144 scope
+    VIEW_GROUP = "view_group"  # client CAICO: their own group (parent, subsidiaries, end-clients) and the consented roll-up
+    GIVE_ROLLUP_CONSENT = "give_rollup_consent"  # client CAICO of a subsidiary: let the parent see roll-up counts
+    VIEW_VAULT = "view_vault"  # storage used, retention tier, legal holds and the deletion countdown
+    SET_RETENTION_TIER = "set_retention_tier"  # 3, 7 or 10 years per client
+    MANAGE_LEGAL_HOLDS = "manage_legal_holds"  # Chief Auditor: place and release legal holds on client request
+    VIEW_PARTNERS = "view_partners"  # partner list and referrals (no commission values)
+    MANAGE_PARTNERS = "manage_partners"  # add and edit partners, record referrals
+    VIEW_COMMISSIONS = "view_commissions"  # commission rules and amounts: never Auditors
+    SETTLE_COMMISSIONS = "settle_commissions"  # mark a commission paid or void
