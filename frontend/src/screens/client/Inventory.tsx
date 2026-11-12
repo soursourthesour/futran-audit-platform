@@ -2,7 +2,6 @@ import { useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
-import { useMe } from '@/api/auth';
 import { Alert, Badge, Button, ButtonLink, Card, Dialog, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField } from '@/components/ui';
 import { toolHelp as H } from '@/help/client';
 
@@ -20,11 +19,6 @@ export function useInventory(clientId: string) {
 export function tierBadge(t: number | null) {
   if (!t) return <span className="muted">—</span>;
   return <Badge tone={t === 3 ? 'danger' : t === 2 ? 'warn' : 'muted'}>Tier {t}</Badge>;
-}
-
-export function Inventory() {
-  const { data: me } = useMe();
-  return <InventoryView clientId={me?.organization.id ?? ''} />;
 }
 
 export function FutranInventory() {
@@ -80,28 +74,33 @@ function InventoryView({ clientId }: { clientId: string }) {
   );
 }
 
-function AddTool({ clientId, onClose }: { clientId: string; onClose: () => void }) {
+export function AddTool({ clientId, onClose, onDone }: { clientId: string; onClose: () => void; onDone?: (message: string) => void }) {
   const qc = useQueryClient();
-  const [f, setF] = useState({ vendor: '', product: '', plan: '', account_type: 'enterprise', training_on_inputs: 'unknown', retention_terms: '' });
+  const [f, setF] = useState({ vendor: '', product: '', kind: 'tool', plan: '', account_type: 'enterprise', training_on_inputs: 'unknown', retention_terms: '' });
   const [err, setErr] = useState<string | null>(null);
   const [fe, setFe] = useState<Record<string, string>>({});
   async function save(e: FormEvent) {
     e.preventDefault();
-    try { await api.post(`/clients/${clientId}/tools`, f); await qc.invalidateQueries({ queryKey: ['inventory', clientId] }); onClose(); } catch (ex) { setErr(errorMessage(ex)); setFe(fieldErrors(ex)); }
+    try {
+      await api.post(`/clients/${clientId}/tools`, f);
+      await Promise.all([qc.invalidateQueries({ queryKey: ['inventory', clientId] }), qc.invalidateQueries({ queryKey: ['ai-systems'] })]);
+      onClose(); onDone?.(`${f.vendor} ${f.product} was added to the AI inventory.`);
+    } catch (ex) { setErr(errorMessage(ex)); setFe(fieldErrors(ex)); }
   }
   return (
-    <Dialog title="Add an AI tool" onClose={onClose}>
+    <Dialog title="Add an AI tool or agent" onClose={onClose}>
       <form className="stack" onSubmit={save} noValidate>
         {err && <Alert tone="danger">{err}</Alert>}
         <div className="grid-2">
           <TextField label="Vendor" help={H.vendor} value={f.vendor} onChange={(e) => setF({ ...f, vendor: e.target.value })} error={fe.vendor} placeholder="Workday" />
           <TextField label="Product" help={H.product} value={f.product} onChange={(e) => setF({ ...f, product: e.target.value })} error={fe.product} placeholder="Recruiting AI" />
         </div>
+        <SelectField label="Tool or agent" help="An agent acts for the user (books, sends, changes records); a tool only answers or drafts." value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value })} options={[{ value: 'tool', label: 'Tool' }, { value: 'agent', label: 'Agent' }]} />
         <SelectField label="Account type" help={H.accountType} value={f.account_type} onChange={(e) => setF({ ...f, account_type: e.target.value })} options={Object.entries(ACCOUNT_LABELS).map(([value, label]) => ({ value, label }))} />
         <SelectField label="Does the vendor train its models on what you enter?" help={H.training} value={f.training_on_inputs} onChange={(e) => setF({ ...f, training_on_inputs: e.target.value })} options={[{ value: 'no', label: 'No' }, { value: 'yes', label: 'Yes' }, { value: 'unknown', label: 'Not known' }]} />
         <TextField label="Plan" help={H.plan} value={f.plan} onChange={(e) => setF({ ...f, plan: e.target.value })} />
         <TextArea label="Data retention terms" help={H.retention} value={f.retention_terms} onChange={(e) => setF({ ...f, retention_terms: e.target.value })} />
-        <div className="row"><Button type="submit" variant="primary">Add tool</Button><Button onClick={onClose}>Cancel</Button></div>
+        <div className="row"><Button type="submit" variant="primary">Add to the inventory</Button><Button onClick={onClose}>Cancel</Button></div>
       </form>
     </Dialog>
   );

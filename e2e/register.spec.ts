@@ -52,8 +52,8 @@ async function addSystem(page: Page, name: string, law?: string) {
 
 test('register grid: import from inventory, bulk edit with a reason, row menu and change history', async ({ page }) => {
   await clientUser(page, MARIA);
-  await openNav(page, 'AI system register');
-  await expect(page.getByRole('heading', { name: 'AI system register' })).toBeVisible();
+  await openNav(page, 'AI systems');
+  await expect(page.getByRole('heading', { name: 'AI systems', level: 1 })).toBeVisible();
   await page.getByRole('button', { name: 'Import from inventory' }).click();
   await expect(page.getByText(/AI systems added from the inventory as Proposed/)).toBeVisible();
   const grid = page.getByRole('table', { name: 'AI systems' });
@@ -184,7 +184,7 @@ test.describe('375 px', () => {
       await page.waitForLoadState('networkidle');
       await noSidewaysScroll(page);
     }
-    const add = page.getByRole('link', { name: 'Add AI system' });
+    const add = page.getByRole('button', { name: 'Add', exact: true });
     await page.goto('/register');
     const box = await add.boundingBox();
     expect(box!.height).toBeGreaterThanOrEqual(44);

@@ -58,7 +58,7 @@ function Form({ clientId, uc, isFutran, canReview, canTier }: { clientId: string
       const saved = uc ? await api.put<Detail>(`/use-cases/${uc.id}`, body()) : await api.post<Detail>(`/clients/${clientId}/use-cases`, body());
       if (submit) await api.post(`/use-cases/${saved.id}/submit`);
       await qc.invalidateQueries();
-      if (submit) nav('/inventory');
+      if (submit) nav('/register?type=use_case');
       else if (!uc) nav(`/inventory/${saved.id}`, { replace: true });
       else setMsg('Draft saved.');
     } catch (e) {
@@ -71,7 +71,7 @@ function Form({ clientId, uc, isFutran, canReview, canTier }: { clientId: string
   const needNamed = tier >= 2;
   return (
     <div className="page">
-      <PageHeader crumbs={[{ to: isFutran ? `/clients/${clientId}/inventory` : '/inventory', label: 'AI inventory' }, { label: uc ? uc.name : 'New use case' }]} title={uc ? uc.name : 'Add a use case'}
+      <PageHeader crumbs={[{ to: isFutran ? `/clients/${clientId}/inventory` : '/register?type=inventory', label: isFutran ? 'AI inventory' : 'AI systems' }, { label: uc ? uc.name : 'New use case' }]} title={uc ? uc.name : 'Add a use case'}
         actions={uc ? <Badge tone={STATUS_LABELS[uc.status]?.tone ?? 'muted'}>{STATUS_LABELS[uc.status]?.label}</Badge> : undefined} />
       {uc?.status === 'returned' && uc.returned_comment && <Alert tone="warn"><strong>Returned:</strong> {uc.returned_comment}</Alert>}
       {err && <Alert tone="danger">{err}{errs.length > 1 && <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>{errs.map((e, i) => <li key={i}>{e.message}</li>)}</ul>}</Alert>}

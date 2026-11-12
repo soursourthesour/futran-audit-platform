@@ -1,17 +1,20 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
 import { useMe } from '@/api/auth';
-import { GATE_TONE, IMPACT, STAGES, TIER_LABEL, TIER_TONE, TYPES, labelOf, useRegister, type RegSystem } from '@/api/register';
-import { Alert, Badge, Button, Dialog, EmptyState, FieldHelp, Loading, PageHeader, SelectField, TextArea, TextField } from '@/components/ui';
-import { DataGrid, type GridColumn, type GridRowAction } from '@/components/ui/DataGrid';
+import { SOURCE_OPTIONS, TYPE_OPTIONS, useAiSystems, type AiList, type AiRow, type AiSource } from '@/api/aiSystems';
+import { GATE_TONE, IMPACT, STAGES, TIER_LABEL, TIER_TONE, TYPES, labelOf, type RegSystem } from '@/api/register';
+import { Alert, Badge, Button, Checkbox, Dialog, EmptyState, FieldHelp, Loading, PageHeader, SelectField, TextArea, TextField } from '@/components/ui';
+import { DataGrid, RowMenu, type GridColumn, type GridFilter, type GridRowAction } from '@/components/ui/DataGrid';
 import { systemHelp as H } from '@/help/register';
+import { ACCOUNT_LABELS, AddTool, type Tool } from '@/screens/client/Inventory';
+import { CarriedBanner } from '@/screens/wsk/Carried';
 import { BulkEdit, type BulkMode } from './RegisterBulk';
 import './register.css';
 
 type Preset = 'standard' | 'roles' | 'bias' | 'all';
-const PRESETS: { value: Preset; label: string }[] = [{ value: 'standard', label: 'Standard (13)' }, { value: 'roles', label: 'Roles view' }, { value: 'bias', label: 'Bias and data view' }, { value: 'all', label: 'All columns' }];
+const PRESETS: { value: Preset; label: string }[] = [{ value: 'standard', label: 'Standard' }, { value: 'roles', label: 'Roles view' }, { value: 'bias', label: 'Bias and data view' }, { value: 'all', label: 'All columns' }];
 
 export function Lock() {
   return <span className="reg-lock" aria-label="Read-only" title="Read-only"><svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M4 7V5a4 4 0 1 1 8 0v2h1v8H3V7h1Zm2 0h4V5a2 2 0 1 0-4 0v2Z" /></svg></span>;
@@ -43,8 +46,59 @@ function SystemCell({ s }: { s: RegSystem }) {
   );
 }
 
+const dash = <span className="muted">—</span>;
+const ifSystem = (render: (s: RegSystem) => ReactNode) => (r: AiRow) => (r.system ? render(r.system) : dash);
+const sysValue = (v: (s: RegSystem) => string | number | null | undefined) => (r: AiRow) => (r.system ? v(r.system) : '');
+/** Filters a page address can preset: the old AI inventory and AI systems pages redirect here with them (11-10 U1). */
+const URL_FILTERS = ['type', 'systype', 'source', 'dept', 'stage', 'tier', 'audit', 'registered', 'law', 'roles'];
+
+function toolDetail(t: Tool) {
+  return [ACCOUNT_LABELS[t.account_type] ?? t.account_type, t.declared_count ? `declared by ${t.declared_count}` : '', t.training_on_inputs === 'unknown' ? 'training on inputs not known' : ''].filter(Boolean).join(' · ');
+}
+
+function NameCell({ r }: { r: AiRow }) {
+  if (r.system) return <SystemCell s={r.system} />;
+  const to = r.kind === 'tool' ? (r.in_register_as ? `/register/${r.in_register_as.id}` : null) : r.open;
+  const sub = r.tool ? toolDetail(r.tool) : r.use_case ? (r.use_case.tools.join(', ') || 'No tool chosen yet') : null;
+  return (
+    <div>
+      {to ? <Link to={to}><strong>{r.name}</strong></Link> : <strong>{r.name}</strong>}
+      {sub && <div className="small muted">{sub}</div>}
+      {r.use_case?.status === 'returned' && r.use_case.returned_comment && <div className="small" style={{ color: 'var(--warn)' }}>{r.use_case.returned_comment}</div>}
+    </div>
+  );
+}
+
+function StageCell({ r }: { r: AiRow }) {
+  if (!r.stage_label) return dash;
+  const tone = r.system ? (r.system.stage === 'live' ? 'navy' : r.system.stage === 'retired' ? 'muted' : 'default')
+    : r.stage === 'tool:approved' || r.stage === 'uc:dept_approved' ? 'success' : r.stage === 'tool:not_approved' || r.stage === 'uc:returned' ? 'warn' : r.stage === 'uc:submitted' ? 'navy' : 'muted';
+  return <Badge tone={tone}>{r.stage_label}</Badge>;
+}
+
+function AuditCell({ r }: { r: AiRow }) {
+  if (r.in_audit === null) return dash;
+  if (!r.in_audit) return <span className="small muted">Not in the audit</span>;
+  if (!r.audit) return <span className="small">In the audit</span>;
+  return (
+    <div className="small">
+      <div>{r.audit.reference_id} · {r.audit.status_label}</div>
+      {r.audit.can_answer && r.audit.applicable !== undefined && <div className="muted">{r.audit.answered} of {r.audit.applicable} answered</div>}
+    </div>
+  );
+}
+
+const deptText = (r: AiRow) => (r.company_wide ? 'Company-wide' : r.departments.map((d) => d.name).join(', '));
+
+/** 11-10 U1: the client's one list of AI — register systems, inventory tools and agents, use cases and the systems in the
+ *  current audit — with filters and one Add. Each row keeps the actions it had on its old screen. */
 export function RegisterGrid() {
-  const q = useRegister();
+  const { search } = useLocation();
+  return <AiSystemsList key={search} />;  // a new address (a redirect or a link with a filter preset) starts from its own filters
+}
+
+function AiSystemsList() {
+  const q = useAiSystems();
   const { data: me } = useMe();
   const nav = useNavigate();
   const qc = useQueryClient();
@@ -52,22 +106,32 @@ export function RegisterGrid() {
   const [preset, setPreset] = useState<Preset>('standard');
   const [bulk, setBulk] = useState<{ mode: BulkMode; rows: RegSystem[] } | null>(null);
   const [importing, setImporting] = useState(false);
+  const [addingTool, setAddingTool] = useState(false);
+  const [addMenu, setAddMenu] = useState<HTMLElement | null>(null);
   const [retire, setRetire] = useState<RegSystem | null>(null);
   const [flash, setFlash] = useState<{ tone: 'success' | 'danger'; text: string } | null>(null);
   const [pulling, setPulling] = useState(false);  // Import from inventory in flight
+  const [showFolded, setShowFolded] = useState(params.get('all') === '1');
 
   const d = q.data;
   const lawOptions = useMemo(() => {
     const m = new Map<string, string>();
-    d?.systems.forEach((s) => s.laws.forEach((l) => m.set(l.regulation_id, l.short_name)));
+    d?.rows.forEach((r) => r.system?.laws.forEach((l) => m.set(l.regulation_id, l.short_name)));
     return [...m].map(([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label));
   }, [d]);
+  const initialFilters = useMemo(() => {
+    const out: Record<string, string> = {};
+    URL_FILTERS.forEach((k) => { const v = params.get(k); if (v) out[k] = v; });
+    return Object.keys(out).length ? out : undefined;
+  }, [params]);
 
   if (q.isLoading) return <div className="page"><Loading /></div>;
   if (!d) return <div className="page"><Alert tone="danger">{errorMessage(q.error)}</Alert></div>;
+  const reg = d.register;
+  const inv = d.inventory;
   const deptName = me?.roles.find((r) => r.role === 'dept_compliance_lead' && r.scope_id)?.scope_id;
-  const myDept = d.departments.find((x) => x.id === deptName)?.name;
-  const refresh = () => qc.invalidateQueries({ queryKey: ['register'] });
+  const myDept = reg?.departments.find((x) => x.id === deptName)?.name;
+  const refresh = () => Promise.all([qc.invalidateQueries({ queryKey: ['ai-systems'] }), qc.invalidateQueries({ queryKey: ['register'] }), qc.invalidateQueries({ queryKey: ['inventory'] })]);
 
   async function act(fn: () => Promise<unknown>, ok: string) {
     setFlash(null);
@@ -87,116 +151,209 @@ export function RegisterGrid() {
     window.location.assign(`/api/v1/register/export.csv${ids}`);
   }
 
-  const k = d.kpis;
+  const folded = d.rows.filter((r) => r.in_register_as).length;
+  const rows = showFolded ? d.rows : d.rows.filter((r) => !r.in_register_as);
+  const hasAudit = d.rows.some((r) => r.in_audit !== null);
   const lawsCell = (s: RegSystem) => s.laws.length ? s.laws.map((l) => l.short_name).join(' · ') : <span className="muted">None chosen</span>;
-  const col: Record<string, GridColumn<RegSystem>> = {
-    name: { key: 'name', header: 'AI system', value: (s) => s.name, render: (s) => <SystemCell s={s} /> },
-    type: { key: 'type', header: 'Type', value: (s) => s.type_label, render: (s) => <>{s.type_label}{s.type === 'agent' && <div className="small muted">{s.sourcing_label}</div>}</> },
-    vendor: { key: 'vendor', header: 'Vendor / provider', value: (s) => s.vendor?.name ?? s.ai_provider_label ?? '', render: (s) => <>{s.vendor?.name ?? (s.sourcing === 'in_house' ? 'Built in-house' : '—')}{s.ai_provider_label && <div className="small muted">{s.vendor ? `Built on ${s.ai_provider_label}` : s.ai_provider_label}</div>}</> },
-    model: { key: 'model', header: 'Model or algorithm', value: (s) => s.model_name ?? s.algorithm_label ?? '', render: (s) => <>{s.model_name ?? s.algorithm_label ?? '—'}{s.model_name && s.algorithm_label && <div className="small muted">{s.algorithm_label}</div>}</> },
-    stage: { key: 'stage', header: 'Stage', value: (s) => STAGES.findIndex((x) => x.value === s.stage), render: (s) => <Badge tone={s.stage === 'live' ? 'navy' : s.stage === 'retired' ? 'muted' : 'default'}>{s.stage_label}</Badge> },
-    risk: { key: 'risk', header: 'Risk', value: (s) => s.risk_tier ?? 0, render: (s) => s.risk_tier ? <Badge tone={TIER_TONE[s.risk_tier]}>{TIER_LABEL[s.risk_tier]}</Badge> : '—' },
-    laws: { key: 'laws', header: 'Laws that apply', value: (s) => s.laws.map((l) => l.short_name).join(', '), render: (s) => <span className="small">{lawsCell(s)}</span> },
-    bias: { key: 'bias', header: 'Last bias test', value: (s) => s.bias.last_tested_on ?? '', render: (s) => <>{s.bias.last_tested_on ?? (s.bias.label === 'Not required' ? 'Not required' : s.bias.label === 'Not done' ? 'Not done' : '—')}<div className={`small ${s.bias.overdue ? 'reg-danger' : 'muted'}`}>{s.bias.last_tested_on || s.bias.label === 'Not done' ? s.bias.label : s.bias.label === 'Not required' ? 'No decisions about people' : s.bias.label}</div></> },
-    biasDue: { key: 'biasDue', header: 'Next bias test', value: (s) => s.bias.next_due ?? s.bias_next_due ?? '', render: (s) => s.bias.next_due ?? s.bias_next_due ?? '—' },
-    nullc: { key: 'nullc', header: 'Null-compliance flag', value: (s) => (s.bias.null_compliance ? 1 : 0), render: (s) => s.bias.null_compliance ? <Badge tone="danger">Over 50% unknown</Badge> : '—' },
-    consent: { key: 'consent', header: 'Data consent', value: (s) => s.consent.label, render: (s) => <span className={s.consent.missing ? 'reg-danger' : undefined}>{s.consent.label}</span> },
-    dataUsed: { key: 'dataUsed', header: 'Data used', value: (s) => s.data.data_categories.length, render: (s) => <span className="small">{s.data.data_categories.length ? s.data.data_categories.join(', ').replace(/_/g, ' ') : '—'}</span> },
-    subjects: { key: 'subjects', header: 'Whose data', value: (s) => s.data.data_subjects.join(', '), render: (s) => <span className="small">{s.data.data_subjects.join(', ') || '—'}</span> },
-    retention: { key: 'retention', header: 'Retention', value: (s) => s.data.retention_period ?? '', render: (s) => s.data.retention_period ?? '—' },
-    roles: { key: 'roles', header: 'Required roles', value: (s) => s.roles.no_such_person * 100 + s.roles.pending_committee, render: (s) => <RolesCell s={s} /> },
-    nsp: { key: 'nsp', header: 'No such person', value: (s) => s.roles.no_such_person, render: (s) => s.roles.no_such_person || '—' },
-    pending: { key: 'pending', header: 'Pending committee', value: (s) => s.roles.pending_committee, render: (s) => s.roles.pending_committee || '—' },
-    gate: { key: 'gate', header: 'Go-live gate', value: (s) => s.gate.label, render: (s) => <Badge tone={GATE_TONE[s.gate.state] ?? 'muted'}>{s.gate.label}</Badge> },
-    owner: { key: 'owner', header: 'System owner', value: (s) => s.owner?.name ?? '', render: (s) => s.owner?.name ?? '—' },
-    dept: { key: 'dept', header: 'Department', value: (s) => s.department?.name ?? (s.company_wide ? 'Company-wide' : ''), render: (s) => s.department?.name ?? (s.company_wide ? 'Company-wide' : <span className="muted">Not assigned</span>) },
-    impact: { key: 'impact', header: 'Decisions about people', value: (s) => labelOf(IMPACT, s.decision_impact), render: (s) => <span className="small">{labelOf(IMPACT, s.decision_impact) || '—'}</span> },
+  const col: Record<string, GridColumn<AiRow>> = {
+    name: { key: 'name', header: 'AI system', value: (r) => r.name, render: (r) => <NameCell r={r} />, width: '220px' },
+    type: { key: 'type', header: 'Type', value: (r) => r.type_label, render: (r) => <><span>{r.type_label}</span>{r.subtype && <div className="small muted">{r.subtype}{r.system?.type === 'agent' ? ` · ${r.system.sourcing_label}` : ''}</div>}</> },
+    source: { key: 'source', header: 'Where it came from', value: (r) => r.source_label, render: (r) => <><span>{r.source_label}</span>{r.in_register_as && <div className="small muted">In the register as {r.in_register_as.name}</div>}</> },
+    dept: { key: 'dept', header: 'Department', value: deptText, render: (r) => deptText(r) || <span className="muted">Not assigned</span> },
+    stage: { key: 'stage', header: 'Stage or status', value: (r) => (r.system ? STAGES.findIndex((x) => x.value === r.system!.stage) : 100 + (r.stage_label ?? '').charCodeAt(0)), render: (r) => <StageCell r={r} /> },
+    risk: { key: 'risk', header: 'Risk', value: (r) => r.tier ?? 0, render: (r) => r.tier ? <Badge tone={TIER_TONE[r.tier]}>{TIER_LABEL[r.tier]}</Badge> : dash },
+    audit: { key: 'audit', header: 'Current audit', value: (r) => (r.in_audit ? 1 : 0), render: (r) => <AuditCell r={r} /> },
+    vendor: { key: 'vendor', header: 'Vendor / provider', value: sysValue((s) => s.vendor?.name ?? s.ai_provider_label ?? ''), render: ifSystem((s) => <>{s.vendor?.name ?? (s.sourcing === 'in_house' ? 'Built in-house' : '—')}{s.ai_provider_label && <div className="small muted">{s.vendor ? `Built on ${s.ai_provider_label}` : s.ai_provider_label}</div>}</>) },
+    model: { key: 'model', header: 'Model or algorithm', value: sysValue((s) => s.model_name ?? s.algorithm_label ?? ''), render: ifSystem((s) => <>{s.model_name ?? s.algorithm_label ?? '—'}{s.model_name && s.algorithm_label && <div className="small muted">{s.algorithm_label}</div>}</>) },
+    laws: { key: 'laws', header: 'Laws that apply', value: sysValue((s) => s.laws.map((l) => l.short_name).join(', ')), render: ifSystem((s) => <span className="small">{lawsCell(s)}</span>) },
+    bias: { key: 'bias', header: 'Last bias test', value: sysValue((s) => s.bias.last_tested_on ?? ''), render: ifSystem((s) => <>{s.bias.last_tested_on ?? (s.bias.label === 'Not required' ? 'Not required' : s.bias.label === 'Not done' ? 'Not done' : '—')}<div className={`small ${s.bias.overdue ? 'reg-danger' : 'muted'}`}>{s.bias.last_tested_on || s.bias.label === 'Not done' ? s.bias.label : s.bias.label === 'Not required' ? 'No decisions about people' : s.bias.label}</div></>) },
+    biasDue: { key: 'biasDue', header: 'Next bias test', value: sysValue((s) => s.bias.next_due ?? s.bias_next_due ?? ''), render: ifSystem((s) => s.bias.next_due ?? s.bias_next_due ?? '—') },
+    nullc: { key: 'nullc', header: 'Null-compliance flag', value: sysValue((s) => (s.bias.null_compliance ? 1 : 0)), render: ifSystem((s) => s.bias.null_compliance ? <Badge tone="danger">Over 50% unknown</Badge> : '—') },
+    consent: { key: 'consent', header: 'Data consent', value: sysValue((s) => s.consent.label), render: ifSystem((s) => <span className={s.consent.missing ? 'reg-danger' : undefined}>{s.consent.label}</span>) },
+    dataUsed: { key: 'dataUsed', header: 'Data used', value: sysValue((s) => s.data.data_categories.length), render: ifSystem((s) => <span className="small">{s.data.data_categories.length ? s.data.data_categories.join(', ').replace(/_/g, ' ') : '—'}</span>) },
+    subjects: { key: 'subjects', header: 'Whose data', value: sysValue((s) => s.data.data_subjects.join(', ')), render: ifSystem((s) => <span className="small">{s.data.data_subjects.join(', ') || '—'}</span>) },
+    retention: { key: 'retention', header: 'Retention', value: sysValue((s) => s.data.retention_period ?? ''), render: ifSystem((s) => s.data.retention_period ?? '—') },
+    roles: { key: 'roles', header: 'Required roles', value: sysValue((s) => s.roles.no_such_person * 100 + s.roles.pending_committee), render: ifSystem((s) => <RolesCell s={s} />) },
+    nsp: { key: 'nsp', header: 'No such person', value: sysValue((s) => s.roles.no_such_person), render: ifSystem((s) => s.roles.no_such_person || '—') },
+    pending: { key: 'pending', header: 'Pending committee', value: sysValue((s) => s.roles.pending_committee), render: ifSystem((s) => s.roles.pending_committee || '—') },
+    gate: { key: 'gate', header: 'Go-live gate', value: sysValue((s) => s.gate.label), render: ifSystem((s) => <Badge tone={GATE_TONE[s.gate.state] ?? 'muted'}>{s.gate.label}</Badge>) },
+    owner: { key: 'owner', header: 'System owner', value: sysValue((s) => s.owner?.name ?? ''), render: ifSystem((s) => s.owner?.name ?? '—') },
+    impact: { key: 'impact', header: 'Decisions about people', value: sysValue((s) => labelOf(IMPACT, s.decision_impact)), render: ifSystem((s) => <span className="small">{labelOf(IMPACT, s.decision_impact) || '—'}</span>) },
   };
-  const showDept = d.can.org_wide;
+  const auditCol = hasAudit ? ['audit'] : [];
   const sets: Record<Preset, string[]> = {
-    standard: ['name', 'type', 'vendor', 'model', 'stage', 'risk', 'laws', 'bias', 'consent', 'roles', 'gate'],
-    roles: ['name', ...(showDept ? ['dept'] : []), 'stage', 'roles', 'nsp', 'pending', 'gate', 'owner'],
-    bias: ['name', 'risk', 'impact', 'bias', 'biasDue', 'nullc', 'dataUsed', 'subjects', 'consent', 'retention'],
-    all: ['name', ...(showDept ? ['dept'] : []), 'type', 'vendor', 'model', 'stage', 'risk', 'impact', 'laws', 'bias', 'biasDue', 'nullc', 'dataUsed', 'subjects', 'consent', 'retention', 'roles', 'nsp', 'pending', 'gate', 'owner'],
+    standard: reg ? ['name', 'type', 'source', 'dept', 'stage', 'risk', ...auditCol, 'vendor', 'laws', 'roles', 'gate'] : ['name', 'type', 'source', 'dept', 'stage', 'risk', ...auditCol],
+    roles: ['name', 'type', 'dept', 'stage', 'roles', 'nsp', 'pending', 'gate', 'owner'],
+    bias: ['name', 'type', 'risk', 'impact', 'bias', 'biasDue', 'nullc', 'dataUsed', 'subjects', 'consent', 'retention'],
+    all: ['name', 'type', 'source', 'dept', 'vendor', 'model', 'stage', 'risk', ...auditCol, 'impact', 'laws', 'bias', 'biasDue', 'nullc', 'dataUsed', 'subjects', 'consent', 'retention', 'roles', 'nsp', 'pending', 'gate', 'owner'],
   };
-  const columns = sets[preset].map((key) => col[key]);
+  const columns = sets[reg ? preset : 'standard'].map((key) => col[key]);
 
-  const rowActions = (s: RegSystem): GridRowAction[] => [
-    { label: 'Open and edit', onSelect: () => nav(`/register/${s.id}`) },
-    { label: 'Edit governance roles', onSelect: () => nav(`/register/${s.id}/roles`) },
-    { label: 'Record a bias test', onSelect: () => nav(`/register/${s.id}/history?add=bias_test`), disabled: !s.can_record_history },
-    { label: 'Upload evidence', onSelect: () => nav(`/register/${s.id}/evidence`), disabled: !s.can_edit && !s.can_record_history },
-    { label: 'Submit for go-live approval', onSelect: () => act(() => api.post(`/register/${s.id}/go-live/submit`), `${s.name} was sent to the Chief AI Compliance Officer for go-live approval.`), disabled: !s.can_submit_go_live || !['in_development', 'ready_for_go_live'].includes(s.stage) || !!s.go_live.requested_at },
-    { label: 'Duplicate', onSelect: () => act(() => api.post(`/register/${s.id}/duplicate`), `${s.name} was copied as a new proposed system.`), disabled: !s.can_edit },
-    { label: 'View change history', onSelect: () => nav(`/register/${s.id}/changes`) },
-    { label: 'Retire this system', danger: true, onSelect: () => setRetire(s), disabled: !s.can_edit || s.stage === 'retired' },
-  ];
-  const editable = (rows: RegSystem[]) => rows.every((r) => r.can_edit);
+  const importAction = (r: AiRow) => (reg?.can.import_inventory && !r.in_register_as && (r.kind === 'tool' || r.use_case?.status === 'dept_approved')
+    ? [{ label: 'Import new inventory items into the register', onSelect: () => void importInventory(), disabled: pulling }] : []);
+  const auditAction = (r: AiRow) => (r.audit?.can_answer ? [{ label: 'Answer the audit questions', onSelect: () => nav(`/systems/${r.audit!.system_id}`) }] : []);
+  const registerAction = (r: AiRow) => (r.in_register_as ? [{ label: `Open ${r.in_register_as.name} in the register`, onSelect: () => nav(`/register/${r.in_register_as!.id}`) }] : []);
+  function rowActions(r: AiRow): GridRowAction[] {
+    const s = r.system;
+    if (s) return [
+      { label: 'Open and edit', onSelect: () => nav(`/register/${s.id}`) },
+      ...auditAction(r),
+      { label: 'Edit governance roles', onSelect: () => nav(`/register/${s.id}/roles`) },
+      { label: 'Record a bias test', onSelect: () => nav(`/register/${s.id}/history?add=bias_test`), disabled: !s.can_record_history },
+      { label: 'Upload evidence', onSelect: () => nav(`/register/${s.id}/evidence`), disabled: !s.can_edit && !s.can_record_history },
+      { label: 'Submit for go-live approval', onSelect: () => act(() => api.post(`/register/${s.id}/go-live/submit`), `${s.name} was sent to the Chief AI Compliance Officer for go-live approval.`), disabled: !s.can_submit_go_live || !['in_development', 'ready_for_go_live'].includes(s.stage) || !!s.go_live.requested_at },
+      { label: 'Duplicate', onSelect: () => act(() => api.post(`/register/${s.id}/duplicate`), `${s.name} was copied as a new proposed system.`), disabled: !s.can_edit },
+      { label: 'View change history', onSelect: () => nav(`/register/${s.id}/changes`) },
+      { label: 'Retire this system', danger: true, onSelect: () => setRetire(s), disabled: !s.can_edit || s.stage === 'retired' },
+    ];
+    if (r.kind === 'system') return auditAction(r);  // a system in the current audit that is not on a register row this person sees
+    if (r.tool) {
+      const t = r.tool;
+      const mark = (status: string, label: string) => ({ label, disabled: t.approval_status === status, onSelect: () => act(() => api.patch(`/tools/${t.id}`, { approval_status: status }), `${r.name} is marked ${TOOL_STATUS[status].toLowerCase()}.`) });
+      return [
+        ...registerAction(r),
+        ...(r.can.approve_tool ? [mark('approved', 'Approve'), mark('not_approved', 'Mark not approved'), mark('unreviewed', 'Mark unreviewed')] : []),
+        ...(inv?.can_add_use_case ? [{ label: 'Add a use case', onSelect: () => nav('/inventory/new') }] : []),
+        ...importAction(r),
+      ];
+    }
+    const uc = r.use_case!;
+    return [
+      { label: r.can.review_use_case ? 'Review and approve' : 'Open the use case', onSelect: () => nav(`/inventory/${uc.id}`) },
+      ...registerAction(r),
+      ...importAction(r),
+    ];
+  }
+  const regRows = (rows: AiRow[]) => rows.map((r) => r.system!);
+  const onlySystems = (rows: AiRow[]) => rows.every((r) => !!r.system);
+  const editable = (rows: AiRow[]) => onlySystems(rows) && rows.every((r) => r.system!.can_edit);
   const tierOpts = [3, 2, 1].map((t) => ({ value: String(t), label: TIER_LABEL[t] }));
   const roleOpts = [{ value: 'gap', label: 'Has a gap (no such person)' }, { value: 'pending_committee', label: 'Pending committee' }, { value: 'complete', label: 'Complete' }];
-  const initialFilters = params.get('roles') ? { roles: params.get('roles')! } : undefined;
+  const deptOpts = (() => {
+    const m = new Map<string, string>();
+    d.rows.forEach((r) => r.departments.forEach((x) => m.set(x.id, x.name)));
+    const out = [...m].map(([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label));
+    return d.rows.some((r) => r.company_wide) ? [...out, { value: '_cw', label: 'Company-wide' }] : out;
+  })();
+  const stageOpts = (() => {
+    const m = new Map<string, string>();
+    STAGES.forEach((x) => { if (d.rows.some((r) => r.system?.stage === x.value)) m.set(x.value, x.label); });
+    d.rows.forEach((r) => { if (!r.system && r.stage && r.stage_label) m.set(r.stage, r.stage_label); });
+    return [...m].map(([value, label]) => ({ value, label }));
+  })();
+  const filters: GridFilter<AiRow>[] = [
+    { key: 'type', label: 'Type', options: TYPE_OPTIONS, test: (r, v) => (v === 'inventory' ? r.kind !== 'system' : r.kind === v) },
+    { key: 'source', label: 'Where it came from', options: SOURCE_OPTIONS, test: (r, v) => r.sources.includes(v as AiSource) },
+    ...(deptOpts.length ? [{ key: 'dept', label: 'Department', options: deptOpts, test: (r: AiRow, v: string) => (v === '_cw' ? r.company_wide : r.departments.some((x) => x.id === v)) }] : []),
+    { key: 'stage', label: 'Stage or status', options: stageOpts, test: (r, v) => r.stage === v },
+    { key: 'tier', label: 'Risk tier', options: tierOpts, test: (r, v) => String(r.tier) === v },
+    ...(hasAudit ? [{ key: 'audit', label: 'Current audit', options: [{ value: 'yes', label: 'In the current audit' }, { value: 'no', label: 'Not in the current audit' }], test: (r: AiRow, v: string) => (v === 'yes' ? !!r.in_audit : r.in_audit === false) }] : []),
+    ...(reg ? [
+      { key: 'registered', label: 'Register', options: [{ value: 'no', label: 'Not yet registered' }, { value: 'yes', label: 'In the register' }], test: (r: AiRow, v: string) => (v === 'no' ? r.registered === false : r.registered === true) },
+      { key: 'systype', label: 'Kind of system', options: TYPES, test: (r: AiRow, v: string) => r.system?.type === v },
+      { key: 'law', label: 'Law', options: lawOptions, test: (r: AiRow, v: string) => !!r.system?.laws.some((l) => l.regulation_id === v) },
+      { key: 'roles', label: 'Governance roles', options: roleOpts, test: (r: AiRow, v: string) => { const x = r.system?.roles; return !!x && (v === 'gap' ? x.no_such_person > 0 : v === 'pending_committee' ? x.pending_committee > 0 : x.filled === x.required); } },
+    ] : []),
+  ];
+  const addItems: GridRowAction[] = [
+    ...(reg?.can.edit ? [{ label: 'AI system', onSelect: () => nav('/register/new') }] : []),
+    ...(inv?.can_add_tool ? [{ label: 'Tool or agent', onSelect: () => setAddingTool(true) }] : []),
+    ...(inv?.can_add_use_case ? [{ label: 'Use case', onSelect: () => nav('/inventory/new') }] : []),
+    ...(reg?.can.edit ? [{ label: 'Import AI systems from a file', onSelect: () => setImporting(true) }] : []),
+  ];
+  const subtitle = reg && !reg.can.org_wide
+    ? `Every AI app, agent, vendor tool and AI model used in ${myDept ?? 'your department'}, with the AI inventory and the systems in the current audit. Company-wide tools are shown read-only.`
+    : reg ? 'Every AI app, agent, vendor tool, AI model and use case in the company: the register, the AI inventory and the systems in the current audit, in one list.'
+      : 'The AI tools, agents and use cases in the AI inventory, and the systems in the current audit you answer for.';
+  const k = reg?.kpis;
 
   return (
     <div className="page reg-page">
-      <PageHeader title="AI system register"
-        subtitle={d.can.org_wide ? 'Every AI app, agent, vendor tool and AI model used across the company.' : `Every AI app, agent, vendor tool and AI model used in ${myDept ?? 'your department'}. Company-wide tools are shown read-only.`}
+      <PageHeader title="AI systems" subtitle={subtitle}
         actions={<>
-          {d.can.edit && <Button onClick={() => setImporting(true)}>Import from a file</Button>}
-          {d.can.import_inventory && <span className="reg-btn-help"><Button onClick={importInventory} disabled={pulling}>Import from inventory</Button><FieldHelp label="What the inventory import copies">{H.importInventory}</FieldHelp></span>}
-          <Button onClick={() => exportCsv()}>Export</Button>
-          {d.can.edit && <Link className="btn btn-primary" to="/register/new">Add AI system</Link>}
+          {reg?.can.import_inventory && <span className="reg-btn-help"><Button onClick={importInventory} disabled={pulling}>Import from inventory</Button><FieldHelp label="What the inventory import copies">{H.importInventory}</FieldHelp></span>}
+          {reg && <Button onClick={() => exportCsv()}>Export</Button>}
+          {addItems.length > 0 && <Button variant="primary" aria-haspopup="menu" aria-expanded={!!addMenu} onClick={(e) => setAddMenu(addMenu ? null : e.currentTarget)}>Add</Button>}
         </>} />
+      {addMenu && <RowMenu label="Add" items={addItems} anchor={addMenu} onClose={(refocus) => { const a = addMenu; setAddMenu(null); if (refocus) a.focus(); }} />}
       {flash && <Alert tone={flash.tone}>{flash.text}</Alert>}
-      <div className="reg-kpis" role="list" aria-label="Register summary">
-        <Kpi n={k.systems} label="AI systems" />
-        <Kpi n={k.agents} label="AI agents" />
-        <Kpi n={k.go_live_blocked} label="Go-live blocked" tone={k.go_live_blocked ? 'danger' : undefined} />
-        <Kpi n={k.roles_no_person} label="Required roles with no person" tone={k.roles_no_person ? 'danger' : undefined} />
-        <Kpi n={k.bias_overdue} label="Bias test overdue" tone={k.bias_overdue ? 'warn' : undefined} />
-        <Kpi n={k.consent_missing} label="Consent missing" tone={k.consent_missing ? 'warn' : undefined} />
-      </div>
+      {k && (
+        <div className="reg-kpis" role="list" aria-label="Register summary">
+          <Kpi n={k.systems} label="AI systems" />
+          <Kpi n={k.agents} label="AI agents" />
+          <Kpi n={k.go_live_blocked} label="Go-live blocked" tone={k.go_live_blocked ? 'danger' : undefined} />
+          <Kpi n={k.roles_no_person} label="Required roles with no person" tone={k.roles_no_person ? 'danger' : undefined} />
+          <Kpi n={k.bias_overdue} label="Bias test overdue" tone={k.bias_overdue ? 'warn' : undefined} />
+          <Kpi n={k.consent_missing} label="Consent missing" tone={k.consent_missing ? 'warn' : undefined} />
+        </div>
+      )}
+      {d.audit && <AuditPanel a={d.audit} />}
       <section className="card">
         <div className="card-body stack">
-          <div className="reg-preset">
-            <SelectField label="Columns" help="Choose which columns to show. The Roles view adds the gap counts; the Bias and data view adds tests, data and consent." value={preset} onChange={(e) => setPreset(e.target.value as Preset)} options={PRESETS} />
+          <div className="reg-listbar">
+            {reg && <div className="reg-preset"><SelectField label="Columns" help="Choose which columns to show. The Roles view adds the gap counts; the Bias and data view adds tests, data and consent. Register columns are blank for inventory items." value={preset} onChange={(e) => setPreset(e.target.value as Preset)} options={PRESETS} /></div>}
+            {inv && <p className="small muted" style={{ margin: 0 }}>Use cases by tier: Tier 3: {inv.tiers['3'] ?? 0} · Tier 2: {inv.tiers['2'] ?? 0} · Tier 1: {inv.tiers['1'] ?? 0}. The proposed tier is calculated from the answers; Futran sets the final tier.</p>}
+            {folded > 0 && <Checkbox label={`Also show inventory items already in the register (${folded})`} checked={showFolded} onChange={(e) => setShowFolded(e.target.checked)} />}
           </div>
-          {d.systems.length === 0 ? (
+          {d.rows.length === 0 ? (
             <EmptyState>
-              No AI systems yet. {d.can.import_inventory ? 'Import them from the inventory, ' : ''}{d.can.edit ? 'add one, or import a CSV.' : ''}
+              Nothing here yet. {reg?.can.import_inventory ? 'Import from the inventory, ' : ''}{addItems.length ? 'use Add to add an AI system, tool or use case.' : ''}
             </EmptyState>
           ) : (
-            <DataGrid label="AI systems" rows={d.systems} rowId={(s) => s.id} rowLabel={(s) => s.name} columns={columns} selectable initialFilters={initialFilters}
-              rowClassName={(s) => (s.stage === 'retired' ? 'dg-muted' : undefined)}
-              search={{ label: 'Search', placeholder: 'Name, vendor or model', text: (s) => [s.name, s.vendor?.name, s.model_name, s.reference, s.ai_provider_label].filter(Boolean).join(' ') }}
-              filters={[
-                { key: 'type', label: 'Type', options: TYPES, test: (s, v) => s.type === v },
-                { key: 'stage', label: 'Stage', options: STAGES, test: (s, v) => s.stage === v },
-                { key: 'tier', label: 'Risk tier', options: tierOpts, test: (s, v) => String(s.risk_tier) === v },
-                { key: 'law', label: 'Law', options: lawOptions, test: (s, v) => s.laws.some((l) => l.regulation_id === v) },
-                { key: 'roles', label: 'Governance roles', options: roleOpts, test: (s, v) => (v === 'gap' ? s.roles.no_such_person > 0 : v === 'pending_committee' ? s.roles.pending_committee > 0 : s.roles.filled === s.roles.required) },
-                ...(showDept ? [{ key: 'dept', label: 'Department', options: [...d.departments.map((x) => ({ value: x.id, label: x.name })), { value: '_cw', label: 'Company-wide' }], test: (s: RegSystem, v: string) => (v === '_cw' ? s.company_wide : s.department?.id === v) }] : []),
-              ]}
-              bulkActions={[
-                { label: 'Edit selected', run: (rows) => setBulk({ mode: 'all', rows }), available: editable },
-                { label: 'Assign an AI compliance role', run: (rows) => setBulk({ mode: 'roles', rows }), available: (rows) => rows.every((r) => r.can_fill_roles) },
-                { label: 'Change stage', run: (rows) => setBulk({ mode: 'stage', rows }), available: editable },
-                { label: 'Add or remove a law', run: (rows) => setBulk({ mode: 'laws', rows }), available: (rows) => rows.every((r) => r.can_add_law) },
-                { label: 'Request bias test', run: (rows) => setBulk({ mode: 'bias', rows }), available: editable },
-                { label: 'Export selected', run: (rows) => exportCsv(rows) },
-              ]}
+            <DataGrid label="AI systems" rows={rows} rowId={(r) => r.key} rowLabel={(r) => r.name} columns={columns} selectable={!!reg} initialFilters={initialFilters}
+              rowClassName={(r) => (r.system?.stage === 'retired' ? 'dg-muted' : undefined)}
+              search={{ label: 'Search', placeholder: 'Name, vendor, model or tool', text: (r) => [r.name, r.detail, r.system?.vendor?.name, r.system?.model_name, r.system?.reference, r.system?.ai_provider_label, r.use_case?.tools.join(' '), r.audit?.reference_id].filter(Boolean).join(' ') }}
+              filters={filters}
+              bulkActions={reg ? [
+                { label: 'Edit selected', run: (rs) => setBulk({ mode: 'all', rows: regRows(rs) }), available: editable },
+                { label: 'Assign an AI compliance role', run: (rs) => setBulk({ mode: 'roles', rows: regRows(rs) }), available: (rs) => onlySystems(rs) && rs.every((r) => r.system!.can_fill_roles) },
+                { label: 'Change stage', run: (rs) => setBulk({ mode: 'stage', rows: regRows(rs) }), available: editable },
+                { label: 'Add or remove a law', run: (rs) => setBulk({ mode: 'laws', rows: regRows(rs) }), available: (rs) => onlySystems(rs) && rs.every((r) => r.system!.can_add_law) },
+                { label: 'Request bias test', run: (rs) => setBulk({ mode: 'bias', rows: regRows(rs) }), available: editable },
+                { label: 'Export selected', run: (rs) => exportCsv(regRows(rs)), available: onlySystems },
+              ] : undefined}
               rowActions={rowActions} />
           )}
           <p className="small muted" style={{ margin: 0 }}>
-            Showing {d.systems.length} systems. Required roles counts only the roles the laws on each system require.
-            {!d.can.org_wide && ' You can add, edit and bulk edit your department\'s AI systems, fill their roles from the company\'s user list and submit a system for go-live approval. Company-wide roles and tools are managed by the Chief AI Compliance Officer, who also approves go-live.'}
+            {d.rows.length} items in all{folded > 0 && !showFolded ? `, ${folded} of them shown on their system’s row` : ''}. {reg ? 'Required roles counts only the roles the laws on each system require. ' : ''}
+            {reg && !reg.can.org_wide && 'You can add, edit and bulk edit your department\'s AI systems, fill their roles from the company\'s user list and submit a system for go-live approval. Company-wide roles and tools are managed by the Chief AI Compliance Officer, who also approves go-live.'}
           </p>
         </div>
       </section>
-      {bulk && <BulkEdit mode={bulk.mode} rows={bulk.rows} people={d.people} departments={d.departments} onClose={() => setBulk(null)}
+      {bulk && reg && <BulkEdit mode={bulk.mode} rows={bulk.rows} people={reg.people} departments={reg.departments} onClose={() => setBulk(null)}
         onDone={(m) => { setBulk(null); void refresh(); setFlash({ tone: 'success', text: m }); }} />}
       {importing && <CsvImport onClose={() => setImporting(false)} onDone={(m) => { setImporting(false); void refresh(); setFlash({ tone: 'success', text: m }); }} />}
+      {addingTool && me && <AddTool clientId={me.organization.id} onClose={() => setAddingTool(false)} onDone={(m) => setFlash({ tone: 'success', text: m })} />}
       {retire && <RetireDialog s={retire} onClose={() => setRetire(null)} onDone={() => { setRetire(null); void refresh(); setFlash({ tone: 'success', text: `${retire.name} was retired.` }); }} />}
     </div>
+  );
+}
+
+/** The retired AI inventory (/inventory) and AI systems (/systems) addresses: the one list with a filter preset. Other
+ *  parameters on the old address are kept, and the inventory's old tab parameter becomes the matching type filter. */
+export function ListPreset({ preset }: { preset: Record<string, string> }) {
+  const { search } = useLocation();
+  const p = new URLSearchParams(search);
+  const tab = p.get('tab');
+  p.delete('tab');
+  const out = new URLSearchParams({ ...preset, ...(tab === 'tools' ? { type: 'tool' } : tab === 'use_cases' ? { type: 'use_case' } : {}) });
+  p.forEach((v, k) => { if (!out.has(k)) out.set(k, v); });
+  return <Navigate to={`/register?${out.toString()}`} replace />;
+}
+
+const TOOL_STATUS: Record<string, string> = { approved: 'Approved', not_approved: 'Not approved', unreviewed: 'Unreviewed' };
+
+/** The old AI systems page's header: the current audit, locked answers and the organisation-wide §4 questions. */
+function AuditPanel({ a }: { a: NonNullable<AiList['audit']> }) {
+  return (
+    <section className="card" aria-label="About the current audit">
+      <div className="card-body stack-sm">
+        <p style={{ margin: 0 }}><strong>Current audit {a.audit_ref}.</strong> Describe each AI system in scope before fieldwork: open the system and choose Answer the audit questions (the Current audit filter lists them). The auditor checks your answers in interviews, so answer as things are today, not as planned.</p>
+        <CarriedBanner engagementId={a.engagement_id} />
+        {a.locked && <Alert tone="info">Your answers were locked when management representation was signed. Ask the auditor if something must change.</Alert>}
+        {a.can_answer_governance_questions && <p className="small" style={{ margin: 0 }}><Link to="/systems/governance">Governance and accountability questions (§4)</Link> — answered once for the whole organization.</p>}
+      </div>
+    </section>
   );
 }
 

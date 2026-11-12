@@ -13,12 +13,12 @@ import { GovernanceRequestSetup } from '@/screens/futran/GovernanceRequestSetup'
 import { AttestationTracker, FutranAttestation } from '@/screens/client/AttestationTracker';
 import { PhoneAttestation } from '@/screens/phone/Attestation';
 import { MyAttestation } from '@/screens/client/MyAttestation';
-import { FutranInventory, Inventory } from '@/screens/client/Inventory';
+import { FutranInventory } from '@/screens/client/Inventory';
 import { UseCaseForm } from '@/screens/client/UseCaseForm';
 import { NamedUserConfirm } from '@/screens/phone/NamedUserConfirm';
 import { SystemsRegister } from '@/screens/futran/SystemsRegister';
 import { SystemAssessment } from '@/screens/futran/SystemAssessment';
-import { SystemPrefill, SystemsPrefillList } from '@/screens/client/SystemPrefill';
+import { SystemPrefill } from '@/screens/client/SystemPrefill';
 import { DocumentRegister } from '@/screens/futran/DocumentRegister';
 import { SystemScore } from '@/screens/futran/SystemScore';
 import { FieldworkUseCase } from '@/screens/futran/FieldworkUseCase';
@@ -29,7 +29,7 @@ import { ManagementResponse } from '@/screens/client/ManagementResponse';
 import { Remediation } from '@/screens/shared/Remediation';
 import { DocumentUploads } from '@/screens/client/DocumentUploads';
 import { InventoryReview } from '@/screens/client/InventoryReview';
-import { RegisterGrid } from '@/screens/register/RegisterGrid';
+import { ListPreset, RegisterGrid } from '@/screens/register/RegisterGrid';
 import { RegisterNew, RegisterSystemPage } from '@/screens/register/RegisterSystem';
 import { CompanyRoles } from '@/screens/register/CompanyRoles';
 import { AddonsPage } from '@/screens/tracing/Addons';
@@ -101,7 +101,7 @@ export const futranRoutes: RouteObject[] = [
   { path: '/reg/:lawId/edit', element: <LawEdit /> },
   { path: '/clients/:clientId/applicability', element: <Applicability /> },
 ];
-export const clientRoutes: RouteObject[] = [...clientHomeRoutes, ...wskClientRoutes, ...wslClientRoutes, ...wsgClientRoutes, ...wsiClientRoutes, ...wsjClientRoutes, ...wshClientRoutes, { path: '/admin/email', element: <ClientEmailSetup /> }, { path: '/admin/groups', element: <GroupsScreen /> }, { path: '/people', element: <Navigate to="/people/departments" replace /> }, { path: '/people/departments', element: <UsersDepartments tab="departments" /> }, { path: '/people/users', element: <UsersDepartments tab="users" /> }, { path: '/users', element: <Navigate to="/people/users" replace /> }, { path: '/governance', element: <Governance /> }, { path: '/attestation', element: <AttestationTracker /> }, { path: '/my-attestation', element: <MyAttestation /> }, { path: '/inventory', element: <Inventory /> }, { path: '/inventory/new', element: <UseCaseForm /> }, { path: '/inventory/:useCaseId', element: <UseCaseForm /> }, { path: '/systems', element: <SystemsPrefillList /> }, { path: '/systems/:systemId', element: <SystemPrefill /> }, { path: '/documents', element: <DocumentUploads /> }, { path: '/review', element: <InventoryReview /> }, { path: '/report', element: <ClientReport /> }, { path: '/responses', element: <ManagementResponse /> }, { path: '/remediation', element: <Remediation /> },
+export const clientRoutes: RouteObject[] = [...clientHomeRoutes, ...wskClientRoutes, ...wslClientRoutes, ...wsgClientRoutes, ...wsiClientRoutes, ...wsjClientRoutes, ...wshClientRoutes, { path: '/admin/email', element: <ClientEmailSetup /> }, { path: '/admin/groups', element: <GroupsScreen /> }, { path: '/people', element: <Navigate to="/people/departments" replace /> }, { path: '/people/departments', element: <UsersDepartments tab="departments" /> }, { path: '/people/users', element: <UsersDepartments tab="users" /> }, { path: '/users', element: <Navigate to="/people/users" replace /> }, { path: '/governance', element: <Governance /> }, { path: '/attestation', element: <AttestationTracker /> }, { path: '/my-attestation', element: <MyAttestation /> }, { path: '/inventory', element: <ListPreset preset={{ type: 'inventory', all: '1' }} /> }, { path: '/inventory/new', element: <UseCaseForm /> }, { path: '/inventory/:useCaseId', element: <UseCaseForm /> }, { path: '/systems', element: <ListPreset preset={{ audit: 'yes' }} /> }, { path: '/systems/:systemId', element: <SystemPrefill /> }, { path: '/documents', element: <DocumentUploads /> }, { path: '/review', element: <InventoryReview /> }, { path: '/report', element: <ClientReport /> }, { path: '/responses', element: <ManagementResponse /> }, { path: '/remediation', element: <Remediation /> },
   // AI system register (spec §24, §27.2)
   { path: '/register', element: <RegisterGrid /> }, { path: '/register/new', element: <RegisterNew /> },
   { path: '/register/:systemId', element: <RegisterSystemPage tab="details" /> }, { path: '/register/:systemId/roles', element: <RegisterSystemPage tab="roles" /> },

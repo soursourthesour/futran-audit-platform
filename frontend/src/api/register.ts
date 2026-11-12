@@ -13,6 +13,8 @@ export type Tracing = { locked: boolean; state?: 'locked' | 'requested' | 'activ
 export type Statement = { id: string; statement: string; period_from: string | null; signed_by: string | null; signed_at: string | null; owner: string | null; owner_id: string | null } | null;
 
 export type RegSystem = {
+  /** on the record only (11-10 U1): this system in the current audit, and whether this person answers its audit questions */
+  audit?: { system_id: string; reference_id: string; can_answer: boolean } | null;
   id: string; reference: string; name: string; type: string; type_label: string; sourcing: string; sourcing_label: string; stage: string; stage_label: string;
   department: { id: string; name: string } | null; company_wide: boolean; purpose: string | null; users_scope: string | null; users_description: string | null; user_count: number | null;
   owner: PersonRef; vendor: { id: string; name: string } | null; ai_provider: string | null; ai_provider_label: string | null; model_name: string | null; model_version: string | null;

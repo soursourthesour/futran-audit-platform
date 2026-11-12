@@ -212,8 +212,9 @@ test('auditor sets up a client, the Chief Auditor approves and the client signs 
   await page.screenshot({ path: 'screenshots/p4-attestation-tracker.png', fullPage: true });
 
   // AI inventory (Phase 4): a Tier 3 use case with a named user, then the auditor sets the final tier
-  await openNav(page, 'AI inventory');
-  await page.getByRole('link', { name: 'Add use case' }).click();
+  await openNav(page, 'AI systems');
+  await page.getByRole('button', { name: 'Add', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Use case' }).click();
   await page.getByLabel('Use case name *').fill('Résumé screening for NYC roles');
   await page.getByLabel('Department *').selectOption({ label: 'HR and recruiting' });
   await page.getByLabel(/OpenAI ChatGPT/).check();

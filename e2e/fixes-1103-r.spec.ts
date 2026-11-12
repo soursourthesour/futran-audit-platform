@@ -212,7 +212,8 @@ test('register grid: import from inventory help and the import template', async 
   await expect(page.getByText(/Copies into the register the AI tools and agents your company declared in the AI inventory/)).toBeVisible();
   await shot(page, '1440-grid-import-inventory-help');
   await page.keyboard.press('Escape');
-  await page.getByRole('button', { name: 'Import from a file' }).click();
+  await page.getByRole('button', { name: 'Add', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Import AI systems from a file' }).click();
   const dlg = page.getByRole('dialog', { name: 'Import AI systems from a file' });
   await expect(dlg.getByRole('link', { name: /Excel, with instructions/ })).toHaveAttribute('href', '/api/v1/register/import-template.xlsx');
   const r = await page.request.get('/api/v1/register/import-template.csv');

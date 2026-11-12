@@ -62,7 +62,6 @@ export const CLIENT_GROUPS: NavGroup[] = [
   ] },
   { id: 'audit', label: 'Audit', entries: [
     { to: '/review', label: 'Review', requires: ['sign_client_signoff', 'submit_use_case'] },
-    { to: '/systems', label: 'AI systems', requires: ['prefill_system'] },
     { to: '/documents', label: 'Documents', requires: ['upload_requested_document'] },
     // the client report screen shows the whole report, so it is for those who hold the report and scores organization-wide
     // (a Department Compliance Lead holds view_final_report for department sections only)
@@ -71,8 +70,8 @@ export const CLIENT_GROUPS: NavGroup[] = [
     { to: '/remediation', label: 'Remediation', requires: ['view_findings_responses'] },
   ] },
   { id: 'governance', label: 'AI governance', entries: [
-    { to: '/register', label: 'AI system register', requires: ['view_register'] },
-    { to: '/inventory', label: 'AI inventory', requires: ['view_inventory'] },
+    // 11-10 U1: one list for the register, the AI inventory and the current audit's systems (/inventory and /systems redirect here)
+    { to: '/register', label: 'AI systems', requires: ['view_register', 'view_inventory', 'prefill_system'] },
     { to: '/governance', label: 'Governance', requires: ['view_governance'], end: true },
     { to: '/governance/roles', label: 'Company roles', requires: ['set_company_roles', 'manage_committee_members'] },
     { to: '/policies', label: 'Policies', requires: ['view_policies'] },

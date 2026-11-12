@@ -1,47 +1,13 @@
-import { CarriedBanner } from '@/screens/wsk/Carried';
 import { Fragment, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
 import { useMe } from '@/api/auth';
-import { Alert, Badge, Button, Card, EmptyState, Loading, PageHeader, Progress } from '@/components/ui';
+import { Alert, Button, Loading, PageHeader } from '@/components/ui';
 import { QuestionCard, type FileRef, type SaveBody } from '@/components/QuestionCard';
 import { ExplainQuestion } from '@/screens/ai/Explain';
 import { useAISwitch } from '@/api/ai';
 import type { Assessment } from '@/screens/futran/SystemAssessment';
-
-type MySystems = { systems: { id: string; reference_id: string; name: string; status: string; answered: number; applicable: number; pct: number }[]; engagement: { id: string; audit_ref: string; locked: boolean; can_answer_governance_questions: boolean } | null };
-const STATUS: Record<string, string> = { not_started: 'Not started', client_prefill: 'In progress', in_review: 'With the auditor', scored: 'With the auditor', locked: 'Locked' };
-
-/** Client list of AI systems to describe before fieldwork (pre-audit questionnaire). */
-export function SystemsPrefillList() {
-  const q = useQuery({ queryKey: ['me-systems'], queryFn: () => api.get<MySystems>('/me/systems') });
-  if (q.isLoading) return <div className="page"><Loading /></div>;
-  if (!q.data) return <div className="page"><Alert tone="danger">{errorMessage(q.error)}</Alert></div>;
-  const d = q.data;
-  return (
-    <div className="page">
-      <PageHeader title="AI systems" subtitle="Describe each AI system in scope before fieldwork. The auditor checks your answers in interviews, so answer as things are today, not as planned." />
-      <CarriedBanner engagementId={d.engagement?.id} />
-      {d.engagement?.locked && <Alert tone="info">Your answers were locked when management representation was signed. Ask the auditor if something must change.</Alert>}
-      <Card>
-        {d.systems.length === 0 ? <EmptyState>No AI systems are assigned to you yet.</EmptyState> : (
-          <div className="table-wrap"><table className="table">
-            <thead><tr><th>System</th><th>Status</th><th>Your progress</th></tr></thead>
-            <tbody>{d.systems.map((s) => (
-              <tr key={s.id}>
-                <td><Link to={`/systems/${s.id}`}><strong>{s.name}</strong></Link><div className="small muted">{s.reference_id}</div></td>
-                <td><Badge tone={s.status === 'not_started' ? 'muted' : 'navy'}>{STATUS[s.status] ?? s.status}</Badge></td>
-                <td style={{ minWidth: 200 }}><Progress value={s.pct} label={`${s.answered} of ${s.applicable} answered`} /></td>
-              </tr>
-            ))}</tbody>
-          </table></div>
-        )}
-        {d.engagement?.can_answer_governance_questions && <p className="small" style={{ marginBottom: 0 }}><Link to="/systems/governance">Governance and accountability questions (§4)</Link> — answered once for the whole organization.</p>}
-      </Card>
-    </div>
-  );
-}
 
 /** The client's pre-fill of one system (or the §4 engagement questions). Shows only the client's own answers. */
 export function SystemPrefill() {
@@ -70,7 +36,7 @@ export function SystemPrefill() {
   const sys = d.target.system;
   return (
     <div className="page">
-      <PageHeader title={sys ? sys.name : 'Governance and accountability'} crumbs={[{ to: '/systems', label: 'AI systems' }, { label: sys ? sys.reference_id : '§4' }]}
+      <PageHeader title={sys ? sys.name : 'Governance and accountability'} crumbs={[{ to: '/register?audit=yes', label: 'AI systems' }, { label: sys ? sys.reference_id : '§4' }]}
         subtitle="Answer what is true today. If something is planned but not done yet, choose “Planned → not yet in place” and say when. Use “Not applicable” only with a reason."
         actions={<span className="small muted">{d.completion.answered}/{d.completion.applicable} answered</span>} />
       {d.locked && <Alert tone="info">Your answers are locked. Ask the auditor if something must change.</Alert>}

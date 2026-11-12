@@ -47,7 +47,7 @@ export function RegisterSystemPage({ tab }: { tab: Tab }) {
   ];
   return (
     <div className="page reg-page">
-      <PageHeader crumbs={[{ to: '/register', label: 'AI system register' }, { label: s.name }]}
+      <PageHeader crumbs={[{ to: '/register', label: 'AI systems' }, { label: s.name }]}
         title={<>{s.name}{!s.can_edit && <Lock />}</>}
         subtitle={<span className="reg-chips">
           <span>{s.type_label} · {s.sourcing_label.toLowerCase()}</span>
@@ -58,6 +58,7 @@ export function RegisterSystemPage({ tab }: { tab: Tab }) {
           {s.laws.length > 0 && <span>{s.laws.map((l) => l.short_name).join(' · ')}</span>}
         </span>}
         actions={<>
+          {s.audit?.can_answer && <Link className="btn" to={`/systems/${s.audit.system_id}`}>Answer the audit questions</Link>}
           {canSubmit && <Button variant="primary" onClick={() => { setFlash(null); setSubmitting(true); }}>Submit for go-live approval</Button>}
           {awaiting && s.can_approve_go_live && <Button variant="primary" onClick={() => setDeciding(true)}>Review go-live</Button>}
         </>} />
@@ -69,6 +70,7 @@ export function RegisterSystemPage({ tab }: { tab: Tab }) {
         </Alert>
       )}
       {s.stage === 'retired' && <Alert tone="info">Retired. {s.retired_reason}</Alert>}
+      {s.audit && <p className="small muted" style={{ margin: 0 }}>In the current audit as {s.audit.reference_id}.{s.audit.can_answer ? ' Its audit questions open from Answer the audit questions.' : ''}</p>}
       <nav className="tabs reg-tabs" aria-label="AI system sections">
         {tabs.map(([k, label, to]) => (
           <NavLink key={k} to={to} end className={tab === k ? 'active' : ''} aria-current={tab === k ? 'page' : undefined}>
@@ -339,7 +341,7 @@ export function RegisterNew() {
   const props = { f, set: setF, fe, d };
   return (
     <div className="page reg-page page-narrow">
-      <PageHeader crumbs={[{ to: '/register', label: 'AI system register' }, { label: 'Add an AI system' }]} title="Add an AI system" subtitle={`Step ${step + 1} of ${steps.length}: ${name}`} />
+      <PageHeader crumbs={[{ to: '/register', label: 'AI systems' }, { label: 'Add an AI system' }]} title="Add an AI system" subtitle={`Step ${step + 1} of ${steps.length}: ${name}`} />
       <ol className="reg-steps" aria-label="Steps">
         {steps.map((t, i) => <li key={t} className={i === step ? 'current' : i < step ? 'done' : ''} aria-current={i === step ? 'step' : undefined}>{t}</li>)}
       </ol>

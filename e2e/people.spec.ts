@@ -127,7 +127,7 @@ test('the CAICO edits and resends the data notice; another user acknowledges it 
   await expect(page).toHaveURL(/\/welcome\/notice\?next=%2Finventory$/);  // nothing else opens until it is acknowledged
   await page.getByRole('checkbox', { name: 'I have read and understand this notice.' }).check();
   await page.getByRole('button', { name: 'Acknowledge and continue' }).click();
-  await expect(page).toHaveURL(/\/inventory$/);  // the page he asked for survives the notice step
+  await expect(page).toHaveURL(/\/register\?type=inventory&all=1$/);  // the page he asked for survives the notice step (the AI inventory is now a filter on AI systems)
 
   await clientUser(page, KATRIN);
   await page.goto('/people/users');

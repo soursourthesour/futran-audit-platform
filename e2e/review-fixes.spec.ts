@@ -241,7 +241,7 @@ test('a deep link survives the mailbox step and the personal mailbox consent; a 
     await page.getByRole('button', { name: 'Accept' }).click();
     await expect(page).toHaveURL(/\/welcome\/mailbox\?(?=.*connected=1)(?=.*next=%2F|.*next=\/)/);
     await page.getByRole('link', { name: 'Continue' }).click();
-    await expect(page).toHaveURL(/\/inventory\?tab=tools$/);
+    await expect(page).toHaveURL(/\/register\?type=tool&all=1$/);  // the old inventory tab lands on the AI systems list, filtered
     await call(page, 'POST', '/me/mailbox/disconnect');
   } finally {
     await call(admin, 'PATCH', '/mail/settings', { per_user_sync: 'optional' });

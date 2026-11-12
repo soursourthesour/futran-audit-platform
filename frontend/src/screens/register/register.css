@@ -67,3 +67,6 @@
   .reg-bulk-foot .row { width: 100%; }
   .reg-bulk-foot .row .btn { flex: 1 1 auto; }
 }
+/* 11-10 U1: the one AI systems list */
+.reg-listbar { display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: flex-end; }
+.reg-listbar .check { min-height: 44px; align-items: center; }

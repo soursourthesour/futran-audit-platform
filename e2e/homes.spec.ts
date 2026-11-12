@@ -41,22 +41,22 @@ const CASES: Case[] = [
     shown: ['Opportunities', 'Litigation'],
     hidden: ['Dashboard', 'Clients', 'Law library', 'Users', 'Audit log', 'My work'] },
   { who: 'Chief AI Compliance Officer', email: `maria.lopez@${ABC}`, staff: false, home: /\/start$/, heading: 'Welcome to your AI governance assessment', shot: 'caico-getting-started',
-    shown: ['Getting started', 'People', 'AI system register', 'Company roles', 'Add-ons', 'Governance', 'Attestation', 'AI inventory', 'Review', 'Report', 'Responses', 'Remediation', 'Email connection', 'Groups', 'Email log'],
+    shown: ['Getting started', 'People', 'AI systems', 'Company roles', 'Add-ons', 'Governance', 'Attestation', 'Review', 'Report', 'Responses', 'Remediation', 'Email connection', 'Groups', 'Email log'],
     hidden: ['Admin home', 'Summary', 'Data review', 'My department', 'My tasks'] },
   { who: 'Client Admin', email: `sam.okafor@${ABC}`, staff: false, home: /\/admin\/home$/, heading: 'Client Admin home', shot: 'client-admin-home',
-    shown: ['Admin home', 'Getting started', 'People', 'AI system register', 'Company roles', 'Add-ons', 'Attestation', 'Email connection', 'Groups', 'Email log'],
+    shown: ['Admin home', 'Getting started', 'People', 'AI systems', 'Company roles', 'Add-ons', 'Attestation', 'Email connection', 'Groups', 'Email log'],
     hidden: ['AI inventory', 'Review', 'Report', 'Responses', 'Governance', 'Remediation', 'Documents', 'Summary', 'My tasks'] },
   { who: 'Executive Sponsor', email: `robert.chen@${ABC}`, staff: false, home: /\/summary$/, heading: 'AI governance at ABC Corp', shot: 'sponsor-summary',
-    shown: ['Summary', 'Governance', 'Add-ons', 'AI inventory', 'Review', 'Report', 'Responses', 'Remediation'],
+    shown: ['Summary', 'Governance', 'Add-ons', 'AI systems', 'Review', 'Report', 'Responses', 'Remediation'],
     hidden: ['Getting started', 'People', 'Admin home', 'AI system register', 'Attestation', 'Data review', 'Email connection'] },
   { who: 'Data Protection Officer', email: `daniel.kim@${ABC}`, staff: false, home: /\/data-review$/, heading: 'Data review', shot: 'dpo-data-review',
-    shown: ['Data review', 'Governance', 'Attestation', 'AI inventory', 'Review', 'Documents', 'Report', 'Remediation'],
+    shown: ['Data review', 'Governance', 'Attestation', 'AI systems', 'Review', 'Documents', 'Report', 'Remediation'],
     hidden: ['Getting started', 'People', 'Summary', 'Responses', 'AI system register', 'Admin home', 'Email connection'] },
   { who: 'Department Compliance Lead', email: `priya.shah@${ABC}`, staff: false, home: /\/my-department$/, heading: 'HR', shot: 'dept-lead-my-department',
-    shown: ['My department', 'AI system register', 'Attestation', 'AI inventory', 'Review', 'AI systems', 'Documents', 'Responses', 'Remediation', 'Groups', 'Email log'],
+    shown: ['My department', 'AI systems', 'Attestation', 'Review', 'Documents', 'Responses', 'Remediation', 'Groups', 'Email log'],
     hidden: ['Getting started', 'People', 'Report', 'Admin home', 'Company roles', 'Governance', 'My tasks'] },
   { who: 'Contributor', email: `tom.reyes@${ABC}`, staff: false, home: /\/my-tasks$/, heading: 'My tasks', shot: 'contributor-my-tasks',
-    shown: ['My tasks', 'My AI attestation', 'AI inventory', 'Review', 'AI systems', 'Documents', 'Remediation'],
+    shown: ['My tasks', 'My AI attestation', 'AI systems', 'Review', 'Documents', 'Remediation'],
     hidden: ['Getting started', 'Attestation', 'Report', 'People', 'AI system register', 'Responses', 'My department'] },
 ];
 
@@ -127,7 +127,7 @@ for (const c of CASES) {
 test('a CAICO with Client Admin powers lands on Getting started and sees the union of both roles', async ({ page }) => {
   await signIn(page, 'katrin.vogel@meridian.example', false);
   await expect(page).toHaveURL(/\/start$/);
-  await checkNav(page, ['Getting started', 'Admin home', 'People', 'Email connection', 'Groups', 'AI inventory', 'Review', 'Company roles', 'Attestation'],
+  await checkNav(page, ['Getting started', 'Admin home', 'People', 'Email connection', 'Groups', 'AI systems', 'Review', 'Company roles', 'Attestation'],
     ['Summary', 'Data review', 'My department', 'My tasks']);
   await openNav(page, 'Admin home');
   await expect(page).toHaveURL(/\/admin\/home$/);

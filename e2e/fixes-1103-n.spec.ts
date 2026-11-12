@@ -300,7 +300,7 @@ test.describe('client', () => {
     await signIn(page, 'maria.lopez@abccorp.example', false);
     for (const g of ['Audit', 'AI governance', 'People and training', 'Email']) await expect(group(page, g)).toBeVisible();
     await oneRow(page);
-    await expectNav(page, ['Getting started', 'People', 'AI system register', 'Company roles', 'Add-ons', 'Governance', 'Attestation', 'AI inventory', 'Review', 'Report', 'Responses', 'Remediation', 'Email connection', 'Groups', 'Email log'],
+    await expectNav(page, ['Getting started', 'People', 'AI systems', 'Company roles', 'Add-ons', 'Governance', 'Attestation', 'Review', 'Report', 'Responses', 'Remediation', 'Email connection', 'Groups', 'Email log'],
       ['Admin home', 'Summary', 'Data review', 'My department', 'My tasks']);
     await expect(navLink(page, 'Getting started')).toBeVisible();  // a group with one entry is a plain link
     await group(page, 'AI governance').click();
