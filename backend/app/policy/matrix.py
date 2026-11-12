@@ -482,3 +482,27 @@ for _role, _grants in _WS_H.items():
 # cross-client list to them alone, so a later grant of VIEW_CLIENT_USERS to another Futran role does not open it.
 for _role in (R.ADMIN, R.CHIEF_AUDITOR):
     MATRIX.setdefault(_role, {})[A.VIEW_ALL_CLIENT_USERS] = S.ALL
+
+
+# ---- Release 2 R5: commercial core (spec §4.8 SM-13, B1 G-01, B2 G-02, B3 G-03). Fee and value fields go to the Chief
+# Auditor, Engagement Managers on the engagement, sales roles and the Futran Admin, never to Auditors (B2). Sales roles
+# not yet in the Role enum (R2: sales_manager, pricing_approver) are keyed by their string, which a StrEnum key matches.
+_R5_ALL_FUTRAN = (R.CHIEF_AUDITOR, R.ADMIN, R.AUDITOR, R.QA_REVIEWER, R.ENGAGEMENT_MANAGER, R.LEGAL_REVIEWER, R.SALES_TEAM, "sales_manager", "pricing_approver", "price_list_owner")
+_R5: dict = {
+    R.CHIEF_AUDITOR: {A.VIEW_HANDOFF: S.ALL, A.CONFIRM_HANDOFF: S.ALL, A.CONFIRM_INDEPENDENCE: S.ALL, A.VIEW_CLIENT_PLAN: S.ALL, A.VIEW_ENGAGEMENT_FEES: S.ALL,
+                      A.EDIT_ENGAGEMENT_COMMERCIAL: S.ALL, A.RAISE_CHANGE_ORDER: S.ALL, A.APPROVE_TIME: S.ALL, A.MANAGE_RETAINERS: S.ALL, A.VIEW_MARGINS: S.ALL},
+    R.ADMIN: {A.VIEW_HANDOFF: S.ALL, A.VIEW_CLIENT_PLAN: S.ALL, A.MANAGE_CLIENT_PLAN: S.ALL, A.RUN_BILLING_EXPORT: S.ALL, A.VIEW_ENGAGEMENT_FEES: S.ALL,
+              A.MANAGE_RETAINERS: S.ALL, A.MANAGE_STANDARD_COST: S.ALL},
+    R.ENGAGEMENT_MANAGER: {A.VIEW_ENGAGEMENT_FEES: S.ASSIGNED, A.EDIT_ENGAGEMENT_COMMERCIAL: S.ASSIGNED, A.RAISE_CHANGE_ORDER: S.ASSIGNED, A.APPROVE_TIME: S.ASSIGNED,
+                           A.MANAGE_RETAINERS: S.ASSIGNED},
+    R.AUDITOR: {A.RAISE_CHANGE_ORDER: S.ASSIGNED},
+    R.SALES_TEAM: {A.VIEW_HANDOFF: S.ALL, A.CONFIRM_HANDOFF: S.ALL, A.VIEW_ENGAGEMENT_FEES: S.ALL},
+    "sales_manager": {A.VIEW_HANDOFF: S.ALL, A.CONFIRM_HANDOFF: S.ALL, A.VIEW_CLIENT_PLAN: S.ALL, A.VIEW_ENGAGEMENT_FEES: S.ALL, A.EDIT_ENGAGEMENT_COMMERCIAL: S.ALL,
+                      A.APPROVE_CHANGE_ORDER_PRICE: S.ALL, A.VIEW_MARGINS: S.ALL},
+    "pricing_approver": {A.VIEW_ENGAGEMENT_FEES: S.ALL, A.APPROVE_CHANGE_ORDER_PRICE: S.ALL},
+    R.CAICO: {A.APPROVE_CHANGE_ORDER: S.ORG},
+}
+for _role in _R5_ALL_FUTRAN:
+    _R5.setdefault(_role, {}).update({A.LOG_TIME: S.ALL, A.VIEW_HOURS_BANKS: S.ALL})
+for _role, _grants in _R5.items():
+    MATRIX.setdefault(_role, {}).update(_grants)

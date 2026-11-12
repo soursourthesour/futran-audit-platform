@@ -188,3 +188,21 @@ class Action(StrEnum):
     MANAGE_SUBSCRIPTION = "manage_subscription"  # the client's plan (audit only, Monitor, Monitor Plus)
     # feedback 10 Nov F1: Administration > Client users, a read-only list of every client's people (Futran Admin, Chief Auditor)
     VIEW_ALL_CLIENT_USERS = "view_all_client_users"
+    # Release 2 R5: commercial core (spec §4.8 SM-13, B1 G-01, B2 G-02, B3 G-03)
+    VIEW_HANDOFF = "view_handoff"  # SM-13 checklist of records a won proposal created
+    CONFIRM_HANDOFF = "confirm_handoff"  # confirm the hand-off and the delivery team
+    CONFIRM_INDEPENDENCE = "confirm_independence"  # Chief Auditor: a separate delivery team for I-2 / I-3 lines
+    VIEW_CLIENT_PLAN = "view_client_plan"  # G-01 plan, entitlements, usage and order lines
+    MANAGE_CLIENT_PLAN = "manage_client_plan"  # G-01 plan settings (tier, renewal, support, data region with a ticket)
+    RUN_BILLING_EXPORT = "run_billing_export"  # G-01 monthly billing export CSV, per client and for all clients
+    VIEW_ENGAGEMENT_FEES = "view_engagement_fees"  # G-02 fee, value and price fields: never Auditors (spec B2)
+    EDIT_ENGAGEMENT_COMMERCIAL = "edit_engagement_commercial"  # G-02 fee and billing milestones
+    RAISE_CHANGE_ORDER = "raise_change_order"  # the auditor or Engagement Manager raises one from scope
+    APPROVE_CHANGE_ORDER_PRICE = "approve_change_order_price"  # Futran: price outside the catalog list (sales approval rules)
+    APPROVE_CHANGE_ORDER = "approve_change_order"  # client CAICO approves in the platform; only then scope changes
+    LOG_TIME = "log_time"  # G-03 every Futran person keeps their own weekly timesheet
+    APPROVE_TIME = "approve_time"  # approve or return a submitted week
+    VIEW_HOURS_BANKS = "view_hours_banks"  # hours banks and retainers with their balance
+    MANAGE_RETAINERS = "manage_retainers"  # activate the incident retainer (opens an incident engagement)
+    VIEW_MARGINS = "view_margins"  # margin by engagement: Chief Auditor and Sales Manager
+    MANAGE_STANDARD_COST = "manage_standard_cost"  # standard cost per hour by role: Futran Admin (user's default, R2-Q9)

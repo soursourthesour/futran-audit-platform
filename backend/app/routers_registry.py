@@ -45,3 +45,6 @@ ROUTER_MODULES += ["register.catalogue_router"]
 
 # 11-10 U1: the client's one list of AI systems (register, inventory, use cases and the current audit)
 ROUTER_MODULES += ["register.ailist"]
+
+# Release 2 R5: SM-13 handoff, G-01 plan and entitlements, G-02 engagement commercials, G-03 time and hours
+ROUTER_MODULES += ["commercial.router_handoff"]

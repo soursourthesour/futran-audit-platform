@@ -372,3 +372,96 @@ def _scoping_prefill(db: Session, proposal, org: Organization, e: Engagement) ->
     fill = getattr(scoping, "prefill_engagement", None)
     if fill is not None:
         fill(db, proposal, org, e)
+
+
+# ---- SM-13 screen: confirm the hand-off, the delivery team and independence
+def for_opportunity(db: Session, opportunity_id: str) -> Handoff | None:
+    return db.scalar(select(Handoff).where(Handoff.opportunity_id == opportunity_id, Handoff.deleted_at.is_(None)).order_by(Handoff.created_at.desc()).limit(1))
+
+
+def separate_team_user_ids(db: Session, client_id: str) -> set[str]:
+    """People the Chief Auditor recorded as a separate delivery team for this client (rules I-2, I-3). R4's team check
+    keeps them off the client's audit team; the X-01 officer on a retainer is included."""
+    out: set[str] = set()
+    for h in db.scalars(select(Handoff).where(Handoff.organization_id == client_id, Handoff.deleted_at.is_(None))):
+        out |= set((h.team or {}).get("separate_team_user_ids") or [])
+    out |= {r.officer_user_id for r in db.scalars(select(Retainer).where(Retainer.organization_id == client_id, Retainer.officer_user_id.is_not(None)))}
+    return out
+
+
+def _audit_team_clash(db: Session, client_id: str, user_ids: list[str]) -> list[User]:
+    from app.engagements.models import EngagementTeam
+
+    rows = db.scalars(select(EngagementTeam.user_id).join(Engagement, Engagement.id == EngagementTeam.engagement_id)
+                      .where(Engagement.client_id == client_id, Engagement.deleted_at.is_(None), EngagementTeam.deleted_at.is_(None), EngagementTeam.user_id.in_(user_ids)))
+    return [db.get(User, uid) for uid in dict.fromkeys(rows)]
+
+
+def confirm_independence(db: Session, actor: User, h: Handoff, user_ids: list[str], note: str | None) -> Handoff:
+    from app.core.errors import Conflict, Invalid
+
+    ids = list(dict.fromkeys(u for u in user_ids if u))
+    if h.needs_separate_team and not ids:
+        raise Invalid(errors=[{"field": "separate_team_user_ids", "message": "Name the people who will deliver these lines."}])
+    for uid in ids:
+        u = db.get(User, uid)
+        org = db.get(Organization, u.organization_id) if u else None
+        if org is None or org.type != "futran":
+            raise Invalid(errors=[{"field": "separate_team_user_ids", "message": "Choose Futran staff."}])
+    clash = _audit_team_clash(db, h.organization_id, ids)
+    if clash:
+        raise Conflict(f"{', '.join(u.name for u in clash)} {'is' if len(clash) == 1 else 'are'} on this client's audit team. A separate team delivers these lines.")
+    h.team = (h.team or {}) | {"separate_team_user_ids": ids, "independence_note": " ".join((note or "").split()) or None}
+    h.independence_confirmed_by, h.independence_confirmed_at = actor.id, utcnow()
+    officer = ids[0] if ids and "X-01" in (h.needs_separate_team or []) else None
+    if officer:
+        for r in db.scalars(select(Retainer).where(Retainer.organization_id == h.organization_id, Retainer.type == "fractional_officer", Retainer.officer_user_id.is_(None))):
+            r.officer_user_id = officer
+    db.flush()
+    audit.record(db, actor_id=actor.id, action="handoff.independence_confirmed", obj=h, summary=f"Confirmed a separate delivery team for {', '.join(h.needs_separate_team)}")
+    return h
+
+
+def confirm(db: Session, actor: User, h: Handoff, account_owner_id: str | None) -> Handoff:
+    from app.core.errors import Conflict, Invalid
+
+    if h.needs_separate_team and h.independence_confirmed_by is None:
+        raise Conflict("The Chief Auditor must confirm a separate delivery team for " + ", ".join(h.needs_separate_team) + " first.")
+    if account_owner_id:
+        u = db.get(User, account_owner_id)
+        org = db.get(Organization, u.organization_id) if u else None
+        if org is None or org.type != "futran":
+            raise Invalid(errors=[{"field": "account_owner_id", "message": "Choose someone at Futran."}])
+        h.team = (h.team or {}) | {"account_owner_id": account_owner_id}
+        opp = db.get(Opportunity, h.opportunity_id) if h.opportunity_id else None
+        if opp is not None:
+            opp.owner_id = account_owner_id
+    h.status, h.confirmed_by, h.confirmed_at = "confirmed", actor.id, utcnow()
+    db.flush()
+    audit.record(db, actor_id=actor.id, action="handoff.confirmed", obj=h, summary="Confirmed the hand-off to delivery")
+    return h
+
+
+def handoff_out(db: Session, h: Handoff) -> dict:
+    org = db.get(Organization, h.organization_id)
+    name = lambda uid: (db.get(User, uid).name if uid and db.get(User, uid) else None)  # noqa: E731
+    team = h.team or {}
+    items = []
+    for it in h.items or []:
+        it = dict(it)
+        if it["kind"] == "engagement" and it.get("ref_id"):
+            e = db.get(Engagement, it["ref_id"])
+            if e is not None and e.status not in ("draft", "pending_approval"):
+                it["status"] = "Approved"
+            elif e is not None and e.status == "pending_approval":
+                it["status"] = "Submitted to Chief Auditor"
+        items.append(it)
+    return {
+        "id": h.id, "opportunity_id": h.opportunity_id, "client_id": h.organization_id, "client_name": org.name if org else "", "client_status": org.status if org else None,
+        "order_id": h.order_id, "items": items, "accepted_by": h.accepted_by, "year1_value": h.year1_value, "needs_separate_team": h.needs_separate_team or [],
+        "team": {"account_owner_id": team.get("account_owner_id"), "account_owner_name": name(team.get("account_owner_id")),
+                 "separate_team": [{"id": u, "name": name(u)} for u in team.get("separate_team_user_ids") or []], "independence_note": team.get("independence_note")},
+        "status": h.status, "independence_confirmed_by": name(h.independence_confirmed_by),
+        "independence_confirmed_at": h.independence_confirmed_at.isoformat() if h.independence_confirmed_at else None,
+        "confirmed_by": name(h.confirmed_by), "confirmed_at": h.confirmed_at.isoformat() if h.confirmed_at else None,
+    }
