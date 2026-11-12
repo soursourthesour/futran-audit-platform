@@ -26,7 +26,7 @@ from app.regmaster.versioning import VERSION_FIELDS, clone_version
 REG_FIELDS = {"short_name", "citation", "type", "binding", "topics", "label", "region"}
 LAW_FIELDS = set(VERSION_FIELDS) - {"source_ids"} | REG_FIELDS
 DATE_FIELDS = {"signed_on", "effective_on", "compliance_on", "repealed_on"}
-ORIGINS = {"admin_edit", "bulk_edit", "auditor_suggestion", "claude_draft", "claude_refresh"}
+ORIGINS = {"admin_edit", "bulk_edit", "auditor_suggestion", "claude_draft", "claude_refresh", "platform_seed"}  # platform_seed: R6b EU AI Act rows
 CHANGE_TYPES = {"new_law", "amendment", "effective_date", "new_rule", "guidance", "role_mapping", "repeal", "enforcement"}
 OPEN = ("pending", "held", "legal_review")
 
@@ -326,11 +326,11 @@ def _apply_one(db: Session, reg: Regulation, v: LawVersion, pc: ProposedChange, 
                         m.requirement_ids = [i for i in m.requirement_ids if i != row.id]
                 db.delete(row)
             return
+        role = _role(db, value.get("role")) if "role" in value else None  # before a new row is added: the query autoflushes
         if row is None:
             n = len(db.scalars(select(Requirement.id).where(Requirement.law_version_id == v.id)).all())
-            row = Requirement(law_version_id=v.id, code=key, order=n + 1)
+            row = Requirement(law_version_id=v.id, code=key, order=n + 1, text=value["text"])
             db.add(row)
-        role = _role(db, value.get("role")) if "role" in value else None
         row.text = value["text"]
         for k in ("applies_to", "needed_by_stage", "evidence_text", "ai_types", "citation", "source_quote", "source_url"):
             if k in value:

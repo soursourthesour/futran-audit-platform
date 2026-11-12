@@ -94,8 +94,10 @@ def _eu_ai_act_requirements(db: Session) -> str:
 
     out = ensure_requirements(db)
     if out["missing_law"]:
-        return "the EU AI Act is not in the law library; nothing added"
-    return f"{len(out['added'])} added, {len(out['found'])} already in the library"
+        return "the EU AI Act is not in the law library; nothing proposed"
+    if out["already_seeded"]:
+        return "already proposed once; nothing new"
+    return f"{len(out['proposed'])} proposed for review in Refresh and review, {len(out['found'])} already in the library"
 
 
 LOADERS.append(("EU AI Act requirements for the conformity workspace", _eu_ai_act_requirements))  # Release 2 R6b (spec B8)

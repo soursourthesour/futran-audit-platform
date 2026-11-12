@@ -33,6 +33,7 @@ def requirements_for(db: Session, s: RegisterSystem) -> list[tuple]:
     from app.regmaster.models import Requirement
 
     types = system_ai_types(s)
+    signed = signed_supplier_roles(db, s)
     out = []
     for link in svc.law_links(db, s):
         reg, v = current_version(db, link.regulation_id)
@@ -43,8 +44,56 @@ def requirements_for(db: Session, s: RegisterSystem) -> list[tuple]:
                 continue
             if req.ai_types and "all" not in req.ai_types and not (set(req.ai_types) & types):
                 continue
+            if supplier_only(req.applies_to) and not _supplier_applies(db, s, req, signed):
+                continue
             out.append((req, reg))
     return out
+
+
+# ---- EU AI Act supplier-side duties (R6b, G-08). Provider, importer and distributor rows apply to whoever builds,
+# imports or distributes a system. The role the legal reviewer signed off in the EU AI Act workspace decides; without
+# one, a system the client built takes provider duties and a bought one does not. A row that already has an answer on
+# the system always stays (shown as "may not apply"), so nothing recorded disappears or stops counting.
+SUPPLIER_ROLES = {"provider", "importer", "distributor"}
+SIGNED_ROLE_DUTIES = {"provider": {"provider"}, "product_manufacturer": {"provider"}, "importer": {"importer"}, "distributor": {"distributor"}, "deployer": set()}
+
+
+def supplier_only(applies_to: list | None) -> bool:
+    a = set(applies_to or [])
+    return bool(a & SUPPLIER_ROLES) and a <= SUPPLIER_ROLES | {"developer"}
+
+
+def signed_supplier_roles(db: Session, s: RegisterSystem) -> set[str] | None:
+    """The supplier duties of the role signed off in G-08 for this system, or None when nothing is signed off."""
+    try:
+        from app.euaiact.models import EuAiActRecord
+    except ImportError:  # pragma: no cover
+        return None
+    rec = db.scalar(select(EuAiActRecord).where(EuAiActRecord.register_system_id == s.id, EuAiActRecord.deleted_at.is_(None), EuAiActRecord.signoff_status == "signed_off"))
+    if rec is None or not rec.role:
+        return None
+    return set(SIGNED_ROLE_DUTIES.get(rec.role, set()))
+
+
+def _default_duties(s: RegisterSystem) -> set[str]:
+    return set() if s.sourcing in BOUGHT else {"provider"}
+
+
+def _supplier_applies(db: Session, s: RegisterSystem, req, signed: set[str] | None) -> bool:
+    duties = signed if signed is not None else _default_duties(s)
+    if set(req.applies_to or []) & duties:
+        return True
+    st, _ = _status(db, s, req)
+    return st is not None
+
+
+def may_not_apply(db: Session, s: RegisterSystem, req) -> bool:
+    """A supplier-side row shown only because it was answered: a duty that may not apply to this system."""
+    if not supplier_only(req.applies_to):
+        return False
+    signed = signed_supplier_roles(db, s)
+    duties = signed if signed is not None else _default_duties(s)
+    return not (set(req.applies_to or []) & duties)
 
 
 def _status(db: Session, s: RegisterSystem, req) -> tuple[RequirementStatus | None, bool]:
@@ -82,6 +131,7 @@ def checklist(db: Session, s: RegisterSystem) -> dict:
             "history_entries": [{"id": e.id, "type": e.type, "occurred_on": e.occurred_on.isoformat(), "summary": e.summary} for e in {x.id: x for x in entries + linked}.values()],
             "evidence": [{"id": f.id, "filename": f.filename} for f in files], "checked_by": checker.name if checker else None,
             "checked_at": st.checked_at.isoformat() if st and st.checked_at else None, "carried_from_previous_version": carried,
+            "may_not_apply": may_not_apply(db, s, req),
         })
     return {"rows": rows, "total": len(rows), "met": sum(1 for r in rows if r["status"] == "met"), "blocking": sum(1 for r in rows if r["gate"] and r["status"] == "not_met")}
 
@@ -89,8 +139,9 @@ def checklist(db: Session, s: RegisterSystem) -> dict:
 def gate_blockers(db: Session, s: RegisterSystem) -> list[str]:
     """Requirements needed before use or go-live that are not met."""
     out = []
+    prohibited = signed_classification(db, s) == "prohibited"
     for req, _reg in requirements_for(db, s):
-        if (req.needed_by_stage or "") not in GATE_STAGES:
+        if (req.needed_by_stage or "") not in GATE_STAGES and not (prohibited and _is_art5(req)):
             continue
         st, _ = _status(db, s, req)
         if (st.status if st else "not_met") == "not_met":
@@ -140,3 +191,19 @@ def set_status(db: Session, actor: User, s: RegisterSystem, requirement_id: str,
     audit.record(db, actor_id=actor.id, action="register.requirement_status", obj=s, before={"status": old}, after={"requirement": f"{reg.short_name} {req.code}", "status": status, "note": note},
                  summary=f"{reg.short_name} {req.code} marked {STATUS_LABELS[status].lower()} for {s.reference} {s.name}")
     return row
+
+
+def signed_classification(db: Session, s: RegisterSystem) -> str | None:
+    try:
+        from app.euaiact.models import EuAiActRecord
+    except ImportError:  # pragma: no cover
+        return None
+    rec = db.scalar(select(EuAiActRecord).where(EuAiActRecord.register_system_id == s.id, EuAiActRecord.deleted_at.is_(None), EuAiActRecord.signoff_status == "signed_off"))
+    return rec.classification if rec else None
+
+
+def _is_art5(req) -> bool:
+    """The EU AI Act prohibited-practice screen: a blocker only on a system signed off as prohibited (R6b, G-08)."""
+    from app.euaiact.rules import article_refs
+
+    return "EU AI Act" in (req.citation or "") and any(r == "5" or r.startswith("5(") for r in article_refs(req.citation))
