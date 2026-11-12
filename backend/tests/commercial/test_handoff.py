@@ -132,3 +132,18 @@ def test_entitlements_from_a_price_list_row_without_an_entitlement_key(cw, fake_
     ents = {e.key: e.limit for e in cw.db.scalars(select(Entitlement).where(Entitlement.subscription_id == sub.id))}
     assert sub.plan == "monitor" and sub.tier == "up to 10 systems"
     assert ents == {"ai_systems": 10, "alert_packs": 3, "vault_gb": 50}
+
+
+def test_r4_proposal_lines_carry_their_own_billing_and_roadmap_lines_are_not_ordered(cw):
+    from types import SimpleNamespace
+
+    def pl(code, name, billing, unit, periods=1, **kw):
+        return SimpleNamespace(id=f"pl-{code}", catalog_code=code, name=name, description="Long proposal text", deliverables_text=None, qty=1, unit_price_used=unit,
+                               periods_per_year=periods, line_value=unit * (periods if billing != "one_time" else 1), billing=billing, included_quantities={},
+                               removed_reason=None, **kw)
+
+    h = _go(cw, [pl("A-02b", "Audit, 11–50 systems", "one_time", 35000), pl("M-01a", "Monitor, up to 10 systems", "annual", 12000),
+                 pl("M-09", "Trust Center", "annual", 0, sellable_status="roadmap")])
+    lines = {ln.catalog_code: ln for ln in cw.db.scalars(select(OrderLine).where(OrderLine.order_id == h.order_id))}
+    assert set(lines) == {"A-02b", "M-01a"} and lines["M-01a"].recurring and not lines["A-02b"].recurring
+    assert lines["M-01a"].description == "Monitor, up to 10 systems"

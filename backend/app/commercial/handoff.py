@@ -85,7 +85,8 @@ def _proposal_lines(db: Session, proposal) -> list:
         except ImportError:
             return []
         lines = list(db.scalars(select(ProposalLine).where(ProposalLine.proposal_id == proposal.id)))
-    return [ln for ln in lines if not getattr(ln, "removed_reason", None)]
+    # removed lines and roadmap lines (shown only as "optional, when available" with no price, rule P-7) are not ordered
+    return [ln for ln in lines if not getattr(ln, "removed_reason", None) and getattr(ln, "sellable_status", None) != "roadmap"]
 
 
 def next_order_ref(db: Session) -> str:
@@ -147,13 +148,16 @@ def _build(db: Session, proposal, acceptance, actor: User | None) -> Handoff:
     olines: list[tuple[OrderLine, cat.Item | None]] = []
     for ln in lines:
         item = items_by_code.get(ln.catalog_code)
+        if item is None and getattr(ln, "billing", None):  # R4 freezes the catalog fields on the proposal line
+            item = cat.Item(code=ln.catalog_code, name=getattr(ln, "name", None) or "", billing=ln.billing, periods_per_year=getattr(ln, "periods_per_year", None),
+                            included_quantities=cat.parse_included(getattr(ln, "included_quantities", None)))
         periods = getattr(ln, "periods_per_year", None) or (item.periods_per_year if item else None)
         rec = is_recurring(ln.catalog_code, periods, item)
         unit = money(getattr(ln, "unit_price_used", None) or 0)
         qty = float(getattr(ln, "qty", 1) or 1)
         value = getattr(ln, "line_value", None)
         value = money(value if value is not None else unit * qty * ((periods or 1) if rec else 1))
-        ol = OrderLine(organization_id=org.id, order_id=order.id, catalog_code=ln.catalog_code, description=(getattr(ln, "description", None) or (item.name if item else ""))[:300],
+        ol = OrderLine(organization_id=org.id, order_id=order.id, catalog_code=ln.catalog_code, description=(getattr(ln, "name", None) or (item.name if item else None) or getattr(ln, "description", None) or "")[:300],
                        deliverables_text=getattr(ln, "deliverables_text", None) or (item.deliverables if item else None), qty=qty, unit_price=unit, periods_per_year=periods,
                        recurring=rec, line_value=value, start_on=start, end_on=end if rec else None, entitlement_key=item.entitlement_key if item else None,
                        included_quantities=(item.included_quantities or None) if item else None, created_by=actor_id)
