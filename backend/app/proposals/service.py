@@ -76,13 +76,7 @@ def recalc(db: Session, p: Proposal, ls: list[ProposalLine] | None = None) -> No
     for d in calc:
         d["_line"].line_value = d["line_value"]
         d["_line"].percent_of = d.get("percent_of")
-    t = pricing.totals(calc, p.discount_recurring_pct)
-    one_time_pct = float((p.terms or {}).get("discount_one_time_pct") or 0)
-    if one_time_pct:
-        extra = _r(t["one_time"] * one_time_pct / 100)
-        t["discount"] = _r(t["discount"] + extra)
-        t["y1_total"] = _r(t["y1_total"] - extra)
-    p.totals = t
+    p.totals = pricing.totals(calc, p.discount_recurring_pct)  # the Estimator's totals, so both agree for the same lines
     db.flush()
     refresh_status(db, p, ls)
 

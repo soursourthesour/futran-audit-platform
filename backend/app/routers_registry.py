@@ -58,3 +58,6 @@ ROUTER_MODULES += ["servicetemplates.router", "connectors.import_router"]
 ROUTER_MODULES += ["scoping.router", "scoping.public_router"]
 # Release 2 R6b: G-07 Copilot readiness (`/e/:id/copilot`, client `/copilot`) and G-08 EU AI Act conformity (`/e/:id/eu-ai-act`)
 ROUTER_MODULES += ["euaiact.router", "euaiact.links_router"]
+
+# Release 2 R4: proposals (SM-09, SM-10), approvals (SM-11), public acceptance (SM-12), proposal templates
+ROUTER_MODULES += ["proposals.router", "proposals.public_router"]

@@ -42,7 +42,7 @@ def _remediation_tags(db: Session, codes: list[str]) -> dict[str, list]:
 
 def needed(db: Session, p: Proposal, lines: list[ProposalLine]) -> list[dict]:
     live = [ln for ln in lines if not ln.removed_reason]
-    priced = [{"code": ln.catalog_code, "price_status": ln.price_status if ln.override_price is None else None, "sellable_status": ln.sellable_status,
+    priced = [{"code": ln.catalog_code, "price_status": ln.price_status, "sellable_status": ln.sellable_status,
                "unit_price_used": ln.unit_price_used, "low": ln.low, "high": ln.high} for ln in live if ln.on_catalog]
     out: list[dict] = []
     missing = [ln.catalog_code for ln in live if not ln.on_catalog]

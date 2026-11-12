@@ -392,3 +392,4 @@ JOBS["catalog_effective_dates"] = _wsh("app.catalog.service", "run_effective_dat
 # Release 2 R5: daily usage, 90% notices, renewals and the monthly billing export (G-01); hours-bank 80% alerts (G-03)
 JOBS["commercial_usage"] = _wsh("app.commercial.plans", "run_daily_usage")
 JOBS["scoping_reminders"] = _wsh("app.scoping.sending", "run_reminders")  # Release 2 R3: day 3 and 7 reminders on client links
+JOBS["proposal_followups"] = _wsh("app.proposals.sending", "run_daily")  # Release 2 R4: proposal not opened / expiring alerts and expiry

@@ -573,3 +573,17 @@ _R6A: dict[R, dict[A, S]] = {
 }
 for _role, _grants in _R6A.items():
     MATRIX.setdefault(_role, {}).update(_grants)
+
+
+# ---- Release 2 R4: proposals (SM-09, SM-10), approvals (SM-11) and proposal templates (SM-14 tab), spec §4.1, §4.7.
+# Sales Officers and Sales Managers build and send; approvers view and decide (each rule checks its own role and refuses
+# anyone who built or owns the proposal); the Futran Admin maintains the section templates.
+_R4: dict = {
+    R.SALES_TEAM: {A.VIEW_PROPOSALS: S.ALL, A.WORK_PROPOSALS: S.ALL},
+    R.SALES_MANAGER: {A.VIEW_PROPOSALS: S.ALL, A.WORK_PROPOSALS: S.ALL, A.DECIDE_PROPOSAL_APPROVALS: S.ALL},
+    R.PRICING_APPROVER: {A.VIEW_PROPOSALS: S.ALL, A.DECIDE_PROPOSAL_APPROVALS: S.ALL},
+    R.CHIEF_AUDITOR: {A.VIEW_PROPOSALS: S.ALL, A.DECIDE_PROPOSAL_APPROVALS: S.ALL},
+    R.ADMIN: {A.MANAGE_PROPOSAL_TEMPLATES: S.ALL},
+}
+for _role, _grants in _R4.items():
+    MATRIX.setdefault(_role, {}).update(_grants)

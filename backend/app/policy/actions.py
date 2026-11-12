@@ -235,3 +235,8 @@ class Action(StrEnum):
     RECORD_AGENT_ASSURANCE = "record_agent_assurance"  # record a release: eval set, 15-point check, red team, outcome, letter
     MANAGE_ASSURANCE_CHECKLIST = "manage_assurance_checklist"  # the editable 15-point pre-deploy check list (FATF supplies it)
     SYNC_AGENTWARDEN = "sync_agentwarden"  # AgentWarden licence sync by CSV until the API exists
+    # Release 2 R4: proposals (SM-09, SM-10), approvals (SM-11), proposal templates (SM-14 tab)
+    VIEW_PROPOSALS = "view_proposals"
+    WORK_PROPOSALS = "work_proposals"  # build, version, request approvals, export and send
+    DECIDE_PROPOSAL_APPROVALS = "decide_proposal_approvals"  # SM-11; each rule still checks the approver's role
+    MANAGE_PROPOSAL_TEMPLATES = "manage_proposal_templates"  # Futran Admin
