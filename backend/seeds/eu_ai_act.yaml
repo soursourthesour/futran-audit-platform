@@ -1,0 +1,169 @@
+# EU AI Act conformity workspace (G-08, Release 2 spec v0.4 §5 B8). Data, not code: change a date, an article or a
+# question here and restart the platform. Every date names where it comes from.
+
+# When each classification's obligations apply. `source` is shown beside the date on the workspace.
+deadlines:
+  prohibited:
+    date: 2025-02-02
+    source: "Law library, EU AI Act: prohibitions from 2 Feb 2025"
+  high_risk_annex_iii:
+    date: 2027-12-02
+    source: "Release 2 spec v0.4 §5 B6: Annex III high-risk 2 Dec 2027 (Regulation (EU) 2026/1744)"
+  high_risk_annex_i:
+    date: 2028-08-02
+    source: "Release 2 spec v0.4 §5 B6: Annex I 2 Aug 2028 (Regulation (EU) 2026/1744)"
+  transparency:
+    date: 2026-08-02
+    source: "Law library, EU AI Act: transparency (Art. 50) from 2 Aug 2026"
+  minimal:
+    date: 2025-02-02
+    source: "Law library, EU AI Act: AI literacy (Art. 4) from 2 Feb 2025"
+  gpai:
+    date: 2025-08-02
+    source: "Regulation (EU) 2024/1689 Art. 113(b); not stated in the Release 2 spec, confirm with the legal reviewer"
+
+banner: "Dates per Regulation (EU) 2026/1744: Annex III high-risk from 2 Dec 2027 · Annex I from 2 Aug 2028 · Art. 4 and Art. 50 already apply."
+
+roles:
+  provider: Provider
+  deployer: Deployer
+  importer: Importer
+  distributor: Distributor
+  product_manufacturer: Product manufacturer
+
+classifications:
+  prohibited: "Prohibited (Art. 5)"
+  high_risk_annex_iii: "High-risk · Annex III"
+  high_risk_annex_i: "High-risk · Annex I (product safety)"
+  transparency: "Transparency only (Art. 50)"
+  minimal: "Minimal"
+  gpai: "General-purpose AI model"
+
+# Annex III areas. `fria` true: a deployer of a system in this area completes a FRIA even when it is not a public body
+# or public service provider (Art. 27(1), Annex III point 5(b) and (c)). `no_fria`: Art. 27(1) excludes the area.
+annex_iii_areas:
+  biometrics: {label: "Biometrics (point 1)"}
+  critical_infrastructure: {label: "Critical infrastructure (point 2)", no_fria: true}
+  education: {label: "Education and vocational training (point 3)"}
+  employment: {label: "Employment and workers management (point 4)"}
+  public_services: {label: "Public assistance benefits and services (point 5(a))"}
+  credit: {label: "Creditworthiness and credit scoring (point 5(b))", fria: true}
+  insurance: {label: "Life and health insurance pricing (point 5(c))", fria: true}
+  emergency: {label: "Emergency calls and dispatch (point 5(d))"}
+  law_enforcement: {label: "Law enforcement (point 6)"}
+  migration: {label: "Migration, asylum and border control (point 7)"}
+  justice: {label: "Administration of justice and democratic processes (point 8)"}
+
+# The obligations checklist. `ref` is the article reference used to find the matching row in the law library (a
+# library row covers it when its citation names the same article, or the same paragraph). `when` lists the role and
+# classification pairs it applies to; role "deployer" also covers a provider marked "also uses it".
+obligations:
+  - {key: art4, ref: "4", article: "Art. 4", title: "AI literacy of staff and others who operate or use the system",
+     when: {roles: [provider, deployer, product_manufacturer], classifications: all}}
+  - {key: art5, ref: "5", article: "Art. 5", title: "Stop the prohibited practice and record when it ended",
+     when: {roles: all, classifications: [prohibited]}}
+  # providers of high-risk systems (and product manufacturers placing one under their name, Art. 25(3))
+  - {key: art9, ref: "9", article: "Art. 9", title: "Risk management system", when: {roles: [provider, product_manufacturer], classifications: [high_risk_annex_iii, high_risk_annex_i]}}
+  - {key: art10, ref: "10", article: "Art. 10", title: "Data and data governance, including bias checks", when: {roles: [provider, product_manufacturer], classifications: [high_risk_annex_iii, high_risk_annex_i]}}
+  - {key: art11, ref: "11", article: "Art. 11 · Annex IV", title: "Technical documentation", annex_iv: true, when: {roles: [provider, product_manufacturer], classifications: [high_risk_annex_iii, high_risk_annex_i]}}
+  - {key: art12, ref: "12", article: "Art. 12", title: "Record-keeping (automatic logs)", when: {roles: [provider, product_manufacturer], classifications: [high_risk_annex_iii, high_risk_annex_i]}}
+  - {key: art13, ref: "13", article: "Art. 13", title: "Transparency and instructions for use", when: {roles: [provider, product_manufacturer], classifications: [high_risk_annex_iii, high_risk_annex_i]}}
+  - {key: art14, ref: "14(1)", article: "Art. 14", title: "Human oversight built into the design", when: {roles: [provider, product_manufacturer], classifications: [high_risk_annex_iii, high_risk_annex_i]}}
+  - {key: art15, ref: "15", article: "Art. 15", title: "Accuracy, robustness and cybersecurity", when: {roles: [provider, product_manufacturer], classifications: [high_risk_annex_iii, high_risk_annex_i]}}
+  - {key: art17, ref: "17", article: "Art. 17", title: "Quality management system", when: {roles: [provider, product_manufacturer], classifications: [high_risk_annex_iii, high_risk_annex_i]}}
+  - {key: art43, ref: "43", article: "Art. 43", title: "Conformity assessment", when: {roles: [provider, product_manufacturer], classifications: [high_risk_annex_iii, high_risk_annex_i]}}
+  - {key: art47, ref: "47", article: "Art. 47", title: "EU declaration of conformity", when: {roles: [provider, product_manufacturer], classifications: [high_risk_annex_iii, high_risk_annex_i]}}
+  - {key: art49, ref: "49", article: "Art. 49", title: "Registration in the EU database", when: {roles: [provider], classifications: [high_risk_annex_iii]}}
+  - {key: art72, ref: "72", article: "Art. 72", title: "Post-market monitoring", when: {roles: [provider, product_manufacturer], classifications: [high_risk_annex_iii, high_risk_annex_i]}}
+  # deployers of high-risk systems
+  - {key: art26_1, ref: "26(1)", article: "Art. 26(1)", title: "Use the system in line with the provider's instructions for use", when: {roles: [deployer], classifications: [high_risk_annex_iii, high_risk_annex_i]}}
+  - {key: art26_2, ref: "26(2)", article: "Art. 14, 26(2)", title: "Human oversight by people with the competence, training and authority", when: {roles: [deployer], classifications: [high_risk_annex_iii, high_risk_annex_i]}}
+  - {key: art26_5, ref: "26(5)", article: "Art. 26(5)", title: "Monitor the system and report serious incidents to the provider", when: {roles: [deployer], classifications: [high_risk_annex_iii, high_risk_annex_i]}}
+  - {key: art26_6, ref: "26(6)", article: "Art. 26(6)", title: "Keep the automatic logs for at least six months", when: {roles: [deployer], classifications: [high_risk_annex_iii, high_risk_annex_i]}}
+  - {key: art26_7, ref: "26(7)", article: "Art. 26(7)", title: "Inform workers and their representatives before workplace use", when: {roles: [deployer], classifications: [high_risk_annex_iii, high_risk_annex_i]}}
+  - {key: art26_11, ref: "26(11)", article: "Art. 26(11)", title: "Tell people that a high-risk system is used in decisions about them", when: {roles: [deployer], classifications: [high_risk_annex_iii]}}
+  - {key: art27, ref: "27(1)", article: "Art. 27", title: "Fundamental rights impact assessment before first use", fria: true, when: {roles: [deployer], classifications: [high_risk_annex_iii]}}
+  - {key: art86, ref: "86(1)", article: "Art. 86", title: "Explain the system's role in a decision on request", when: {roles: [deployer], classifications: [high_risk_annex_iii]}}
+  # both
+  - {key: art73, ref: "73", article: "Art. 73", title: "Serious incident reporting readiness", when: {roles: [provider, deployer, product_manufacturer], classifications: [high_risk_annex_iii, high_risk_annex_i]}}
+  # importers and distributors of high-risk systems
+  - {key: art23, ref: "23", article: "Art. 23", title: "Importer checks before placing the system on the market", when: {roles: [importer], classifications: [high_risk_annex_iii, high_risk_annex_i]}}
+  - {key: art24, ref: "24", article: "Art. 24", title: "Distributor checks before making the system available", when: {roles: [distributor], classifications: [high_risk_annex_iii, high_risk_annex_i]}}
+  # transparency
+  - {key: art50_1, ref: "50(1)", article: "Art. 50(1)", title: "Tell people they are interacting with an AI system", when: {roles: [provider], classifications: [transparency, gpai]}}
+  - {key: art50_3, ref: "50(3)", article: "Art. 50(3)–(4)", title: "Disclose deep fakes, emotion recognition and biometric categorisation", when: {roles: [deployer], classifications: [transparency]}}
+  # general-purpose AI models
+  - {key: art53, ref: "53", article: "Art. 53", title: "GPAI model documentation, copyright policy and training content summary", when: {roles: [provider], classifications: [gpai]}}
+
+# Annex IV technical documentation (providers of high-risk systems): the nine points of Annex IV.
+annex_iv:
+  - {key: general, label: "1. General description of the AI system"}
+  - {key: elements, label: "2. Detailed description of the elements and of the development process"}
+  - {key: monitoring, label: "3. Monitoring, functioning and control of the system"}
+  - {key: metrics, label: "4. Appropriateness of the performance metrics"}
+  - {key: risk, label: "5. Risk management system (Art. 9)"}
+  - {key: changes, label: "6. Changes made through the lifecycle"}
+  - {key: standards, label: "7. Harmonised standards or other specifications applied"}
+  - {key: declaration, label: "8. Copy of the EU declaration of conformity"}
+  - {key: post_market, label: "9. Post-market monitoring plan (Art. 72)"}
+
+# Fundamental rights impact assessment (Art. 27(1)(a)–(f)), for deployers where Art. 27 applies.
+fria:
+  - {key: process, label: "The deployer's processes in which the system is used, in line with its intended purpose (a)"}
+  - {key: period, label: "How long and how often the system is used (b)"}
+  - {key: persons, label: "Categories of people and groups likely to be affected (c)"}
+  - {key: risks, label: "Specific risks of harm to those people and groups (d)"}
+  - {key: oversight, label: "Human oversight measures, per the instructions for use (e)"}
+  - {key: measures, label: "What happens if the risks materialise, including internal governance and complaints (f)"}
+  - {key: notified, label: "Market surveillance authority notified of the results (Art. 27(3))"}
+
+# EU AI Act requirements for the law library (spec B8: the international law sheet). Each is added to the current
+# version of the EU AI Act only when no row there already covers the same article; existing rows are linked, never
+# duplicated or changed. Codes are assigned at load time from the next free EU-nn. Marked "verify": the quotes were
+# not re-read against the Official Journal for this seed.
+library:
+  - {ref: "5", text: "Do not place on the market, put into service or use an AI system for a prohibited practice", applies_to: [provider, deployer], needed_by: development,
+     evidence: "Screening of AI uses against Art. 5; record of any practice stopped", role: ai_compliance_officer, ai_types: [all], citation: "EU AI Act Art. 5(1)",
+     quote: "The following AI practices shall be prohibited"}
+  - {ref: "9", text: "Providers of high-risk AI: establish, document and maintain a risk management system", applies_to: [provider], needed_by: development,
+     evidence: "Risk management procedure; risk register for the system", role: ai_system_owner, ai_types: [decision], citation: "EU AI Act Art. 9(1)",
+     quote: "A risk management system shall be established, implemented, documented and maintained in relation to high-risk AI systems."}
+  - {ref: "10", text: "Providers of high-risk AI: train, validate and test on data sets that meet the quality criteria, including bias examination", applies_to: [provider], needed_by: development,
+     evidence: "Data governance procedure; bias examination results", role: data_consent_steward, ai_types: [decision], citation: "EU AI Act Art. 10(1)",
+     quote: "shall be developed on the basis of training, validation and testing data sets that meet the quality criteria"}
+  - {ref: "11", text: "Providers of high-risk AI: draw up the technical documentation (Annex IV) before placing on the market and keep it up to date", applies_to: [provider], needed_by: go_live,
+     evidence: "Technical documentation covering the nine points of Annex IV", role: technical_owner, ai_types: [decision], citation: "EU AI Act Art. 11(1), Annex IV",
+     quote: "The technical documentation of a high-risk AI system shall be drawn up before that system is placed on the market or put into service and shall be kept up-to date."}
+  - {ref: "12", text: "Providers of high-risk AI: design the system to record events (logs) automatically over its lifetime", applies_to: [provider], needed_by: development,
+     evidence: "Logging design; sample logs", role: technical_owner, ai_types: [decision], citation: "EU AI Act Art. 12(1)",
+     quote: "High-risk AI systems shall technically allow for the automatic recording of events (logs) over the lifetime of the system."}
+  - {ref: "13", text: "Providers of high-risk AI: make the system transparent enough for deployers and supply instructions for use", applies_to: [provider], needed_by: go_live,
+     evidence: "Instructions for use", role: transparency_notice_owner, ai_types: [decision], citation: "EU AI Act Art. 13(1)",
+     quote: "sufficiently transparent to enable deployers to interpret a system's output and use it appropriately"}
+  - {ref: "14(1)", text: "Providers of high-risk AI: design the system so people can oversee it effectively while it is in use", applies_to: [provider], needed_by: development,
+     evidence: "Oversight design; human-machine interface description", role: human_oversight_person, ai_types: [decision, agent], citation: "EU AI Act Art. 14(1)",
+     quote: "that they can be effectively overseen by natural persons during the period in which they are in use"}
+  - {ref: "15", text: "Providers of high-risk AI: achieve appropriate accuracy, robustness and cybersecurity throughout the lifecycle", applies_to: [provider], needed_by: go_live,
+     evidence: "Accuracy metrics; robustness and security test results", role: technical_owner, ai_types: [decision], citation: "EU AI Act Art. 15(1)",
+     quote: "achieve an appropriate level of accuracy, robustness, and cybersecurity"}
+  - {ref: "17", text: "Providers of high-risk AI: put a quality management system in place", applies_to: [provider], needed_by: development,
+     evidence: "Quality management system documentation", role: ai_compliance_officer, ai_types: [decision], citation: "EU AI Act Art. 17(1)",
+     quote: "Providers of high-risk AI systems shall put a quality management system in place that ensures compliance with this Regulation."}
+  - {ref: "23", text: "Importers of high-risk AI: check conformity assessment, technical documentation, CE marking and instructions before placing on the market", applies_to: [importer], needed_by: procurement,
+     evidence: "Importer checklist with the provider's documents", role: vendor_ai_risk_owner, ai_types: [decision], citation: "EU AI Act Art. 23(1)",
+     quote: "Before placing a high-risk AI system on the market, importers shall ensure that the system is in conformity with this Regulation"}
+  - {ref: "24", text: "Distributors of high-risk AI: check the CE marking, declaration of conformity and instructions before making it available", applies_to: [distributor], needed_by: procurement,
+     evidence: "Distributor checklist", role: vendor_ai_risk_owner, ai_types: [decision], citation: "EU AI Act Art. 24(1)",
+     quote: "Before making a high-risk AI system available on the market, distributors shall verify that it bears the required CE marking"}
+  - {ref: "43", text: "Providers of high-risk AI: complete the applicable conformity assessment before placing on the market", applies_to: [provider], needed_by: go_live,
+     evidence: "Conformity assessment record (internal control or notified body)", role: ai_compliance_officer, ai_types: [decision], citation: "EU AI Act Art. 43"}
+  - {ref: "47", text: "Providers of high-risk AI: draw up an EU declaration of conformity and keep it for 10 years", applies_to: [provider], needed_by: go_live,
+     evidence: "Signed EU declaration of conformity", role: accountable_executive, ai_types: [decision], citation: "EU AI Act Art. 47"}
+  - {ref: "49", text: "Providers of Annex III high-risk AI: register the system in the EU database before placing on the market", applies_to: [provider], needed_by: go_live,
+     evidence: "EU database registration reference", role: ai_compliance_officer, ai_types: [decision], citation: "EU AI Act Art. 49(1)"}
+  - {ref: "53", text: "Providers of general-purpose AI models: keep technical documentation, a copyright policy and a public summary of training content", applies_to: [provider], needed_by: go_live,
+     evidence: "Model documentation; copyright policy; training content summary", role: technical_owner, ai_types: [genai], citation: "EU AI Act Art. 53(1)",
+     quote: "draw up and keep up-to-date the technical documentation of the model"}
+  - {ref: "72", text: "Providers of high-risk AI: establish and document a post-market monitoring system", applies_to: [provider], needed_by: go_live,
+     evidence: "Post-market monitoring plan", role: ai_system_owner, ai_types: [decision], citation: "EU AI Act Art. 72(1)",
+     quote: "Providers shall establish and document a post-market monitoring system"}

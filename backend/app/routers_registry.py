@@ -56,3 +56,5 @@ ROUTER_MODULES += ["catalog.router", "catalog.estimate_router"]
 ROUTER_MODULES += ["servicetemplates.router"]
 # Release 2 R3: scoping questionnaire (SM-05 to SM-08, the public SM-07 link) and the question bank and mapping rules tabs
 ROUTER_MODULES += ["scoping.router", "scoping.public_router"]
+# Release 2 R6b: G-07 Copilot readiness (`/e/:id/copilot`, client `/copilot`) and G-08 EU AI Act conformity (`/e/:id/eu-ai-act`)
+ROUTER_MODULES += ["euaiact.router", "euaiact.links_router"]

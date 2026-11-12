@@ -52,3 +52,6 @@ importlib.import_module("app.catalog.models")
 
 # Release 2 R4: proposals, approvals and acceptance (SM-09 to SM-12)
 importlib.import_module("app.proposals.models")
+# Release 2 R6b: G-07 Copilot readiness and G-08 EU AI Act conformity workspaces
+for _mod in ["copilot_readiness", "euaiact"]:
+    importlib.import_module(f"app.{_mod}.models")

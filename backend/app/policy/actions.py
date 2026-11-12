@@ -219,3 +219,10 @@ class Action(StrEnum):
     MANAGE_SCOPING_BANK = "manage_scoping_bank"
     MANAGE_MAPPING_RULES = "manage_mapping_rules"
     APPROVE_MAPPING_RULES = "approve_mapping_rules"
+    # Release 2 R6b: G-07 Copilot readiness workspace and G-08 EU AI Act conformity workspace (spec §5 B7, B8)
+    VIEW_COPILOT_READINESS = "view_copilot_readiness"  # licences and usage, site risk list, waves, controls (client view: CAICO)
+    MANAGE_COPILOT_READINESS = "manage_copilot_readiness"  # imports, sites, waves, controls, readiness report, register entry
+    UPDATE_COPILOT_REMEDIATION = "update_copilot_remediation"  # site remediation owner and status (the client works the fixes)
+    VIEW_EU_AI_ACT = "view_eu_ai_act"  # per-system role, classification, deadline (client: signed-off summary only)
+    EDIT_EU_AI_ACT = "edit_eu_ai_act"  # role, classification, obligations, Annex IV tracker, FRIA
+    SIGN_EU_CLASSIFICATION = "sign_eu_classification"  # Legal/Compliance Reviewer only (spec B8)

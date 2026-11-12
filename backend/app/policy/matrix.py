@@ -535,3 +535,23 @@ _R3: dict[str, dict[A, S]] = {
 for _key, _grants in _R3.items():
     if _key in R._value2member_map_:
         MATRIX.setdefault(R(_key), {}).update(_grants)
+
+
+
+# ---- Release 2 R6b: G-07 Copilot readiness and G-08 EU AI Act conformity (spec §5 B7, B8, screen table G-07, G-08).
+# The "Microsoft practice" in G-07 is the auditors on the Copilot engagement's team. The client's CAICO sees the G-07
+# client view and works site remediation. Only the Legal/Compliance Reviewer (the partner law firm) signs off an EU AI
+# Act classification; the client sees a classification only once it is signed off.
+_R6B: dict[R, dict[A, S]] = {
+    R.CHIEF_AUDITOR: {A.VIEW_COPILOT_READINESS: S.ALL, A.MANAGE_COPILOT_READINESS: S.ALL, A.UPDATE_COPILOT_REMEDIATION: S.ALL,
+                      A.VIEW_EU_AI_ACT: S.ALL, A.EDIT_EU_AI_ACT: S.ALL},
+    R.AUDITOR: {A.VIEW_COPILOT_READINESS: S.ASSIGNED, A.MANAGE_COPILOT_READINESS: S.ASSIGNED, A.UPDATE_COPILOT_REMEDIATION: S.ASSIGNED,
+                A.VIEW_EU_AI_ACT: S.ASSIGNED, A.EDIT_EU_AI_ACT: S.ASSIGNED},
+    R.ENGAGEMENT_MANAGER: {A.VIEW_COPILOT_READINESS: S.ASSIGNED, A.MANAGE_COPILOT_READINESS: S.ASSIGNED, A.UPDATE_COPILOT_REMEDIATION: S.ASSIGNED,
+                           A.VIEW_EU_AI_ACT: S.ASSIGNED, A.EDIT_EU_AI_ACT: S.ASSIGNED},
+    R.QA_REVIEWER: {A.VIEW_COPILOT_READINESS: S.ASSIGNED, A.VIEW_EU_AI_ACT: S.ASSIGNED},
+    R.LEGAL_REVIEWER: {A.VIEW_EU_AI_ACT: S.ASSIGNED, A.SIGN_EU_CLASSIFICATION: S.ASSIGNED},
+    R.CAICO: {A.VIEW_COPILOT_READINESS: S.ORG, A.UPDATE_COPILOT_REMEDIATION: S.ORG, A.VIEW_EU_AI_ACT: S.ORG},
+}
+for _role, _grants in _R6B.items():
+    MATRIX.setdefault(_role, {}).update(_grants)

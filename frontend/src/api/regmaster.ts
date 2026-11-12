@@ -61,7 +61,7 @@ export const STATUS_OPTIONS: Option[] = [
   { value: 'delayed', label: 'Delayed or under amendment' }, { value: 'guidance', label: 'Guidance (not binding)' }, { value: 'repealed', label: 'Repealed or lapsed' }, { value: 'pending', label: 'Pending bill' },
 ];
 export const APPLIES_OPTIONS: Option[] = [
-  { value: 'deployer', label: 'Deployer (uses AI)' }, { value: 'developer', label: 'Developer' }, { value: 'provider', label: 'Provider' }, { value: 'employer', label: 'Employer' }, { value: 'data_fiduciary', label: 'Data fiduciary or controller' },
+  { value: 'deployer', label: 'Deployer (uses AI)' }, { value: 'developer', label: 'Developer' }, { value: 'provider', label: 'Provider' }, { value: 'employer', label: 'Employer' }, { value: 'data_fiduciary', label: 'Data fiduciary or controller' }, { value: 'importer', label: 'Importer' }, { value: 'distributor', label: 'Distributor' },
 ];
 export const STAGE_OPTIONS: Option[] = [
   { value: 'program_setup', label: 'Program set-up' }, { value: 'procurement', label: 'Procurement' }, { value: 'development', label: 'Development' },

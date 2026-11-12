@@ -57,8 +57,13 @@ def current_version(db: Session, regulation_id: str):
     return reg, v
 
 
+# Duties that fall only on whoever builds or supplies a system (EU AI Act provider, importer and distributor rows,
+# R6b): a system the client bought does not take them.
+SUPPLIER_SIDE = {"developer", "provider", "importer", "distributor"}
+
+
 def developer_only(applies_to: list | None) -> bool:
-    return bool(applies_to) and set(applies_to) <= {"developer"}
+    return bool(applies_to) and set(applies_to) <= SUPPLIER_SIDE
 
 
 def _jurisdiction_name(db: Session, reg) -> str | None:

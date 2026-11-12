@@ -26,7 +26,7 @@ from app.core.models import Base, IdMixin, TimestampedTenantMixin
 
 STAGES = ["program_setup", "procurement", "development", "go_live", "ongoing", "yearly"]
 VERSION_STATUSES = ["in_force", "in_force_phased", "enacted_not_in_force", "phased", "delayed", "guidance", "repealed"]
-APPLIES_TO = ["developer", "deployer", "employer", "data_fiduciary", "provider"]
+APPLIES_TO = ["developer", "deployer", "employer", "data_fiduciary", "provider", "importer", "distributor"]  # R6b: EU AI Act Art. 23, 24
 AI_TYPES = ["agent", "decision", "embedded", "genai", "all"]
 
 
