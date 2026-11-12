@@ -1,5 +1,5 @@
 """G-06: Engagement.type gains the ten Release 2 types (spec B6), defined once in servicetemplates.types."""
-from app.servicetemplates.types import ENGAGEMENT_TYPES, NEW_ENGAGEMENT_TYPES
+from app.servicetemplates.types import B6_ENGAGEMENT_TYPES, ENGAGEMENT_TYPES, NEW_ENGAGEMENT_TYPES
 from tests.factories import login_as, make_org, make_user
 
 TEN = ("vendor_due_diligence", "vendor_sponsored_audit", "ll144_applicability", "copilot_readiness", "eu_ai_act_readiness", "iso42001_readiness",
@@ -7,7 +7,7 @@ TEN = ("vendor_due_diligence", "vendor_sponsored_audit", "ll144_applicability", 
 
 
 def test_the_ten_new_types_and_the_original_three_have_labels():
-    assert NEW_ENGAGEMENT_TYPES == TEN
+    assert B6_ENGAGEMENT_TYPES == TEN and set(TEN) <= set(NEW_ENGAGEMENT_TYPES)  # R5 adds incident_response beside them
     assert tuple(ENGAGEMENT_TYPES)[:3] == ("initial_assessment", "ll144_bias_audit", "annual_review")
     assert set(TEN) <= set(ENGAGEMENT_TYPES)
     assert all(isinstance(v, str) and v and v[0].isupper() for v in ENGAGEMENT_TYPES.values())

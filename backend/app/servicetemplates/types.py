@@ -22,6 +22,8 @@ ENGAGEMENT_TYPES: dict[str, str] = {
 }
 ORIGINAL_ENGAGEMENT_TYPES: tuple[str, ...] = ("initial_assessment", "ll144_bias_audit", "annual_review")
 NEW_ENGAGEMENT_TYPES: tuple[str, ...] = tuple(k for k in ENGAGEMENT_TYPES if k not in ORIGINAL_ENGAGEMENT_TYPES)
+B6_ENGAGEMENT_TYPES: tuple[str, ...] = ("vendor_due_diligence", "vendor_sponsored_audit", "ll144_applicability", "copilot_readiness", "eu_ai_act_readiness",
+                                        "iso42001_readiness", "ma_due_diligence", "agent_assurance", "training_workshop", "advisory_retainer")  # the ten in spec B6
 
 
 def type_label(key: str | None) -> str:
