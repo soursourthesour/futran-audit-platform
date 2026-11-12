@@ -242,7 +242,7 @@ SELF_COMPLETE = {"guide", "notice"}  # the rest complete through their own scree
 def _client_engagement(db: Session, actor: Actor) -> Engagement:
     if actor.is_futran:
         raise NotFound()
-    e = db.scalar(select(Engagement).where(Engagement.client_id == actor.organization.id, Engagement.deleted_at.is_(None), Engagement.status.not_in(["draft", "pending_approval"])).order_by(Engagement.created_at.desc()).limit(1))
+    e = db.scalar(select(Engagement).where(Engagement.client_id == actor.organization.id, Engagement.deleted_at.is_(None), Engagement.status.not_in(["draft", "pending_approval"]), Engagement.type != "incident_response").order_by(Engagement.created_at.desc()).limit(1))
     if e is None:
         raise NotFound("There is no engagement to show yet.")
     authorize(db, actor, Action.VIEW_ENGAGEMENT, engagement_id=e.id)

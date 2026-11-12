@@ -191,7 +191,7 @@ def rollup(db: Session, sub: Organization) -> dict:
     rows = db.execute(select(RegisterSystem.stage, RegisterSystem.risk_tier, RegisterSystem.bias_next_due)
                       .where(RegisterSystem.organization_id == sub.id, RegisterSystem.deleted_at.is_(None))).all()
     active = [r for r in rows if r.stage != "retired"]
-    e = db.scalar(select(Engagement).where(Engagement.client_id == sub.id, Engagement.deleted_at.is_(None), Engagement.status.not_in(["draft", "pending_approval"]))
+    e = db.scalar(select(Engagement).where(Engagement.client_id == sub.id, Engagement.deleted_at.is_(None), Engagement.status.not_in(["draft", "pending_approval"]), Engagement.type != "incident_response")
                   .order_by(Engagement.created_at.desc()).limit(1))
     audit_status = None
     if e is not None:

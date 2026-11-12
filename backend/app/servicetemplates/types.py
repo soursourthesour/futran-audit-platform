@@ -17,6 +17,8 @@ ENGAGEMENT_TYPES: dict[str, str] = {
     "agent_assurance": "Agent Assure",
     "training_workshop": "Training workshop",
     "advisory_retainer": "Advisory retainer",
+    # Release 2 R5: opened when the incident response retainer (M-12) is activated; never the client's current audit
+    "incident_response": "Incident response",
 }
 ORIGINAL_ENGAGEMENT_TYPES: tuple[str, ...] = ("initial_assessment", "ll144_bias_audit", "annual_review")
 NEW_ENGAGEMENT_TYPES: tuple[str, ...] = tuple(k for k in ENGAGEMENT_TYPES if k not in ORIGINAL_ENGAGEMENT_TYPES)

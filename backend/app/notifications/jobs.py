@@ -30,7 +30,7 @@ def _d(now: date | datetime) -> date:
 
 
 def _current_engagement(db: Session, org_id: str) -> Engagement | None:
-    return db.scalar(select(Engagement).where(Engagement.client_id == org_id, Engagement.deleted_at.is_(None), Engagement.status.not_in(["draft", "pending_approval"])).order_by(Engagement.created_at.desc()).limit(1))
+    return db.scalar(select(Engagement).where(Engagement.client_id == org_id, Engagement.deleted_at.is_(None), Engagement.status.not_in(["draft", "pending_approval"]), Engagement.type != "incident_response").order_by(Engagement.created_at.desc()).limit(1))
 
 
 def _futran_contacts(db: Session, user: User) -> list[User]:

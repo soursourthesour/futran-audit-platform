@@ -780,7 +780,7 @@ def applicability(client_id: str, actor: Actor = Depends(current_actor), db: Ses
     current = all_letters[0] if all_letters else None
     from app.engagements.models import Engagement
 
-    e = db.scalar(select(Engagement).where(Engagement.client_id == org.id, Engagement.deleted_at.is_(None)).order_by(Engagement.created_at.desc()).limit(1))
+    e = db.scalar(select(Engagement).where(Engagement.client_id == org.id, Engagement.deleted_at.is_(None), Engagement.type != "incident_response").order_by(Engagement.created_at.desc()).limit(1))
     contact = letters.caico_contact(db, org.id)
     return {
         "client": {"id": org.id, "name": org.trading_name or org.name, "client_ref": org.client_ref, "engagement_status": e.status if e else None},

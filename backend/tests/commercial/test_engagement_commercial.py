@@ -80,7 +80,7 @@ def test_change_order_priced_from_the_catalog_and_approved_by_the_client(cw, fak
 
 def test_price_below_list_needs_a_sales_approver_who_is_not_the_raiser(cw, fake_catalog):
     _commercial(cw)
-    approver = make_user(cw.db, cw.futran, roles=["sales_manager"], name="Mia Manager", email="mia@futran.test")
+    approver = make_user(cw.db, cw.futran, roles=["pricing_approver"], name="Pat Pricing", email="pat@futran.test")  # below Low: P-4
     cw.db.commit()
     cw.as_(cw.em)
     co = cw.client.post(f"/api/v1/e/{cw.engagement.id}/change-orders", json={"code": "A-03", "qty": 1, "unit_price": 500, "reason": "Goodwill"}).json()

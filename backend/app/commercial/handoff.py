@@ -423,6 +423,35 @@ def separate_team_user_ids(db: Session, client_id: str) -> set[str]:
     return out
 
 
+def unconfirmed_handoff(db: Session, client_id: str) -> Handoff | None:
+    """A hand-off for this client with policy drafting, AgentWarden, Agent Assure or Fractional Officer lines whose separate
+    delivery team the Chief Auditor has not yet confirmed."""
+    for h in db.scalars(select(Handoff).where(Handoff.organization_id == client_id, Handoff.deleted_at.is_(None), Handoff.independence_confirmed_by.is_(None))):
+        if h.needs_separate_team:
+            return h
+    return None
+
+
+def require_separate_team_named(db: Session, client_id: str) -> None:
+    """Staffing check (rules I-2, I-3): until the Chief Auditor confirms the separate delivery team on SM-13, nobody is added
+    to this client's engagement teams, so the audit team cannot be formed before independence is settled."""
+    from app.core.errors import Conflict
+
+    h = unconfirmed_handoff(db, client_id)
+    if h is not None:
+        raise Conflict(f"The Chief Auditor must first confirm the separate delivery team for {', '.join(h.needs_separate_team)} on the hand-off. "
+                       "Nobody joins this client's engagement teams until then.")
+
+
+def require_independence_confirmed(db: Session, e: Engagement) -> None:
+    """Approval check: an engagement draft made by a hand-off with I-2 / I-3 lines waits for the separate-team confirmation."""
+    from app.core.errors import Conflict
+
+    h = unconfirmed_handoff(db, e.client_id)
+    if h is not None and e.id in {it.get("ref_id") for it in h.items or [] if it.get("kind") == "engagement"}:
+        raise Conflict(f"Confirm the separate delivery team for {', '.join(h.needs_separate_team)} on the hand-off before approving this engagement.")
+
+
 def _audit_team_clash(db: Session, client_id: str, user_ids: list[str]) -> list[User]:
     from app.engagements.models import EngagementTeam
 

@@ -74,7 +74,7 @@ def test_submit_and_the_manager_approves_not_the_author(cw):
 
 def test_hours_bank_balance_80_percent_alert_and_overage(cw, fake_catalog):
     bank, _ = _won(cw)
-    cw.as_(cw.sales)
+    cw.as_(cw.chief)  # the bank is Acme's: logged by someone who may log to it
     r = _week(cw, [_row(f"bank:{bank.id}", "advisory", [8, 8])])
     assert r.status_code == 200, r.text
     assert cw.db.scalar(select(Notification).where(Notification.kind == "hours_bank_80")) is not None
@@ -98,9 +98,13 @@ def test_activating_the_incident_retainer_opens_an_incident_engagement_and_billa
     ret = cw.db.get(Retainer, ret.id)
     e = cw.db.get(Engagement, ret.incident_engagement_id)
     assert ret.status == "activated" and e.type == "incident_response" and e.client_id == cw.prospect.id
-    # the audit engagement stays the client's current one
-    latest = cw.db.scalar(select(Engagement).where(Engagement.client_id == cw.prospect.id).order_by(Engagement.created_at.desc()).limit(1))
-    assert latest.type == "initial_assessment"
+    # the audit engagement stays the one the client page and the wizard open
+    from app.engagements.wizard_router import _load
+    from app.auth.deps import Actor
+    from app.tenancy.models import Organization
+
+    chief = Actor(user=cw.chief, organization=cw.futran, roles=list(__import__("app.tenancy.service", fromlist=["roles_of"]).roles_of(cw.db, cw.chief.id)))
+    assert _load(cw.db, chief, cw.prospect.id)[1].type == "initial_assessment" and e.status == "draft"
     r = _week(cw, [_row(f"retainer:{ret.id}", "incident_response", [3, 5.5])])
     assert r.status_code == 200, r.text
     rows = plans.billing_rows(cw.db, "2026-11", cw.prospect.id)

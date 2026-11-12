@@ -37,19 +37,19 @@ export function TimeAndHours() {
   if (!w.data) return <div className="page"><Alert tone="danger">{errorMessage(w.error)}</Alert></div>;
   const d = w.data;
   const days = d.days.slice(0, 5).concat(d.days.slice(5).filter((day) => rows.some((r) => r.hours[day])));
-  const locked = d.status === 'submitted' || d.status === 'approved';
+  const locked = d.status === 'submitted' || (d.status === 'approved' && rows.every((r) => r.locked));  // approved rows stay locked; returned ones reopen
   const total = rows.reduce((s, r) => s + Object.values(r.hours).reduce((a, b) => a + (Number(b) || 0), 0), 0);
   const billable = rows.filter((r) => r.billable).reduce((s, r) => s + Object.values(r.hours).reduce((a, b) => a + (Number(b) || 0), 0), 0);
   const set = (i: number, patch: Partial<TimeRow>) => { setRows(rows.map((r, j) => (j === i ? { ...r, ...patch } : r))); setDirty(true); };
   const save = async () => {
     setMsg(null);
-    try { qc.setQueryData(['week', week], await api.put<Week>(`/staff/time/${week}`, { rows })); setMsg({ tone: 'success', text: 'Week saved.' }); await banks.refetch(); }
+    try { qc.setQueryData(['week', week], await api.put<Week>(`/staff/time/${week}`, { rows: rows.filter((r) => !r.locked) })); setMsg({ tone: 'success', text: 'Week saved.' }); await banks.refetch(); }
     catch (e) { setMsg({ tone: 'danger', text: errorMessage(e) }); }
   };
   const submit = async () => {
     setMsg(null);
     try {
-      if (dirty) await api.put<Week>(`/staff/time/${week}`, { rows });
+      if (dirty) await api.put<Week>(`/staff/time/${week}`, { rows: rows.filter((r) => !r.locked) });
       qc.setQueryData(['week', week], await api.post<Week>(`/staff/time/${week}/submit`));
       setMsg({ tone: 'success', text: 'Week submitted for approval.' });
     } catch (e) { setMsg({ tone: 'danger', text: errorMessage(e) }); }
@@ -74,23 +74,23 @@ export function TimeAndHours() {
               const target = d.targets.find((t) => t.key === r.target);
               return (
                 <tr key={i}>
-                  <td>{locked ? r.label : (
+                  <td>{(locked || r.locked) ? r.label : (
                     <select aria-label="Charged to" value={r.target} onChange={(e) => { const t = d.targets.find((x) => x.key === e.target.value); set(i, { target: e.target.value, label: t?.label ?? '', billable: t?.billable_default ?? false }); }}>
                       {d.targets.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
                     </select>)}</td>
-                  <td>{locked ? r.activity_label : (
+                  <td>{(locked || r.locked) ? r.activity_label : (
                     <select aria-label="Activity" value={r.activity} onChange={(e) => set(i, { activity: e.target.value })}>
                       {d.activities.map((a) => <option key={a.code} value={a.code}>{a.label}</option>)}
                     </select>)}</td>
-                  <td>{locked || target?.kind === 'internal' ? (r.billable_label ?? (r.billable ? 'Yes' : 'No')) : (
+                  <td>{locked || r.locked || target?.kind === 'internal' ? (r.billable_label ?? (r.billable ? 'Yes' : 'No')) : (
                     <label className="small"><input type="checkbox" checked={r.billable} onChange={(e) => set(i, { billable: e.target.checked })} /> {r.billable ? 'Yes' : 'No'}</label>)}</td>
                   {days.map((day) => (
-                    <td key={day} className="num">{locked ? (r.hours[day] ? hrs(r.hours[day]) : '') : (
+                    <td key={day} className="num">{(locked || r.locked) ? (r.hours[day] ? hrs(r.hours[day]) : '') : (
                       <input className="hours" aria-label={`${DAY(day)} hours`} type="number" min={0} max={24} step={0.25} value={r.hours[day] ?? ''}
                         onChange={(e) => set(i, { hours: { ...r.hours, [day]: e.target.value === '' ? 0 : Number(e.target.value) } })} />)}</td>
                   ))}
                   <td className="num"><strong>{hrs(rowTotal)}</strong></td>
-                  {!locked && <td><Button size="sm" variant="ghost" onClick={() => { setRows(rows.filter((_, j) => j !== i)); setDirty(true); }}>Remove</Button></td>}
+                  {!locked && <td>{r.locked ? <Badge tone="success">Approved</Badge> : <Button size="sm" variant="ghost" onClick={() => { setRows(rows.filter((_, j) => j !== i)); setDirty(true); }}>Remove</Button>}</td>}
                 </tr>
               );
             })}
@@ -103,7 +103,7 @@ export function TimeAndHours() {
           </div>
         )}
       </Card>
-      <BanksCard banks={banks.data} canActivate={d.can_manage_retainers} onChange={() => banks.refetch()} />
+      <BanksCard banks={banks.data} canActivate={d.can_manage_retainers} canApprove={d.can_approve_incidents} onChange={() => banks.refetch()} />
       {d.can_approve && <ApprovalsCard week={week} />}
       {d.can_view_margins && <MarginsCard />}
       {d.can_manage_costs && <CostsCard />}
@@ -111,7 +111,7 @@ export function TimeAndHours() {
   );
 }
 
-function BanksCard({ banks, canActivate, onChange }: { banks?: Banks; canActivate: boolean; onChange: () => void }) {
+function BanksCard({ banks, canActivate, canApprove, onChange }: { banks?: Banks; canActivate: boolean; canApprove: boolean; onChange: () => void }) {
   const [activating, setActivating] = useState<string | null>(null);
   const [reason, setReason] = useState('');
   const [err, setErr] = useState<string | null>(null);
@@ -132,10 +132,13 @@ function BanksCard({ banks, canActivate, onChange }: { banks?: Banks; canActivat
             {banks.retainers.map((r) => (
               <tr key={r.id}><td><Link to={`/staff/clients/${r.client_id}/plan`}>{r.client_name}</Link></td><td>{TYPE[r.type] ?? r.type}</td>
                 <td>{r.type === 'incident_response'
-                  ? (r.status === 'activated' ? `Activated ${fmtDate(r.activated_at)} · ${hrs(r.hours_billed)} h billed${r.hourly_rate ? ` at ${money(r.hourly_rate)}/h` : ''}` : `Standing · ${money(r.monthly_fee)} a month`)
+                  ? (r.status === 'activated'
+                    ? `Activated ${fmtDate(r.activated_at)} · ${hrs(r.hours_billed)} h billed${r.hourly_rate ? ` at ${money(r.hourly_rate)}/h` : ''}${r.incident_status === 'draft' ? ' · incident engagement awaiting Chief Auditor' : ''}`
+                    : `Standing${r.monthly_fee != null ? ` · ${money(r.monthly_fee)} a month` : ''}`)
                   : `${hrs(r.hours_this_month)}${r.monthly_hours ? ` / ${hrs(r.monthly_hours)}` : ''} h this month`}</td>
                 <td>Monthly</td>
-                <td>{canActivate && r.type === 'incident_response' && r.status === 'standing' && <Button size="sm" onClick={() => { setActivating(r.id); setReason(''); setErr(null); }}>Activate</Button>}</td></tr>
+                <td>{canActivate && r.type === 'incident_response' && r.status === 'standing' && <Button size="sm" onClick={() => { setActivating(r.id); setReason(''); setErr(null); }}>Activate</Button>}
+                  {canApprove && r.incident_status === 'draft' && <Button size="sm" onClick={async () => { try { await api.post(`/staff/retainers/${r.id}/approve-incident`); onChange(); } catch (e) { setErr(errorMessage(e)); } }}>Approve incident engagement</Button>}</td></tr>
             ))}
           </tbody>
         </table></div>
@@ -144,7 +147,7 @@ function BanksCard({ banks, canActivate, onChange }: { banks?: Banks; canActivat
         <Dialog title="Activate the incident retainer" onClose={() => setActivating(null)}>
           <div className="stack">
             {err && <Alert tone="danger">{err}</Alert>}
-            <p className="small" style={{ margin: 0 }}>Opens an incident engagement for the client and starts billable time at the retainer's hourly rate.</p>
+            <p className="small" style={{ margin: 0 }}>Starts billable time at the retainer's hourly rate and opens an incident engagement for the Chief Auditor to approve.</p>
             <TextArea label="What is the incident?" rows={3} value={reason} onChange={(e) => setReason(e.target.value)} />
             <div className="row"><Button variant="primary" onClick={async () => {
               try { await api.post(`/staff/retainers/${activating}/activate`, { reason }); setActivating(null); onChange(); } catch (e) { setErr(errorMessage(e)); }

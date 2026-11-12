@@ -235,7 +235,7 @@ def edit(db: Session, letter: IntroLetter, actor: User, opening: str | None, clo
 
 
 def _engagement(db: Session, org_id: str) -> Engagement | None:
-    return db.scalar(select(Engagement).where(Engagement.client_id == org_id, Engagement.deleted_at.is_(None)).order_by(Engagement.created_at.desc()).limit(1))
+    return db.scalar(select(Engagement).where(Engagement.client_id == org_id, Engagement.deleted_at.is_(None), Engagement.type != "incident_response").order_by(Engagement.created_at.desc()).limit(1))
 
 
 def _title(letter: IntroLetter) -> str:

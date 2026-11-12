@@ -255,7 +255,7 @@ def client_status_for_futran(client_id: str, actor: Actor = Depends(current_acto
         authorize(db, actor, Action.CREATE_CLIENT_ENGAGEMENT)  # the person setting the client up in the wizard
         from app.engagements.models import Engagement
 
-        e = db.scalar(select(Engagement).where(Engagement.client_id == client_id, Engagement.deleted_at.is_(None)).order_by(Engagement.created_at.desc()).limit(1))
+        e = db.scalar(select(Engagement).where(Engagement.client_id == client_id, Engagement.deleted_at.is_(None), Engagement.type != "incident_response").order_by(Engagement.created_at.desc()).limit(1))
         if e is not None and e.status not in ("draft", "pending_approval", "returned"):
             raise NotFound()
     conn = cx.org_connection(db, org)

@@ -48,19 +48,32 @@ def week_start(d: date) -> date:
     return d - timedelta(days=d.weekday())
 
 
+def assigned_clients(db: Session, user: User) -> set[str] | None:
+    """Clients whose hours banks and retainers this person may log to: those they are on an engagement team for; every
+    client for the Chief Auditor and the Futran Admin (None)."""
+    if _roles(db, user) & {"chief_auditor", "admin"}:
+        return None
+    return set(db.scalars(select(Engagement.client_id).join(EngagementTeam, EngagementTeam.engagement_id == Engagement.id).where(
+        EngagementTeam.user_id == user.id, EngagementTeam.deleted_at.is_(None), Engagement.deleted_at.is_(None))))
+
+
 def _targets(db: Session, user: User) -> dict[str, dict]:
     out: dict[str, dict] = {}
+    clients = assigned_clients(db, user)
+    mine = (lambda org_id: True) if clients is None else (lambda org_id: org_id in clients)  # noqa: E731
     rows = db.scalars(select(Engagement).join(EngagementTeam, EngagementTeam.engagement_id == Engagement.id).where(
         EngagementTeam.user_id == user.id, EngagementTeam.deleted_at.is_(None), Engagement.deleted_at.is_(None), Engagement.status.not_in(CLOSED)))
     for e in {e.id: e for e in rows}.values():
         org = db.get(Organization, e.client_id)
         out[f"engagement:{e.id}"] = {"key": f"engagement:{e.id}", "label": f"{org.name if org else ''} · {e.name}", "kind": "engagement", "billable_default": True}
     for b in db.scalars(select(HoursBank).where(HoursBank.deleted_at.is_(None))):
-        if b.expires_on and b.expires_on < today():
+        if (b.expires_on and b.expires_on < today()) or not mine(b.organization_id):
             continue
         org = db.get(Organization, b.organization_id)
         out[f"bank:{b.id}"] = {"key": f"bank:{b.id}", "label": f"{org.name if org else ''} · {b.label}", "kind": "bank", "billable_default": True}
     for r in db.scalars(select(Retainer).where(Retainer.deleted_at.is_(None), Retainer.status != "ended")):
+        if not mine(r.organization_id):
+            continue
         org = db.get(Organization, r.organization_id)
         label = {"incident_response": "Incident retainer", "fractional_officer": "Fractional AI officer", "compliance": "Compliance retainer"}.get(r.type, r.type)
         out[f"retainer:{r.id}"] = {"key": f"retainer:{r.id}", "label": f"{org.name if org else ''} · {label}" + (" (activated)" if r.status == "activated" else ""),
@@ -92,16 +105,19 @@ def _week_status(entries: list[TimeEntry]) -> str:
     return "draft"
 
 
-def week_view(db: Session, user: User, start: date) -> dict:
+def week_view(db: Session, user: User, start: date, *, fees_for=lambda org_id: False) -> dict:
+    """`fees_for(client_id)` says whether this person may see that client's rates (view_engagement_fees)."""
     start = week_start(start)
     entries = _entries(db, user.id, start)
     targets = _targets(db, user)
     rows: dict[tuple, dict] = {}
     for t in entries:
-        key = (_target_of(t), t.activity, t.billable, t.note or "")
+        locked = t.status in ("submitted", "approved")
+        key = (_target_of(t), t.activity, t.billable, t.note or "", t.status if locked else "open")
         r = rows.setdefault(key, {"target": key[0], "label": (targets.get(key[0]) or {}).get("label") or _label_for(db, key[0]), "activity": t.activity,
                                   "activity_label": ACTIVITY_LABELS.get(t.activity, t.activity), "billable": t.billable, "note": t.note, "hours": {}, "total": 0.0,
-                                  "billable_label": _billable_label(db, key[0], t.billable)})
+                                  "billable_label": _billable_label(db, key[0], t.billable, fees_for(t.organization_id)), "locked": locked,
+                                  "status": t.status})
         r["hours"][t.on_date.isoformat()] = r["hours"].get(t.on_date.isoformat(), 0) + t.hours
         r["total"] += t.hours
     total = sum(t.hours for t in entries)
@@ -123,7 +139,7 @@ def _label_for(db: Session, key: str) -> str:
     return "Internal"
 
 
-def _billable_label(db: Session, key: str, billable: bool) -> str:
+def _billable_label(db: Session, key: str, billable: bool, fees: bool = False) -> str:
     if not billable:
         return "No"
     kind, _, oid = key.partition(":")
@@ -131,20 +147,25 @@ def _billable_label(db: Session, key: str, billable: bool) -> str:
         return "Yes (bank)"
     if kind == "retainer":
         r = db.get(Retainer, oid)
-        return f"Yes (${r.hourly_rate:,.0f}/h)" if r and r.hourly_rate and r.status == "activated" else "Yes (retainer)"
+        return f"Yes (${r.hourly_rate:,.0f}/h)" if fees and r and r.hourly_rate and r.status == "activated" else "Yes (retainer)"
     return "Yes"
 
 
-def save_week(db: Session, user: User, start: date, rows: list[dict]) -> dict:
+def save_week(db: Session, user: User, start: date, rows: list[dict], *, fees_for=lambda org_id: False) -> dict:
     start = week_start(start)
     existing = _entries(db, user.id, start)
-    if any(t.status in ("submitted", "approved") for t in existing):
-        raise Conflict("This week has been submitted. Ask your approver to return it to make changes.")
+    if any(t.status == "submitted" for t in existing):
+        raise Conflict("This week is waiting for approval. Ask your approver to return it to make changes.")
+    kept = [t for t in existing if t.status == "approved"]  # approved time stays as it is; returned and draft time is replaced
     targets = _targets(db, user)
     errors: list[dict] = []
     new: list[TimeEntry] = []
     per_day: dict[date, float] = {}
+    for t in kept:
+        per_day[t.on_date] = per_day.get(t.on_date, 0) + t.hours
     for i, row in enumerate(rows):
+        if row.get("locked"):
+            continue
         key = str(row.get("target") or "")
         activity = row.get("activity")
         billable = bool(row.get("billable"))
@@ -187,13 +208,14 @@ def save_week(db: Session, user: User, start: date, rows: list[dict]) -> dict:
     if errors:
         raise Invalid(errors=errors)
     for t in existing:
-        t.deleted_at = utcnow()
+        if t.status != "approved":
+            t.deleted_at = utcnow()
     for t in new:
         db.add(t)
     db.flush()
     for bid in {t.hours_bank_id for t in new if t.hours_bank_id}:
         check_bank(db, db.get(HoursBank, bid))
-    return week_view(db, user, start)
+    return week_view(db, user, start, fees_for=fees_for)
 
 
 def _approvers_for(db: Session, t: TimeEntry) -> list[User]:
@@ -207,7 +229,7 @@ def _approvers_for(db: Session, t: TimeEntry) -> list[User]:
     return users_with_roles(db, ["chief_auditor"])
 
 
-def submit_week(db: Session, user: User, start: date) -> dict:
+def submit_week(db: Session, user: User, start: date, *, fees_for=lambda org_id: False) -> dict:
     start = week_start(start)
     entries = [t for t in _entries(db, user.id, start) if t.status in ("draft", "returned")]
     if not entries:
@@ -220,7 +242,7 @@ def submit_week(db: Session, user: User, start: date) -> dict:
                 approvers[u.id] = u
     db.flush()
     notify(db, approvers.values(), "timesheet_submitted", f"{user.name}: timesheet for the week of {start:%d %b} to approve", None, "/staff/time?tab=approvals")
-    return week_view(db, user, start)
+    return week_view(db, user, start, fees_for=fees_for)
 
 
 def _can_approve(db: Session, approver: User, t: TimeEntry, roles: set[str]) -> bool:
@@ -296,9 +318,12 @@ def run_bank_alerts(db: Session, settings, now) -> int:
     return sum(check_bank(db, b) for b in db.scalars(select(HoursBank).where(HoursBank.deleted_at.is_(None), HoursBank.alerted_80_at.is_(None))))
 
 
-def banks_view(db: Session) -> dict:
+def banks_view(db: Session, *, clients: set[str] | None = None, fees_for=lambda org_id: False) -> dict:
+    """Hours banks and retainers of `clients` (None = every client). Rates and fees only where `fees_for(client)`."""
     banks = []
     for b in db.scalars(select(HoursBank).where(HoursBank.deleted_at.is_(None)).order_by(HoursBank.created_at)):
+        if clients is not None and b.organization_id not in clients:
+            continue
         used = bank_used(db, b)
         org = db.get(Organization, b.organization_id)
         banks.append({"id": b.id, "client_id": org.id, "client_name": org.name, "code": b.code, "label": b.label, "purchased": b.hours_purchased, "used": used,
@@ -307,20 +332,28 @@ def banks_view(db: Session) -> dict:
     month_start = today().replace(day=1)
     retainers = []
     for r in db.scalars(select(Retainer).where(Retainer.deleted_at.is_(None)).order_by(Retainer.created_at)):
+        if clients is not None and r.organization_id not in clients:
+            continue
         org = db.get(Organization, r.organization_id)
         month = float(db.scalar(select(func.coalesce(func.sum(TimeEntry.hours), 0)).where(TimeEntry.retainer_id == r.id, TimeEntry.deleted_at.is_(None),
                                                                                          TimeEntry.on_date >= month_start)) or 0)
         billed = float(db.scalar(select(func.coalesce(func.sum(TimeEntry.hours), 0)).where(TimeEntry.retainer_id == r.id, TimeEntry.deleted_at.is_(None),
                                                                                           TimeEntry.billable.is_(True))) or 0)
-        retainers.append({"id": r.id, "client_id": org.id, "client_name": org.name, "code": r.code, "type": r.type, "status": r.status, "monthly_fee": r.monthly_fee,
-                          "hourly_rate": r.hourly_rate, "monthly_hours": r.monthly_hours, "hours_this_month": month, "hours_billed": billed,
-                          "activated_at": r.activated_at.isoformat() if r.activated_at else None, "incident_engagement_id": r.incident_engagement_id})
+        row = {"id": r.id, "client_id": org.id, "client_name": org.name, "code": r.code, "type": r.type, "status": r.status,
+               "monthly_hours": r.monthly_hours, "hours_this_month": month, "hours_billed": billed,
+               "activated_at": r.activated_at.isoformat() if r.activated_at else None, "incident_engagement_id": r.incident_engagement_id,
+               "incident_status": (db.get(Engagement, r.incident_engagement_id).status if r.incident_engagement_id else None)}
+        if fees_for(org.id):
+            row |= {"monthly_fee": r.monthly_fee, "hourly_rate": r.hourly_rate}
+        retainers.append(row)
     return {"banks": banks, "retainers": retainers}
 
 
 def activate_retainer(db: Session, actor: User, r: Retainer, reason: str) -> Retainer:
-    """M-12b: open an incident engagement for the client and start billable time at the hourly rate. The engagement is
-    dated before the client's other engagements, so the client's current audit stays the one every screen shows."""
+    """M-12b: start billable time at the hourly rate and open an incident engagement for the client as a draft for Chief
+    Auditor approval. Incident engagements (type `incident_response`) are never the client's current audit: every
+    "current engagement" query and the renewal scan leave them out. The activator joins its team only if the
+    independence checks allow it."""
     if r.type != "incident_response":
         raise Conflict("Only the incident response retainer is activated.")
     if r.status == "activated":
@@ -328,17 +361,14 @@ def activate_retainer(db: Session, actor: User, r: Retainer, reason: str) -> Ret
     reason = " ".join((reason or "").split())
     if not reason:
         raise Invalid(errors=[{"field": "reason", "message": "Say what the incident is."}])
-    from app.engagements.service import next_audit_ref
+    from app.engagements.service import create_engagement
+    from app.engagements.team import check_lead_independence, check_separate_team
 
     org = db.get(Organization, r.organization_id)
-    first = db.scalar(select(func.min(Engagement.created_at)).where(Engagement.client_id == org.id))
+    check_separate_team(db, org.id, actor.id)
+    check_lead_independence(db, org.id, actor.id)
     now = utcnow()
-    e = Engagement(organization_id=org.id, client_id=org.id, name=f"Incident response {now:%d %b %Y}", type="incident_response", audit_ref=next_audit_ref(db),
-                   status="in_progress", stage=1, business_processes=reason[:2000], created_by=actor.id, updated_by=actor.id)
-    db.add(e)
-    db.flush()
-    if first is not None:
-        e.created_at = first - timedelta(seconds=1)
+    e = create_engagement(db, actor, org, name=f"Incident response {now:%d %b %Y}", type="incident_response", business_processes=reason[:2000])
     db.add(EngagementTeam(organization_id=org.id, engagement_id=e.id, user_id=actor.id, role="engagement_manager", created_by=actor.id))
     rate = r.hourly_rate
     if rate is None:
@@ -349,12 +379,24 @@ def activate_retainer(db: Session, actor: User, r: Retainer, reason: str) -> Ret
     db.add(EngagementCommercial(organization_id=org.id, engagement_id=e.id, fee_total=0, milestones=[], created_by=actor.id))
     r.status, r.activated_at, r.activated_by, r.incident_engagement_id, r.hourly_rate = "activated", now, actor.id, e.id, rate
     db.flush()
-    audit.record(db, actor_id=actor.id, action="retainer.activated", obj=r, summary=f"{org.name}: incident retainer activated ({reason}); engagement {e.audit_ref} opened")
+    audit.record(db, actor_id=actor.id, action="retainer.activated", obj=r, summary=f"{org.name}: incident retainer activated ({reason}); engagement {e.audit_ref} opened as a draft")
     from app.commercial.plans import account_owner
 
     notify(db, [account_owner(db, org.id), *users_with_roles(db, ["admin"])], "retainer_activated", f"{org.name}: incident retainer activated",
            f"Billable at ${rate:,.0f} an hour." if rate else None, "/staff/time?tab=banks")
+    notify(db, users_with_roles(db, ["chief_auditor"]), "incident_engagement_approval", f"{org.name}: approve the incident engagement {e.audit_ref}", reason,
+           "/staff/time?tab=banks")
     return r
+
+
+def approve_incident(db: Session, actor: User, r: Retainer) -> Engagement:
+    e = db.get(Engagement, r.incident_engagement_id) if r.incident_engagement_id else None
+    if e is None or e.status != "draft":
+        raise Conflict("There is no incident engagement waiting for approval.")
+    e.status, e.approved_by, e.approved_at = "in_progress", actor.id, utcnow()
+    db.flush()
+    audit.record(db, actor_id=actor.id, action="engagement.incident_approved", obj=e, summary=f"Approved incident engagement {e.audit_ref}")
+    return e
 
 
 # ---------------------------------------------------------------- standard cost and margin

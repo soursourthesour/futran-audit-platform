@@ -45,16 +45,18 @@ export const useCommercial = (engagementId: string) => useQuery({ queryKey: ['co
 
 export type TimeTarget = { key: string; label: string; kind: 'engagement' | 'bank' | 'retainer' | 'internal'; billable_default: boolean; status?: string };
 export type TimeRow = { target: string; label: string; activity: string; activity_label?: string; billable: boolean; billable_label?: string; note: string | null;
-  hours: Record<string, number>; total?: number };
+  hours: Record<string, number>; total?: number; locked?: boolean; status?: string };
 export type Week = {
   week_start: string; days: string[]; rows: TimeRow[]; total: number; billable_total: number; status: 'draft' | 'submitted' | 'approved' | 'returned';
   targets: TimeTarget[]; activities: { code: string; label: string }[]; can_approve: boolean; can_view_margins: boolean; can_manage_costs: boolean; can_manage_retainers: boolean;
+  can_approve_incidents: boolean;
 };
 export type Banks = {
   banks: { id: string; client_id: string; client_name: string; code: string; label: string; purchased: number; used: number; remaining: number; pct: number | null; over: number;
     expires_on: string | null }[];
-  retainers: { id: string; client_id: string; client_name: string; code: string; type: string; status: string; monthly_fee: number; hourly_rate: number | null;
-    monthly_hours: number | null; hours_this_month: number; hours_billed: number; activated_at: string | null; incident_engagement_id: string | null }[];
+  retainers: { id: string; client_id: string; client_name: string; code: string; type: string; status: string; monthly_fee?: number; hourly_rate?: number | null;
+    monthly_hours: number | null; hours_this_month: number; hours_billed: number; activated_at: string | null; incident_engagement_id: string | null;
+    incident_status: string | null }[];
 };
 export type Margins = {
   engagements: { engagement_id: string; label: string; fee: number; hours: number; cost: number | null; margin: number | null; margin_pct: number | null }[];

@@ -22,7 +22,27 @@ export function Handoff() {
   const [msg, setMsg] = useState<{ tone: 'success' | 'danger'; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   if (q.isLoading) return <div className="page"><Loading /></div>;
-  if (!q.data) return <div className="page"><PageHeader title="Won — hand off to delivery" /><Alert tone="danger">{errorMessage(q.error)}</Alert></div>;
+  if (!q.data) {
+    const missing = (q.error as { status?: number } | null)?.status === 404;
+    const finish = async () => {
+      setBusy(true); setMsg(null);
+      try { qc.setQueryData(['handoff', oppId], await api.post<H>(`/sales/opportunities/${oppId}/handoff`)); } catch (e) { setMsg({ tone: 'danger', text: errorMessage(e) }); } finally { setBusy(false); }
+    };
+    return (
+      <div className="page commercial">
+        <PageHeader crumbs={[{ to: '/sales/opportunities', label: 'Opportunities' }, { to: `/sales/opportunities/${oppId}`, label: 'Opportunity' }, { label: 'Hand off' }]} title="Won — hand off to delivery" />
+        {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
+        {missing ? (
+          <Card>
+            <div className="stack">
+              <p style={{ margin: 0 }}>The hand-off records for this opportunity have not been created yet. If the client accepted a proposal and the automatic hand-off did not finish, finish it here. Nothing is sent to the client.</p>
+              <div><Button variant="primary" disabled={busy} onClick={finish}>Finish the hand-off</Button></div>
+            </div>
+          </Card>
+        ) : <Alert tone="danger">{errorMessage(q.error)}</Alert>}
+      </div>
+    );
+  }
   const h = q.data;
   const chosenTeam = team ?? h.team.separate_team.map((p) => p.id);
   const run = async (fn: () => Promise<H>, ok: string) => {

@@ -87,9 +87,10 @@ def check_separate_team(db: Session, client_id: str, user_id: str) -> None:
     from app.core.errors import Conflict
 
     try:
-        from app.commercial.handoff import separate_team_user_ids
+        from app.commercial.handoff import require_separate_team_named, separate_team_user_ids
     except ImportError:  # the commercial module is not installed: nothing has been handed off yet
         return
+    require_separate_team_named(db, client_id)  # R5: nobody joins the client's teams until the Chief Auditor names the separate team
     if user_id in separate_team_user_ids(db, client_id):
         u = db.get(User, user_id)
         raise Conflict(f"{u.name if u else 'This person'} delivers this client's governance work for Futran (Fractional AI Governance Officer or a "

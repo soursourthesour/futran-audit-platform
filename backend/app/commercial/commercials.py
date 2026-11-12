@@ -151,9 +151,16 @@ def change_orders_for(db: Session, e: Engagement) -> list[ChangeOrder]:
     return list(db.scalars(select(ChangeOrder).where(ChangeOrder.engagement_id == e.id, ChangeOrder.deleted_at.is_(None)).order_by(ChangeOrder.created_at)))
 
 
-def change_order_out(db: Session, co: ChangeOrder, *, with_prices: bool) -> dict:
+CLIENT_LINE_KEYS = ("code", "description", "qty", "unit_price", "value")
+
+
+def change_order_out(db: Session, co: ChangeOrder, *, with_prices: bool, for_client: bool = False) -> dict:
+    """`with_prices` for people holding view_engagement_fees; `for_client` for the client's CAICO: the price they are asked
+    to approve, never the list price, approval rules or internal bookkeeping."""
     name = lambda uid: (db.get(User, uid).name if uid and db.get(User, uid) else None)  # noqa: E731
-    lines = [{k: v for k, v in ln.items() if with_prices or k in ("code", "description", "qty")} for ln in co.lines or []]
+    keys = CLIENT_LINE_KEYS if for_client else None
+    lines = [{k: v for k, v in ln.items() if (keys is None and (with_prices or k in ("code", "description", "qty"))) or (keys is not None and k in keys)}
+             for ln in co.lines or []]
     out = {"id": co.id, "ref": co.ref, "engagement_id": co.engagement_id, "kind": co.kind, "kind_label": KIND_LABELS.get(co.kind or "", co.kind), "reason": co.reason,
            "lines": lines, "status": co.status, "status_label": STATUS_LABELS.get(co.status, co.status), "raised_by": name(co.raised_by),
            "raised_at": co.created_at.isoformat(), "em_approved_by": name(co.em_approved_by), "needs_price_approval": co.needs_price_approval,
@@ -184,8 +191,15 @@ def price_line(db: Session, code: str, qty: float, unit_price: float | None) -> 
         raise Invalid(errors=[{"field": "qty", "message": "Enter a quantity above zero."}])
     lst = item.list_price or 0
     unit = money(unit_price) if unit_price is not None else money(lst)
-    needs = (unit != money(lst) or item.price_status == "proposed" or (item.low is not None and unit < item.low) or (item.high is not None and unit > item.high))
-    return {"code": code, "description": item.name, "qty": qty, "unit_price": unit, "list_price": lst, "value": money(unit * qty)}, needs
+    # the same rule → approver mapping as proposals (spec §4.7): P-1 Proposed price and P-4 below Low → Pricing Approver,
+    # P-5 above High → Sales Manager; a price edited inside Low–High needs nobody
+    from app.catalog.guardrails import needed_approvals
+
+    rules = [{"rule": r["rule"], "approver_role": r["approver_role"]} for r in needed_approvals(
+        [{"code": code, "price_status": item.price_status, "low": item.low, "high": item.high, "unit_price_used": unit, "sellable_status": item.sellable_status}],
+        0, {}) if r.get("approver_role")]
+    line = {"code": code, "description": item.name, "qty": qty, "unit_price": unit, "list_price": lst, "value": money(unit * qty), "rules": rules}
+    return line, bool(rules)
 
 
 def raise_change_order(db: Session, actor: User, e: Engagement, *, code: str, qty: float, reason: str, unit_price: float | None = None, can_price: bool = False,
@@ -215,7 +229,8 @@ def _after_manager(db: Session, actor: User, e: Engagement, co: ChangeOrder) -> 
     co.em_approved_by, co.em_approved_at = actor.id, utcnow()
     if co.needs_price_approval:
         co.status = "awaiting_futran_approval"
-        notify(db, users_with_roles(db, ["sales_manager", "pricing_approver"]), "change_order_price", f"{e.audit_ref}: price on change order {co.ref} needs approval",
+        roles = sorted({r["approver_role"] for ln in co.lines or [] for r in ln.get("rules", [])}) or ["pricing_approver"]
+        notify(db, users_with_roles(db, roles), "change_order_price", f"{e.audit_ref}: price on change order {co.ref} needs approval",
                co.reason, f"/e/{e.id}/commercial")
     else:
         _send_to_client(db, e, co)
@@ -251,6 +266,11 @@ def price_decision(db: Session, actor: User, co: ChangeOrder, approve: bool, not
         raise Conflict("This change order is not waiting for a price approval.")
     if actor.id in (co.raised_by, co.created_by):
         raise Forbidden("Nobody approves the price on their own change order.")
+    needed = {r["approver_role"] for ln in co.lines or [] for r in ln.get("rules", [])} or {"pricing_approver"}
+    missing = needed - _roles(db, actor)
+    if missing:
+        labels = {"pricing_approver": "Pricing Approver", "sales_manager": "Sales Manager"}
+        raise Forbidden(f"This price needs the {' and the '.join(labels.get(m, m) for m in sorted(missing))}.")
     note = " ".join((note or "").split()) or None
     if not approve and not note:
         raise Invalid(errors=[{"field": "note", "message": "Say why the price is returned."}])
@@ -343,11 +363,31 @@ def _release_scope(db: Session, co: ChangeOrder, *, approved: bool, note: str | 
     req.decided_at = utcnow()
 
 
+def _unused_system_change_order(db: Session, e: Engagement) -> ChangeOrder | None:
+    """An approved A-03 change order raised by hand (not from a system addition) that still has systems to cover."""
+    for co in change_orders_for(db, e):
+        if co.status != "approved" or co.kind != "add_system" or co.scope_change_ref:
+            continue
+        ln = (co.lines or [{}])[0]
+        if len(ln.get("used_by", [])) < int(ln.get("qty") or 0):
+            return co
+    return None
+
+
 def intercept_addition(db: Session, actor: User, req, e: Engagement) -> bool:
     """Hook for the add-system-after-initiation rule: on an engagement that came from an order, the Engagement Manager's
     approval raises an A-03 change order instead of adding the system. Returns False to keep today's rule (no order on
     this engagement, or A-03 not in the price list)."""
-    if commercial_of(db, e) is None or cat.get_item(db, "A-03") is None:
+    com = commercial_of(db, e)
+    if com is None or not com.order_id or cat.get_item(db, "A-03") is None:
+        return False  # only engagements that came from an order; a fee typed on an older engagement changes nothing here
+    covered = _unused_system_change_order(db, e)
+    if covered is not None:  # the client already approved and paid for this system: add it now, no second change order
+        line = dict(covered.lines[0])
+        line["used_by"] = [*line.get("used_by", []), req.id]
+        covered.lines = [line, *covered.lines[1:]]
+        audit.record(db, actor_id=actor.id, action="change_order.system_used", obj=covered, engagement_id=e.id,
+                     summary=f"{covered.ref} covers the system added from request {req.id}")
         return False
     co = raise_change_order(db, actor, e, code="A-03", qty=1, reason=req.reason or "System added after initiation", scope_change_ref=f"system_addition:{req.id}",
                             raised_by=req.requested_by, em_approved=True)

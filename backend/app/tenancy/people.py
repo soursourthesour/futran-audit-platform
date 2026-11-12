@@ -27,7 +27,7 @@ SIGN_OFF_KEYS = {r.value for r in SIGN_OFF_ROLES}
 def current_engagement(db: Session, org: Organization) -> Engagement | None:
     return db.scalar(
         select(Engagement)
-        .where(Engagement.client_id == org.id, Engagement.deleted_at.is_(None), Engagement.status.not_in(["draft", "pending_approval"]))
+        .where(Engagement.client_id == org.id, Engagement.deleted_at.is_(None), Engagement.status.not_in(["draft", "pending_approval"]), Engagement.type != "incident_response")
         .order_by(Engagement.created_at.desc())
         .limit(1)
     )

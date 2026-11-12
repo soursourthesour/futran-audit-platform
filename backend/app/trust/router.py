@@ -50,7 +50,8 @@ def put_page(body: dict, actor: Actor = Depends(current_actor), db: Session = De
     authorize(db, actor, Action.EDIT_TRUST_CENTER, org_id=org.id)
     from app.commercial.plans import require_feature  # Release 2 G-01: trust_center is a hard limit on ordered plans
 
-    require_feature(db, org.id, "trust_center")
+    if svc.page_for(db, org.id) is None:  # a client that already has a Trust Center keeps editing it
+        require_feature(db, org.id, "trust_center")
     return svc.page_out(svc.save_page(db, actor.user, org, body))
 
 

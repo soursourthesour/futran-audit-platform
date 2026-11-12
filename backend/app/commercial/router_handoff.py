@@ -50,6 +50,36 @@ def get_handoff(opp_id: str, actor: Actor = Depends(current_actor), db: Session 
     return _out(db, actor, _load(db, actor, opp_id, Action.VIEW_HANDOFF))
 
 
+@router.post("/sales/opportunities/{opp_id}/handoff")
+def finish_handoff(opp_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+    """Finish the hand-off: build the SM-13 records for the opportunity's accepted proposal when the automatic hand-off at
+    acceptance did not complete. Idempotent. The account owner, a Chief Auditor or the Futran Admin."""
+    from app.core.errors import Conflict, Forbidden
+    from app.sales.models import Opportunity
+
+    futran_only(actor)
+    authorize(db, actor, Action.VIEW_HANDOFF)
+    opp = db.get(Opportunity, opp_id)
+    if opp is None:
+        raise NotFound()
+    if opp.owner_id != actor.id and not (actor.role_names & {"chief_auditor", "admin"}):
+        raise Forbidden("The account owner, a Chief Auditor or the Futran Admin finishes the hand-off.")
+    existing = svc.for_opportunity(db, opp_id)
+    if existing is not None:
+        return _out(db, actor, existing)
+    try:
+        from app.proposals.models import Acceptance, Proposal  # R4
+    except ImportError:
+        raise Conflict("There is no accepted proposal to hand off.") from None
+    proposal = db.scalar(select(Proposal).where(Proposal.opportunity_id == opp_id, Proposal.status == "accepted").order_by(Proposal.version.desc()).limit(1))
+    acceptance = db.scalar(select(Acceptance).where(Acceptance.proposal_id == proposal.id).limit(1)) if proposal else None
+    if acceptance is None:
+        raise Conflict("There is no accepted proposal to hand off.")
+    h = svc.create_from_acceptance(db, proposal, acceptance, actor.user)
+    acceptance.handoff_id = h.id
+    return _out(db, actor, h)
+
+
 @router.post("/sales/opportunities/{opp_id}/handoff/confirm")
 def confirm(opp_id: str, body: ConfirmIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     h = _load(db, actor, opp_id, Action.CONFIRM_HANDOFF)

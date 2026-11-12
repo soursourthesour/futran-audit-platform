@@ -98,6 +98,9 @@ def put_document(doc_id: str, body: EditIn, request: Request, actor: Actor = Dep
 @router.post("/clients/{client_id}/approve")
 def approve(client_id: str, body: ApproveIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     _, e = _load(db, actor, client_id, Action.APPROVE_ENGAGEMENT)
+    from app.commercial.handoff import require_independence_confirmed  # Release 2 R5: rules I-2 / I-3 before approval
+
+    require_independence_confirmed(db, e)
     pkg = approve_and_send(db, request.app.state.settings, actor.user, e, (body.client_message or "").strip() or None, body.checklist)
     return {"engagement_id": e.id, "status": e.status, "stage": e.stage, "package_id": pkg.id}
 

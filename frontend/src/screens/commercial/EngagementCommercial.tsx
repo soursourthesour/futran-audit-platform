@@ -160,7 +160,8 @@ function RaiseChangeOrder({ d, onRaised }: { d: CommercialPage; onRaised: (c: Ch
 
 function EditFee({ d, onClose, onSaved }: { d: CommercialPage; onClose: () => void; onSaved: (v: CommercialPage) => void }) {
   const [fee, setFee] = useState(String(d.fee_total ?? ''));
-  const [ms, setMs] = useState(d.milestones.length ? d.milestones.map((m) => ({ label: m.label, trigger: m.trigger, pct: String(m.pct) }))
+  const split = d.milestones.filter((m) => m.trigger !== 'change_order');  // approved change orders are billed as their own milestones
+  const [ms, setMs] = useState(split.length ? split.map((m) => ({ label: m.label, trigger: m.trigger, pct: String(m.pct) }))
     : [{ label: '50% on start', trigger: 'sign_off_1', pct: '50' }, { label: '50% on report', trigger: 'sign_off_7', pct: '50' }]);
   const [err, setErr] = useState<string | null>(null);
   const triggers = [{ value: 'sign_off_1', label: 'Sign-off 1 approved' }, { value: 'sign_off_7', label: 'Sign-off 7 approved' }, { value: 'manual', label: 'Marked by hand' }];
@@ -173,7 +174,8 @@ function EditFee({ d, onClose, onSaved }: { d: CommercialPage; onClose: () => vo
     <Dialog title="Fee and billing milestones" onClose={onClose} wide>
       <div className="stack">
         {err && <Alert tone="danger">{err}</Alert>}
-        <TextField label="Fee (US$)" type="number" min={0} value={fee} onChange={(e) => setFee(e.target.value)} />
+        <TextField label="Fee (US$)" type="number" min={0} value={fee} onChange={(e) => setFee(e.target.value)}
+          help={d.milestones.some((m) => m.trigger === 'change_order') ? 'Includes approved change orders, which are billed as their own milestones; the percentages split the rest.' : undefined} />
         {ms.map((m, i) => (
           <div key={i} className="row ms-row">
             <TextField label="Milestone" value={m.label} onChange={(e) => setMs(ms.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} />

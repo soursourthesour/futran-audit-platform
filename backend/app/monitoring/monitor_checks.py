@@ -120,7 +120,7 @@ def _open_engagement(db, org):
     """The client's newest engagement that is under way. A completed or archived engagement's records are signed."""
     from app.engagements.models import Engagement
 
-    return db.scalar(select(Engagement).where(Engagement.client_id == org.id, Engagement.deleted_at.is_(None), Engagement.status.not_in(NOT_OPEN))
+    return db.scalar(select(Engagement).where(Engagement.client_id == org.id, Engagement.deleted_at.is_(None), Engagement.status.not_in(NOT_OPEN), Engagement.type != "incident_response")
                      .order_by(Engagement.created_at.desc()).limit(1))
 
 

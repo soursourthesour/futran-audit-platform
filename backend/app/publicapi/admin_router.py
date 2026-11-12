@@ -138,7 +138,8 @@ def create_client(body: ClientIn, actor: Actor = Depends(current_actor), db: Ses
     org = _org(db, actor, Action.MANAGE_API_CLIENTS)
     from app.commercial.plans import require_feature  # Release 2 G-01: api_access is a hard limit on ordered plans
 
-    require_feature(db, org.id, "api_access")
+    if db.scalar(select(ApiClient.id).where(ApiClient.organization_id == org.id).limit(1)) is None:  # a client already using the API keeps it
+        require_feature(db, org.id, "api_access")
     name = " ".join(body.name.split())
     if not name:
         raise Invalid(errors=[{"field": "name", "message": "Name the API client, for example the system that will use it."}])

@@ -109,7 +109,7 @@ def alert_recipients(db: Session, org: Organization) -> list[User]:
 
     caicos = list(db.scalars(select(User).join(RoleAssignment, RoleAssignment.user_id == User.id).where(
         User.organization_id == org.id, RoleAssignment.role == "caico", RoleAssignment.deleted_at.is_(None), User.deleted_at.is_(None))))
-    e = db.scalar(select(Engagement).where(Engagement.client_id == org.id, Engagement.deleted_at.is_(None), Engagement.status.not_in(["draft", "pending_approval"]))
+    e = db.scalar(select(Engagement).where(Engagement.client_id == org.id, Engagement.deleted_at.is_(None), Engagement.status.not_in(["draft", "pending_approval"]), Engagement.type != "incident_response")
                   .order_by(Engagement.created_at.desc()).limit(1))
     auditors = list(db.scalars(select(User).join(EngagementTeam, EngagementTeam.user_id == User.id).where(
         EngagementTeam.engagement_id == e.id, EngagementTeam.role == "auditor", EngagementTeam.deleted_at.is_(None)))) if e else []

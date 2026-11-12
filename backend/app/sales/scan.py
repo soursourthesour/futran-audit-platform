@@ -401,7 +401,8 @@ def _renewal_items(db: Session, today: date) -> list[Item]:
 
     clients = _clients(db)
     latest: dict[str, Engagement] = {}
-    for e in db.scalars(select(Engagement).where(Engagement.status.in_(("completed", "archived")), Engagement.completed_at.is_not(None), Engagement.deleted_at.is_(None))
+    for e in db.scalars(select(Engagement).where(Engagement.status.in_(("completed", "archived")), Engagement.completed_at.is_not(None), Engagement.deleted_at.is_(None),
+                                                 Engagement.type != "incident_response")  # Release 2 R5: an incident is not an audit
                         .order_by(Engagement.completed_at)):
         latest[e.client_id] = e
     limit = today + timedelta(days=RENEWAL_WINDOW_DAYS)
@@ -410,6 +411,7 @@ def _renewal_items(db: Session, today: date) -> list[Item]:
         if org_id not in clients:
             continue
         newer = db.scalar(select(Engagement.id).where(Engagement.client_id == org_id, Engagement.deleted_at.is_(None), Engagement.id != e.id,
+                                                      Engagement.type != "incident_response",
                                                       or_(Engagement.prior_engagement_id == e.id, Engagement.created_at > e.created_at)).limit(1))
         if newer:
             continue

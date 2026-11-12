@@ -128,7 +128,7 @@ def client_change_orders(actor: Actor = Depends(current_actor), db: Session = De
         if co.status == "rejected" and co.client_approved_by is None:
             continue  # returned inside Futran; the client never saw it
         e = db.get(Engagement, co.engagement_id)
-        out.append(svc.change_order_out(db, co, with_prices=True) | {"engagement_name": e.name if e else "", "audit_ref": e.audit_ref if e else None})
+        out.append(svc.change_order_out(db, co, with_prices=True, for_client=True) | {"engagement_name": e.name if e else "", "audit_ref": e.audit_ref if e else None})
     return out
 
 
@@ -141,4 +141,4 @@ def client_decide(co_id: str, body: DecisionIn, request: Request, actor: Actor =
     if not actor.has_role("caico"):
         raise Forbidden()
     svc.client_decision(db, request.app.state.settings, actor.user, co, body.approve, body.note)
-    return svc.change_order_out(db, co, with_prices=True)
+    return svc.change_order_out(db, co, with_prices=True, for_client=True)

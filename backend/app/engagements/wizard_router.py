@@ -30,7 +30,7 @@ def _load(db: Session, actor: Actor, client_id: str, action: Action = Action.CRE
     org = db.get(Organization, client_id)
     if org is None or org.type != "client" or org.deleted_at:
         raise NotFound()
-    e = db.scalar(select(Engagement).where(Engagement.client_id == org.id, Engagement.deleted_at.is_(None)).order_by(Engagement.created_at.desc()).limit(1))
+    e = db.scalar(select(Engagement).where(Engagement.client_id == org.id, Engagement.deleted_at.is_(None), Engagement.type != "incident_response").order_by(Engagement.created_at.desc()).limit(1))
     if e is None:
         raise NotFound()
     authorize(db, actor, action, engagement_id=e.id)
