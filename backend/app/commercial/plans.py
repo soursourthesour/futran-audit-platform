@@ -162,6 +162,13 @@ def feature_allowed(db: Session, org_id: str, key: str) -> bool:
     return any(e.limit >= 1 for e in entitlements(db, sub).get(key, []))
 
 
+def require_feature(db: Session, org_id: str, key: str) -> None:
+    from app.core.errors import Conflict
+
+    if not feature_allowed(db, org_id, key):
+        raise Conflict(f"{KEY_LABELS.get(key, key)} is not in your plan. Ask your Futran contact to add it.")
+
+
 def account_owner(db: Session, org_id: str) -> User | None:
     h = db.scalar(select(Handoff).where(Handoff.organization_id == org_id, Handoff.deleted_at.is_(None)).order_by(Handoff.created_at.desc()).limit(1))
     uid = (h.team or {}).get("account_owner_id") if h else None

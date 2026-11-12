@@ -48,6 +48,9 @@ def get_trust(actor: Actor = Depends(current_actor), db: Session = Depends(get_d
 def put_page(body: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _client(actor)
     authorize(db, actor, Action.EDIT_TRUST_CENTER, org_id=org.id)
+    from app.commercial.plans import require_feature  # Release 2 G-01: trust_center is a hard limit on ordered plans
+
+    require_feature(db, org.id, "trust_center")
     return svc.page_out(svc.save_page(db, actor.user, org, body))
 
 
