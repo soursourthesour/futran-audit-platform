@@ -191,9 +191,10 @@ def attach_letter(db: Session, settings, user: User, s: RegisterSystem, run_id: 
     return r
 
 
-def on_reassessment_trigger(db: Session, s: RegisterSystem, trigger) -> None:
-    """Called by `app.impact.triggers.raise_trigger`: a model, version or vendor change, or a failed monitor check, on an
-    agent with an Agent Assure record asks for a new run (re-certification)."""
+def on_reassessment_trigger(db: Session, s: RegisterSystem, trigger, detail: str | None = None) -> None:
+    """Called by `app.impact.triggers.raise_trigger` for every model, version or vendor change and failed monitor check,
+    also when an open trigger of that type is reused: the agent's latest Agent Assure record then asks for a new run
+    (re-certification). Idempotent: a record already waiting for re-certification is left as it is."""
     if s.type != "agent" or trigger.type not in RECERT_TRIGGERS:
         return
     r = latest_run(db, s.id)
@@ -202,7 +203,8 @@ def on_reassessment_trigger(db: Session, s: RegisterSystem, trigger) -> None:
     from app.impact.triggers import TYPE_LABELS
 
     r.next_due_trigger = trigger.id
-    r.next_due_reason = f"{TYPE_LABELS.get(trigger.type, trigger.type)}{f': {trigger.detail}' if trigger.detail else ''}"[:2000]
+    why = detail or trigger.detail
+    r.next_due_reason = f"{TYPE_LABELS.get(trigger.type, trigger.type)}{f': {why}' if why else ''}"[:2000]
     db.flush()
     refresh_status(db, s, None, f"Re-certification due: {r.next_due_reason}")
 
@@ -266,13 +268,27 @@ def sync_warden(db: Session, user: User, org_id: str, filename: str | None, data
     return {"sync_id": sync_id, "matched": len(matched), "unmatched": unmatched, "usage": usage, "synced_at": now.isoformat()}
 
 
-def _feed_usage(db: Session, org_id: str, snaps: list[WardenLicenceSnapshot]) -> dict | None:
+def latest_snapshots(db: Session, org_id: str) -> list[WardenLicenceSnapshot]:
+    """The newest snapshot of each of the client's agents: a sync replaces the agents in its file and leaves the others."""
+    rows = db.scalars(select(WardenLicenceSnapshot).where(WardenLicenceSnapshot.organization_id == org_id, WardenLicenceSnapshot.deleted_at.is_(None))
+                      .order_by(WardenLicenceSnapshot.synced_at.desc(), WardenLicenceSnapshot.created_at.desc()))
+    out: dict[str, WardenLicenceSnapshot] = {}
+    for r in rows:
+        s = db.get(RegisterSystem, r.register_system_id)
+        if s is not None and s.deleted_at is None and r.register_system_id not in out:
+            out[r.register_system_id] = r
+    return list(out.values())
+
+
+def _feed_usage(db: Session, org_id: str, _snaps: list[WardenLicenceSnapshot]) -> dict | None:
     """G-01 usage for AW-02 (agents protected), AW-03 (agent actions a month) and AW-05 (approver seats), when the
-    commercial package is installed. Approver seats are summed across agents (AgentWarden reports them per agent)."""
+    commercial package is installed, from the latest snapshot of every agent (not only those in this file). Approver
+    seats are summed across agents (AgentWarden reports them per agent)."""
     try:
         from app.commercial.models import UsageRecord
     except ImportError:
         return None
+    snaps = latest_snapshots(db, org_id)
     on = today()
     values = {"agents_protected": float(len({s.register_system_id for s in snaps})), "agent_actions_month": float(sum(s.actions_month for s in snaps)),
               "approver_seats": float(sum(s.approvers for s in snaps))}

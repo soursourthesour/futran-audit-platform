@@ -59,6 +59,9 @@ def raise_trigger(db: Session, register_system_id: str, type: str, source: str, 
     with db.no_autoflush:
         existing = open_trigger_for(db, s.id, type, source, source_ref)
     if existing is not None:
+        from app.assurance.service import on_reassessment_trigger  # Release 2 B9: the change still asks for re-certification
+
+        on_reassessment_trigger(db, s, existing, detail=detail)
         return existing
     t = ReassessmentTrigger(organization_id=s.organization_id, register_system_id=s.id, type=type, source=source, source_ref=(source_ref or None) and source_ref[:120],
                             detail=(detail or None) and detail[:4000], detected_at=utcnow(), status="open", reopened=[], created_by=actor_id)
@@ -72,7 +75,7 @@ def raise_trigger(db: Session, register_system_id: str, type: str, source: str, 
     _notify(db, s, t)
     from app.assurance.service import on_reassessment_trigger  # Release 2 B9: an agent's Agent Assure record asks for re-certification
 
-    on_reassessment_trigger(db, s, t)
+    on_reassessment_trigger(db, s, t, detail=detail)
     return t
 
 

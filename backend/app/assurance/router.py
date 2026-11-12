@@ -116,3 +116,24 @@ def put_checklist(body: ChecklistIn, actor: Actor = Depends(current_actor), db: 
         raise NotFound()
     authorize(db, actor, Action.MANAGE_ASSURANCE_CHECKLIST, list_view=True)
     return {"items": svc.save_checklist(db, actor.user, body.items), "note": svc.CHECKLIST_NOTE, "can_edit": True}
+
+
+# ---------------------------------------------------------------- downloading an assurance letter
+def letter_file_access(db: Session, actor: Actor, f) -> None:
+    """Rule for files.router: the client's people who see agent assurance (CAICO, Client Admin) and Futran staff who
+    see that client's agent assurance may download its assurance letters."""
+    if actor.is_futran:
+        authorize(db, actor, Action.VIEW_AGENT_ASSURANCE, org_id=f.organization_id)
+        return
+    if actor.organization.id != f.organization_id:
+        raise NotFound()
+    authorize(db, actor, Action.VIEW_AGENT_ASSURANCE, org_id=f.organization_id)
+
+
+def _register_file_rule() -> None:
+    from app.files.router import FILE_ACCESS
+
+    FILE_ACCESS.setdefault("assurance_letter", letter_file_access)
+
+
+_register_file_rule()
