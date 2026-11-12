@@ -6,10 +6,14 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.clock import today, utcnow
+
+CLIENT = "Acme Staffing LLC"
+SERVICE = "Initial assessment, LL144 and monitoring"
+SYSTEMS = 47
 
 
 def _line(code: str, qty: float, unit: float, periods: int | None, description: str, value: float | None = None) -> SimpleNamespace:
@@ -25,12 +29,16 @@ def seed(db: Session) -> dict:
     from app.tenancy.models import Organization, User
     from app.tenancy.service import create_organization
 
-    if db.scalar(select(Organization).where(Organization.name == "Acme Staffing LLC")) is not None:
+    # Acme Staffing LLC is shared with the R6b (Copilot readiness) and R7 (group) test data, as in the designs: use the
+    # client when it is already there. The won proposal is made once, so this step is skipped when its opportunity exists.
+    org = db.scalar(select(Organization).where(Organization.name == CLIENT, Organization.deleted_at.is_(None)))
+    if org is not None and db.scalar(select(Opportunity.id).where(Opportunity.organization_id == org.id, Opportunity.service == SERVICE)) is not None:
         return {}
     user = lambda email: db.scalar(select(User).where(User.email == email))  # noqa: E731
     sales, manager, auditor = user("sales@futran.demo"), user("manager@futran.demo"), user("auditor1@futran.demo")
-    org = create_organization(db, name="Acme Staffing LLC", type="client", status="prospect", hq_city="New York", hq_state="NY", hq_country="US")
-    opp = Opportunity(organization_id=org.id, trigger="manual", service="Initial assessment, LL144 and monitoring", owner_id=sales.id if sales else None, stage="proposal",
+    if org is None:
+        org = create_organization(db, name=CLIENT, type="client", status="prospect", hq_city="New York", hq_state="NY", hq_country="US")
+    opp = Opportunity(organization_id=org.id, trigger="manual", service=SERVICE, owner_id=sales.id if sales else None, stage="proposal",
                       value=116760, created_by=sales.id if sales else None)
     db.add(opp)
     db.flush()
@@ -49,8 +57,15 @@ def seed(db: Session) -> dict:
     for u, role in ((manager, "engagement_manager"), (auditor, "auditor")):
         if u is not None and audit_e is not None:
             db.add(EngagementTeam(organization_id=org.id, engagement_id=audit_e.id, user_id=u.id, role=role, created_by=u.id))
-    for i in range(47):
-        db.add(RegisterSystem(organization_id=org.id, reference=f"AIS-{i + 1:03d}", name=f"AI system {i + 1}", type="other", sourcing="vendor", stage="live"))
+    # 47 systems in the register (Monitor Plus, 11–50 band), counting any the other test data already put there
+    taken = set(db.scalars(select(RegisterSystem.reference).where(RegisterSystem.organization_id == org.id)))  # references are never reused
+    live = db.scalar(select(func.count(RegisterSystem.id)).where(RegisterSystem.organization_id == org.id, RegisterSystem.deleted_at.is_(None))) or 0
+    n = 0
+    while live < SYSTEMS:
+        n += 1
+        if f"AIS-{n:03d}" not in taken:
+            live += 1
+            db.add(RegisterSystem(organization_id=org.id, reference=f"AIS-{n:03d}", name=f"AI system {n}", type="other", sourcing="vendor", stage="live"))
     db.flush()
     plans.run_daily_usage(db, None, utcnow())
     co = None

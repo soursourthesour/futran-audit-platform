@@ -151,15 +151,16 @@ def cmd_seed_e2e(args) -> int:
 
     seed_r6b(db, hash_password(DEMO_PASSWORD))
     db.flush()
-    from app.demo.r5 import seed as seed_r5  # Release 2 R5: a won proposal handed off, an ordered plan, hours and a change order
-
-    seed_r5(db)
     from app.demo.r6a import seed as seed_r6a  # Release 2 R6a: Delta Logistics with an agent, for G-05 and G-09
 
     seed_r6a(db, hash_password(DEMO_PASSWORD))
     from app.demo.release2_r7 import seed_e2e as seed_r7  # Release 2 R7: group, vault and partners for the browser test
 
     seed_r7(db, settings, hash_password(DEMO_PASSWORD))
+    db.flush()
+    from app.demo.r5 import seed as seed_r5  # Release 2 R5: a won proposal handed off, an ordered plan, hours and a change order (on R6b's and R7's Acme Staffing LLC, so after them)
+
+    seed_r5(db)
     db.commit()
     print("e2e users ready")
     return 0
