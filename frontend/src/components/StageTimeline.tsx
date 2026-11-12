@@ -19,7 +19,7 @@ const SCREENS: Record<number, { to: string; label: string; requires: string[] }[
   3: [
     { to: '/attestation', label: 'Attestation', requires: ['view_attestation_aggregates', 'send_attestation'] },
     { to: '/governance', label: 'Governance', requires: ['view_governance'] },
-    { to: '/inventory', label: 'AI inventory', requires: ['view_inventory'] },
+    { to: '/inventory', label: 'AI systems', requires: ['view_inventory'] },
     { to: '/my-attestation', label: 'My AI attestation', requires: ['complete_own_attestation'] },
   ],
   4: [{ to: '/review', label: 'Review', requires: ['sign_client_signoff', 'submit_use_case'] }],
