@@ -421,8 +421,9 @@ def margins(db: Session) -> dict:
         fee = (com.fee_total if com else 0) or row["billable_value"]
         org = db.get(Organization, e.client_id)
         cost = money(row["cost"]) if row["costed"] else None
+        worked = row["hours"] > 0  # no margin until time is logged: an untouched engagement is not 100% margin
         out.append({"engagement_id": eid, "label": f"{org.name if org else ''} · {e.name}", "fee": fee, "hours": row["hours"], "cost": cost,
-                    "margin": money(fee - cost) if cost is not None and fee else None,
-                    "margin_pct": round(100 * (fee - cost) / fee) if cost is not None and fee else None})
+                    "margin": money(fee - cost) if worked and cost is not None and fee else None,
+                    "margin_pct": round(100 * (fee - cost) / fee) if worked and cost is not None and fee else None})
     return {"engagements": sorted(out, key=lambda r: r["label"]), "missing_costs": sorted(missing),
             "costs": [{"role": c.role, "cost_per_hour": c.cost_per_hour, "effective_from": c.effective_from.isoformat()} for c in standard_costs(db)]}

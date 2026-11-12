@@ -36,3 +36,4 @@
 .commercial .cost-form .field { margin: 0; }
 .commercial .ms-row { align-items: flex-end; }
 .commercial .ms-row .field { margin: 0; }
+.commercial .table td:first-child { white-space: nowrap; }
