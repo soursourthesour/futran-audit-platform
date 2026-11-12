@@ -135,7 +135,7 @@ export function DiscoveryImport() {
 
       <ToolsTable d={d} busy={busy} onConfirm={decide} onDismiss={setDismissing} onMatch={(imp, index) => setMatching({ imp, index })} />
 
-      <section className="card" aria-labelledby="dimp-opp-h">
+      {d.engagement && <section className="card" aria-labelledby="dimp-opp-h">
         <div className="card-header"><h2 id="dimp-opp-h">Opportunities raised for Sales (after the finding is final)</h2></div>
         <div className="card-body">
           {findings.length === 0 ? <EmptyState>No findings for Sales yet. Copilot licences, agents, undeclared paid AI tools and EU-scoped high-risk tools are raised here.</EmptyState> : (
@@ -147,7 +147,7 @@ export function DiscoveryImport() {
             </ul>
           )}
         </div>
-      </section>
+      </section>}
 
       <ImportsLog imports={d.imports} />
       {dismissing && <DismissDialog t={dismissing} base={base} futran={!!engagementId} onClose={() => setDismissing(null)} onDone={async (m) => { setDismissing(null); setFlash(m); await qc.invalidateQueries({ queryKey: ['discovery-import'] }); }} />}
@@ -159,7 +159,7 @@ export function DiscoveryImport() {
 
 function collectFindings(d: ImportPage) {
   const by = new Map<string, { key: string; label: string; service: string; opportunity_id: string | null }>();
-  for (const i of [...d.imports].reverse()) for (const f of i.findings) by.set(f.key, { key: f.key, label: f.label, service: f.service, opportunity_id: f.opportunity_id ?? by.get(f.key)?.opportunity_id ?? null });
+  for (const i of [...d.imports].reverse()) for (const f of i.findings ?? []) by.set(f.key, { key: f.key, label: f.label, service: f.service, opportunity_id: f.opportunity_id ?? by.get(f.key)?.opportunity_id ?? null });
   return [...by.values()];
 }
 
@@ -188,7 +188,8 @@ function ReviewStep({ et, a, busy, onBack, onImport }: { et: ExportTypeRow; a: A
   return (
     <div className="stack">
       <p style={{ margin: 0 }}><strong>Vendor dictionary:</strong> matched {a.rows_matched.toLocaleString()} of {a.rows_read.toLocaleString()} rows · {a.tools.length} AI tool and department pair{a.tools.length === 1 ? '' : 's'}
-        {a.unmatched.length > 0 && <> · {a.unmatched.length} unmatched row{a.unmatched.length === 1 ? '' : 's'} that look like AI tools</>}</p>
+        {a.unmatched.length > 0 && <> · {a.unmatched.length} unmatched row{a.unmatched.length === 1 ? '' : 's'} that look like AI tools</>}
+        {a.summary_only && a.unmatched_count > 0 && <> · {a.unmatched_count.toLocaleString()} other row{a.unmatched_count === 1 ? '' : 's'} not kept or shown</>}</p>
       {!a.attestation_exists && <Alert tone="warn">No attestation has been run for this client yet, so every tool counts as undeclared.</Alert>}
       <div className="table-wrap"><table className="table" aria-label="Tools this file will add">
         <thead><tr><th>Tool found</th><th>Vendor</th><th>Department</th><th className="num">Users</th><th>Detail</th><th>Declared in attestation?</th></tr></thead>
@@ -199,7 +200,7 @@ function ReviewStep({ et, a, busy, onBack, onImport }: { et: ExportTypeRow; a: A
           {a.tools.length === 0 && a.unmatched.length === 0 && <tr><td colSpan={6} className="muted">No AI tools in this file. Check the column mapping.</td></tr>}
         </tbody>
       </table></div>
-      <details><summary className="small">First {a.preview.length} rows as read</summary>
+      <details><summary className="small">{a.summary_only ? `First ${a.preview.length} matched rows as read` : `First ${a.preview.length} rows as read`}</summary>
         <div className="table-wrap"><table className="table" aria-label="Rows as read">
           <thead><tr>{et.fields.map((f) => <th key={f.key}>{f.label}</th>)}<th>Matched to</th></tr></thead>
           <tbody>{a.preview.map((r, i) => <tr key={i}>{et.fields.map((f) => <td key={f.key} className="small">{r.cells[f.key] || '—'}</td>)}<td className="small">{r.match ?? <span className="muted">No match</span>}</td></tr>)}</tbody>

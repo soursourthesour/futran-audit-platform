@@ -222,7 +222,7 @@ def test_the_client_admin_imports_from_integrations_and_decides_there(w):
     r = w.client.post("/api/v1/integrations/imports", data={"export_type": "entra_apps"}, files={"file": ("apps.csv", ENTRA, "text/csv")})
     assert r.status_code == 200, r.text
     imp = w.db.get(DiscoveryImport, r.json()["id"])
-    assert imp.engagement_id is None and w.db.get(FileObject, imp.evidence_file_id).linked_type == "evidence"
+    assert imp.engagement_id is None and w.db.get(FileObject, imp.evidence_file_id).linked_type == "discovery_import"
     page = w.client.get("/api/v1/integrations").json()
     otter = next(t for t in page["tools"] if t["product"] == "Otter.ai")
     assert otter["signal"] == "manual_import" and otter["signal_label"].startswith("Manual import")

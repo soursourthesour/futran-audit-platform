@@ -10,7 +10,7 @@ export type Finding = { key: string; label: string; service: string; service_kin
 export type Unmatched = { name: string; department: string | null; user_count: number; matched_tool_id?: string | null };
 export type ImportRow = {
   id: string; export_type: string; export_label: string; filename: string; sha256: string; size: number; rows_read: number; rows_matched: number; tools_found: number;
-  mapping: Record<string, string>; unmatched: Unmatched[]; findings: Finding[]; evidence_file_id: string | null; summary_only: boolean; engagement_id: string | null;
+  mapping: Record<string, string>; unmatched: Unmatched[]; unmatched_count: number | null; findings?: Finding[]; evidence_file_id: string | null; summary_only: boolean; engagement_id: string | null;
   imported_by: string | null; imported_at: string; tools?: ImportTool[];
 };
 export type ImportTool = DiscoveredTool & { import_type: string | null; import_id: string | null };
@@ -22,7 +22,7 @@ export type ImportPage = {
 export type PreviewTool = { vendor_key: string; vendor: string; product: string; category: string; department: string; user_count: number; detail: string | null; declared: boolean };
 export type Analysis = {
   export_type: string; filename: string; headers: string[]; mapping: Record<string, string>; rows_read: number; rows_matched: number;
-  preview: { cells: Record<string, string>; match: string | null }[]; tools: PreviewTool[]; unmatched: Unmatched[]; attestation_exists: boolean; sha256: string; summary_only: boolean;
+  preview: { cells: Record<string, string>; match: string | null }[]; tools: PreviewTool[]; unmatched: Unmatched[]; unmatched_count: number; attestation_exists: boolean; sha256: string; summary_only: boolean;
 };
 
 /** Where the endpoints live: on the engagement for Futran, under Integrations for the Client Admin. */

@@ -17,7 +17,9 @@ def undeclared_ai_tool(db, org) -> list[CheckOutcome]:
     for t in rows:
         dept = svc._dept_label(db, t)
         label = f"{t.product} · {dept} · {t.user_count} {'person' if t.user_count == 1 else 'people'}"
-        source = LABELS[conns[t.connector_id].type] if t.connector_id in conns else "a connector"
+        source = LABELS.get(conns[t.connector_id].type, "a connector") if t.connector_id in conns else "a connector"
+        if t.signal == "manual_import":
+            source = f"a manual import ({source})"
         if t.status == "new" and t.vendor_key not in declared:
             out.append(CheckOutcome(t.id, label, "failed", f"Not declared in the latest attestation; found through {source}.", f"/integrations?tool={t.id}", action="review"))
         else:

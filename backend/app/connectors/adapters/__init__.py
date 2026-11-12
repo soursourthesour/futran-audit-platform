@@ -20,6 +20,17 @@ LABELS = {"okta": "Okta", "entra_id": "Microsoft Entra ID", "google_workspace": 
 PROVIDER_OF = {"entra_id": "microsoft", "microsoft_365": "microsoft", "google_workspace": "google"}
 
 
+def _with_import_labels() -> None:
+    """One label source: the manual-import connectors (G-05, "mi_<export type>") are named here too, so every reader of
+    LABELS (the screen, the run log, monitoring checks) knows them. They have no adapter."""
+    from app.connectors.manual_import import LABELS as IMPORT_LABELS
+
+    LABELS.update(IMPORT_LABELS)
+
+
+_with_import_labels()
+
+
 class ConnectorError(Exception):
     def __init__(self, message: str, *, status: int | None = None):
         super().__init__(message)
@@ -49,7 +60,7 @@ def credentials_status(settings: Settings) -> dict:
 
 def get_adapter(settings: Settings, ctype: str):
     """The adapter for a connector type: the fake in test mode, the live one when its credentials are set, else None."""
-    if ctype not in LABELS or ctype in ("expense_csv", "casb_csv"):
+    if ctype not in LABELS or ctype in ("expense_csv", "casb_csv") or ctype.startswith("mi_"):
         return None
     if use_fake(settings):
         from app.connectors.adapters.fake import FakeAdapter

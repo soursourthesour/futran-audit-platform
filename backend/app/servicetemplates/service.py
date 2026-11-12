@@ -179,6 +179,12 @@ def questions(db: Session, v: ServiceTemplateVersion) -> list[dict]:
 
 
 # ---------------------------------------------------------------- maintenance and approval
+def _touched_by(v: ServiceTemplateVersion, user: User) -> None:
+    ids = list(v.editor_ids or [])
+    if user.id not in ids:
+        v.editor_ids = ids + [user.id]
+
+
 def _load(db: Session, version_id: str) -> ServiceTemplateVersion:
     v = db.get(ServiceTemplateVersion, version_id)
     if v is None:
@@ -222,6 +228,7 @@ def update_version(db: Session, user: User, version_id: str, data: dict) -> Serv
     for k, val in new.items():
         setattr(v, k, val)
     v.updated_by, v.updated_at = user.id, utcnow()
+    _touched_by(v, user)
     tpl = db.get(ServiceTemplate, v.template_id)
     changed = [k for k in before if before[k] != getattr(v, k)]
     audit.record(db, actor_id=user.id, action="service_template.edited", object_type="ServiceTemplateVersion", object_id=v.id, organization_id=user.organization_id,
@@ -242,7 +249,7 @@ def new_version(db: Session, user: User, template_id: str) -> ServiceTemplateVer
     major, minor = (int(x) for x in base.version.split(".")) if base else (0, 0)
     v = ServiceTemplateVersion(template_id=tpl.id, version=f"{major}.{minor + 1}", status="draft", created_by=user.id, updated_by=user.id,
                                **{k: list(getattr(base, k) or []) if base else [] for k in LIST_FIELDS}, report_template=base.report_template if base else None,
-                               change_note=None)
+                               change_note=None, editor_ids=[user.id])
     db.add(v)
     db.flush()
     audit.record(db, actor_id=user.id, action="service_template.version_started", object_type="ServiceTemplateVersion", object_id=v.id, organization_id=user.organization_id,
@@ -257,6 +264,7 @@ def submit(db: Session, user: User, version_id: str) -> ServiceTemplateVersion:
     if not (v.sections or v.checklists or v.question_codes):
         raise Invalid(errors=[{"field": "sections", "message": "Add at least one section, checklist item or question before sending it for approval."}])
     v.status, v.submitted_by, v.submitted_at, v.returned_note = "awaiting_approval", user.id, utcnow(), None
+    _touched_by(v, user)
     tpl = db.get(ServiceTemplate, v.template_id)
     audit.record(db, actor_id=user.id, action="service_template.submitted", object_type="ServiceTemplateVersion", object_id=v.id, organization_id=user.organization_id,
                  summary=f"Sent {tpl.name} {v.version} to the Chief Auditor for approval")
@@ -282,7 +290,7 @@ def approve(db: Session, user: User, version_id: str, note: str | None) -> Servi
     v = _load(db, version_id)
     if v.status != "awaiting_approval":
         raise Conflict("Only a version sent for approval can be approved.")
-    assert_not_self_approval(user.id, v.created_by, v.updated_by, v.submitted_by)
+    assert_not_self_approval(user.id, v.created_by, v.updated_by, v.submitted_by, *(v.editor_ids or []))
     tpl = db.get(ServiceTemplate, v.template_id)
     for old in versions(db, tpl):
         if old.status == "approved":

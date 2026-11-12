@@ -112,7 +112,8 @@ class DiscoveryImport(TimestampedTenantMixin, Base):
     rows_read: Mapped[int] = mapped_column(Integer, default=0)
     rows_matched: Mapped[int] = mapped_column(Integer, default=0)
     tools_found: Mapped[int] = mapped_column(Integer, default=0)
-    unmatched: Mapped[list] = mapped_column(JSON, default=list)  # [{name, department, user_count, matched_tool_id}]
+    unmatched: Mapped[list] = mapped_column(JSON, default=list)  # [{name, department, user_count, matched_tool_id}]; never for expense or proxy files
+    unmatched_count: Mapped[int | None] = mapped_column(Integer)  # rows not matched to an AI vendor (their text is not kept for expense or proxy)
     findings: Mapped[list] = mapped_column(JSON, default=list)  # [{key, label, service, tool_ids, opportunity_id}]
     evidence_file_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("files.id"))
     imported_by: Mapped[str | None] = mapped_column(String(36), ForeignKey("users.id"))

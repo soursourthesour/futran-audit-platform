@@ -153,10 +153,13 @@ def read_table(data: bytes, filename: str | None) -> tuple[list[str], list[list[
         except csv.Error:
             dialect = csv.excel
         raw = []
-        for r in csv.reader(io.StringIO(text), dialect):
-            raw.append([c.strip() for c in r[:MAX_COLS]])
-            if len(raw) > MAX_ROWS + 1:
-                break
+        try:
+            for r in csv.reader(io.StringIO(text), dialect):
+                raw.append([c.strip() for c in r[:MAX_COLS]])
+                if len(raw) > MAX_ROWS + 1:
+                    break
+        except csv.Error as exc:  # a broken quote, a NUL byte, or a cell over the CSV reader's 128 KB limit
+            raise Invalid(errors=[{"field": "file", "message": "This file could not be read as CSV. Export it again from the admin console as CSV or Excel (.xlsx) and try again."}]) from exc
     raw = [r for r in raw if any(c for c in r)]
     if not raw:
         raise Invalid(errors=[{"field": "file", "message": "The file is empty."}])
@@ -228,6 +231,10 @@ class Parsed:
     unmatched: list[dict] = field(default_factory=list)
     preview: list[dict] = field(default_factory=list)
 
+    @property
+    def unmatched_count(self) -> int:
+        return self.rows_read - self.rows_matched
+
 
 class _Groups:
     def __init__(self, keep_people: bool):
@@ -293,7 +300,7 @@ def parse(t: ExportType, headers: list[str], rows: list[list[str]], mapping: dic
     customs: dict[str, Custom] = {}
 
     def miss(name: str, dept: str, users: int | None) -> None:
-        if not AI_WORDS.search(name.lower()):
+        if t.summary_only or not AI_WORDS.search(name.lower()):  # spending and browsing text is never kept or shown
             return
         u = unmatched.setdefault((name.casefold(), dept.casefold()), {"name": name, "department": dept or None, "user_count": 0})
         u["user_count"] += users if users is not None else 1
@@ -345,7 +352,7 @@ def parse(t: ExportType, headers: list[str], rows: list[list[str]], mapping: dic
                 matched = v.product
         if matched:
             out.rows_matched += 1
-        if len(out.preview) < PREVIEW_ROWS:
+        if len(out.preview) < PREVIEW_ROWS and (matched or not t.summary_only):  # expense and proxy: only the AI rows
             out.preview.append({"cells": {f.key: cell(row, f.key) for f in t.fields}, "match": matched})
 
     def describe(e: dict, n: int) -> str:
@@ -503,17 +510,21 @@ def run_import(db: Session, settings: Settings, user: User, org: Organization, e
     conn = _connector(db, org, t)
     imp = DiscoveryImport(organization_id=org.id, engagement_id=engagement_id, connector_id=conn.id, export_type=t.key, filename=name,
                           source_sha256=hashlib.sha256(data).hexdigest(), source_size=len(data), mapping=mapping, rows_read=parsed.rows_read,
-                          rows_matched=parsed.rows_matched, unmatched=[dict(u, matched_tool_id=None) for u in parsed.unmatched], findings=[],
+                          rows_matched=parsed.rows_matched, unmatched=[dict(u, matched_tool_id=None) for u in parsed.unmatched], unmatched_count=parsed.unmatched_count,
+                          findings=[],
                           imported_by=user.id, imported_at=now, created_by=user.id)
     db.add(imp)
     db.flush()
+    # On an engagement the file is engagement evidence (v0.6.1 §9.6); from Integrations it is the client's own import file
+    # (download rule: import_router.import_file_access).
+    link = "evidence" if engagement_id else "discovery_import"
     if t.summary_only:
         stem = Path(name).stem[:180]
         f = store_file(db, settings, user, data=_summary_csv(db, t, parsed).encode("utf-8"), filename=f"{stem} AI rows summary.csv", content_type="text/csv",
-                       organization_id=org.id, engagement_id=engagement_id, linked_type="evidence", linked_id=engagement_id or imp.id)
+                       organization_id=org.id, engagement_id=engagement_id, linked_type=link, linked_id=engagement_id or imp.id)
     else:
         f = store_file(db, settings, user, data=data, filename=name, content_type=None, organization_id=org.id, engagement_id=engagement_id,
-                       linked_type="evidence", linked_id=engagement_id or imp.id)
+                       linked_type=link, linked_id=engagement_id or imp.id)
     imp.evidence_file_id = f.id
     run = ConnectorRun(organization_id=org.id, connector_id=conn.id, kind="import", started_at=now, status="running", started_by=user.id, filename=name,
                        rows_read=parsed.rows_read, rows_matched=parsed.rows_matched)
@@ -620,17 +631,28 @@ def analyse(db: Session, org: Organization, export_key: str, filename: str | Non
                       "user_count": c.user_count, "detail": c.detail, "declared": False})
     tools.sort(key=lambda x: (x["product"].casefold(), x["department"].casefold()))
     return {"export_type": t.key, "filename": filename, "headers": headers, "mapping": mapping, "rows_read": parsed.rows_read, "rows_matched": parsed.rows_matched,
-            "preview": parsed.preview, "tools": tools, "unmatched": parsed.unmatched, "attestation_exists": has_campaign,
+            "preview": parsed.preview, "tools": tools, "unmatched": parsed.unmatched, "unmatched_count": parsed.unmatched_count, "attestation_exists": has_campaign,
             "sha256": hashlib.sha256(data).hexdigest(), "summary_only": t.summary_only}
 
 
-def import_out(db: Session, imp: DiscoveryImport) -> dict:
+def import_out(db: Session, imp: DiscoveryImport, *, sales: bool = True) -> dict:
+    """An import as a screen shows it. `sales=False` (any client response) leaves out the findings: what Futran sells
+    from them is never shown to the client."""
     t = EXPORT_TYPES.get(imp.export_type)
     by = db.get(User, imp.imported_by) if imp.imported_by else None
-    return {"id": imp.id, "export_type": imp.export_type, "export_label": t.label if t else imp.export_type, "filename": imp.filename, "sha256": imp.source_sha256,
+    out = {"id": imp.id, "export_type": imp.export_type, "export_label": t.label if t else imp.export_type, "filename": imp.filename, "sha256": imp.source_sha256,
             "size": imp.source_size, "rows_read": imp.rows_read, "rows_matched": imp.rows_matched, "tools_found": imp.tools_found, "mapping": imp.mapping,
-            "unmatched": imp.unmatched or [], "findings": imp.findings or [], "evidence_file_id": imp.evidence_file_id, "summary_only": bool(t and t.summary_only),
-            "engagement_id": imp.engagement_id, "imported_by": by.name if by else None, "imported_at": imp.imported_at.isoformat()}
+            "unmatched": imp.unmatched or [], "unmatched_count": imp.unmatched_count, "findings": imp.findings or [], "evidence_file_id": imp.evidence_file_id,
+            "summary_only": bool(t and t.summary_only), "engagement_id": imp.engagement_id, "imported_by": by.name if by else None, "imported_at": imp.imported_at.isoformat()}
+    if not sales:
+        out.pop("findings")
+    return out
+
+
+def own_imports(db: Session, org: Organization) -> list[DiscoveryImport]:
+    """The imports the client's own people made (from Integrations): never Futran's engagement imports."""
+    mine = set(db.scalars(select(User.id).where(User.organization_id == org.id)))
+    return [i for i in imports(db, org) if i.engagement_id is None and i.imported_by in mine]
 
 
 def imports(db: Session, org: Organization) -> list[DiscoveryImport]:

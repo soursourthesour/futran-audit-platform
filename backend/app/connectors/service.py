@@ -41,9 +41,8 @@ from app.core.errors import AppError, Conflict, Forbidden, Invalid, NotFound
 from app.inventory.models import AITool
 from app.mail import tokens
 from app.tenancy.models import Department, Organization, RoleAssignment, User
-from app.connectors.manual_import import EXPORT_TYPES as IMPORT_TYPES, LABELS as IMPORT_LABELS  # noqa: E402  (G-05)
+from app.connectors.manual_import import EXPORT_TYPES as IMPORT_TYPES  # noqa: E402  (G-05; adapters.LABELS names its connectors too)
 
-LABELS = {**LABELS, **IMPORT_LABELS}  # connector labels, and the export type of each manual-import connector (G-05)
 STATE_MAX_AGE = 3600
 SIGNAL_LABELS = {"sso_app": "SSO app", "oauth_grant": "OAuth grant", "licence": "Licence", "expense": "Expense", "traffic": "Network traffic", "manual_import": "Manual import"}
 ACCOUNT_FOR_SIGNAL = {"sso_app": "enterprise", "licence": "enterprise", "expense": "personal_paid", "oauth_grant": "unknown", "traffic": "unknown"}

@@ -43,6 +43,7 @@ class ServiceTemplateVersion(IdMixin, Base):
     created_by: Mapped[str | None] = mapped_column(String(36))
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
     updated_by: Mapped[str | None] = mapped_column(String(36))
+    editor_ids: Mapped[list | None] = mapped_column(JSON)  # everyone who started, edited or submitted it: none of them may approve it
     submitted_by: Mapped[str | None] = mapped_column(String(36), ForeignKey("users.id"))
     submitted_at: Mapped[datetime | None] = mapped_column(DateTime)
     approved_by: Mapped[str | None] = mapped_column(String(36), ForeignKey("users.id"))
