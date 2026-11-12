@@ -1,0 +1,37 @@
+/* Release 2 R6b: G-07 Copilot readiness and G-08 EU AI Act conformity. Phone first for the G-07 client view (375 px). */
+.r6b .r6b-card .card-body { overflow-wrap: anywhere; }
+.r6b-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.r6b-tile { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; min-width: 0; }
+.r6b-tile-value { font-size: 24px; font-weight: 600; line-height: 1.3; }
+.r6b-tile-warn { background: var(--warn-bg); border-color: var(--warn-line); color: var(--warn); }
+.r6b-tile-warn .muted { color: var(--warn); }
+.r6b-phases { display: flex; flex-wrap: wrap; gap: 4px; font-size: 13px; }
+.r6b-phases > * { border: 0; border-radius: 16px; padding: 8px 12px; background: #e1e8f2; color: var(--ink, #1a2333); font: inherit; min-height: 36px; }
+.r6b-phases button { cursor: pointer; }
+.r6b-phases .on { background: var(--navy); color: #fff; }
+.r6b-import { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.r6b-import > .field { flex: 1 1 240px; min-width: 0; }
+.r6b-import input[type=file] { max-width: 100%; }
+.r6b-list { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.r6b-controls { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.r6b-control { padding: 8px 0; border-top: 1px solid var(--line-soft); }
+.r6b-control:first-child { border-top: 0; }
+.r6b-control-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.r6b-control-label { min-width: 0; flex: 1 1 220px; }
+.r6b-control-open .r6b-status { color: var(--warn); font-weight: 600; }
+.r6b-control-done .r6b-status { color: var(--success); font-weight: 600; }
+.r6b-control-not_applicable .r6b-status { color: var(--muted); }
+.r6b-attach { display: inline-block; margin-top: 4px; color: var(--navy); cursor: pointer; text-decoration: underline; min-height: 24px; }
+.r6b-attach:focus-within { outline: 2px solid var(--navy); outline-offset: 2px; }
+.r6b-ev { display: inline-block; margin-right: 10px; }
+.r6b-go { color: var(--success); font-weight: 600; }
+.r6b-hold { color: var(--warn); font-weight: 600; }
+.r6b-bad { color: var(--danger); font-weight: 600; }
+.r6b-selected td { background: #eef3fa; }
+.r6b-fieldset { border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 12px; margin: 0; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.r6b-fieldset legend { font-weight: 600; font-size: 14px; padding: 0 4px; }
+.r6b select { max-width: 100%; }
+@media (max-width: 600px) {
+  .r6b .page-header { align-items: flex-start; }
+  .r6b-tile-value { font-size: 20px; }
+}

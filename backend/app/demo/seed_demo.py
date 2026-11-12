@@ -828,6 +828,10 @@ def run(db: Session, settings, client: TestClient | None = None) -> dict:
         from app.demo import wave3
 
         out |= wave3.seed(m, dict(out))  # §21 extended features
+        from app.auth.passwords import hash_password
+        from app.demo.r6b import seed_r6b  # Release 2 R6b: Copilot readiness and EU AI Act readiness clients
+
+        out |= seed_r6b(m.db, hash_password(DEMO_PASSWORD))
     finally:
         client.cookies.clear()
         if own:

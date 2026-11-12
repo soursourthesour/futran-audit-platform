@@ -145,6 +145,9 @@ def cmd_seed_e2e(args) -> int:
     from app.demo.wsd import seed_wsd  # v0.6 WS-D: Sales Team, QA Reviewer, litigation cases, one register client
 
     seed_wsd(db, hash_password(DEMO_PASSWORD), with_client=True)
+    from app.demo.r6b import seed_r6b  # Release 2 R6b: Copilot readiness and EU AI Act readiness clients
+
+    seed_r6b(db, hash_password(DEMO_PASSWORD))
     db.flush()
     from app.demo.r5 import seed as seed_r5  # Release 2 R5: a won proposal handed off, an ordered plan, hours and a change order
 

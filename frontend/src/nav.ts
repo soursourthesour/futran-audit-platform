@@ -86,6 +86,7 @@ export const CLIENT_GROUPS: NavGroup[] = [
     { to: '/projects', label: 'New AI projects', requires: ['view_projects'] }, // WS-H screen 28
     { to: '/updates', label: 'Regulatory updates', requires: ['view_client_updates'] }, // WS-H screen 26 (client)
     { to: '/addons', label: 'Add-ons', requires: ['view_addons'] },
+    { to: '/copilot', label: 'Copilot readiness', requires: ['view_copilot_readiness'] },  // Release 2 R6b: G-07 client view
   ] },
   { id: 'people', label: 'People and training', entries: [
     { to: '/people', label: 'People', requires: ['manage_client_users'] },

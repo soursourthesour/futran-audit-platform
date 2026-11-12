@@ -16,6 +16,7 @@ import { TracingTab } from '@/screens/tracing/TracingTab';
 import { AgentTab } from '@/screens/wsl/AgentTab';
 import { Lock } from './RegisterGrid';
 import { SystemTriggers } from '@/screens/regupdates/Reassessment';
+import { RegisterEuCard } from '@/screens/r6b/Links';  // Release 2 R6b: G-08 status on the register record
 import './register.css';
 
 export type Tab = 'details' | 'roles' | 'history' | 'agent' | 'tracing' | 'evidence' | 'changes';
@@ -79,6 +80,7 @@ export function RegisterSystemPage({ tab }: { tab: Tab }) {
         ))}
       </nav>
       {tab === 'details' && <SystemTriggers systemId={s.id} />}
+      {tab === 'details' && <RegisterEuCard systemId={s.id} />}
       {tab === 'details' && reg.data && <DetailsTab s={s} d={reg.data} onSaved={async (m) => { await refresh(); setFlash({ tone: 'success', text: m }); }} />}
       {tab === 'details' && !reg.data && <Loading />}
       {tab === 'roles' && <RolesTab s={s} onChanged={refresh} />}

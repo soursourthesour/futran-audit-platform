@@ -58,10 +58,12 @@ import { wsiClientRoutes, wsiFutranRoutes, wsiPublicRoutes } from '@/routes.wsi'
 import { r6aClientRoutes, r6aFutranRoutes } from '@/routes.r6a';
 import { r5ClientRoutes, r5FutranRoutes } from '@/routes.r5';  // Release 2 R5
 import { r1FutranRoutes } from '@/routes.r1';  // Release 2 R1: price list and Estimator
+import { r6bClientRoutes, r6bFutranRoutes } from '@/routes.r6b';  // Release 2 R6b: Copilot readiness, EU AI Act conformity
 
 /** Screens added by later tasks register here, so routes.tsx stays stable. */
 export const futranRoutes: RouteObject[] = [
   ...r5FutranRoutes,
+  ...r6bFutranRoutes,
   ...wsdRoutes,
   ...r3FutranRoutes,
   ...wskFutranRoutes,
@@ -109,7 +111,7 @@ export const futranRoutes: RouteObject[] = [
   { path: '/reg/:lawId/edit', element: <LawEdit /> },
   { path: '/clients/:clientId/applicability', element: <Applicability /> },
 ];
-export const clientRoutes: RouteObject[] = [...r6aClientRoutes, ...r5ClientRoutes, ...clientHomeRoutes, ...wskClientRoutes, ...wslClientRoutes, ...wsgClientRoutes, ...wsiClientRoutes, ...wsjClientRoutes, ...wshClientRoutes, { path: '/admin/email', element: <ClientEmailSetup /> }, { path: '/admin/groups', element: <GroupsScreen /> }, { path: '/people', element: <Navigate to="/people/departments" replace /> }, { path: '/people/departments', element: <UsersDepartments tab="departments" /> }, { path: '/people/users', element: <UsersDepartments tab="users" /> }, { path: '/users', element: <Navigate to="/people/users" replace /> }, { path: '/governance', element: <Governance /> }, { path: '/attestation', element: <AttestationTracker /> }, { path: '/my-attestation', element: <MyAttestation /> }, { path: '/inventory', element: <ListPreset preset={{ type: 'inventory', all: '1' }} /> }, { path: '/inventory/new', element: <UseCaseForm /> }, { path: '/inventory/:useCaseId', element: <UseCaseForm /> }, { path: '/systems', element: <ListPreset preset={{ audit: 'yes' }} /> }, { path: '/systems/:systemId', element: <SystemPrefill /> }, { path: '/documents', element: <DocumentUploads /> }, { path: '/review', element: <InventoryReview /> }, { path: '/report', element: <ClientReport /> }, { path: '/responses', element: <ManagementResponse /> }, { path: '/remediation', element: <Remediation /> },
+export const clientRoutes: RouteObject[] = [...r6bClientRoutes, ...r6aClientRoutes, ...r5ClientRoutes, ...clientHomeRoutes, ...wskClientRoutes, ...wslClientRoutes, ...wsgClientRoutes, ...wsiClientRoutes, ...wsjClientRoutes, ...wshClientRoutes, { path: '/admin/email', element: <ClientEmailSetup /> }, { path: '/admin/groups', element: <GroupsScreen /> }, { path: '/people', element: <Navigate to="/people/departments" replace /> }, { path: '/people/departments', element: <UsersDepartments tab="departments" /> }, { path: '/people/users', element: <UsersDepartments tab="users" /> }, { path: '/users', element: <Navigate to="/people/users" replace /> }, { path: '/governance', element: <Governance /> }, { path: '/attestation', element: <AttestationTracker /> }, { path: '/my-attestation', element: <MyAttestation /> }, { path: '/inventory', element: <ListPreset preset={{ type: 'inventory', all: '1' }} /> }, { path: '/inventory/new', element: <UseCaseForm /> }, { path: '/inventory/:useCaseId', element: <UseCaseForm /> }, { path: '/systems', element: <ListPreset preset={{ audit: 'yes' }} /> }, { path: '/systems/:systemId', element: <SystemPrefill /> }, { path: '/documents', element: <DocumentUploads /> }, { path: '/review', element: <InventoryReview /> }, { path: '/report', element: <ClientReport /> }, { path: '/responses', element: <ManagementResponse /> }, { path: '/remediation', element: <Remediation /> },
   // AI system register (spec §24, §27.2)
   { path: '/register', element: <RegisterGrid /> }, { path: '/register/new', element: <RegisterNew /> },
   { path: '/register/:systemId', element: <RegisterSystemPage tab="details" /> }, { path: '/register/:systemId/roles', element: <RegisterSystemPage tab="roles" /> },
