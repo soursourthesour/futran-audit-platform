@@ -191,3 +191,34 @@ def test_storage_metering_feeds_g01_usage(vw):
     vw.as_(vw.chief)
     v = vw.client.get(f"/api/v1/staff/clients/{vw.org.id}/vault").json()
     assert v["storage"]["used_gb"] == pytest.approx(3.0, abs=0.01)
+
+
+def test_a_shorter_tier_never_cuts_the_engagement_letters_period(vw):
+    """Fix pass 1: completed January 2022 with a 10-year letter; a 3-year tier must not delete it in 2025."""
+    e = Engagement(organization_id=vw.org.id, client_id=vw.org.id, name="Audit 2021", status="completed", stage=9, audit_ref="FSL-AI-AUD-2021-777",
+                   completed_at=datetime(2022, 1, 10, 12), retention_years=10)
+    vw.db.add(e)
+    vw.db.flush()
+    key = get_storage(vw.settings).put(vw.org.id, b"x", "letter-evidence.txt")
+    f = FileObject(organization_id=vw.org.id, engagement_id=e.id, storage_key=key, filename="letter-evidence.txt", content_type="text/plain", size=1, sha256="0" * 64,
+                   linked_type="evidence")
+    vw.db.add(f)
+    vw.db.commit()
+    vault.set_tier(vw.db, vw.chief, vw.org, 3, "Client asked for the 3-year tier")
+    vw.db.commit()
+    for d in (datetime(2025, 6, 1, 10), datetime(2025, 9, 1, 10), datetime(2026, 6, 1, 10)):
+        vault.run_daily(vw.db, vw.settings, d)
+    vw.db.commit()
+    assert _alive(vw, f)
+    assert all(i["filename"] != "letter-evidence.txt" for i in vault.countdown(vw.db, vw.settings, vw.org, date(2031, 1, 1)))
+    assert any(i["filename"] == "letter-evidence.txt" and i["due_on"] == "2032-01-10" for i in vault.countdown(vw.db, vw.settings, vw.org, date(2031, 12, 1)))
+    # the 2019 engagements' letters said the default 7 years, so the 3-year tier keeps them at 7 too
+    vw.as_(vw.chief)
+    v = vw.client.get(f"/api/v1/staff/clients/{vw.org.id}/vault").json()
+    assert v["retention"]["years"] == 3 and v["retention"]["kept_longer_by_letter"] == 3
+
+
+def test_a_longer_tier_lengthens_retention(vw):
+    vault.set_tier(vw.db, vw.chief, vw.org, 10, "M-06c uplift")
+    vw.db.commit()
+    assert vault.countdown(vw.db, vw.settings, vw.org, date(2026, 1, 15)) == [] or all(i["kind"] == "Raw data" for i in vault.countdown(vw.db, vw.settings, vw.org, date(2026, 1, 15)))

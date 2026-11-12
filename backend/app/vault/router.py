@@ -91,6 +91,7 @@ def _view(db: Session, actor: Actor, request: Request, org: Organization) -> dic
         "client": {"id": org.id, "name": org.name},
         "storage": _storage(db, org),
         "retention": {"years": p.years if p else settings.retention_years_default, "is_default": p is None, "tiers": list(TIERS),
+                      "kept_longer_by_letter": vault.kept_longer_by_letter(db, settings, org.id, p.years if p else settings.retention_years_default),
                       "effective_from": p.effective_from.isoformat() if p else None, "set_by": _name(db, p.set_by) if p else None, "reason": p.reason if p else None,
                       "history": [{"years": r.years, "effective_from": r.effective_from.isoformat(), "set_by": _name(db, r.set_by), "reason": r.reason} for r in history]},
         "holds": [_hold_out(db, h) for h in hs],
@@ -110,7 +111,7 @@ def get_vault(client_id: str, request: Request, actor: Actor = Depends(current_a
 @router.put("/staff/clients/{client_id}/vault/retention")
 def put_tier(client_id: str, body: TierIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _client(db, actor, Action.SET_RETENTION_TIER, client_id)
-    vault.set_tier(db, actor.user, org, body.years, body.reason)
+    vault.set_tier(db, actor.user, org, body.years, body.reason, request.app.state.settings)
     return _view(db, actor, request, org)
 
 

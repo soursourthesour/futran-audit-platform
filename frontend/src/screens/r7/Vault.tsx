@@ -35,7 +35,7 @@ export function Vault() {
         <div className="r7-kpi">
           <div className="label">Retention tier</div>
           <div className="value">{v.retention.years} years</div>
-          <div className="sub">{v.retention.is_default ? 'Platform default' : `Since ${fmtDate(v.retention.effective_from)}`}{v.can.set_tier && <> · <button type="button" className="r7-link" onClick={() => setTier(true)}>Change</button></>}</div>
+          <div className="sub">{v.retention.is_default ? 'Platform default' : `Since ${fmtDate(v.retention.effective_from)}`}{v.retention.kept_longer_by_letter ? ` · ${v.retention.kept_longer_by_letter} ${v.retention.kept_longer_by_letter === 1 ? 'engagement keeps' : 'engagements keep'} a longer period from the letter` : ''}{v.can.set_tier && <> · <button type="button" className="r7-link" onClick={() => setTier(true)}>Change</button></>}</div>
         </div>
         <div className="r7-kpi">
           <div className="label">Legal holds</div>
@@ -160,7 +160,7 @@ function TierDialog({ v, clientId, onClose, onDone }: { v: VaultView; clientId: 
         {err && <Alert tone="danger">{err}</Alert>}
         <SelectField label="Keep engagement evidence for" value={years} onChange={(e) => setYears(e.target.value)} options={v.retention.tiers.map((t) => ({ value: String(t), label: `${t} years after the engagement is completed${t === 7 ? ' (default)' : ''}` }))} />
         <TextField label="Reason" placeholder="For example: M-06c uplift ordered" value={reason} maxLength={300} onChange={(e) => setReason(e.target.value)} />
-        <p className="small muted" style={{ margin: 0 }}>A shorter tier brings deletion dates forward, but nothing is deleted sooner than 90 days after its notice.</p>
+        <p className="small muted" style={{ margin: 0 }}>A tier can lengthen retention but never shorten it: each engagement keeps at least the period its engagement letter states. Nothing is deleted sooner than 90 days after its notice.</p>
         {v.retention.history.length > 0 && <p className="small muted" style={{ margin: 0 }}>Earlier: {v.retention.history.map((h) => `${h.years} years from ${fmtDate(h.effective_from)} (${h.set_by})`).join('; ')}</p>}
         <div className="row"><Button variant="primary" onClick={save}>Save tier</Button><Button variant="ghost" onClick={onClose}>Cancel</Button></div>
       </div>

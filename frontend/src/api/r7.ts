@@ -54,7 +54,7 @@ export type CountdownItem = { item_type: string; id: string; filename: string; k
 export type VaultView = {
   client: { id: string; name: string };
   storage: { used_gb: number; limit_gb: number | null; plan_code: string | null; measured_on: string | null; pct: number | null };
-  retention: { years: number; is_default: boolean; tiers: number[]; effective_from: string | null; set_by: string | null; reason: string | null;
+  retention: { years: number; is_default: boolean; tiers: number[]; kept_longer_by_letter: number; effective_from: string | null; set_by: string | null; reason: string | null;
     history: { years: number; effective_from: string; set_by: string | null; reason: string | null }[] };
   holds: Hold[]; active_holds: number;
   countdown: { items: CountdownItem[]; total: number; held: number; will_delete: number };

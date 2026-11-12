@@ -2,7 +2,8 @@
 
 Retention: each client has a tier of 3, 7 or 10 years (default 7, `settings.retention_years_default`). Engagement
 evidence (files linked as `evidence` or `governance_document`) is due for deletion that many years after the engagement
-was completed. Without a tier the engagement's own `retention_years` (or the default) applies, as before. Reports,
+was completed, but never sooner than the engagement letter promised (`Engagement.retention_years`, or the default the
+letter states): a tier can lengthen retention, never shorten it. Reports,
 packages, letters and other generated documents are not deleted by the vault. Raw applicant data of bias tests keeps its
 own F11 rule (app.biascalc.retention) and shows in the countdown.
 
@@ -63,11 +64,23 @@ def retention_years(db: Session, settings, org_id: str, on: date | None = None) 
     return p.years if p else settings.retention_years_default
 
 
+def letter_years(settings, e: Engagement) -> int:
+    """The retention period the engagement letter states (the initiation package uses the same rule)."""
+    return e.retention_years or settings.retention_years_default
+
+
 def _years_for(db: Session, settings, e: Engagement, policy: RetentionPolicy | None) -> int:
-    return policy.years if policy else (e.retention_years or settings.retention_years_default)
+    """The client's tier can lengthen an engagement's retention but never shorten it below what its letter promised."""
+    return max(policy.years if policy else 0, letter_years(settings, e))
 
 
-def set_tier(db: Session, actor: User, org: Organization, years: int, reason: str | None) -> RetentionPolicy:
+def kept_longer_by_letter(db: Session, settings, org_id: str, years: int) -> int:
+    """Engagements whose letters keep evidence longer than `years`, so a shorter tier does not apply to them."""
+    return sum(1 for e in db.scalars(select(Engagement).where(Engagement.client_id == org_id, Engagement.deleted_at.is_(None)))
+               if letter_years(settings, e) > years)
+
+
+def set_tier(db: Session, actor: User, org: Organization, years: int, reason: str | None, settings=None) -> RetentionPolicy:
     if years not in TIERS:
         raise Invalid(errors=[{"field": "years", "message": "Choose 3, 7 or 10 years."}])
     before = current_policy(db, org.id)
@@ -75,8 +88,10 @@ def set_tier(db: Session, actor: User, org: Organization, years: int, reason: st
                         created_by=actor.id)
     db.add(p)
     db.flush()
-    audit.record(db, actor_id=actor.id, action="vault.retention_tier", obj=p, before={"years": before.years if before else None}, after={"years": years, "reason": p.reason},
-                 summary=f"Retention tier for {org.name} set to {years} years")
+    longer = kept_longer_by_letter(db, settings, org.id, years) if settings is not None else None
+    audit.record(db, actor_id=actor.id, action="vault.retention_tier", obj=p, before={"years": before.years if before else None},
+                 after={"years": years, "reason": p.reason, "kept_longer_by_letter": longer},
+                 summary=f"Retention tier for {org.name} set to {years} years" + (f"; {longer} engagements keep their letters' longer period" if longer else ""))
     return p
 
 
