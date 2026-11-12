@@ -236,7 +236,8 @@ test('a deep link survives the mailbox step and the personal mailbox consent; a 
   await call(admin, 'PATCH', '/mail/settings', { per_user_sync: 'required' });
   try {
     await page.goto('/inventory?tab=tools');
-    await expect(page).toHaveURL(/\/welcome\/mailbox\?next=%2Finventory%3Ftab%3Dtools$/);
+    // the old inventory address redirects to the filtered AI systems list first, and that address is the one kept
+    await expect(page).toHaveURL(/\/welcome\/mailbox\?next=%2Fregister%3Ftype%3Dtool%26all%3D1$/);
     await page.getByRole('button', { name: /Connect Microsoft 365/ }).click();
     await page.getByRole('button', { name: 'Accept' }).click();
     await expect(page).toHaveURL(/\/welcome\/mailbox\?(?=.*connected=1)(?=.*next=%2F|.*next=\/)/);
