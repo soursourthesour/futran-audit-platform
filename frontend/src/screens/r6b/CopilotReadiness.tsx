@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
-import { RISK_TONE, type CopilotSite, type CopilotView, type CopilotWave } from '@/api/r6b';
+import { RISK_TONE, type CopilotNotStarted, type CopilotSite, type CopilotView, type CopilotWave } from '@/api/r6b';
 import { Alert, Badge, Button, Card, Checkbox, Dialog, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField, fileUrl, fmtDate } from '@/components/ui';
 import '@/styles/r6b.css';
 
@@ -35,15 +35,12 @@ export function ClientCopilotScreen() {
 function CopilotWorkspace({ engagementId }: { engagementId: string }) {
   const qc = useQueryClient();
   const key = ['copilot', engagementId];
-  const q = useQuery({ queryKey: key, queryFn: () => api.get<CopilotView>(`/e/${engagementId}/copilot`) });
+  const q = useQuery({ queryKey: key, queryFn: () => api.get<CopilotView | CopilotNotStarted>(`/e/${engagementId}/copilot`) });
   const [msg, setMsg] = useState<{ tone: 'success' | 'danger'; text: string } | null>(null);
   const [editSite, setEditSite] = useState<CopilotSite | null>(null);
   const [editWave, setEditWave] = useState<CopilotWave | 'new' | null>(null);
   if (q.isLoading) return <div className="page"><Loading /></div>;
   if (q.isError || !q.data) return <div className="page"><Alert tone="danger">{errorMessage(q.error)}</Alert></div>;
-  const v = q.data;
-  const base = `/e/${engagementId}/copilot`;
-
   async function run(fn: () => Promise<CopilotView>, ok?: string) {
     setMsg(null);
     try {
@@ -54,6 +51,24 @@ function CopilotWorkspace({ engagementId }: { engagementId: string }) {
       throw e;
     }
   }
+
+  const base = `/e/${engagementId}/copilot`;
+  if (!q.data.started) {
+    const n = q.data;
+    return (
+      <div className="page r6b">
+        <PageHeader crumbs={n.client_view ? undefined : [{ to: '/audits', label: 'Audits' }, { to: `/clients/${n.client.id}`, label: n.client.name }, { label: 'Copilot readiness' }]}
+          title="Microsoft 365 Copilot readiness" subtitle={`${n.client.name} · ${n.engagement.audit_ref ?? n.engagement.name}`} />
+        {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
+        <EmptyState>
+          {n.can_manage ? 'The workspace has not been started. Starting it sets up the controls checklist from the approved service template.'
+            : 'The Futran team has not started the Copilot readiness work yet. The site risk list, rollout waves and controls show here once they do.'}
+        </EmptyState>
+        {n.can_manage && <div className="row"><Button variant="primary" onClick={() => run(() => api.post(`${base}/start`), 'Workspace started.').catch(() => undefined)}>Start the workspace</Button></div>}
+      </div>
+    );
+  }
+  const v = q.data;
 
   const s = v.summary;
   return (
@@ -241,13 +256,30 @@ function OutputsCard({ v, base, run }: { v: CopilotView; base: string; run: (fn:
         {v.register_entry
           ? <p className="small" style={{ margin: 0 }}>Copilot is in {v.client.name}'s AI register as <strong>{v.register_entry.reference} {v.register_entry.name}</strong>, with the laws in scope for the client and the roles they require.</p>
           : <p className="small" style={{ margin: 0 }}>Copilot is not in the client's AI register yet.</p>}
-        {v.can_manage && !v.register_entry && <div className="row" style={{ marginTop: 12 }}><Button onClick={() => run(() => api.post(`${base}/register`, {}), 'Copilot added to the AI register.').catch(() => undefined)}>Add Copilot to the AI register</Button></div>}
+        {v.can_manage && !v.register_entry && <RegisterLink v={v} base={base} run={run} />}
       </Card>
       <Card title="Readiness report">
         {v.report ? <p className="small" style={{ margin: 0 }}><a className="file-link" href={fileUrl(v.report.file_id)}>{v.report.filename}</a>{v.report.created_at && ` · ${fmtDate(v.report.created_at)}`}</p>
           : <p className="small" style={{ margin: 0 }}>Not produced yet.</p>}
         {v.can_manage && <div className="row" style={{ marginTop: 12 }}><Button variant="primary" onClick={() => run(() => api.post(`${base}/report`), 'Readiness report produced.').catch(() => undefined)}>{v.report ? 'Produce it again' : 'Produce the readiness report'}</Button></div>}
       </Card>
+    </div>
+  );
+}
+
+function RegisterLink({ v, base, run }: { v: CopilotView; base: string; run: (fn: () => Promise<CopilotView>, ok?: string) => Promise<void> }) {
+  const [pick, setPick] = useState(v.register_candidates[0]?.id ?? '');
+  const choices = v.register_choices.map((c) => ({ value: c.id, label: `${c.reference} ${c.name}` }));
+  return (
+    <div className="stack" style={{ marginTop: 12 }}>
+      {v.register_candidates.length > 0 && <p className="small" style={{ margin: 0 }}>The register already lists {v.register_candidates.map((c) => `${c.reference} ${c.name}`).join(', ')}. Link it rather than adding another entry.</p>}
+      {choices.length > 0 && (
+        <div className="r6b-import">
+          <SelectField label="Link to an existing system" value={pick} onChange={(e) => setPick(e.target.value)} placeholder="Choose" options={choices} />
+          <Button onClick={() => pick && run(() => api.post(`${base}/register`, { register_system_id: pick }), 'Copilot linked to the existing register entry.').catch(() => undefined)}>Link</Button>
+        </div>
+      )}
+      {v.register_candidates.length === 0 && <div className="row"><Button onClick={() => run(() => api.post(`${base}/register`, {}), 'Copilot added to the AI register.').catch(() => undefined)}>Add Copilot to the AI register</Button></div>}
     </div>
   );
 }

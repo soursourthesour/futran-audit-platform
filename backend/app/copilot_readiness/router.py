@@ -15,6 +15,7 @@ from app.engagements.models import Engagement
 from app.files.models import FileObject
 from app.policy.actions import Action
 from app.policy.authorize import authorize, can_see_engagement
+from app.tenancy.models import Organization
 
 router = APIRouter(tags=["Copilot readiness"])
 
@@ -66,10 +67,13 @@ def _load(db: Session, actor: Actor, engagement_id: str, action: Action) -> Enga
 
 
 def _out(db: Session, actor: Actor, e: Engagement) -> dict:
-    ws = svc.workspace_for(db, e, actor.id)
-    return svc.view(db, e, ws, client=not actor.is_futran) | {
-        "can_manage": _may(db, actor, Action.MANAGE_COPILOT_READINESS, e), "can_update_sites": _may(db, actor, Action.UPDATE_COPILOT_REMEDIATION, e),
-    }
+    perms = {"can_manage": _may(db, actor, Action.MANAGE_COPILOT_READINESS, e), "can_update_sites": _may(db, actor, Action.UPDATE_COPILOT_REMEDIATION, e)}
+    ws = svc.find_workspace(db, e)
+    if ws is None:  # not started: nothing is created by reading it
+        org = db.get(Organization, e.client_id)
+        return {"started": False, "engagement": {"id": e.id, "name": e.name, "audit_ref": e.audit_ref}, "client": {"id": org.id, "name": org.name},
+                "client_view": not actor.is_futran} | perms
+    return svc.view(db, e, ws, client=not actor.is_futran) | {"started": True} | perms
 
 
 def _read(request: Request, file: UploadFile) -> bytes:
@@ -94,10 +98,15 @@ def client_list(actor: Actor = Depends(current_actor), db: Session = Depends(get
 
 @router.get("/e/{engagement_id}/copilot")
 def get_workspace(engagement_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
-    e = _load(db, actor, engagement_id, Action.VIEW_COPILOT_READINESS)
-    out = _out(db, actor, e)
+    return _out(db, actor, _load(db, actor, engagement_id, Action.VIEW_COPILOT_READINESS))
+
+
+@router.post("/e/{engagement_id}/copilot/start")
+def start(engagement_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+    e = _load(db, actor, engagement_id, Action.MANAGE_COPILOT_READINESS)
+    svc.workspace_for(db, e, actor.id)
     db.commit()
-    return out
+    return _out(db, actor, e)
 
 
 @router.post("/e/{engagement_id}/copilot/imports/{kind}")
@@ -115,11 +124,11 @@ def post_import(engagement_id: str, kind: str, request: Request, file: UploadFil
 @router.get("/e/{engagement_id}/copilot/sites.csv")
 def sites_csv(engagement_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     e = _load(db, actor, engagement_id, Action.VIEW_COPILOT_READINESS)
-    v = svc.view(db, e, svc.workspace_for(db, e, actor.id), client=not actor.is_futran)
+    ws = svc.find_workspace(db, e)
+    v = svc.view(db, e, ws, client=not actor.is_futran) if ws is not None else {"sites": []}
     rows = [[s["name"], s["url"], s["site_owner"], s["sharing_label"], s["sensitive_items"], s["label_coverage"], s["last_activity"], s["risk"].capitalize(),
              s["action_label"], s["action_owner"], s["status_label"]] for s in v["sites"]]
     body = to_csv(["Site", "URL", "Owner", "Sharing", "Sensitive items", "Label coverage %", "Last activity", "Risk", "Action", "Action owner", "Status"], rows)
-    db.commit()
     return Response(content=body, media_type="text/csv; charset=utf-8", headers={"Content-Disposition": 'attachment; filename="copilot-site-risk-list.csv"'})
 
 
@@ -129,7 +138,10 @@ def put_site(engagement_id: str, site_id: str, body: SiteIn, actor: Actor = Depe
     data = body.model_dump(exclude_unset=True)
     if set(data) - svc.CLIENT_SITE_FIELDS and not _may(db, actor, Action.MANAGE_COPILOT_READINESS, e):
         raise Forbidden("The audit team sets a site's risk and action; you can record the owner, status and a note.")
-    svc.update_site(db, actor.user, svc.workspace_for(db, e, actor.id), site_id, data)
+    ws = svc.find_workspace(db, e)  # a site exists only in a started workspace; the client never starts one
+    if ws is None:
+        raise NotFound()
+    svc.update_site(db, actor.user, ws, site_id, data)
     db.commit()
     return _out(db, actor, e)
 

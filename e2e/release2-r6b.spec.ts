@@ -66,6 +66,7 @@ test('G-07: imports, site risk list, waves, controls, register entry and report;
   await page.getByRole('link', { name: 'Copilot readiness' }).click();
   await expect(page).toHaveURL(/\/e\/[^/]+\/copilot$/);
   await expect(page.getByRole('heading', { level: 1, name: 'Microsoft 365 Copilot readiness' })).toBeVisible();
+  await page.getByRole('button', { name: 'Start the workspace' }).click();  // opening it never creates it
   await expect(page.getByText('Controls ready')).toBeVisible();
 
   // a file without the needed columns is refused with the columns named

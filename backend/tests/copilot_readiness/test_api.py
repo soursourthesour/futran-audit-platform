@@ -4,7 +4,7 @@ the client's AI register. Client view for the CAICO."""
 import hashlib
 import io
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.copilot_readiness.models import CopilotImport
 from app.files.models import FileObject
@@ -15,6 +15,8 @@ from tests.copilot_readiness.conftest import LICENCES, PURVIEW, SAM, upload
 def test_workspace_only_on_copilot_engagements_with_the_default_controls(cp):
     cp.as_(cp.auditor)
     r = cp.client.get(cp.url)
+    assert r.status_code == 200 and r.json()["started"] is False, r.text  # a read never creates it
+    r = cp.client.post(f"{cp.url}/start")
     assert r.status_code == 200, r.text
     d = r.json()
     assert d["phase"] == "pilot" and d["summary"] == {"licences": None, "active_users": None, "high_risk_sites": 0, "controls_ready": 0, "controls_total": 9}
@@ -177,3 +179,78 @@ def test_client_view_and_permissions(cp):
     assert cp.client.get(cp.url).status_code == 404 and cp.client.get("/api/v1/copilot").json() == []
     cp.as_(cp.outsider)
     assert cp.client.get(cp.url).status_code == 404
+
+
+
+def test_reading_never_writes_and_the_first_futran_action_creates_the_workspace(cp):
+    from app.copilot_readiness.models import CopilotWorkspace
+
+    cp.as_(cp.caico)
+    d = cp.client.get(cp.url).json()
+    assert d["started"] is False and d["client_view"] is True and "sites" not in d
+    cp.as_(cp.auditor)
+    assert cp.client.get(cp.url).json()["started"] is False
+    assert cp.client.get(f"{cp.url}/sites.csv").status_code == 200
+    cp.as_(cp.caico)
+    assert cp.client.put(f"{cp.url}/sites/nope", json={"status": "done"}).status_code == 404
+    cp.as_(cp.auditor)
+    assert cp.db.scalar(select(CopilotWorkspace)) is None
+    upload(cp, "licence_usage", LICENCES)
+    ws = cp.db.scalar(select(CopilotWorkspace))
+    assert ws is not None and ws.created_by == cp.auditor.id
+
+
+def test_the_approved_service_template_checklist_is_used(cp):
+    from app.servicetemplates import service as st
+
+    st.seed(cp.db)
+    em = cp.em
+    v = st.latest_version(cp.db, "copilot_readiness")
+    st.submit(cp.db, em, v.id)
+    st.approve(cp.db, cp.chief, v.id, "For use")
+    cp.db.commit()
+    cp.as_(cp.auditor)
+    d = cp.client.post(f"{cp.url}/start").json()
+    assert [c["key"] for c in d["controls"]][:2] == ["CR-01", "CR-02"] and d["controls"][0]["label"] == "Oversharing report"
+    assert d["summary"]["controls_total"] == 7
+    d = upload(cp, "purview_oversharing", PURVIEW).json()
+    assert len(next(c for c in d["controls"] if c["key"] == "CR-01")["evidence"]) == 1  # the oversharing report lands on its control
+
+
+def test_starter_list_while_the_template_is_only_a_draft(cp):
+    from app.servicetemplates import service as st
+
+    st.seed(cp.db)  # 0.1 is a draft until the Chief Auditor approves it
+    cp.db.commit()
+    cp.as_(cp.auditor)
+    assert cp.client.post(f"{cp.url}/start").json()["controls"][0]["key"] == "oversharing_report"
+
+
+def test_an_existing_copilot_entry_is_linked_never_duplicated(cp):
+    from app.register.seeding import dedupe_key
+
+    existing = RegisterSystem(organization_id=cp.org.id, reference="AIS-007", name="Microsoft 365 Copilot", type="genai_chat_tool", sourcing="vendor", stage="live",
+                              dedupe_key=dedupe_key("Microsoft", "Microsoft 365 Copilot"), vendor_documents=[], source_refs=[], history_answers={})
+    github = RegisterSystem(organization_id=cp.org.id, reference="AIS-008", name="GitHub Copilot", type="genai_chat_tool", sourcing="vendor", stage="live",
+                            vendor_documents=[], source_refs=[], history_answers={})
+    cp.db.add_all([existing, github])
+    cp.db.commit()
+    cp.as_(cp.auditor)
+    d = cp.client.post(f"{cp.url}/start").json()
+    assert [c["name"] for c in d["register_candidates"]] == ["Microsoft 365 Copilot"]
+    assert {c["name"] for c in d["register_choices"]} == {"Microsoft 365 Copilot", "GitHub Copilot"}
+    r = cp.client.post(f"{cp.url}/register", json={})
+    assert r.status_code == 200 and r.json()["register_entry"]["id"] == existing.id  # linked, not created
+    n = cp.db.scalar(select(func.count()).select_from(RegisterSystem).where(RegisterSystem.organization_id == cp.org.id))
+    assert n == 2
+
+
+def test_create_is_refused_while_a_likely_copilot_entry_exists(cp):
+    for name in ("Copilot", "M365 Copilot"):
+        cp.db.add(RegisterSystem(organization_id=cp.org.id, reference=f"AIS-{name[:3]}", name=name, type="genai_chat_tool", sourcing="vendor", stage="live",
+                                 vendor_documents=[], source_refs=[], history_answers={}))
+    cp.db.commit()
+    cp.as_(cp.auditor)
+    r = cp.client.post(f"{cp.url}/register", json={})
+    assert r.status_code == 409 and "Link" in r.json()["detail"]
+    assert cp.db.scalar(select(func.count()).select_from(RegisterSystem).where(RegisterSystem.organization_id == cp.org.id)) == 2

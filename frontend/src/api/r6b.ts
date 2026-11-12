@@ -22,11 +22,17 @@ export type CopilotView = {
   summary: { licences: number | null; active_users: number | null; high_risk_sites: number; controls_ready: number; controls_total: number };
   sites: CopilotSite[]; waves: CopilotWave[]; controls: CopilotControl[]; imports: CopilotImport[];
   register_entry: { id: string; reference: string; name: string } | null;
+  register_candidates: { id: string; reference: string; name: string }[]; register_choices: { id: string; reference: string; name: string }[];
   report: { file_id: string; filename: string; created_at: string | null } | null;
   options: {
     phases: Record<string, string>; actions: Record<string, string>; statuses: Record<string, string>; risks: Record<string, string>; control_statuses: Record<string, string>;
     import_kinds: Record<string, { label: string; source: string }>;
   };
+  started: true; can_manage: boolean; can_update_sites: boolean;
+};
+/** A Copilot readiness engagement whose workspace the audit team has not started yet (reading never creates it). */
+export type CopilotNotStarted = {
+  started: false; engagement: { id: string; name: string; audit_ref: string | null }; client: { id: string; name: string }; client_view: boolean;
   can_manage: boolean; can_update_sites: boolean;
 };
 

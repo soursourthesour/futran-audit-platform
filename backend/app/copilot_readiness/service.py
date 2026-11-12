@@ -13,7 +13,7 @@ from app.copilot_readiness import imports as imp
 from app.copilot_readiness.models import (ACTIONS, CONTROL_STATUSES, PHASES, RISKS, SITE_STATUSES, CopilotControl, CopilotImport, CopilotSite, CopilotWave,
                                           CopilotWorkspace)
 from app.core.clock import today, utcnow
-from app.core.errors import Invalid, NotFound
+from app.core.errors import Conflict, Invalid, NotFound
 from app.engagements.models import Engagement
 from app.files.models import FileObject
 from app.laws.importer import SEEDS
@@ -34,29 +34,44 @@ def default_controls() -> list[dict]:
     return yaml.safe_load((SEEDS / "copilot_readiness.yaml").read_text(encoding="utf-8"))["controls"]
 
 
-def _template_controls() -> list[dict]:
-    """The engagement type's service template checklist when G-06 provides one, else the starter list."""
-    try:  # R6a's service templates (G-06); no checklist content yet when this was written
-        from app.servicetemplates import checklists  # type: ignore
+def template_controls(db: Session) -> list[dict]:
+    """The approved G-06 service template's checklist for Copilot readiness, mapped to controls; the starter list
+    until the Chief Auditor approves a version."""
+    from app.servicetemplates.service import checklist_for
 
-        items = checklists.for_type(ENGAGEMENT_TYPE)
-        if items:
-            return [{"key": i["key"], "label": i["label"], "phase": i.get("phase", "pilot")} for i in items]
-    except (ImportError, AttributeError, KeyError, TypeError):
-        pass
-    return default_controls()
+    items = checklist_for(db, ENGAGEMENT_TYPE)
+    if not items:
+        return default_controls()
+    out = []
+    for i in items:
+        section = str(i.get("section") or "").lower()
+        out.append({"key": str(i.get("code") or "")[:40], "label": str(i.get("text") or "")[:300], "phase": section if section in PHASES else "pilot"})
+    return [c for c in out if c["key"] and c["label"]] or default_controls()
+
+
+def find_workspace(db: Session, e: Engagement) -> CopilotWorkspace | None:
+    """The engagement's workspace, if the audit team has started it. Never creates one: reads must not write."""
+    return db.scalar(select(CopilotWorkspace).where(CopilotWorkspace.engagement_id == e.id, CopilotWorkspace.deleted_at.is_(None)))
 
 
 def workspace_for(db: Session, e: Engagement, actor_id: str | None = None) -> CopilotWorkspace:
-    ws = db.scalar(select(CopilotWorkspace).where(CopilotWorkspace.engagement_id == e.id, CopilotWorkspace.deleted_at.is_(None)))
+    """The workspace, created on the audit team's first action with the template's controls."""
+    ws = find_workspace(db, e)
     if ws is None:
-        ws = CopilotWorkspace(organization_id=e.client_id, engagement_id=e.id, phase="pilot", created_by=actor_id)
+        ws = CopilotWorkspace(organization_id=e.client_id, engagement_id=e.id, phase="pilot", created_by=actor_id, updated_by=actor_id)
         db.add(ws)
         db.flush()
-        for i, c in enumerate(_template_controls(), start=1):
+        for i, c in enumerate(template_controls(db), start=1):
             db.add(CopilotControl(organization_id=e.client_id, workspace_id=ws.id, key=c["key"], label=c["label"], phase=c.get("phase", "pilot"), position=i, evidence_ids=[]))
         db.flush()
+        audit.record(db, actor_id=actor_id, action="copilot.start", obj=ws, engagement_id=e.id, summary="Started the Copilot readiness workspace")
     return ws
+
+
+def _control_like(db: Session, ws: CopilotWorkspace, key: str, words: tuple[str, ...]) -> CopilotControl | None:
+    """The starter list's control by key, or the template's control whose wording names it."""
+    rows = _controls(db, ws)
+    return next((c for c in rows if c.key == key), None) or next((c for c in rows if any(w in c.label.casefold() for w in words)), None)
 
 
 def _sites(db: Session, ws: CopilotWorkspace) -> list[CopilotSite]:
@@ -131,6 +146,8 @@ def view(db: Session, e: Engagement, ws: CopilotWorkspace, *, client: bool) -> d
                      "file_id": None if client else i.file_id, "sha256": i.sha256, "rows_read": i.rows_read, "rows_used": i.rows_used, "imported_by": names.get(i.created_by),
                      "imported_at": i.created_at.isoformat()} for i in imports],
         "register_entry": {"id": reg.id, "reference": reg.reference, "name": reg.name} if reg is not None and reg.deleted_at is None else None,
+        "register_candidates": [] if client or reg is not None else [{"id": x.id, "reference": x.reference, "name": x.name} for x, _ in register_candidates(db, e.client_id)],
+        "register_choices": [] if client or reg is not None else [{"id": x.id, "reference": x.reference, "name": x.name} for x in register_choices(db, e.client_id)],
         "report": {"file_id": report.id, "filename": report.filename, "created_at": ws.report_at.isoformat() if ws.report_at else None} if report is not None else None,
         "options": {"phases": PHASE_LABELS, "actions": ACTION_LABELS, "statuses": STATUS_LABELS, "risks": {"high": "High", "medium": "Medium", "low": "Low"},
                     "control_statuses": CONTROL_LABELS, "import_kinds": {k: {"label": v["label"], "source": v["source"]} for k, v in imp.KINDS.items()}},
@@ -170,7 +187,7 @@ def import_file(db: Session, settings, actor: User, e: Engagement, ws: CopilotWo
             s.sources = list(dict.fromkeys([*(s.sources or []), kind]))
             s.updated_by = actor.id
         row.summary = {"sites": len(parsed.sites), "new_sites": added}
-        ctl = db.scalar(select(CopilotControl).where(CopilotControl.workspace_id == ws.id, CopilotControl.key == "oversharing_report"))
+        ctl = _control_like(db, ws, "oversharing_report", ("oversharing",))
         if ctl is not None:
             ctl.evidence_ids = [*(ctl.evidence_ids or []), f.id]
     db.flush()
@@ -326,6 +343,38 @@ def set_phase(db: Session, actor: User, ws: CopilotWorkspace, phase: str) -> Non
 
 
 # ---------------------------------------------------------------- register entry
+COPILOT_VENDOR, COPILOT_NAME = "Microsoft", "Microsoft 365 Copilot"
+LIKELY_NAMES = {"copilot", "microsoft copilot", "microsoft 365 copilot", "m365 copilot", "ms copilot", "office 365 copilot", "copilot for microsoft 365",
+                "microsoft copilot for microsoft 365", "copilot for m365"}
+
+
+def _register_rows(db: Session, org_id: str) -> list:
+    from app.register.models import RegisterSystem
+
+    return list(db.scalars(select(RegisterSystem).where(RegisterSystem.organization_id == org_id, RegisterSystem.deleted_at.is_(None), RegisterSystem.stage != "retired")
+                           .order_by(RegisterSystem.reference)))
+
+
+def register_candidates(db: Session, org_id: str) -> list[tuple]:
+    """[(system, exact)] already in the client's register that are likely Microsoft 365 Copilot: the register's own
+    dedupe key (vendor|product) for Microsoft 365 Copilot is an exact match; the usual names are likely ones."""
+    from app.register.seeding import dedupe_key, svc_key
+
+    target = dedupe_key(COPILOT_VENDOR, COPILOT_NAME)
+    out = []
+    for s in _register_rows(db, org_id):
+        exact = (s.dedupe_key or svc_key(s, db)) == target
+        if exact or " ".join(s.name.split()).casefold() in LIKELY_NAMES:
+            out.append((s, exact))
+    return out
+
+
+def register_choices(db: Session, org_id: str) -> list:
+    """Systems the audit team can link: any whose name mentions Copilot, then the rest of the register."""
+    rows = _register_rows(db, org_id)
+    return [s for s in rows if "copilot" in s.name.casefold()] or rows
+
+
 COPILOT_PURPOSE = "Microsoft 365 Copilot: drafts, summarises and searches across email, chats, meetings and files the user can already open."
 
 
@@ -343,6 +392,13 @@ def register_entry(db: Session, actor: User, e: Engagement, ws: CopilotWorkspace
         summary = f"Linked {s.reference} {s.name} as the Copilot entry in the AI register"
     elif ws.register_system_id and (s := db.get(RegisterSystem, ws.register_system_id)) is not None and s.deleted_at is None:
         return
+    elif (found := register_candidates(db, org.id)):
+        exact = [x for x in found if x[1]]
+        if len(exact) != 1:
+            names = ", ".join(f"{x[0].reference} {x[0].name}" for x in found)
+            raise Conflict(f"The AI register already lists what looks like Copilot ({names}). Link to the existing system instead of adding another.")
+        s = exact[0][0]
+        summary = f"Linked {s.reference} {s.name} as the Copilot entry in the AI register (it was already there)"
     else:
         s = reg.create_system(db, actor, org, {"name": "Microsoft 365 Copilot", "type": "genai_chat_tool", "sourcing": "vendor", "stage": "proposed", "company_wide": True,
                                                "vendor_name": "Microsoft", "purpose": COPILOT_PURPOSE, "user_count": ws.licences},
@@ -352,7 +408,7 @@ def register_entry(db: Session, actor: User, e: Engagement, ws: CopilotWorkspace
             reg.accept_suggestions(db, actor, s, laws, reason="Laws in scope for the client")
         summary = f"Added {s.reference} Microsoft 365 Copilot to the AI register"
     ws.register_system_id = s.id
-    ctl = db.scalar(select(CopilotControl).where(CopilotControl.workspace_id == ws.id, CopilotControl.key == "register_entry"))
+    ctl = _control_like(db, ws, "register_entry", ("ai register",))
     if ctl is not None and ctl.status != "done":
         ctl.status, ctl.checked_by, ctl.checked_at = "done", actor.id, utcnow()
         ctl.note = f"{s.reference} {s.name}"
