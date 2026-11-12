@@ -91,4 +91,4 @@ def current_version(db: Session) -> int | None:
 
 def is_one_time(billing: str | None) -> bool:
     b = (billing or "").strip().lower().replace("-", " ").replace("_", " ")
-    return b.startswith("one") or b in ("once", "fixed", "per engagement", "per event")
+    return b.startswith("one") or b in ("once", "fixed", "per engagement", "per event", "share")

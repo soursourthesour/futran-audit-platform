@@ -116,3 +116,19 @@ def test_fractional_officer_and_separate_team_lines_need_independence_confirmati
     assert h.needs_separate_team == ["X-01"]
     ret = cw.db.scalar(select(Retainer).where(Retainer.organization_id == cw.prospect.id))
     assert ret.type == "fractional_officer" and ret.monthly_hours == 16
+
+
+def test_entitlements_from_a_price_list_row_without_an_entitlement_key(cw, fake_catalog):
+    """The starter price list names the tier in the item ("Monitor, up to 10 systems"; "Alert packs, 1–3 states") and
+    uses its own words for included quantities ({"systems": 50, "docs": 5}); only entitlement keys become limits."""
+    from app.commercial import catalog as cat
+
+    fake_catalog["M-01a"] = cat.Item(code="M-01a", name="Monitor, up to 10 systems", billing="annual", periods_per_year=1, list_price=12000)
+    fake_catalog["M-03a"] = cat.Item(code="M-03a", name="Alert packs, 1–3 states", billing="quarterly", periods_per_year=4, list_price=4200)
+    fake_catalog["M-06a"] = cat.Item(code="M-06a", name="Evidence vault, base", billing="annual", periods_per_year=1, list_price=2400,
+                                     included_quantities={"gb": 50, "docs": 5})
+    _go(cw, [line("M-01a", 1, 12000, periods=1, value=12000), line("M-03a", 1, 4200, periods=4, value=16800), line("M-06a", 1, 2400, periods=1, value=2400)])
+    sub = cw.db.scalar(select(Subscription).where(Subscription.organization_id == cw.prospect.id, Subscription.end_on.is_(None)))
+    ents = {e.key: e.limit for e in cw.db.scalars(select(Entitlement).where(Entitlement.subscription_id == sub.id))}
+    assert sub.plan == "monitor" and sub.tier == "up to 10 systems"
+    assert ents == {"ai_systems": 10, "alert_packs": 3, "vault_gb": 50}

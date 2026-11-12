@@ -286,13 +286,43 @@ def _subscription(db: Session, org: Organization, order: Order, recurring, terms
         org.data_region = region
     for ol, item in recurring:
         ol.subscription_id = sub.id
-        inc = (item.included_quantities if item else None) or ol.included_quantities or {}
-        key = item.entitlement_key if item else ol.entitlement_key
-        limits = {k: v * ol.qty for k, v in inc.items()} if inc else ({key: ol.qty} if key else {})
-        for k, v in limits.items():
-            db.add(Entitlement(organization_id=org.id, subscription_id=sub.id, key=k, limit=1 if k in HARD_KEYS else v, source_order_line_id=ol.id, created_by=actor_id))
+        for k, v in entitlement_limits(ol, item).items():
+            db.add(Entitlement(organization_id=org.id, subscription_id=sub.id, key=k, limit=v, source_order_line_id=ol.id, created_by=actor_id))
     db.flush()
     return sub
+
+
+# Words the price list uses for included quantities, and the entitlement each one is (spec B1 keys).
+INCLUDED_ALIASES = {"systems": "ai_systems", "ai_systems": "ai_systems", "users": "seats", "user_seats": "seats", "seats": "seats", "states": "alert_packs",
+                    "gb": "vault_gb", "storage_gb": "vault_gb", "hours": "advisor_hours", "agents": "agents_protected", "actions": "agent_actions_month",
+                    "questionnaires": "questionnaires_year", "holds": "legal_holds", "briefings": "litigation_briefings", "approvers": "approver_seats"}
+# The entitlement a subscription line carries when its catalog row names none (spec §2.2).
+CODE_KEYS = {"M-01": "ai_systems", "M-02": "seats", "M-03": "alert_packs", "M-04": "litigation_briefings", "M-06": "vault_gb", "M-09": "trust_center",
+             "M-10": "questionnaires_year", "M-11": "tracing_systems", "M-14": "api_access"}
+
+
+def _ceiling(name: str | None) -> float | None:
+    """The upper bound a tier name states: "up to 10 systems" → 10, "11–50 systems" → 50, "1–3 states" → 3."""
+    m = re.search(r"(?:up to|[0-9][0-9,]*\s*[–-])\s*([0-9][0-9,]*)", name or "")
+    return float(m.group(1).replace(",", "")) if m else None
+
+
+def entitlement_limits(ol: OrderLine, item: cat.Item | None) -> dict[str, float]:
+    from app.commercial.models import ENTITLEMENT_KEYS
+
+    out: dict[str, float] = {}
+    for k, v in ((item.included_quantities if item else None) or ol.included_quantities or {}).items():
+        key = INCLUDED_ALIASES.get(k, k)
+        if key in ENTITLEMENT_KEYS:
+            out[key] = out.get(key, 0) + float(v) * ol.qty
+    key = (item.entitlement_key if item else None) or ol.entitlement_key or CODE_KEYS.get(code_base(ol.catalog_code))
+    if key in ENTITLEMENT_KEYS and key not in out:
+        if key in HARD_KEYS:
+            out[key] = 1
+        else:
+            ceiling = _ceiling((item.name if item else None) or ol.description)
+            out[key] = ceiling * ol.qty if ceiling else ol.qty
+    return {k: (1 if k in HARD_KEYS else v) for k, v in out.items()}
 
 
 def _retainers(db: Session, org: Organization, olines, plines, checklist: list, actor_id: str | None) -> None:
