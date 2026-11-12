@@ -264,6 +264,9 @@ def run_daily_usage(db: Session, settings, now) -> int:
         _check_limits(db, org, sub, used, now)
         n += 1
     _renewals(db, on)
+    from app.commercial.timesheet import run_bank_alerts
+
+    run_bank_alerts(db, settings, now)
     if on.day == 1:
         prev = (on - timedelta(days=1)).strftime("%Y-%m")
         if db.scalar(select(BillingExportRun.id).where(BillingExportRun.period == prev, BillingExportRun.client_id.is_(None)).limit(1)) is None:
