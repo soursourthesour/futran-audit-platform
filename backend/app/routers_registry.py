@@ -65,3 +65,5 @@ ROUTER_MODULES += ["proposals.router", "proposals.public_router"]
 ROUTER_MODULES += ["hierarchy.router"]
 # Release 2 R7: evidence vault and retention (G-10)
 ROUTER_MODULES += ["vault.router"]
+# Release 2 R7: partners and referrals (G-11)
+ROUTER_MODULES += ["partners.router"]
