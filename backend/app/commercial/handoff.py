@@ -358,13 +358,12 @@ def _retainers(db: Session, org: Organization, olines, plines, checklist: list, 
 
 
 def _commission(db: Session, opp: Opportunity, order: Order, y1: float) -> dict:
-    partner_id = getattr(opp, "partner_id", None)
-    if not partner_id:
-        return _item("commission", "Partner commission", "No partner on this deal", "Not needed", None)
     try:
-        from app.partners.service import commission_for_win  # R7
+        from app.partners.service import commission_for_win, partner_of  # R7: the partner is opp.partner_id or an inbound referral
     except ImportError:
         return _item("commission", "Partner commission", "Partner records are not in the platform yet; record the commission by hand", "Not created", "Sales Manager")
+    if partner_of(db, opp) is None:
+        return _item("commission", "Partner commission", "No partner on this deal", "Not needed", None)
     c = commission_for_win(db, opp, order, y1)
     if c is None:
         return _item("commission", "Partner commission", "No commission for this partner (law firms never get one)", "Not needed", None)

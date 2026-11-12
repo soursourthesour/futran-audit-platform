@@ -140,7 +140,8 @@ def record_referral(db: Session, actor: User, p: Partner, *, direction: str, org
     return r
 
 
-def _partner_of(db: Session, opportunity) -> Partner | None:
+def partner_of(db: Session, opportunity) -> Partner | None:
+    """The referring partner: `opportunity.partner_id` (R2) when set, else the partner of an inbound referral on it."""
     pid = getattr(opportunity, "partner_id", None)
     if not pid:
         pid = db.scalar(select(Referral.partner_id).where(Referral.opportunity_id == opportunity.id, Referral.direction == "in", Referral.deleted_at.is_(None))
@@ -155,7 +156,7 @@ def _partner_of(db: Session, opportunity) -> Partner | None:
 def commission_for_win(db: Session, opportunity, order, first_year_value) -> Commission | None:
     """The partner commission for a won opportunity, from the accepted proposal's first-year value. None when there is no
     partner, the partner is a law firm, or the partner has no commission rule."""
-    p = _partner_of(db, opportunity)
+    p = partner_of(db, opportunity)
     if p is None or p.type == "law_firm":
         return None
     rate = (p.commission_rule or {}).get("rate_pct")
