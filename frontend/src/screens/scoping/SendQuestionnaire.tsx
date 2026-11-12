@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
-import { Alert, Button, Dialog, Loading, TextField } from '@/components/ui';
+import { Alert, Button, Dialog, Loading, SelectField, TextArea, TextField } from '@/components/ui';
 
 type Opt = {
   sections: { key: string; label: string; internal: boolean; unanswered: number; total: number; questions: { code: string; label: string; internal_only: boolean; locked: boolean; answered: boolean; default: boolean }[] }[];
@@ -66,12 +66,8 @@ export function SendQuestionnaire({ qid, onClose, onSent }: { qid: string; onClo
       <div className="sc-send">
         <form className="stack" onSubmit={(e) => { e.preventDefault(); void send(); }}>
           {err && <Alert tone="danger">{err}</Alert>}
-          <label className="field"><span className="label">To</span>
-            <select className="input" value={contact} onChange={(e) => setContact(e.target.value)}>
-              {d.contacts.map((c) => <option key={c.id} value={c.id}>{c.name}{c.title ? ` · ${c.title}` : ''}</option>)}
-              <option value="other">Someone else…</option>
-            </select>
-          </label>
+          <SelectField label="To" value={contact} onChange={(e) => setContact(e.target.value)}
+            options={[...d.contacts.map((c) => ({ value: c.id, label: `${c.name}${c.title ? ` · ${c.title}` : ''}` })), { value: 'other', label: 'Someone else…' }]} />
           {contact === 'other' && (
             <div className="sc-two">
               <TextField label="Name" value={other.name} onChange={(e) => setOther({ ...other, name: e.target.value })} error={fe.contact} />
@@ -110,19 +106,14 @@ export function SendQuestionnaire({ qid, onClose, onSent }: { qid: string; onClo
           </fieldset>
           <div className="sc-two">
             <TextField label="Due date" type="date" value={due} onChange={(e) => setDue(e.target.value)} error={fe.due_on} />
-            <label className="field"><span className="label">Reminders</span>
-              <select className="input" value={rem} onChange={(e) => setRem(e.target.value)}>{d.reminder_choices.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}</select>
-            </label>
+            <SelectField label="Reminders" value={rem} onChange={(e) => setRem(e.target.value)} options={d.reminder_choices} />
           </div>
           <label className="sc-option"><input type="checkbox" checked={fwd} onChange={(e) => setFwd(e.target.checked)} /><span>Let the client forward to a colleague (they get their own link)</span></label>
           <p className="small">Sends from <strong>{d.sender}</strong> as a personal link. No login. Expires in {d.expires_days} days.{!d.own_mailbox && ' Connect your mailbox under Email to send from it.'}</p>
         </form>
         <section className="sc-preview" aria-label="Message preview">
           <TextField label="Subject" value={subject} onChange={(e) => setSubject(e.target.value)} />
-          <label className="field"><span className="label">Message</span>
-            <textarea className="input" rows={7} value={message} onChange={(e) => setMessage(e.target.value)} aria-describedby="sc-msg-help" />
-            <span id="sc-msg-help" className="small muted">[Link] marks where the button goes.</span>
-          </label>
+          <TextArea label="Message" hint="[Link] marks where the button goes." rows={7} value={message} onChange={(e) => setMessage(e.target.value)} />
           <div className="sc-mail" aria-label="How the email looks">
             {preview.map((p, i) => p.trim() === '[Link]' ? <p key={i}><span className="sc-mail-btn">Open the questions</span></p> : <p key={i}>{p}</p>)}
           </div>

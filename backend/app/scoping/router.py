@@ -171,7 +171,7 @@ def restore_line(qid: str, body: LineIn, actor: Actor = Depends(current_actor), 
 @router.get("/{qid}/send-options")
 def send_options(qid: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     q = _q(db, actor, qid, Action.WORK_SCOPING)
-    answers = service.effective_answers(db, q)
+    answers = {code for code, slots in service._rows(db, q).items() if slots}  # a total worked out from its parts still goes to the client
     qs = bank.questions(db, q.bank_version)
     sections = []
     for key, label in bank.SECTION_LABELS.items():

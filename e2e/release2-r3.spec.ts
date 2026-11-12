@@ -71,9 +71,9 @@ test('scoping: record on the call, send the rest, client answers on a phone, rev
   await page.getByRole('button', { name: 'Send rest to client' }).click();
   const dlg = page.getByRole('dialog', { name: 'Send questionnaire to client' });
   await expect(dlg.getByText('Budget, competitors, red flags, independence — internal, never sent')).toBeVisible();
-  await dlg.getByLabel('To').selectOption('other');
-  await dlg.getByLabel('Name').fill('Pat Champion');
-  await dlg.getByLabel('Email').fill('pat@client.example');
+  await dlg.getByLabel('To', { exact: true }).selectOption('other');
+  await dlg.getByLabel('Name', { exact: true }).fill('Pat Champion');
+  await dlg.getByLabel('Email', { exact: true }).fill('pat@client.example');
   await expect(dlg.getByText(/Sends from/)).toBeVisible();
   await page.screenshot({ path: `${SHOTS}/SM06-send-questionnaire-1440.png`, fullPage: false });
   await dlg.getByRole('button', { name: /^Send \d+ questions?$/ }).click();

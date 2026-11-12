@@ -58,6 +58,14 @@ def test_send_options_lock_internal_questions_and_name_the_reps_mailbox(client, 
     assert a["unanswered"] == 0  # SQ-A.01 answered; the internal ones do not count
 
 
+def test_a_total_worked_out_from_its_parts_is_still_offered_to_the_client(client, db, world):
+    q = _start(client, db, world)
+    client.put(f"/api/v1/scoping/{q['id']}/answers", json={"answers": [{"code": "SQ-C.01", "value": 3}]})
+    o = client.get(f"/api/v1/scoping/{q['id']}/send-options").json()
+    c = {x["code"]: x for s in o["sections"] for x in s["questions"]}
+    assert c["SQ-C.07"]["default"] is True and c["SQ-C.01"]["default"] is False
+
+
 def test_review_conflicts_resolve_lock_and_build_proposal_note(client, db, world, monkeypatch):
     from app.scoping import service
 

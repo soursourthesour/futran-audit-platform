@@ -67,7 +67,7 @@ export function QuestionBankTab() {
       {msg && <Alert tone="success">{msg}</Alert>}
       <div className="row sc-toolbar">
         <span className="small muted">{b.label} · version {b.version} · {b.questions.length} questions</span>
-        <label className="small">Section <select className="input input-sm" value={section} onChange={(e) => setSection(e.target.value)}><option value="">All</option>{b.sections.map((s) => <option key={s.key} value={s.key}>{s.key === 'RF' ? s.label : `${s.key}. ${s.label}`}</option>)}</select></label>
+        <label className="small">Section <select className="input input-sm" aria-label="Section" value={section} onChange={(e) => setSection(e.target.value)}><option value="">All</option>{b.sections.map((s) => <option key={s.key} value={s.key}>{s.key === 'RF' ? s.label : `${s.key}. ${s.label}`}</option>)}</select></label>
         {b.can_edit && <Button variant="primary" onClick={() => setEdit('new')}>Add a question</Button>}
       </div>
       <div className="sc-table-wrap"><table className="sc-table">
