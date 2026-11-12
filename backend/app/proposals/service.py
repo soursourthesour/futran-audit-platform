@@ -76,7 +76,7 @@ def recalc(db: Session, p: Proposal, ls: list[ProposalLine] | None = None) -> No
     for d in calc:
         d["_line"].line_value = d["line_value"]
         d["_line"].percent_of = d.get("percent_of")
-    p.totals = pricing.totals(calc, p.discount_recurring_pct)  # the Estimator's totals, so both agree for the same lines
+    p.totals = pricing.totals(calc, p.discount_recurring_pct, float((p.terms or {}).get("discount_one_time_pct") or 0))  # the Estimator's totals, so both agree for the same lines
     db.flush()
     refresh_status(db, p, ls)
 
@@ -638,7 +638,7 @@ def diff(db: Session, a: Proposal, b: Proposal) -> dict:
     for k in TERM_KEYS:
         if ta.get(k) != tb.get(k):
             terms.append({"field": k.replace("_", " ").replace("pct", "%"), "from": ta.get(k), "to": tb.get(k)})
-    totals = {k: {"from": (a.totals or {}).get(k), "to": (b.totals or {}).get(k)} for k in ("one_time", "recurring_y1", "discount", "y1_total", "arr")
+    totals = {k: {"from": (a.totals or {}).get(k), "to": (b.totals or {}).get(k)} for k in ("one_time", "one_time_discount", "recurring_y1", "discount", "y1_total", "arr")
               if (a.totals or {}).get(k) != (b.totals or {}).get(k)}
     return {"from": a.version, "to": b.version, "lines": out_lines, "terms": terms, "totals": totals}
 

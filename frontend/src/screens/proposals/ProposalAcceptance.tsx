@@ -72,7 +72,9 @@ export function ProposalAcceptance() {
               <h2 className="pa-h2">Price</h2>
               <dl className="pb-dl">
                 <dt>One-time services</dt><dd>{money(p.totals.one_time)}</dd>
-                <dt>Annual subscription, year 1{p.discount_recurring_pct ? ` (after ${p.discount_recurring_pct}% discount)` : ''}</dt><dd>{money(p.totals.recurring_y1 - p.totals.discount)}</dd>
+                {!!p.totals.one_time_discount && <><dt>One-time discount ({p.discount_one_time_pct}%)</dt><dd>{money(-p.totals.one_time_discount)}</dd></>}
+                <dt>Annual subscription, year 1</dt><dd>{money(p.totals.recurring_y1)}</dd>
+                {!!p.totals.discount && <><dt>Discount on recurring ({p.discount_recurring_pct}%)</dt><dd>{money(-p.totals.discount)}</dd></>}
                 <dt className="pb-strong">Total, year 1</dt><dd className="pb-strong">{money(p.totals.y1_total)}</dd>
                 <dt>Annual after year 1</dt><dd>{money(p.totals.arr)}</dd>
               </dl>

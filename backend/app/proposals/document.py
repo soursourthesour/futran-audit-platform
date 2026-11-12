@@ -133,9 +133,13 @@ def pricing_rows(p: Proposal, ls: list[ProposalLine]) -> list[dict]:
 def totals_rows(p: Proposal) -> list[tuple[str, float]]:
     t = p.totals or {}
     d = p.discount_recurring_pct or 0
-    rows = [("One-time services", t.get("one_time")), ("Recurring, year 1", t.get("recurring_y1"))]
+    od = float((p.terms or {}).get("discount_one_time_pct") or 0)
+    rows = [("One-time services", t.get("one_time"))]
+    if t.get("one_time_discount"):
+        rows.append((f"One-time discount ({od:g}%)", -(t.get("one_time_discount") or 0)))
+    rows.append(("Recurring, year 1", t.get("recurring_y1")))
     if t.get("discount"):
-        rows.append((f"Discount{f' on recurring ({d:g}%)' if d else ''}", -(t.get("discount") or 0)))
+        rows.append((f"Discount on recurring ({d:g}%)", -(t.get("discount") or 0)))
     rows += [("Total, year 1", t.get("y1_total")), ("Annual recurring after year 1", t.get("arr"))]
     return rows
 

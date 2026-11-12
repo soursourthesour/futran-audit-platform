@@ -203,7 +203,7 @@ def detail(db: Session, actor: User, request_id: str) -> dict:
     used_value = sum(r["value"] or 0 for r, ln in zip(rows, guardrails.offered(ls)) if ln.basis != "%")
     t = p.totals or {}
     margin = (f"Year-1 total {_money(t.get('y1_total'))}. Lines are {_pct(used_value, list_value)} of list value"
-              f"{'' if not t.get('discount') else f', and the discount takes {_money(t.get('discount'))}'}."
+              f"{'' if not (t.get('discount') or t.get('one_time_discount')) else f', and discounts take {_money((t.get('discount') or 0) + (t.get('one_time_discount') or 0))}'}."
               f"{' Below Low: ' + ', '.join(r['code'] for r in below) + '.' if below else ''}")
     ind = p.independence or {}
     return {**_item(db, q, names), "lines": rows, "margin_note": margin, "totals": t, "discount_recurring_pct": p.discount_recurring_pct, "terms": p.terms or {},

@@ -26,7 +26,8 @@ def test_create_from_estimate_copies_lines_prices_and_discount(db, pw, estimate)
     assert a05.source == "package"  # on the Governed package the estimate started from
     assert _line(p, "A-02b").deliverables_text.startswith("Independent AI governance audit")
     # M-03a: quarterly × 4 at 4,200 = 16,800 recurring, 5% off
-    assert p.totals == {"one_time": 38600, "recurring_y1": 16800, "discount": 840, "y1_total": 54560, "arr": 15960}
+    assert p.totals == {"one_time": 38600, "one_time_discount": 0, "one_time_net": 38600, "recurring_y1": 16800, "discount": 840, "y1_total": 54560,
+                        "arr": 15960}
     assert pw.opp.stage == "proposal"
 
 

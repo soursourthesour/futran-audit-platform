@@ -160,6 +160,7 @@ export function ProposalBuilder() {
             <div className="card-body">
               <dl className="pb-dl">
                 <dt>One-time</dt><dd>{money(p.totals.one_time)}</dd>
+                {!!p.totals.one_time_discount && <><dt>One-time discount ({p.terms.discount_one_time_pct}%)</dt><dd>{money(-p.totals.one_time_discount)}</dd></>}
                 <dt>Recurring, year 1</dt><dd>{money(p.totals.recurring_y1)}</dd>
                 <dt>Discount on recurring ({p.discount_recurring_pct}%)</dt><dd>{money(-p.totals.discount)}</dd>
                 <dt className="pb-strong">Year-1 total</dt><dd className="pb-strong">{money(p.totals.y1_total)}</dd>

@@ -1,5 +1,5 @@
 /** Release 2 R4: proposals (SM-09, SM-10), approvals (SM-11), public acceptance (SM-12) and proposal templates. */
-export type Totals = { one_time: number; recurring_y1: number; discount: number; y1_total: number; arr: number };
+export type Totals = { one_time: number; one_time_discount?: number; one_time_net?: number; recurring_y1: number; discount: number; y1_total: number; arr: number };
 
 export type Line = {
   id: string; code: string; name: string; description: string | null; deliverables: string | null; deliverables_edited: boolean;
@@ -70,7 +70,7 @@ export type PublicProposal = {
   company: string; title: string; version: number; status: string; valid_until: string | null; valid_until_label: string;
   rep: { name: string | null; email: string | null }; included: { name: string; summary: string }[]; optional: { name: string }[];
   pricing: { name: string; qty: number; billing: string; unit: string; value: number | null; recurring: boolean }[]; totals: Totals;
-  discount_recurring_pct: number; terms: string[]; sections: DocSection[]; contact: { name: string; email: string };
+  discount_recurring_pct: number; discount_one_time_pct: number; terms: string[]; sections: DocSection[]; contact: { name: string; email: string };
   accepted: { name: string; title: string; at: string; po_number: string | null } | null; can_respond: boolean;
 };
 

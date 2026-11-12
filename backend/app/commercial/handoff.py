@@ -164,7 +164,8 @@ def _build(db: Session, proposal, acceptance, actor: User | None) -> Handoff:
         db.add(ol)
         olines.append((ol, item))
     db.flush()
-    y1 = money(sum(ol.line_value for ol, _ in olines))
+    # Year 1 as accepted: net of the discount on recurring and any one-time discount (R4's proposal totals), else the lines
+    y1 = money((getattr(proposal, "totals", None) or {}).get("y1_total", sum(ol.line_value for ol, _ in olines)))
     checklist.append(_item("order", f"Order {order.ref}", f"{len(olines)} line{'s' if len(olines) != 1 else ''}, prices frozen from v{getattr(proposal, 'version', 1)}",
                            "Created", "Finance (billing export)", f"/staff/clients/{org.id}/plan", order.id))
 
