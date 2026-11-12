@@ -92,14 +92,17 @@ test('G-07: imports, site risk list, waves, controls, register entry and report;
   await dlg.getByRole('button', { name: 'Save' }).click();
   await expect(sites.getByRole('row').nth(1)).toContainText('Restrict discovery');
 
-  // rollout waves with gates
+  // rollout waves with gates. The controls come from the approved G-06 Copilot template (release2-r6a approves it
+  // earlier in the full run) or the starter list when none is approved, so the test uses controls both name:
+  // audit logging and the usage policy.
+  const AUDIT_LOGGING = /^Audit logging/;
   await page.getByRole('button', { name: 'Add wave' }).click();
   let w = page.getByRole('dialog', { name: 'Add a rollout wave' });
   await w.getByLabel('Wave', { exact: true }).fill('Pilot');
   await w.getByLabel('Groups', { exact: true }).fill('IT, Compliance');
   await w.getByLabel('Users', { exact: true }).fill('20');
   await w.getByLabel('Date', { exact: true }).fill('2026-12-01');
-  await w.getByLabel('Pilot group defined').check();
+  await w.getByLabel(AUDIT_LOGGING).check();
   await w.getByRole('button', { name: 'Save' }).click();
   await page.getByRole('button', { name: 'Add wave' }).click();
   w = page.getByRole('dialog', { name: 'Add a rollout wave' });
@@ -111,12 +114,12 @@ test('G-07: imports, site risk list, waves, controls, register entry and report;
   await w.getByLabel(/Finance · Payroll archive/).check();
   await w.getByRole('button', { name: 'Save' }).click();
   const waves = page.getByRole('table', { name: 'Rollout waves' });
-  await expect(waves).toContainText('Hold · Pilot group defined');
+  await expect(waves).toContainText(/Hold · Audit logging/);
   await expect(waves).toContainText('Hold · 2 sites open');
-  await page.getByLabel('Status of Pilot group defined').selectOption('done');
+  await page.getByLabel(/^Status of Audit logging/).selectOption('done');
   await expect(waves.getByRole('row').nth(1)).toContainText('Go');
 
-  await page.getByLabel('Status of Copilot usage policy approved').selectOption('done');
+  await page.getByLabel(/^Status of (Copilot usage policy approved|Usage policy)$/).selectOption('done');
   await page.getByRole('button', { name: 'Add Copilot to the AI register' }).click();
   await expect(page.getByText(/Copilot is in Acme Staffing LLC's AI register as AIS-\d+ Microsoft 365 Copilot/)).toBeVisible();
   await page.getByRole('button', { name: 'Produce the readiness report' }).click();
