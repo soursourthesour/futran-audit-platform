@@ -208,23 +208,10 @@ def run_stale_digest(db: Session, settings: Settings, now) -> int:
 
 # ---- lost prospects: deleted after 24 months unless reopened (daily, logged)
 def _on_legal_hold(db: Session, org_id: str) -> bool:
-    """R7's evidence vault legal holds, when installed: a held organization is never deleted."""
+    """R7's evidence vault: an organization with an active legal hold is never deleted. Guarded so the job still runs in
+    a build without the vault."""
     svc = _module("app.vault.service")
-    for fn in ("is_on_hold", "on_legal_hold", "has_legal_hold", "org_on_hold"):
-        if svc is not None and hasattr(svc, fn):
-            try:
-                return bool(getattr(svc, fn)(db, org_id))
-            except TypeError:
-                continue
-    mod = _module("app.vault.models")
-    LH = getattr(mod, "LegalHold", None) if mod is not None else None
-    if LH is None:
-        return False
-    q = select(LH).where(LH.organization_id == org_id)
-    for h in db.scalars(q):
-        if getattr(h, "deleted_at", None) is None and getattr(h, "released_at", None) is None and getattr(h, "status", "active") in ("active", "open", None):
-            return True
-    return False
+    return bool(svc.org_on_hold(db, org_id)) if svc is not None and hasattr(svc, "org_on_hold") else False
 
 
 def run_lost_prospect_purge(db: Session, settings: Settings, now) -> int:

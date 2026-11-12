@@ -10,7 +10,7 @@ export type Opp = {
   system_types: string[]; system_count: number; addon_status: string | null;
   needs_ca_approval: boolean; approval: string; ca_decision: string | null; ca_approved_by_name: string | null; ca_note: string | null; can_send_offer: boolean;
   approval_requested_at: string | null; created_at: string; closed_at: string | null;
-  source: string | null; source_label: string | null; partner_id: string | null; segment: string | null; segment_label: string | null;
+  source: string | null; source_label: string | null; partner_id: string | null; partner_name: string | null; segment: string | null; segment_label: string | null;
   trigger_event: string | null; trigger_event_label: string | null; products_of_interest: string[]; products_labels: string[]; close_date: string | null;
   lost_reason: string | null; lost_reason_label: string | null; lost_note: string | null; bant: Bant; competitors: string[];
   independence_flag: boolean; independence_reason: string | null; last_activity_at: string | null; stale: boolean;
@@ -36,7 +36,7 @@ export type OppList = {
   items: Opp[]; owners: { id: string; name: string }[]; clients: { id: string; name: string }[];
   kpis: { open: number; created_by_triggers_this_month: number; waiting_approval: number; pipeline_value: number; won_this_quarter: number };
   triggers: Opt[]; stages: Opt[]; sources: Opt[]; segments: Opt[]; trigger_events: Opt[]; products: Opt[]; lost_reasons: Opt[]; contact_roles: Opt[];
-  industries: string[]; size_bands: string[]; can_approve: boolean; can_work: boolean; can_reassign: boolean;
+  industries: string[]; size_bands: string[]; partners: { id: string; name: string; type: string }[]; can_approve: boolean; can_work: boolean; can_reassign: boolean;
 };
 
 export type Duplicate = { organization_id: string; name: string; kind: 'client' | 'prospect'; website: string | null; reason: string; open_opportunity_id: string | null };

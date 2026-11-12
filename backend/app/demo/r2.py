@@ -14,7 +14,7 @@ SAMPLES = [
      "contacts": [], "source": "referral_partner", "segment": "enterprise_bfsi_health_ins", "trigger_event": "new_state_law", "products_of_interest": ["audit", "eu_ai_act"],
      "next_step": "Chase questionnaire", "bant": {"budget": "Approved", "authority": "Chief Risk Officer", "need": "Colorado AI Act duties", "timeline": "Next quarter"},
      "stage": "scoping", "call": "Intro meeting with the risk team; questionnaire to follow."},
-    {"prospect": {"name": "[Example] Delta Logistics", "website": "deltalogistics.example", "industry": "Other", "hq_state": "IL", "hq_country": "US"},
+    {"prospect": {"name": "[Example] Brightline Freight", "website": "brightline.example", "industry": "Other", "hq_state": "IL", "hq_country": "US"},
      "contacts": [], "source": "linkedin", "segment": "agents_copilot", "trigger_event": "agents_rollout", "products_of_interest": ["agent_assure", "agentwarden"],
      "next_step": "Discovery call", "stage": "new", "call": None},
 ]

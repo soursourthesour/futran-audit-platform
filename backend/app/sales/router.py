@@ -69,7 +69,7 @@ def opp_out(db: Session, o: Opportunity, touches: dict | None = None) -> dict:
         "created_at": o.created_at.isoformat(), "closed_at": o.closed_at.isoformat() if o.closed_at else None,
         # Release 2 (spec §4.11)
         "name": o.name or o.service, "company": _company(org), "is_automatic": o.trigger != "manual", "source": o.source,
-        "source_label": SOURCES.get(o.source or "", "Automatic trigger" if o.trigger != "manual" else None), "partner_id": o.partner_id, "segment": o.segment,
+        "source_label": SOURCES.get(o.source or "", "Automatic trigger" if o.trigger != "manual" else None), "partner_id": o.partner_id, "partner_name": _partner_name(db, o.partner_id), "segment": o.segment,
         "segment_label": SEGMENTS.get(o.segment or ""), "trigger_event": o.trigger_event, "trigger_event_label": TRIGGER_EVENTS.get(o.trigger_event or ""),
         "products_of_interest": list(o.products_of_interest or []), "products_labels": [PRODUCTS.get(p, p) for p in o.products_of_interest or []],
         "est_value": o.value, "close_date": _iso(o.close_date), "next_step_due": _iso(o.next_step_due), "lost_reason": o.lost_reason,
@@ -186,6 +186,7 @@ def list_opps(trigger: str | None = None, stage: str | None = None, owner: str |
         "triggers": opts(TRIGGER_LABELS), "stages": [{"value": k, "label": v} for k, v in STAGE_LABELS.items() if k != "contacted"],
         "sources": opts(SOURCES), "segments": opts(SEGMENTS), "trigger_events": opts(TRIGGER_EVENTS), "products": opts(PRODUCTS), "lost_reasons": opts(LOST_REASONS),
         "contact_roles": opts(CONTACT_ROLES), "industries": list(INDUSTRIES), "size_bands": list(SIZE_BANDS),
+        "partners": [{"id": p.id, "name": p.name, "type": p.type} for p in _partners(db)],
         "can_approve": Action.APPROVE_OPPORTUNITY in _actions(db, actor), "can_work": _can(db, actor, Action.WORK_OPPORTUNITIES),
         "can_reassign": _can(db, actor, Action.REASSIGN_OPPORTUNITIES),
     }
@@ -273,6 +274,31 @@ def get_opp(opp_id: str, actor: Actor = Depends(current_actor), db: Session = De
         "can_work": _can(db, actor, Action.WORK_OPPORTUNITIES), "can_reassign": _can(db, actor, Action.REASSIGN_OPPORTUNITIES),
         "can_approve": _can(db, actor, Action.APPROVE_OPPORTUNITY), "owners": [{"id": u.id, "name": u.name} for u in _owners(db, actor.organization.id)],
     }
+
+
+def _partners(db: Session) -> list:
+    """Active G-11 partners (R7), for the partner picker; empty in a build without partners."""
+    try:
+        from app.partners.models import Partner
+    except ImportError:
+        return []
+    return list(db.scalars(select(Partner).where(Partner.status == "active", Partner.deleted_at.is_(None)).order_by(Partner.name)))
+
+
+def _check_partner(db: Session, partner_id: str | None) -> None:
+    if partner_id and partner_id not in {p.id for p in _partners(db)}:
+        raise Invalid(errors=[{"field": "partner_id", "message": "Choose an active partner."}])
+
+
+def _partner_name(db: Session, partner_id: str | None) -> str | None:
+    if not partner_id:
+        return None
+    try:
+        from app.partners.models import Partner
+    except ImportError:
+        return None
+    p = db.get(Partner, partner_id)
+    return p.name if p else None
 
 
 def _contact_out(c: OpportunityContact) -> dict:
@@ -366,6 +392,8 @@ def _patch(db: Session, actor: Actor, o: Opportunity, body: OppPatch, settings=N
     data = body.model_dump(exclude_unset=True)
     if "est_value" in data:
         data["value"] = data.pop("est_value")
+    if data.get("partner_id"):
+        _check_partner(db, data["partner_id"])
     if "name" in data and data["name"] is not None:
         data["name"] = data["name"].strip() or None
     if data.get("stage") and data["stage"] != o.stage:
@@ -639,6 +667,7 @@ def log_opportunity(body: LogIn, request: Request, actor: Actor = Depends(curren
                               hq_country=(p.hq_country or "").upper() or None)
         audit.record(db, actor_id=actor.id, action="prospect.create", obj=org, after=column_snapshot(org), request=request, organization_id=actor.organization.id,
                      summary=f"New prospect {org.name}")
+    _check_partner(db, body.partner_id)
     owner = body.owner_id or actor.id
     _check_owner(db, actor, owner)
     if owner != actor.id and not _can(db, actor, Action.REASSIGN_OPPORTUNITIES):

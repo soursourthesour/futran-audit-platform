@@ -109,7 +109,8 @@ def test_run_daily_runs_every_job(client, db, live, settings):
                         "commercial_usage",  # Release 2 R5
                         "proposal_followups",  # Release 2 R4
                         "scoping_reminders",  # Release 2 R3
-                        "vault_retention"}  # Release 2 R7
+                        "vault_retention",  # Release 2 R7
+                        "sales_stale_digest", "lost_prospect_purge"}  # Release 2 R2
     # email (every minute) and incident deadlines (every 15 minutes) run on their own ticks, never also in the daily run
     assert all(isinstance(v, int) for v in out.values()), out
 

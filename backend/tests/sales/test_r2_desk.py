@@ -399,3 +399,41 @@ def test_independence_preview_for_the_log_dialog(client, db, lit):
     assert client.get(f"{API}/sales/independence", params={"organization_id": lit["nw"].id}).json() == {"flag": False, "reason": ""}
     login_as(client, db, lit["aud"])
     assert client.get(f"{API}/sales/independence", params={"organization_id": lit["abc"].id}).status_code == 403
+
+
+# ---- R7 landed: legal holds (vault.service.org_on_hold) and partners
+def test_a_held_lost_prospect_survives_the_purge_until_the_hold_is_released(db, lit):
+    from app.core.config import get_settings
+    from app.sales.desk import run_lost_prospect_purge
+    from app.sales.prospects import create_prospect
+    from app.vault.models import LegalHold
+
+    org = create_prospect(db, name="Held Co")
+    db.add(Opportunity(organization_id=org.id, trigger="manual", service="x", stage="lost", closed_at=datetime(2024, 1, 1)))
+    hold = LegalHold(organization_id=org.id, ref="LH-001", name="Dispute", reason="Litigation hold", scope={}, set_by=lit["chief"].id, set_at=datetime(2025, 1, 1))
+    db.add(hold)
+    db.commit()
+    now = datetime(2026, 11, 11, 10)
+    assert run_lost_prospect_purge(db, get_settings(), now) == 0
+    assert db.get(Organization, org.id) is not None
+    hold.released_at = datetime(2026, 11, 1)
+    db.commit()
+    assert run_lost_prospect_purge(db, get_settings(), now) == 1
+    db.expire_all()
+    assert db.get(Organization, org.id) is None
+
+
+def test_partner_on_log_and_record_and_offered_in_the_list(client, db, lit):
+    from app.partners.models import Partner
+
+    p = Partner(organization_id=lit["sales"].organization_id, name="Harbor Law LLP", type="law_firm", status="active")
+    gone = Partner(organization_id=lit["sales"].organization_id, name="Old ATS", type="ats_vendor", status="inactive")
+    db.add_all([p, gone])
+    db.commit()
+    login_as(client, db, lit["sales"])
+    assert [x["name"] for x in client.get(f"{API}/opportunities").json()["partners"]] == ["Harbor Law LLP"]
+    o = _log(client, source="referral_partner", partner_id=p.id).json()
+    assert o["partner_id"] == p.id and o["partner_name"] == "Harbor Law LLP"
+    assert _log(client, prospect={"name": "Zeta Co", "website": "zeta.example"}, contacts=[], partner_id="nope").status_code == 422
+    assert client.patch(f"{API}/opportunities/{o['id']}", json={"partner_id": gone.id}).status_code == 422
+    assert client.patch(f"{API}/opportunities/{o['id']}", json={"partner_id": None}).json()["partner_id"] is None

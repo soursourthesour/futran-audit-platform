@@ -23,7 +23,7 @@ export function LogOpportunity({ opts, me, onClose }: { opts: OppList; me: strin
   const [picked, setPicked] = useState<CompanyHit | null>(null);
   const [p, setP] = useState({ name: '', website: '', industry: '', size_band: '', hq_state: '', hq_country: 'US' });
   const [contacts, setContacts] = useState<ContactDraft[]>([blankContact()]);
-  const [f, setF] = useState({ source: '', segment: '', trigger_event: '', est_value: '', close_date: '', next_step: '', next_step_due: '', owner_id: '', name: '' });
+  const [f, setF] = useState({ source: '', partner_id: '', segment: '', trigger_event: '', est_value: '', close_date: '', next_step: '', next_step_due: '', owner_id: '', name: '' });
   const [products, setProducts] = useState<string[]>([]);
   const [bant, setBant] = useState({ budget: '', authority: '', need: '', timeline: '' });
   const [confirmDifferent, setConfirmDifferent] = useState(false);
@@ -59,7 +59,7 @@ export function LogOpportunity({ opts, me, onClose }: { opts: OppList; me: strin
     setErr(null); setErrs({}); setBusy(true);
     const body: Record<string, unknown> = {
       contacts: contacts.filter((c) => c.name.trim()).map((c) => ({ name: c.name.trim(), title: c.title || null, email: c.email || null, phone: c.phone || null, contact_role: c.contact_role || null })),
-      source: f.source || null, segment: f.segment || null, trigger_event: f.trigger_event || null, products_of_interest: products, name: f.name || null,
+      source: f.source || null, partner_id: f.partner_id || null, segment: f.segment || null, trigger_event: f.trigger_event || null, products_of_interest: products, name: f.name || null,
       est_value: f.est_value ? Number(f.est_value) : null, close_date: f.close_date || null, next_step: f.next_step || null, next_step_due: f.next_step_due || null,
       owner_id: f.owner_id || null, bant: Object.values(bant).some(Boolean) ? bant : null, confirm_different: confirmDifferent,
     };
@@ -134,6 +134,7 @@ export function LogOpportunity({ opts, me, onClose }: { opts: OppList; me: strin
           <legend>Deal</legend>
           <div className="grid-2">
             <SelectField label="Source" help={H.source} value={f.source} onChange={set('source')} options={opts.sources.filter((s) => s.value !== 'auto_trigger')} placeholder="Choose" />
+            {opts.partners.length > 0 && <SelectField label="Partner (if referred)" help={H.partner} value={f.partner_id} onChange={set('partner_id')} options={opts.partners.map((x) => ({ value: x.id, label: x.name }))} placeholder="None" error={errs.partner_id} />}
             <SelectField label="Segment" value={f.segment} onChange={set('segment')} options={opts.segments} placeholder="Choose" />
             <SelectField label="Trigger" help={H.trigger} value={f.trigger_event} onChange={set('trigger_event')} options={opts.trigger_events} placeholder="Choose" />
             <TextField label="Estimated value ($)" type="number" min={0} value={f.est_value} onChange={set('est_value')} error={errs.est_value} />

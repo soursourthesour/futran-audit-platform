@@ -5,6 +5,7 @@ export const salesHelp = {
   website: 'Used for the duplicate check: another client or prospect on the same domain is flagged before you save.',
   contactRole: 'Economic buyer signs or owns the budget; champion argues for you inside the company; technical, legal and procurement review the proposal.',
   source: 'How the opportunity reached you. Automatic opportunities come from platform triggers and are marked as such.',
+  partner: 'The partner who referred this company. A won deal records the partner’s commission; law firms never get one.',
   trigger: 'The event that made the company look for help now, from Section A of the scoping questionnaire.',
   stage: 'New, Qualified (budget, decision maker and timeline confirmed), Scoping, Proposal, Negotiation, then Won or Lost. On hold pauses it.',
   bant: 'Budget, authority, need and timeline. Budget, authority and timeline are needed before the opportunity moves to Qualified.',

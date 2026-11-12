@@ -123,6 +123,7 @@ function Overview({ o, onEdit }: { o: OppDetail; onEdit: () => void }) {
         <dt>Estimated value</dt><dd>{usd(o.value)}</dd>
         <dt>Expected close</dt><dd>{o.close_date ? fmtDate(o.close_date) : '—'}</dd>
         <dt>Source</dt><dd>{o.is_automatic ? `Automatic · ${o.trigger_label}` : o.source_label ?? '—'}{o.segment_label ? ` · ${o.segment_label}` : ''}</dd>
+        <dt>Partner</dt><dd>{o.partner_name ?? '—'}</dd>
         <dt>Trigger</dt><dd>{o.trigger_event_label ?? o.why_now ?? '—'}</dd>
         {o.system_types.length > 0 && <><dt>AI systems</dt><dd>{o.system_types.join(', ')}</dd></>}
       </dl>
@@ -329,14 +330,14 @@ function LoseDialog({ o, reasons, onClose, onDone }: { o: OppDetail; reasons: { 
 
 function EditDialog({ o, opts, onClose, onDone }: { o: OppDetail; opts: OppList; onClose: () => void; onDone: () => Promise<void> }) {
   const [f, setF] = useState({ name: o.name, est_value: o.value?.toString() ?? '', close_date: o.close_date ?? '', next_step: o.next_step ?? '', next_step_due: o.next_step_due ?? '',
-    source: o.source ?? '', segment: o.segment ?? '', trigger_event: o.trigger_event ?? '', owner_id: o.owner_id ?? '', competitors: o.competitors.join(', ') });
+    source: o.source ?? '', partner_id: o.partner_id ?? '', segment: o.segment ?? '', trigger_event: o.trigger_event ?? '', owner_id: o.owner_id ?? '', competitors: o.competitors.join(', ') });
   const [bant, setBant] = useState({ budget: o.bant.budget ?? '', authority: o.bant.authority ?? '', need: o.bant.need ?? '', timeline: o.bant.timeline ?? '' });
   const [products, setProducts] = useState<string[]>(o.products_of_interest);
   const [err, setErr] = useState<string | null>(null);
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
   async function save() {
     const body: Record<string, unknown> = { name: f.name, est_value: f.est_value ? Number(f.est_value) : null, close_date: f.close_date || null, next_step: f.next_step || null,
-      next_step_due: f.next_step_due || null, source: f.source || null, segment: f.segment || null, trigger_event: f.trigger_event || null, bant,
+      next_step_due: f.next_step_due || null, source: f.source || null, partner_id: f.partner_id || null, segment: f.segment || null, trigger_event: f.trigger_event || null, bant,
       products_of_interest: products, competitors: f.competitors.split(',').map((x) => x.trim()).filter(Boolean) };
     if (o.can_reassign && f.owner_id !== (o.owner_id ?? '')) body.owner_id = f.owner_id || null;
     try { await api.patch(`/opportunities/${o.id}`, body); await onDone(); } catch (e) { setErr(errorMessage(e)); }
@@ -358,6 +359,7 @@ function EditDialog({ o, opts, onClose, onDone }: { o: OppDetail; opts: OppList;
           <TextField label="Next step" value={f.next_step} onChange={set('next_step')} />
           <TextField label="Due" type="date" value={f.next_step_due} onChange={set('next_step_due')} />
           <SelectField label="Source" value={f.source} onChange={set('source')} options={opts.sources} placeholder="Choose" />
+          <SelectField label="Partner (if referred)" help={H.partner} value={f.partner_id} onChange={set('partner_id')} options={opts.partners.map((x) => ({ value: x.id, label: x.name }))} placeholder="None" />
           <SelectField label="Segment" value={f.segment} onChange={set('segment')} options={opts.segments} placeholder="Choose" />
           <SelectField label="Trigger" value={f.trigger_event} onChange={set('trigger_event')} options={opts.trigger_events} placeholder="Choose" />
           {o.can_reassign && <SelectField label="Owner" value={f.owner_id} onChange={set('owner_id')} options={opts.owners.map((x) => ({ value: x.id, label: x.name }))} placeholder="No owner" />}

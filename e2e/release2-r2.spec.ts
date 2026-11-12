@@ -71,7 +71,7 @@ test('Sales Officer: Sales home, log opportunities with the duplicate check, lis
   await api(page, 'PATCH', `/opportunities/${north.id}`, { stage: 'qualified' });
   await api(page, 'PATCH', `/opportunities/${north.id}`, { stage: 'negotiation' });
   await api(page, 'POST', '/sales/opportunities', {
-    prospect: { name: 'Delta Logistics', website: 'deltalogistics.example', industry: 'Other', hq_state: 'IL', hq_country: 'US' },
+    prospect: { name: 'Brightline Freight', website: 'brightline.example', industry: 'Other', hq_state: 'IL', hq_country: 'US' },
     contacts: [], source: 'linkedin', segment: 'agents_copilot', trigger_event: 'agents_rollout', products_of_interest: ['agent_assure', 'agentwarden'], est_value: 58000, next_step: 'Discovery call',
   });
   await api(page, 'POST', '/sales/opportunities', { organization_id: harbor.id, contacts: [], source: 'existing_client', products_of_interest: ['monitor'], est_value: 24000, next_step: 'Confirm AEDT count' });
@@ -97,8 +97,8 @@ test('Sales Officer: Sales home, log opportunities with the duplicate check, lis
   await page.getByRole('tab', { name: 'Board' }).click();
   const board = page.getByLabel('Opportunities by stage');
   await expect(board.getByRole('region', { name: 'Negotiation' })).toContainText('Cedar Ridge Credit Union');
-  await board.getByLabel('Move Delta Logistics to stage').selectOption('scoping');
-  await expect(board.getByRole('region', { name: 'Scoping' })).toContainText('Delta Logistics');
+  await board.getByLabel('Move Brightline Freight to stage').selectOption('scoping');
+  await expect(board.getByRole('region', { name: 'Scoping' })).toContainText('Brightline Freight');
   await shot(page, 'sm02-opportunities-board');
 
   // SM-03 with the duplicate warning
