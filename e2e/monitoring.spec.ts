@@ -87,7 +87,8 @@ test.describe.serial('refresh, alerts, litigation, sales and client alerts', () 
     await expect(page.getByText(/Quinn Taylor concurs/).first()).toBeVisible();
     await page.getByRole('button', { name: 'Approve and publish' }).click();
     await expect(page.getByText(/Approved: Test client proposal/)).toBeVisible();
-    await expect(page.getByText('Nothing is waiting for review.')).toBeVisible();
+    // both of this run's changes have left the queue (other proposals, such as the EU AI Act platform-seed batch, may still wait)
+    await expect(grid.getByRole('row', { name: /litigation note|effective date wording/ })).toHaveCount(0);
   });
 
   test('M6: the refresh alert is under the bell and on the alerts page; settings save', async ({ page }) => {
