@@ -1,7 +1,7 @@
 """orders: one-time discount
 
 Revision ID: 94101a081b66
-Revises: 6520a93f8d1e
+Revises: 3da8dc91be8a
 Create Date: 2026-11-11 23:52:51.331095
 """
 from alembic import op
@@ -9,7 +9,7 @@ import sqlalchemy as sa
 
 
 revision = '94101a081b66'
-down_revision = '6520a93f8d1e'
+down_revision = '3da8dc91be8a'
 branch_labels = None
 depends_on = None
 
