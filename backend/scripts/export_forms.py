@@ -706,7 +706,8 @@ CLIENT_INTRO = ("Forms and templates the client side of the Futran Audit Platfor
                 "menu group, then screen. Documents marked (example) show what the platform generates, with client details in square brackets.")
 FUTRAN_INTRO = ("Forms and templates for Futran staff, including the confidential copies clients never receive: quiz answer keys, auditor-only questions "
                 "and guidance, the scoring method, template sources and internal rules. Folders follow the Futran menu; material that belongs to a client "
-                "screen (AI systems, AI literacy training) uses the client menu's group and screen names.")
+                "screen (Audit › Documents, AI governance › AI systems, People and training › Attestation and AI literacy training) "
+                "uses the client menu's group and screen names.")
 
 
 def readme(out: Out, side: str) -> str:
