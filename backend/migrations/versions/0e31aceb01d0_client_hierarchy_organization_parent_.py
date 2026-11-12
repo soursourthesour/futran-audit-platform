@@ -1,7 +1,7 @@
 """client hierarchy: organization parent and relationship, roll-up consent, end-client LL144 scope
 
 Revision ID: 0e31aceb01d0
-Revises: 890d4f8aefdb
+Revises: 6a7d69f64a40
 Create Date: 2026-11-11 22:23:53.257420
 """
 from alembic import op
@@ -9,7 +9,7 @@ import sqlalchemy as sa
 
 
 revision = '0e31aceb01d0'
-down_revision = '890d4f8aefdb'
+down_revision = '6a7d69f64a40'
 branch_labels = None
 depends_on = None
 
