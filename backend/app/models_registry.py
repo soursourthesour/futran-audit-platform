@@ -49,3 +49,6 @@ importlib.import_module("app.scoping.models")
 
 # Release 2 R1: master price list, packages and estimates (SM-14, SM-15)
 importlib.import_module("app.catalog.models")
+
+# Release 2 R4: proposals, approvals and acceptance (SM-09 to SM-12)
+importlib.import_module("app.proposals.models")
