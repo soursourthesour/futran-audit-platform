@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SM-06 Send questionnaire to client</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#5A6577}
+a{color:#1B5E9E}a:hover{color:#1B3A6B}
+button,input,select,textarea{font-family:inherit}
+</style>
+</helmet>
+<div style="font-family:'IBM Plex Sans',system-ui,sans-serif;color:#1A2333;min-height:960px;background:#5A6577;padding:32px 16px;box-sizing:border-box">
+<section role="dialog" aria-label="Send questionnaire to client" style="max-width:1000px;margin:0 auto;background:#FFFFFF;border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.3)">
+<div style="display:flex;align-items:center;gap:12px;padding:18px 24px;border-bottom:1px solid #E1E6EE">
+<h1 style="margin:0;font-size:20px;font-weight:600">Send questionnaire to client</h1>
+<a href="SM05-Scoping-call.dc.html" aria-label="Close" style="margin-left:auto;width:44px;height:44px;display:flex;align-items:center;justify-content:center;color:#3F4A5C;text-decoration:none;font-size:22px">×</a>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:20px;padding:20px 24px">
+<form style="flex:1 1 420px;min-width:0;display:flex;flex-direction:column;gap:14px;font-size:13px">
+<label style="display:flex;flex-direction:column;gap:4px">To<select style="height:46px;border:1px solid #B8C4D6;border-radius:6px;padding:0 8px"><option>[Champion name] · VP Talent</option><option>[Technical contact] · IT Director</option></select></label>
+<div>Questions to include
+<ul style="list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:6px">
+<li><label style="display:flex;gap:8px;align-items:center;min-height:36px"><input type="checkbox" disabled=""> A. Account and deal <span style="color:#4A5568">— answered on call</span></label></li>
+<li><label style="display:flex;gap:8px;align-items:center;min-height:36px"><input type="checkbox" disabled=""> B. Footprint <span style="color:#4A5568">— answered on call</span></label></li>
+<li><label style="display:flex;gap:8px;align-items:center;min-height:36px"><input type="checkbox" checked=""> C. AI inventory <span style="color:#4A5568">— 5 unanswered</span></label></li>
+<li><label style="display:flex;gap:8px;align-items:center;min-height:36px"><input type="checkbox" checked=""> D. Hiring AI and LL144</label></li>
+<li><label style="display:flex;gap:8px;align-items:center;min-height:36px"><input type="checkbox"> E. Audit needs</label></li>
+<li><label style="display:flex;gap:8px;align-items:center;min-height:36px"><input type="checkbox" checked=""> F. Document retention questions only</label></li>
+<li><label style="display:flex;gap:8px;align-items:center;min-height:36px;color:#4A5568"><input type="checkbox" disabled=""> Budget, competitors, red flags, independence — internal, never sent</label></li>
+</ul></div>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+<label style="display:flex;flex-direction:column;gap:4px">Due date<input type="date" style="height:44px;border:1px solid #B8C4D6;border-radius:6px;padding:0 10px"></label>
+<label style="display:flex;flex-direction:column;gap:4px">Reminders<select style="height:46px;border:1px solid #B8C4D6;border-radius:6px;padding:0 8px"><option>Day 3 and day 7</option><option>Day 3 only</option><option>None</option></select></label>
+</div>
+<label style="display:flex;gap:8px;align-items:center;min-height:40px"><input type="checkbox" checked=""> Let the client forward to a colleague (they get their own link)</label>
+<div style="background:#EEF3FA;border-radius:6px;padding:10px 12px">Sends from <strong>r.mehta@futransolutions.com</strong> as a personal link. No login. Expires in 14 days.</div>
+</form>
+<section aria-label="Email preview" style="flex:1 1 420px;min-width:0;border:1px solid #DDE3EC;border-radius:8px;padding:16px;font-size:13px;background:#FAFBFD">
+<div style="color:#4A5568">Subject</div>
+<div style="font-weight:600;margin-bottom:12px">A few questions to scope your AI compliance review [OPP-1042]</div>
+<div style="line-height:1.6">Hi [First name],<br><br>Thanks for the call today. To size the work properly, could you or a colleague answer a few questions about the AI tools [Company] uses? It takes about 10 minutes, and "not sure" is a fine answer.<br><br><span style="display:inline-block;background:#1B3A6B;color:#FFFFFF;padding:10px 16px;border-radius:6px">Open the questions</span><br><br>Due [date]. Your answers are only used to prepare our proposal.<br><br>[Rep name] · Futran Solutions</div>
+</section>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end;border-top:1px solid #E1E6EE;padding:16px 24px">
+<a href="SM05-Scoping-call.dc.html" style="min-height:44px;display:flex;align-items:center;padding:0 16px;border:1px solid #B8C4D6;border-radius:6px;text-decoration:none;color:#1B3A6B">Cancel</a>
+<a href="SM07-Client-questionnaire.dc.html" style="min-height:44px;display:flex;align-items:center;padding:0 18px;background:#1B3A6B;color:#FFFFFF;border-radius:6px;text-decoration:none;font-weight:600">Send</a>
+</div>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

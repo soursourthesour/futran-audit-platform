@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>G-05 Discovery import</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F4F6FA}
+a{color:#1B5E9E}a:hover{color:#1B3A6B}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{text-align:left;font-weight:600;color:#3F4A5C;background:#F0F3F8;padding:9px 10px;border-bottom:1px solid #D9DFE8;white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid #E6EAF0;vertical-align:top;color:#1A2333}
+button,input,select{font-family:inherit}
+</style>
+</helmet>
+<div style="font-family:'IBM Plex Sans',system-ui,sans-serif;color:#1A2333;min-height:960px">
+<header style="background:#1B3A6B;color:#FFFFFF;display:flex;flex-wrap:wrap;align-items:center;gap:20px;padding:0 24px;min-height:56px">
+<div style="font-weight:700;font-size:16px">AI Governix <span style="font-weight:400">· Futran</span></div>
+<nav aria-label="Main" style="display:flex;flex-wrap:wrap;gap:2px;font-size:14px">
+<a href="#" aria-current="page" style="color:#FFFFFF;text-decoration:none;padding:16px 12px;border-bottom:3px solid #0098D4;font-weight:600">Audits</a>
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Clients</a>
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Sales</a>
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Admin</a>
+</nav>
+<div style="margin-left:auto;font-size:13px">A. Rao · Auditor</div>
+</header>
+<main style="max-width:1240px;margin:0 auto;padding:24px;display:flex;flex-direction:column;gap:16px">
+<div><a href="#" style="font-size:13px">[Example] Acme Staffing LLC · Initial assessment</a>
+<h1 style="margin:2px 0 0;font-size:24px;font-weight:600">Discovery import</h1>
+<div style="font-size:13px;color:#4A5568">Manual bridge until automatic connectors ship (F2, Phase 3). Same discovered-tools flow, signal "manual import".</div></div>
+<ol aria-label="Steps" style="list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;font-size:13px">
+<li style="background:#1B3A6B;color:#FFFFFF;padding:10px;border-radius:4px">1. Export type</li>
+<li style="background:#1B3A6B;color:#FFFFFF;padding:10px;border-radius:4px">2. Upload</li>
+<li style="background:#1B3A6B;color:#FFFFFF;padding:10px;border-radius:4px">3. Map columns</li>
+<li style="background:#2E75B6;color:#FFFFFF;padding:10px;border-radius:4px;font-weight:600" aria-current="step">4. Review tools</li>
+</ol>
+<section style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:14px;font-size:13px;display:flex;flex-wrap:wrap;gap:16px">
+<div><div style="color:#4A5568">Files imported</div><div>Microsoft 365 Copilot usage (CSV) · Entra enterprise apps (CSV) · Expense export (CSV)</div></div>
+<div><div style="color:#4A5568">Evidence</div><div>3 files stored with SHA-256</div></div>
+<div><div style="color:#4A5568">Vendor dictionary</div><div>Matched 14 of 17 rows</div></div>
+</section>
+<section style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;overflow-x:auto">
+<table>
+<thead><tr><th>Tool found</th><th>Vendor</th><th>Signal</th><th>Department</th><th>Users</th><th>Declared in attestation?</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td>Microsoft 365 Copilot</td><td>Microsoft</td><td>Licence (M365 export)</td><td>All</td><td>140</td><td>Yes</td><td><div style="display:flex;gap:6px"><button type="button" style="min-height:40px;padding:0 10px;border:0;background:#1B3A6B;color:#FFFFFF;border-radius:6px">Confirm</button><button type="button" style="min-height:40px;padding:0 10px;border:1px solid #B8C4D6;background:#FFFFFF;border-radius:6px">Dismiss</button></div></td></tr>
+<tr><td>Otter.ai</td><td>Otter</td><td>App consent (Entra)</td><td>Sales</td><td>9</td><td style="color:#9A3412;font-weight:600">No · undeclared</td><td><div style="display:flex;gap:6px"><button type="button" style="min-height:40px;padding:0 10px;border:0;background:#1B3A6B;color:#FFFFFF;border-radius:6px">Confirm</button><button type="button" style="min-height:40px;padding:0 10px;border:1px solid #B8C4D6;background:#FFFFFF;border-radius:6px">Dismiss</button></div></td></tr>
+<tr><td>ChatGPT Plus</td><td>OpenAI</td><td>Expense (personal card)</td><td>Recruiting</td><td>4</td><td style="color:#9A3412;font-weight:600">No · undeclared</td><td><div style="display:flex;gap:6px"><button type="button" style="min-height:40px;padding:0 10px;border:0;background:#1B3A6B;color:#FFFFFF;border-radius:6px">Confirm</button><button type="button" style="min-height:40px;padding:0 10px;border:1px solid #B8C4D6;background:#FFFFFF;border-radius:6px">Dismiss</button></div></td></tr>
+<tr><td>[Unmatched] "AI NOTES PRO"</td><td>Unknown</td><td>Expense</td><td>Finance</td><td>1</td><td>—</td><td><button type="button" style="min-height:40px;padding:0 10px;border:1px solid #B8C4D6;background:#FFFFFF;border-radius:6px">Match vendor</button></td></tr>
+</tbody></table>
+</section>
+<section style="background:#EEF3FA;border:1px solid #C9D6E8;border-radius:8px;padding:14px;font-size:13px">
+<h2 style="margin:0 0 6px;font-size:15px;font-weight:600">Opportunities raised for Sales (after the finding is final)</h2>
+<ul style="margin:0;padding-left:18px;line-height:1.8">
+<li>Copilot licences found → X-04 Copilot governance rollout (already sold on this client)</li>
+<li>2 undeclared paid AI tools → policy and training follow-up (M-07, M-08)</li>
+</ul>
+</section>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

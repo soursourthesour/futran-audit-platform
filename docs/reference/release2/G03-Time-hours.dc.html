@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>G-03 Time and hours</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F4F6FA}
+a{color:#1B5E9E}a:hover{color:#1B3A6B}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{text-align:left;font-weight:600;color:#3F4A5C;background:#F0F3F8;padding:9px 8px;border-bottom:1px solid #D9DFE8;white-space:nowrap}
+td{padding:8px;border-bottom:1px solid #E6EAF0;vertical-align:middle;color:#1A2333}
+button,input,select{font-family:inherit}
+</style>
+</helmet>
+<div style="font-family:'IBM Plex Sans',system-ui,sans-serif;color:#1A2333;min-height:960px">
+<header style="background:#1B3A6B;color:#FFFFFF;display:flex;flex-wrap:wrap;align-items:center;gap:20px;padding:0 24px;min-height:56px">
+<div style="font-weight:700;font-size:16px">AI Governix <span style="font-weight:400">· Futran</span></div>
+<nav aria-label="Main" style="display:flex;flex-wrap:wrap;gap:2px;font-size:14px">
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Audits</a>
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Clients</a>
+<a href="#" aria-current="page" style="color:#FFFFFF;text-decoration:none;padding:16px 12px;border-bottom:3px solid #0098D4;font-weight:600">Time</a>
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Admin</a>
+</nav>
+<div style="margin-left:auto;font-size:13px">A. Rao · Auditor</div>
+</header>
+<main style="max-width:1240px;margin:0 auto;padding:24px;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+<h1 style="margin:0;font-size:24px;font-weight:600">Time and hours</h1>
+<span style="font-size:13px;color:#4A5568">Week of [Mon date] · 31.5 h logged · 27 billable</span>
+<button type="button" style="margin-left:auto;min-height:44px;padding:0 16px;border:0;background:#1B3A6B;color:#FFFFFF;border-radius:6px;font-weight:600">Submit week</button>
+</div>
+<section style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;overflow-x:auto">
+<table>
+<thead><tr><th>Charged to</th><th>Activity</th><th>Billable</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Total</th></tr></thead>
+<tbody>
+<tr><td>Acme Staffing · Initial assessment</td><td>Fieldwork</td><td>Yes</td><td><input aria-label="Mon" value="6" style="width:40px;height:36px;border:1px solid #B8C4D6;border-radius:4px;text-align:center"></td><td><input aria-label="Tue" value="5" style="width:40px;height:36px;border:1px solid #B8C4D6;border-radius:4px;text-align:center"></td><td><input aria-label="Wed" value="4" style="width:40px;height:36px;border:1px solid #B8C4D6;border-radius:4px;text-align:center"></td><td><input aria-label="Thu" style="width:40px;height:36px;border:1px solid #B8C4D6;border-radius:4px;text-align:center"></td><td><input aria-label="Fri" style="width:40px;height:36px;border:1px solid #B8C4D6;border-radius:4px;text-align:center"></td><td>15</td></tr>
+<tr><td>Harbor Health · Advisor hours bank</td><td>Advisory</td><td>Yes (bank)</td><td></td><td>2</td><td></td><td>1.5</td><td></td><td>3.5</td></tr>
+<tr><td>Metro Retail · Incident retainer (activated)</td><td>Incident response</td><td>Yes ($350/h)</td><td></td><td></td><td>3</td><td>5.5</td><td></td><td>8.5</td></tr>
+<tr><td>Internal · Methodology</td><td>Other</td><td>No</td><td>2</td><td></td><td></td><td>2.5</td><td></td><td>4.5</td></tr>
+</tbody></table>
+</section>
+<div style="display:flex;flex-wrap:wrap;gap:16px">
+<section style="flex:1 1 480px;min-width:0;background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;overflow-x:auto">
+<h2 style="margin:0;padding:14px 16px 6px;font-size:16px;font-weight:600">Hours banks and retainers</h2>
+<table><thead><tr><th>Client</th><th>Type</th><th>Balance</th><th>Expires</th></tr></thead>
+<tbody>
+<tr><td>Harbor Health</td><td>M-13 Hours bank (20 h)</td><td style="color:#7A3E00;font-weight:600">3.5 h left · 82% used</td><td>[date]</td></tr>
+<tr><td>Metro Retail</td><td>M-12 Incident retainer</td><td>Activated [date] · 8.5 h billed</td><td>Monthly</td></tr>
+<tr><td>Northbank CU</td><td>X-01 Fractional AI officer</td><td>12 / 16 h this month</td><td>Monthly</td></tr>
+</tbody></table>
+</section>
+<section style="flex:1 1 480px;min-width:0;background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;overflow-x:auto">
+<h2 style="margin:0;padding:14px 16px 6px;font-size:16px;font-weight:600">Margin by engagement <span style="font-size:12px;font-weight:400;color:#4A5568">(Chief Auditor, Sales Manager)</span></h2>
+<table><thead><tr><th>Engagement</th><th style="text-align:right">Fee</th><th style="text-align:right">Hours</th><th style="text-align:right">Cost</th><th style="text-align:right">Margin</th></tr></thead>
+<tbody>
+<tr><td>Acme · Initial assessment</td><td style="text-align:right">$43,500</td><td style="text-align:right">62</td><td style="text-align:right">$[cost]</td><td style="text-align:right">[%]</td></tr>
+<tr><td>Metro · LL144 audit</td><td style="text-align:right">$13,500</td><td style="text-align:right">38</td><td style="text-align:right">$[cost]</td><td style="text-align:right">[%]</td></tr>
+</tbody></table>
+<p style="margin:0;padding:8px 16px 14px;font-size:12px;color:#4A5568">Cost = hours × standard cost per role (Finance to supply, R2-Q9).</p>
+</section>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

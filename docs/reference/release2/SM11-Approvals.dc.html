@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SM-11 Approvals</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F4F6FA}
+a{color:#1B5E9E}a:hover{color:#1B3A6B}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{text-align:left;font-weight:600;color:#3F4A5C;background:#F0F3F8;padding:9px 10px;border-bottom:1px solid #D9DFE8;white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid #E6EAF0;vertical-align:top;color:#1A2333}
+button,input,select,textarea{font-family:inherit}
+</style>
+</helmet>
+<div style="font-family:'IBM Plex Sans',system-ui,sans-serif;color:#1A2333;min-height:960px">
+<header style="background:#1B3A6B;color:#FFFFFF;display:flex;flex-wrap:wrap;align-items:center;gap:20px;padding:0 24px;min-height:56px">
+<div style="font-weight:700;font-size:16px">AI Governix <span style="font-weight:400">· Futran</span></div>
+<nav aria-label="Main" style="display:flex;flex-wrap:wrap;gap:2px;font-size:14px">
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Audits</a>
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Clients</a>
+<a href="Main.dc.html" aria-current="page" style="color:#FFFFFF;text-decoration:none;padding:16px 12px;border-bottom:3px solid #0098D4;font-weight:600">Sales</a>
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Admin</a>
+</nav>
+<div style="margin-left:auto;font-size:13px">Pricing Approver</div>
+</header>
+<main style="max-width:1240px;margin:0 auto;padding:24px;display:flex;flex-wrap:wrap;gap:16px">
+<section aria-label="Queue" style="flex:1 1 380px;min-width:0;display:flex;flex-direction:column;gap:10px">
+<h1 style="margin:0;font-size:24px;font-weight:600">Approvals</h1>
+<div style="display:flex;flex-wrap:wrap;gap:6px;font-size:13px">
+<a href="#" aria-current="page" style="padding:8px 12px;border-radius:16px;background:#1B3A6B;color:#FFFFFF;text-decoration:none">Mine (3)</a>
+<a href="#" style="padding:8px 12px;border-radius:16px;border:1px solid #B8C4D6;text-decoration:none">Pricing</a>
+<a href="#" style="padding:8px 12px;border-radius:16px;border:1px solid #B8C4D6;text-decoration:none">Independence</a>
+<a href="#" style="padding:8px 12px;border-radius:16px;border:1px solid #B8C4D6;text-decoration:none">Decided</a>
+</div>
+<ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;font-size:13px">
+<li style="background:#FFFFFF;border:2px solid #1B3A6B;border-radius:8px;padding:12px"><div style="font-weight:600">Acme Staffing · Proposal v1</div><div>P-1 Proposed prices on 6 lines</div><div style="color:#4A5568">R. Mehta · 2 h ago</div></li>
+<li style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:12px"><div style="font-weight:600">Harbor Health · Proposal v2</div><div>P-3 Discount 18% on recurring</div><div style="color:#4A5568">R. Mehta · yesterday</div></li>
+<li style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:12px"><div style="font-weight:600">Northbank CU · Proposal v1</div><div>P-6 Custom terms: net 60</div><div style="color:#4A5568">S. Iyer · 2 days ago</div></li>
+</ul>
+<p style="margin:0;font-size:12px;color:#4A5568">Independence requests (I-1 to I-4) go to the Chief Auditor. Discounts up to 15% go to the Sales Manager.</p>
+</section>
+<section aria-label="Selected request" style="flex:999 1 560px;min-width:0;background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:18px;display:flex;flex-direction:column;gap:14px">
+<div><h2 style="margin:0;font-size:18px;font-weight:600">P-1 · Proposed catalog prices</h2>
+<div style="font-size:13px;color:#4A5568">[Example] Acme Staffing LLC · Proposal v1 · Year-1 $116,760</div></div>
+<div style="overflow-x:auto"><table>
+<thead><tr><th>Code</th><th>Line</th><th>Qty</th><th style="text-align:right">Low</th><th style="text-align:right">List used</th><th style="text-align:right">High</th></tr></thead>
+<tbody>
+<tr><td>A-02b</td><td>Audit, 11–50 systems</td><td>1</td><td style="text-align:right">$28,000</td><td style="text-align:right">$35,000</td><td style="text-align:right">$45,000</td></tr>
+<tr><td>A-05</td><td>Discovery sweep (manual)</td><td>3</td><td style="text-align:right">$1,000</td><td style="text-align:right">$1,500</td><td style="text-align:right">$2,000</td></tr>
+<tr><td>A-06b</td><td>Attestation, 251–1,000</td><td>1</td><td style="text-align:right">$3,000</td><td style="text-align:right">$4,000</td><td style="text-align:right">$5,000</td></tr>
+<tr><td>L-05</td><td>Demographic data setup</td><td>1</td><td style="text-align:right">$2,000</td><td style="text-align:right">$3,000</td><td style="text-align:right">$4,500</td></tr>
+<tr><td>X-04</td><td>Copilot governance rollout</td><td>1</td><td style="text-align:right">$12,000</td><td style="text-align:right">$18,000</td><td style="text-align:right">$25,000</td></tr>
+<tr><td>M-01b</td><td>Monitor, 11–50 systems</td><td>1</td><td style="text-align:right">$20,000</td><td style="text-align:right">$24,000</td><td style="text-align:right">$30,000</td></tr>
+</tbody></table></div>
+<div style="background:#EEF3FA;border-radius:6px;padding:10px 12px;font-size:13px">Approving here applies to this proposal only. To make a price standard, approve it in <a href="SM14-Catalog.dc.html">Catalog and rules</a>.</div>
+<label style="display:flex;flex-direction:column;gap:4px;font-size:13px">Note to the rep<textarea rows="3" style="border:1px solid #B8C4D6;border-radius:6px;padding:8px 10px" placeholder="Optional"></textarea></label>
+<div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end">
+<button type="button" style="min-height:44px;padding:0 16px;border:1px solid #B8C4D6;background:#FFFFFF;border-radius:6px;color:#1B3A6B">Return with note</button>
+<button type="button" style="min-height:44px;padding:0 16px;border:1px solid #1B3A6B;background:#FFFFFF;border-radius:6px;color:#1B3A6B">Approve and make standard</button>
+<button type="button" style="min-height:44px;padding:0 18px;border:0;background:#1B3A6B;color:#FFFFFF;border-radius:6px;font-weight:600">Approve for this proposal</button>
+</div>
+</section>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

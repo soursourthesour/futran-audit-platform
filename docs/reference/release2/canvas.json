@@ -1,0 +1,307 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-10-31T20:05:00Z"
+  },
+  "title": "AI Governix Release 2 Screens — Sales Module and Gaps",
+  "launch": {
+    "view": "canvas",
+    "page": "sales"
+  },
+  "pages": [
+    {
+      "id": "sales",
+      "name": "Set A · Sales module (SM-01–SM-15)"
+    },
+    {
+      "id": "gaps",
+      "name": "Set B · Commercial and service gaps (G-01–G-11)"
+    }
+  ],
+  "boards": {
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1280,
+      "h": 960,
+      "title": "SM-01 Sales home",
+      "page": "sales",
+      "expand": "fill"
+    },
+    "SM02-Opportunities.dc.html": {
+      "x": 1360,
+      "y": 0,
+      "w": 1280,
+      "h": 960,
+      "title": "SM-02 Opportunities",
+      "page": "sales",
+      "expand": "fill"
+    },
+    "SM03-Log-opportunity.dc.html": {
+      "x": 2720,
+      "y": 0,
+      "w": 1280,
+      "h": 960,
+      "title": "SM-03 Log opportunity (dialog)",
+      "page": "sales",
+      "expand": "fill"
+    },
+    "SM04-Opportunity-record.dc.html": {
+      "x": 4080,
+      "y": 0,
+      "w": 1280,
+      "h": 960,
+      "title": "SM-04 Opportunity record",
+      "page": "sales",
+      "expand": "fill"
+    },
+    "SM05-Scoping-call.dc.html": {
+      "x": 0,
+      "y": 1080,
+      "w": 1280,
+      "h": 960,
+      "title": "SM-05 Scoping call — record answers",
+      "page": "sales",
+      "expand": "fill"
+    },
+    "SM06-Send-questionnaire.dc.html": {
+      "x": 1360,
+      "y": 1080,
+      "w": 1280,
+      "h": 960,
+      "title": "SM-06 Send questionnaire to client (dialog)",
+      "page": "sales",
+      "expand": "fill"
+    },
+    "SM07-Client-questionnaire.dc.html": {
+      "x": 2720,
+      "y": 1080,
+      "w": 390,
+      "h": 844,
+      "title": "SM-07 Client questionnaire (phone)",
+      "page": "sales"
+    },
+    "SM08-Review-answers.dc.html": {
+      "x": 3190,
+      "y": 1080,
+      "w": 1280,
+      "h": 960,
+      "title": "SM-08 Review answers and lock",
+      "page": "sales",
+      "expand": "fill"
+    },
+    "SM09-Proposal-builder.dc.html": {
+      "x": 0,
+      "y": 2160,
+      "w": 1280,
+      "h": 1120,
+      "title": "SM-09 Proposal builder",
+      "page": "sales",
+      "expand": "fill"
+    },
+    "SM10-Proposal-send.dc.html": {
+      "x": 1360,
+      "y": 2160,
+      "w": 1280,
+      "h": 1120,
+      "title": "SM-10 Proposal preview and send",
+      "page": "sales",
+      "expand": "fill"
+    },
+    "SM11-Approvals.dc.html": {
+      "x": 2720,
+      "y": 2160,
+      "w": 1280,
+      "h": 960,
+      "title": "SM-11 Approvals",
+      "page": "sales",
+      "expand": "fill"
+    },
+    "SM12-Proposal-acceptance.dc.html": {
+      "x": 4080,
+      "y": 2160,
+      "w": 1280,
+      "h": 960,
+      "title": "SM-12 Proposal acceptance (client, public)",
+      "page": "sales",
+      "expand": "fill"
+    },
+    "SM13-Handoff.dc.html": {
+      "x": 0,
+      "y": 3400,
+      "w": 1280,
+      "h": 960,
+      "title": "SM-13 Won — hand off to delivery",
+      "page": "sales",
+      "expand": "fill"
+    },
+    "SM14-Catalog.dc.html": {
+      "x": 1360,
+      "y": 3400,
+      "w": 1280,
+      "h": 1240,
+      "title": "SM-14 Master price list (editable grid + deliverables)",
+      "page": "sales",
+      "expand": "fill"
+    },
+    "G01-Plan-entitlements.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1280,
+      "h": 960,
+      "title": "G-01 Plans, entitlements and usage",
+      "page": "gaps",
+      "expand": "fill"
+    },
+    "G02-Engagement-commercials.dc.html": {
+      "x": 1360,
+      "y": 0,
+      "w": 1280,
+      "h": 960,
+      "title": "G-02 Engagement commercials and change orders",
+      "page": "gaps",
+      "expand": "fill"
+    },
+    "G03-Time-hours.dc.html": {
+      "x": 2720,
+      "y": 0,
+      "w": 1280,
+      "h": 960,
+      "title": "G-03 Time and hours",
+      "page": "gaps",
+      "expand": "fill"
+    },
+    "G04-Client-hierarchy.dc.html": {
+      "x": 4080,
+      "y": 0,
+      "w": 1280,
+      "h": 960,
+      "title": "G-04 Client hierarchy",
+      "page": "gaps",
+      "expand": "fill"
+    },
+    "G05-Discovery-import.dc.html": {
+      "x": 0,
+      "y": 1080,
+      "w": 1280,
+      "h": 960,
+      "title": "G-05 Discovery import",
+      "page": "gaps",
+      "expand": "fill"
+    },
+    "G06-Service-templates.dc.html": {
+      "x": 1360,
+      "y": 1080,
+      "w": 1280,
+      "h": 960,
+      "title": "G-06 Service templates",
+      "page": "gaps",
+      "expand": "fill"
+    },
+    "G07-Copilot-readiness.dc.html": {
+      "x": 2720,
+      "y": 1080,
+      "w": 1280,
+      "h": 960,
+      "title": "G-07 Copilot readiness",
+      "page": "gaps",
+      "expand": "fill"
+    },
+    "G08-EU-AI-Act.dc.html": {
+      "x": 4080,
+      "y": 1080,
+      "w": 1280,
+      "h": 960,
+      "title": "G-08 EU AI Act conformity",
+      "page": "gaps",
+      "expand": "fill"
+    },
+    "G09-Agent-assurance.dc.html": {
+      "x": 0,
+      "y": 2160,
+      "w": 1280,
+      "h": 960,
+      "title": "G-09 Agent assurance",
+      "page": "gaps",
+      "expand": "fill"
+    },
+    "G10-Evidence-vault.dc.html": {
+      "x": 1360,
+      "y": 2160,
+      "w": 1280,
+      "h": 960,
+      "title": "G-10 Evidence vault and retention",
+      "page": "gaps",
+      "expand": "fill"
+    },
+    "G11-Partners.dc.html": {
+      "x": 2720,
+      "y": 2160,
+      "w": 1280,
+      "h": 960,
+      "title": "G-11 Partners and referrals",
+      "page": "gaps",
+      "expand": "fill"
+    },
+    "SM15-Estimator.dc.html": {
+      "x": 2720,
+      "y": 3400,
+      "w": 1280,
+      "h": 1040,
+      "title": "SM-15 Estimator",
+      "page": "sales",
+      "expand": "fill"
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "SM02-Opportunities.dc.html",
+    "SM03-Log-opportunity.dc.html",
+    "SM04-Opportunity-record.dc.html",
+    "SM05-Scoping-call.dc.html",
+    "SM06-Send-questionnaire.dc.html",
+    "SM07-Client-questionnaire.dc.html",
+    "SM08-Review-answers.dc.html",
+    "SM09-Proposal-builder.dc.html",
+    "SM10-Proposal-send.dc.html",
+    "SM11-Approvals.dc.html",
+    "SM12-Proposal-acceptance.dc.html",
+    "SM13-Handoff.dc.html",
+    "SM14-Catalog.dc.html",
+    "SM15-Estimator.dc.html",
+    "G01-Plan-entitlements.dc.html",
+    "G02-Engagement-commercials.dc.html",
+    "G03-Time-hours.dc.html",
+    "G04-Client-hierarchy.dc.html",
+    "G05-Discovery-import.dc.html",
+    "G06-Service-templates.dc.html",
+    "G07-Copilot-readiness.dc.html",
+    "G08-EU-AI-Act.dc.html",
+    "G09-Agent-assurance.dc.html",
+    "G10-Evidence-vault.dc.html",
+    "G11-Partners.dc.html"
+  ],
+  "notes": {
+    "tA": {
+      "x": 0,
+      "y": -300,
+      "text": "Set A — Sales module: log, scope, propose, approve, accept, hand off",
+      "kind": "title1",
+      "maxW": 5360,
+      "page": "sales",
+      "w": 240
+    },
+    "tB": {
+      "x": 0,
+      "y": -300,
+      "text": "Set B — Commercial and service gaps (Release 2)",
+      "kind": "title1",
+      "maxW": 5360,
+      "page": "gaps",
+      "w": 240
+    }
+  },
+  "designSystems": [],
+  "attachments": {}
+}

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>G-01 Plans, entitlements and usage</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F4F6FA}
+a{color:#1B5E9E}a:hover{color:#1B3A6B}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{text-align:left;font-weight:600;color:#3F4A5C;background:#F0F3F8;padding:9px 10px;border-bottom:1px solid #D9DFE8;white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid #E6EAF0;vertical-align:top;color:#1A2333}
+button,input,select{font-family:inherit}
+</style>
+</helmet>
+<div style="font-family:'IBM Plex Sans',system-ui,sans-serif;color:#1A2333;min-height:960px">
+<header style="background:#1B3A6B;color:#FFFFFF;display:flex;flex-wrap:wrap;align-items:center;gap:20px;padding:0 24px;min-height:56px">
+<div style="font-weight:700;font-size:16px">AI Governix <span style="font-weight:400">· Futran</span></div>
+<nav aria-label="Main" style="display:flex;flex-wrap:wrap;gap:2px;font-size:14px">
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Audits</a>
+<a href="#" aria-current="page" style="color:#FFFFFF;text-decoration:none;padding:16px 12px;border-bottom:3px solid #0098D4;font-weight:600">Clients</a>
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Sales</a>
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Admin</a>
+</nav>
+<div style="margin-left:auto;font-size:13px">Futran Admin</div>
+</header>
+<main style="max-width:1240px;margin:0 auto;padding:24px;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+<div><a href="#" style="font-size:13px">[Example] Harbor Health Group</a>
+<h1 style="margin:2px 0 0;font-size:24px;font-weight:600">Plan, entitlements and usage</h1></div>
+<div style="margin-left:auto;display:flex;flex-wrap:wrap;gap:8px">
+<button type="button" style="min-height:44px;padding:0 14px;border:1px solid #B8C4D6;background:#FFFFFF;border-radius:6px">Billing export (October)</button>
+</div>
+</div>
+<section style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;font-size:13px">
+<div style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:14px"><div style="color:#4A5568">Plan</div><div style="font-size:20px;font-weight:600">Monitor Plus</div><div>Tier 11–50 AI systems</div></div>
+<div style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:14px"><div style="color:#4A5568">Term</div><div style="font-size:20px;font-weight:600">[Start] – [End]</div><div style="color:#7A3E00">Renewal opportunity at 90 days</div></div>
+<div style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:14px"><div style="color:#4A5568">Data region</div><div style="font-size:20px;font-weight:600">US</div><div>Change needs a migration ticket</div></div>
+<div style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:14px"><div style="color:#4A5568">Support</div><div style="font-size:20px;font-weight:600">Business hours</div><div>Onboarding fee waived (2-year term)</div></div>
+</section>
+<section style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:12px;font-size:13px">
+<h2 style="margin:0;font-size:16px;font-weight:600">Entitlements · used vs limit</h2>
+<div style="display:grid;grid-template-columns:200px minmax(0,1fr) 120px;gap:10px;align-items:center">
+<div>AI systems in register</div><div style="height:12px;background:#E1E8F2;border-radius:6px"><div style="width:94%;height:12px;background:#B45309;border-radius:6px"></div></div><div style="color:#7A3E00;font-weight:600">47 / 50 · 94%</div>
+<div>Client user seats</div><div style="height:12px;background:#E1E8F2;border-radius:6px"><div style="width:60%;height:12px;background:#2E75B6;border-radius:6px"></div></div><div>3 / 5</div>
+<div>Alert packs (states)</div><div style="height:12px;background:#E1E8F2;border-radius:6px"><div style="width:100%;height:12px;background:#2E75B6;border-radius:6px"></div></div><div>3 / 3</div>
+<div>Vault storage</div><div style="height:12px;background:#E1E8F2;border-radius:6px"><div style="width:42%;height:12px;background:#2E75B6;border-radius:6px"></div></div><div>21 / 50 GB</div>
+<div>Tracing systems (M-11a)</div><div style="height:12px;background:#E1E8F2;border-radius:6px"><div style="width:100%;height:12px;background:#9A3412;border-radius:6px"></div></div><div style="color:#9A3412;font-weight:600">3 / 2 · over plan</div>
+<div>Advisor hours (Plus)</div><div style="height:12px;background:#E1E8F2;border-radius:6px"><div style="width:70%;height:12px;background:#2E75B6;border-radius:6px"></div></div><div>7 / 10 h</div>
+</div>
+<div style="background:#FFF4E5;border:1px solid #F2C98A;border-radius:6px;padding:10px 12px;color:#5A3200">Soft limits: the client keeps working. Overages go on the billing export, and the account owner got an opportunity for "AI systems at 94% of tier" and "tracing 1 over plan".</div>
+</section>
+<section style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;overflow-x:auto">
+<h2 style="margin:0;padding:14px 16px 6px;font-size:16px;font-weight:600">Order lines (ORD-0188)</h2>
+<table>
+<thead><tr><th>Code</th><th>Line</th><th>Qty</th><th>Billing</th><th style="text-align:right">Unit price</th><th>Start</th><th>End</th><th>Entitlement</th></tr></thead>
+<tbody>
+<tr><td>M-01e</td><td>Monitor Plus, 11–50 systems</td><td>1</td><td>Annual</td><td style="text-align:right">$36,000</td><td>[date]</td><td>[date]</td><td>ai_systems 50, seats 5, advisor_hours 10</td></tr>
+<tr><td>M-03a</td><td>Alert packs, 1–3 states</td><td>1</td><td>Quarterly</td><td style="text-align:right">$4,200</td><td>[date]</td><td>[date]</td><td>alert_packs 3</td></tr>
+<tr><td>M-11a</td><td>Tracing module</td><td>2</td><td>Annual</td><td style="text-align:right">$3,000</td><td>[date]</td><td>[date]</td><td>tracing_systems 2</td></tr>
+</tbody></table>
+</section>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

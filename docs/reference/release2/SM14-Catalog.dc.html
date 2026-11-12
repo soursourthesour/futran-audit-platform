@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SM-14 Master price list</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F4F6FA}
+a{color:#1B5E9E}a:hover{color:#1B3A6B}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{text-align:left;font-weight:600;color:#3F4A5C;background:#F0F3F8;padding:8px;border-bottom:1px solid #D9DFE8;white-space:nowrap}
+td{padding:6px 8px;border-bottom:1px solid #E6EAF0;vertical-align:top;color:#1A2333}
+button,input,select,textarea{font-family:inherit}
+</style>
+</helmet>
+<div style="font-family:'IBM Plex Sans',system-ui,sans-serif;color:#1A2333;min-height:1240px">
+<header style="background:#1B3A6B;color:#FFFFFF;display:flex;flex-wrap:wrap;align-items:center;gap:20px;padding:0 24px;min-height:56px">
+<div style="font-weight:700;font-size:16px">AI Governix <span style="font-weight:400">· Futran</span></div>
+<nav aria-label="Main" style="display:flex;flex-wrap:wrap;gap:2px;font-size:14px">
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Audits</a>
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Clients</a>
+<a href="Main.dc.html" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Sales</a>
+<a href="#" aria-current="page" style="color:#FFFFFF;text-decoration:none;padding:16px 12px;border-bottom:3px solid #0098D4;font-weight:600">Admin</a>
+</nav>
+<div style="margin-left:auto;font-size:13px">President · Price List Owner · can edit</div>
+</header>
+<main style="max-width:1240px;margin:0 auto;padding:20px 24px;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+<div><h1 style="margin:0;font-size:24px;font-weight:600">Master price list</h1>
+<div style="font-size:13px;color:#4A5568">93 items · 81 available · 5 manual delivery · 7 roadmap · catalog version 14 · last saved by the CEO, [date]. Only the CEO and President can change it; everyone else views, exports or suggests a change.</div></div>
+<div style="margin-left:auto;display:flex;flex-wrap:wrap;gap:8px">
+<button type="button" style="min-height:44px;padding:0 14px;border:0;background:#1B3A6B;color:#FFFFFF;border-radius:6px;font-weight:600">Add item</button>
+<button type="button" style="min-height:44px;padding:0 14px;border:1px solid #B8C4D6;background:#FFFFFF;border-radius:6px">Import Excel</button>
+<button type="button" style="min-height:44px;padding:0 14px;border:1px solid #B8C4D6;background:#FFFFFF;border-radius:6px">Export Excel</button>
+<button type="button" style="min-height:44px;padding:0 14px;border:1px solid #B8C4D6;background:#FFFFFF;border-radius:6px">Change log</button>
+</div>
+</div>
+<nav aria-label="Catalog tabs" style="display:flex;flex-wrap:wrap;gap:4px;border-bottom:1px solid #D9DFE8;font-size:14px">
+<a href="#" aria-current="page" style="padding:10px 14px;text-decoration:none;color:#1B3A6B;border-bottom:3px solid #1B3A6B;font-weight:600">Price list</a>
+<a href="#" style="padding:10px 14px;text-decoration:none;color:#3F4A5C">Mapping rules (19)</a>
+<a href="#" style="padding:10px 14px;text-decoration:none;color:#3F4A5C">Packages (4)</a>
+<a href="#" style="padding:10px 14px;text-decoration:none;color:#3F4A5C">Question bank</a>
+<a href="#" style="padding:10px 14px;text-decoration:none;color:#3F4A5C">Proposal templates</a>
+</nav>
+<form aria-label="Filters" style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;font-size:12px;color:#3F4A5C">
+<label style="display:flex;flex-direction:column;gap:3px">Search<input type="search" placeholder="Code, name or deliverable" style="height:40px;border:1px solid #B8C4D6;border-radius:6px;padding:0 10px;width:220px"></label>
+<label style="display:flex;flex-direction:column;gap:3px">Product<select style="height:42px;border:1px solid #B8C4D6;border-radius:6px;padding:0 8px"><option>All</option><option>Audit</option><option>Monitor</option><option>Agent Assure</option><option>AgentWarden</option><option>LL144</option><option>Other</option><option>Terms</option></select></label>
+<label style="display:flex;flex-direction:column;gap:3px">Price status<select style="height:42px;border:1px solid #B8C4D6;border-radius:6px;padding:0 8px"><option>All</option><option>Existing</option><option>Proposed</option><option>Approved</option></select></label>
+<label style="display:flex;flex-direction:column;gap:3px">Sellable<select style="height:42px;border:1px solid #B8C4D6;border-radius:6px;padding:0 8px"><option>All</option><option>Available</option><option>Manual delivery</option><option>Roadmap</option></select></label>
+<label style="display:flex;flex-direction:column;gap:3px">Columns<select style="height:42px;border:1px solid #B8C4D6;border-radius:6px;padding:0 8px"><option>Pricing + deliverables</option><option>Pricing</option><option>Sellability and delivery</option><option>All</option></select></label>
+<label style="display:flex;align-items:center;gap:6px;min-height:42px;font-size:13px;color:#1A2333"><input type="checkbox"> Show retired</label>
+</form>
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:#FFF7E0;border:1px solid #E8C766;border-radius:8px;padding:8px 12px;font-size:13px">
+<strong>2 unsaved changes</strong>
+<label style="display:flex;align-items:center;gap:6px;flex:1 1 300px">Reason<input value="Q1 2027 price review; clearer deliverables for A-02b" style="flex:1;height:40px;border:1px solid #B8C4D6;border-radius:6px;padding:0 10px"></label>
+<label style="display:flex;align-items:center;gap:6px">Effective<select style="height:42px;border:1px solid #B8C4D6;border-radius:6px;padding:0 8px"><option>Now</option><option>From a date…</option></select></label>
+<button type="button" style="min-height:40px;padding:0 12px;border:1px solid #B8C4D6;background:#FFFFFF;border-radius:6px">Discard</button>
+<button type="button" style="min-height:40px;padding:0 14px;border:0;background:#1B3A6B;color:#FFFFFF;border-radius:6px;font-weight:600">Save changes</button>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:12px">
+<section aria-label="Price grid" style="flex:999 1 700px;min-width:0;background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;overflow-x:auto">
+<table>
+<thead><tr><th><span style="position:absolute;left:-9999px">Select</span></th><th>Code</th><th>Line item</th><th>Billing</th><th style="text-align:right">List</th><th>Range</th><th>Status</th><th style="min-width:300px">Deliverables — what the client gets</th><th><span style="position:absolute;left:-9999px">Row menu</span></th></tr></thead>
+<tbody>
+<tr><td><input type="checkbox" aria-label="Select A-02a"></td><td>A-02a</td><td>Audit, up to 10 systems</td><td>One-time</td><td><input aria-label="List A-02a" value="15,000" style="width:72px;height:34px;border:1px solid #D0D8E4;border-radius:4px;text-align:right;padding:0 6px"></td><td style="color:#4A5568;white-space:nowrap">$12,000–18,000</td><td style="font-size:12px"><div style="color:#7A3E00">Proposed</div><div>Available</div></td><td style="font-size:12px;line-height:1.5">AI inventory and risk tiers for up to 10 systems, law map, policy review (5 docs), findings report with maturity scorecard and roadmap, 1 board readout, signed final report. 4–6 weeks. <a href="#">Read all</a></td><td><button type="button" aria-label="Row menu A-02a" style="width:36px;height:36px;border:1px solid #D0D8E4;background:#FFFFFF;border-radius:4px">⋯</button></td></tr>
+<tr style="background:#EEF3FA"><td><input type="checkbox" checked="" aria-label="Select A-02b"></td><td style="font-weight:600">A-02b</td><td>Audit, 11–50 systems</td><td>One-time</td><td><input aria-label="List A-02b" value="36,500" style="width:72px;height:34px;border:2px solid #B45309;background:#FFF7E0;border-radius:4px;text-align:right;padding:0 6px"></td><td style="color:#4A5568;white-space:nowrap">$28,000–45,000</td><td style="font-size:12px"><div style="color:#1F5130">Approved</div><div>Available</div></td><td style="font-size:12px;line-height:1.5;background:#FFF7E0">Same as A-02a for 11 to 50 systems, 6–10 weeks. <strong>Edited</strong> — see side panel. <a href="#">Read all</a></td><td><button type="button" aria-label="Row menu A-02b" style="width:36px;height:36px;border:1px solid #D0D8E4;background:#FFFFFF;border-radius:4px">⋯</button></td></tr>
+<tr><td><input type="checkbox" aria-label="Select A-05"></td><td>A-05</td><td>Shadow AI discovery sweep</td><td>One-time · per source</td><td><input aria-label="List A-05" value="1,500" style="width:72px;height:34px;border:1px solid #D0D8E4;border-radius:4px;text-align:right;padding:0 6px"></td><td style="color:#4A5568;white-space:nowrap">$1,000–2,000</td><td style="font-size:12px"><div style="color:#7A3E00">Proposed</div><div style="color:#1B3A6B">Manual delivery</div></td><td style="font-size:12px;line-height:1.5">Every AI tool your people use, including unapproved ones, from your Microsoft, Okta, Google, expense or proxy exports; tools by department and users; declared vs undeclared; shadow-AI risk summary. <a href="#">Read all</a></td><td><button type="button" aria-label="Row menu A-05" style="width:36px;height:36px;border:1px solid #D0D8E4;background:#FFFFFF;border-radius:4px">⋯</button></td></tr>
+<tr><td><input type="checkbox" aria-label="Select L-01"></td><td>L-01</td><td>LL144 Readiness Assessment</td><td>One-time</td><td><input aria-label="List L-01" value="8,500" style="width:72px;height:34px;border:1px solid #D0D8E4;border-radius:4px;text-align:right;padding:0 6px"></td><td style="color:#4A5568;white-space:nowrap">$8,500–12,000</td><td style="font-size:12px"><div style="color:#1F5130">Existing</div><div>Available</div></td><td style="font-size:12px;line-height:1.5">3 weeks: which hiring tools are AEDTs, independent bias audit of the first tool, candidate notices (10 business days before use), public audit summary, null-compliance check. <a href="#">Read all</a></td><td><button type="button" aria-label="Row menu L-01" style="width:36px;height:36px;border:1px solid #D0D8E4;background:#FFFFFF;border-radius:4px">⋯</button></td></tr>
+<tr><td><input type="checkbox" aria-label="Select L-09"></td><td>L-09</td><td>Staffing chain — end-client evidence pack and configuration check</td><td>Annual · per end-client</td><td><input aria-label="List L-09" value="1,000" style="width:72px;height:34px;border:1px solid #D0D8E4;border-radius:4px;text-align:right;padding:0 6px"></td><td style="color:#4A5568;white-space:nowrap">$750–1,500</td><td style="font-size:12px"><div style="color:#7A3E00">Proposed</div><div>Available</div></td><td style="font-size:12px;line-height:1.5">Evidence pack the end-client keeps, notices on that client's NYC jobs, and a check whether the tool is set up differently for that client. LL144 needs an audit per tool, not per end-client. <a href="#">Read all</a></td><td><button type="button" aria-label="Row menu L-09" style="width:36px;height:36px;border:1px solid #D0D8E4;background:#FFFFFF;border-radius:4px">⋯</button></td></tr>
+<tr><td><input type="checkbox" aria-label="Select M-01a"></td><td>M-01a</td><td>Monitor, up to 10 systems</td><td>Annual</td><td><input aria-label="List M-01a" value="12,000" style="width:72px;height:34px;border:1px solid #D0D8E4;border-radius:4px;text-align:right;padding:0 6px"></td><td style="color:#4A5568;white-space:nowrap">$10,000–15,000</td><td style="font-size:12px"><div style="color:#7A3E00">Proposed</div><div>Available</div></td><td style="font-size:12px;line-height:1.5">Your AI register, go-live approval gate, regulatory alerts, automatic checks and reminders, monthly dashboard and digest, 5 user seats. <a href="#">Read all</a></td><td><button type="button" aria-label="Row menu M-01a" style="width:36px;height:36px;border:1px solid #D0D8E4;background:#FFFFFF;border-radius:4px">⋯</button></td></tr>
+<tr><td><input type="checkbox" aria-label="Select M-09"></td><td>M-09</td><td>Trust Center</td><td>Annual</td><td><input aria-label="List M-09" value="4,800" style="width:72px;height:34px;border:1px solid #D0D8E4;border-radius:4px;text-align:right;padding:0 6px"></td><td style="color:#4A5568;white-space:nowrap">$3,600–6,000</td><td style="font-size:12px"><div style="color:#7A3E00">Proposed</div><div style="color:#7A3E00;font-weight:600">Roadmap</div></td><td style="font-size:12px;line-height:1.5">Public page showing your AI commitments, policies, bias-audit summary and optional "Audited by Futran" badge, checked against your signed report. Not yet sellable with a price. <a href="#">Read all</a></td><td><button type="button" aria-label="Row menu M-09" style="width:36px;height:36px;border:1px solid #D0D8E4;background:#FFFFFF;border-radius:4px">⋯</button></td></tr>
+<tr><td><input type="checkbox" aria-label="Select AA-02"></td><td>AA-02</td><td>15-point pre-deploy check and assurance letter</td><td>One-time · per release</td><td><input aria-label="List AA-02" value="3,500" style="width:72px;height:34px;border:1px solid #D0D8E4;border-radius:4px;text-align:right;padding:0 6px"></td><td style="color:#4A5568;white-space:nowrap">$2,500–5,000</td><td style="font-size:12px"><div style="color:#7A3E00">Proposed</div><div>Available</div></td><td style="font-size:12px;line-height:1.5">Runs the gold test set; checks permissions, data access, approval points, logging and kill switch; pass, conditional or fail; signed assurance letter. <a href="#">Read all</a></td><td><button type="button" aria-label="Row menu AA-02" style="width:36px;height:36px;border:1px solid #D0D8E4;background:#FFFFFF;border-radius:4px">⋯</button></td></tr>
+</tbody></table>
+<p style="margin:0;padding:8px 12px;font-size:12px;color:#4A5568">Row menu: Edit all fields · Duplicate · View history · Retire. Viewers see Suggest a change instead. Deliverables appear in the Estimator, the proposal's "What we'll do" section and the client acceptance page.</p>
+</section>
+<aside aria-label="Selected item" style="flex:1 1 340px;min-width:0;background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:10px;font-size:13px">
+<h2 style="margin:0;font-size:16px;font-weight:600">A-02b · Audit, 11–50 systems</h2>
+<label style="display:flex;flex-direction:column;gap:4px"><span style="font-weight:600">Deliverables — what the client gets</span><span style="font-size:12px;color:#4A5568">Written for sales to read to the client. Shown on estimates, proposals and the acceptance page.</span>
+<textarea rows="14" style="border:2px solid #B45309;background:#FFFDF6;border-radius:6px;padding:8px;line-height:1.5;font-size:12px">Independent AI governance audit sized for organisations with 11 to 50 AI systems in scope.
+• AI system inventory: every AI tool, vendor feature, agent and shadow-AI use we find, recorded in your AI Governix register.
+• Risk tier for each system and a scored assessment of the high-risk ones: data and privacy, bias testing, human oversight, security, incidents and vendors.
+• Map of the laws that apply to you and the governance roles each law expects, with gaps flagged.
+• Review of your AI policies and up to 5 governance or data-policy documents.
+• Findings report in plain English, rated Critical to Observation, with a maturity scorecard and a prioritised remediation roadmap.
+• One executive or board readout and a signed final report.
+Client provides: a project lead, access to system owners, documents on request.
+Typical duration: 6–10 weeks.</textarea></label>
+<label style="display:flex;flex-direction:column;gap:4px">Short proposal description<input value="Independent AI governance audit of up to 50 AI systems." style="height:40px;border:1px solid #B8C4D6;border-radius:6px;padding:0 10px"></label>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
+<label style="display:flex;flex-direction:column;gap:4px">Sellable<select style="height:42px;border:1px solid #B8C4D6;border-radius:6px"><option>Available</option><option>Manual delivery</option><option>Roadmap</option></select></label>
+<label style="display:flex;flex-direction:column;gap:4px">Delivery mode<select style="height:42px;border:1px solid #B8C4D6;border-radius:6px"><option>Mixed</option><option>Platform</option><option>Consultant</option></select></label>
+<label style="display:flex;flex-direction:column;gap:4px">Included<input value="50 systems; 5 docs; 1 readout" style="height:40px;border:1px solid #B8C4D6;border-radius:6px;padding:0 8px"></label>
+<label style="display:flex;flex-direction:column;gap:4px">Engagement type<select style="height:42px;border:1px solid #B8C4D6;border-radius:6px"><option>initial_assessment</option></select></label>
+</div>
+<div style="background:#EEF3FA;border-radius:6px;padding:10px">Used in 4 open estimates and 2 draft proposals. New deliverables text shows on drafts; sent proposals keep the text and $35,000 they were sent with.</div>
+<div>
+<div style="font-weight:600;margin-bottom:4px">History</div>
+<ul style="margin:0;padding-left:16px;line-height:1.7;color:#3F4A5C">
+<li>Unsaved: List $35,000 → $36,500; deliverables text edited</li>
+<li>v1 · Oct 31 · loaded from workbook · Futran Admin</li>
+</ul></div>
+</aside>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1240}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

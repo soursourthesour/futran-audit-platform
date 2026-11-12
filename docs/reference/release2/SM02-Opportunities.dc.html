@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SM-02 Opportunities</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F4F6FA}
+a{color:#1B5E9E}a:hover{color:#1B3A6B}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{text-align:left;font-weight:600;color:#3F4A5C;background:#F0F3F8;padding:9px 10px;border-bottom:1px solid #D9DFE8;white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid #E6EAF0;vertical-align:top;color:#1A2333}
+button,input,select{font-family:inherit}
+</style>
+</helmet>
+<div style="font-family:'IBM Plex Sans',system-ui,sans-serif;color:#1A2333;min-height:960px">
+<header style="background:#1B3A6B;color:#FFFFFF;display:flex;flex-wrap:wrap;align-items:center;gap:20px;padding:0 24px;min-height:56px">
+<div style="font-weight:700;font-size:16px">AI Governix <span style="font-weight:400">· Futran</span></div>
+<nav aria-label="Main" style="display:flex;flex-wrap:wrap;gap:2px;font-size:14px">
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Audits</a>
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Clients</a>
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Regulatory</a>
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Litigation</a>
+<a href="Main.dc.html" aria-current="page" style="color:#FFFFFF;text-decoration:none;padding:16px 12px;border-bottom:3px solid #0098D4;font-weight:600">Sales</a>
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Admin</a>
+</nav>
+<div style="margin-left:auto;font-size:13px">R. Mehta · Sales Officer</div>
+</header>
+<main style="max-width:1240px;margin:0 auto;padding:24px;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+<h1 style="margin:0;font-size:24px;font-weight:600">Opportunities</h1>
+<span style="font-size:13px;color:#4A5568">Manual and automatic · [N] open</span>
+<a href="SM03-Log-opportunity.dc.html" style="margin-left:auto;background:#1B3A6B;color:#FFFFFF;text-decoration:none;padding:12px 16px;border-radius:6px;font-size:14px;font-weight:600">Log opportunity</a>
+</div>
+<form aria-label="Filters" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:12px">
+<label style="display:flex;flex-direction:column;font-size:12px;color:#3F4A5C;gap:4px">Search<input type="search" placeholder="Company, contact, product" style="height:40px;border:1px solid #B8C4D6;border-radius:6px;padding:0 10px;width:240px"></label>
+<label style="display:flex;flex-direction:column;font-size:12px;color:#3F4A5C;gap:4px">Stage<select style="height:42px;border:1px solid #B8C4D6;border-radius:6px;padding:0 8px"><option>All open</option><option>New</option><option>Qualified</option><option>Scoping</option><option>Proposal</option><option>Negotiation</option></select></label>
+<label style="display:flex;flex-direction:column;font-size:12px;color:#3F4A5C;gap:4px">Source<select style="height:42px;border:1px solid #B8C4D6;border-radius:6px;padding:0 8px"><option>All</option><option>Manual</option><option>Automatic trigger</option><option>Partner referral</option></select></label>
+<label style="display:flex;flex-direction:column;font-size:12px;color:#3F4A5C;gap:4px">Product<select style="height:42px;border:1px solid #B8C4D6;border-radius:6px;padding:0 8px"><option>All</option><option>Audit</option><option>Monitor</option><option>LL144</option><option>Agent Assure</option><option>AgentWarden</option><option>Other services</option></select></label>
+<label style="display:flex;flex-direction:column;font-size:12px;color:#3F4A5C;gap:4px">Owner<select style="height:42px;border:1px solid #B8C4D6;border-radius:6px;padding:0 8px"><option>Me</option><option>My team</option><option>Anyone</option></select></label>
+<label style="display:flex;align-items:center;gap:8px;font-size:13px;min-height:44px"><input type="checkbox"> Independence flag only</label>
+</form>
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:#EEF3FA;border:1px solid #C9D6E8;border-radius:8px;padding:8px 12px;font-size:13px">
+<span style="font-weight:600">2 selected</span>
+<button type="button" style="min-height:40px;padding:0 12px;border:1px solid #B8C4D6;background:#FFFFFF;border-radius:6px">Assign owner</button>
+<button type="button" style="min-height:40px;padding:0 12px;border:1px solid #B8C4D6;background:#FFFFFF;border-radius:6px">Change stage</button>
+<button type="button" style="min-height:40px;padding:0 12px;border:1px solid #B8C4D6;background:#FFFFFF;border-radius:6px">Export</button>
+</div>
+<div style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;overflow-x:auto">
+<table>
+<thead><tr><th><span style="position:absolute;left:-9999px">Select</span></th><th>Company</th><th>Source / trigger</th><th>Products</th><th>Value</th><th>Stage</th><th>Next step</th><th>Owner</th><th>Flags</th><th><span style="position:absolute;left:-9999px">Actions</span></th></tr></thead>
+<tbody>
+<tr><td><input type="checkbox" checked="" aria-label="Select Acme Staffing"></td><td><a href="SM04-Opportunity-record.dc.html" style="font-weight:600">[Example] Acme Staffing LLC</a><div style="font-size:12px;color:#4A5568"><span style="background:#FFF4E5;color:#7A3E00;padding:1px 6px;border-radius:4px">Prospect</span> Staffing · NJ</div></td><td>Outbound call<div style="font-size:12px;color:#4A5568">LL144 audit due</div></td><td>LL144, Monitor</td><td>$[V]</td><td>Qualified</td><td>Scoping call · today</td><td>R. Mehta</td><td>—</td><td><button type="button" aria-label="Row actions" style="width:40px;height:40px;border:1px solid #D0D8E4;background:#FFFFFF;border-radius:6px">⋯</button></td></tr>
+<tr><td><input type="checkbox" checked="" aria-label="Select Harbor Health"></td><td><a href="#" style="font-weight:600">[Example] Harbor Health Group</a><div style="font-size:12px;color:#4A5568"><span style="background:#E6F0FA;color:#1B3A6B;padding:1px 6px;border-radius:4px">Client</span> Healthcare · NY</div></td><td>Automatic<div style="font-size:12px;color:#4A5568">Recommended add-on: tracing</div></td><td>Monitor Plus, M-11</td><td>$[V]</td><td>Negotiation</td><td>v2 after approval</td><td>R. Mehta</td><td><span style="background:#FDECEC;color:#8A1C1C;padding:2px 6px;border-radius:4px;font-size:12px">Independence</span></td><td><button type="button" aria-label="Row actions" style="width:40px;height:40px;border:1px solid #D0D8E4;background:#FFFFFF;border-radius:6px">⋯</button></td></tr>
+<tr><td><input type="checkbox" aria-label="Select Northbank"></td><td><a href="#" style="font-weight:600">[Example] Northbank Credit Union</a><div style="font-size:12px;color:#4A5568"><span style="background:#FFF4E5;color:#7A3E00;padding:1px 6px;border-radius:4px">Prospect</span> BFSI · CO</div></td><td>Partner referral<div style="font-size:12px;color:#4A5568">[Partner] law firm</div></td><td>Audit, X-03</td><td>$[V]</td><td>Scoping</td><td>Client questionnaire 60%</td><td>S. Iyer</td><td>—</td><td><button type="button" aria-label="Row actions" style="width:40px;height:40px;border:1px solid #D0D8E4;background:#FFFFFF;border-radius:6px">⋯</button></td></tr>
+<tr><td><input type="checkbox" aria-label="Select Delta Logistics"></td><td><a href="#" style="font-weight:600">[Example] Delta Logistics</a><div style="font-size:12px;color:#4A5568"><span style="background:#FFF4E5;color:#7A3E00;padding:1px 6px;border-radius:4px">Prospect</span> Logistics · IL</div></td><td>LinkedIn<div style="font-size:12px;color:#4A5568">Agents rollout</div></td><td>Agent Assure, AgentWarden</td><td>$[V]</td><td>New</td><td style="color:#9A3412">Stale 16 days</td><td>R. Mehta</td><td>—</td><td><button type="button" aria-label="Row actions" style="width:40px;height:40px;border:1px solid #D0D8E4;background:#FFFFFF;border-radius:6px">⋯</button></td></tr>
+<tr><td><input type="checkbox" aria-label="Select client renewal"></td><td><a href="#" style="font-weight:600">[Example] Metro Retail Inc.</a><div style="font-size:12px;color:#4A5568"><span style="background:#E6F0FA;color:#1B3A6B;padding:1px 6px;border-radius:4px">Client</span> Retail · NY</div></td><td>Automatic<div style="font-size:12px;color:#4A5568">Renewal due in 90 days</div></td><td>L-07 renewal</td><td>$[V]</td><td>New</td><td>Confirm AEDT count</td><td>S. Iyer</td><td>—</td><td><button type="button" aria-label="Row actions" style="width:40px;height:40px;border:1px solid #D0D8E4;background:#FFFFFF;border-radius:6px">⋯</button></td></tr>
+</tbody>
+</table>
+</div>
+<p style="margin:0;font-size:12px;color:#4A5568">Row menu: Open · Log activity · Start scoping · Build proposal · Change owner · Mark lost · Merge duplicate</p>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>G-07 Copilot readiness</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F4F6FA}
+a{color:#1B5E9E}a:hover{color:#1B3A6B}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{text-align:left;font-weight:600;color:#3F4A5C;background:#F0F3F8;padding:9px 10px;border-bottom:1px solid #D9DFE8;white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid #E6EAF0;vertical-align:top;color:#1A2333}
+button,input,select{font-family:inherit}
+</style>
+</helmet>
+<div style="font-family:'IBM Plex Sans',system-ui,sans-serif;color:#1A2333;min-height:960px">
+<header style="background:#1B3A6B;color:#FFFFFF;display:flex;flex-wrap:wrap;align-items:center;gap:20px;padding:0 24px;min-height:56px">
+<div style="font-weight:700;font-size:16px">AI Governix <span style="font-weight:400">· Futran</span></div>
+<nav aria-label="Main" style="display:flex;flex-wrap:wrap;gap:2px;font-size:14px">
+<a href="#" aria-current="page" style="color:#FFFFFF;text-decoration:none;padding:16px 12px;border-bottom:3px solid #0098D4;font-weight:600">Audits</a>
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Clients</a>
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Sales</a>
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Admin</a>
+</nav>
+<div style="margin-left:auto;font-size:13px">Microsoft practice</div>
+</header>
+<main style="max-width:1240px;margin:0 auto;padding:24px;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+<div><a href="#" style="font-size:13px">[Example] Acme Staffing LLC · Copilot readiness</a>
+<h1 style="margin:2px 0 0;font-size:24px;font-weight:600">Microsoft 365 Copilot readiness</h1></div>
+<nav aria-label="Phases" style="margin-left:auto;display:flex;gap:4px;font-size:13px">
+<span style="background:#1B3A6B;color:#FFFFFF;padding:8px 12px;border-radius:16px">Pilot</span>
+<span style="background:#E1E8F2;padding:8px 12px;border-radius:16px">Deploy</span>
+<span style="background:#E1E8F2;padding:8px 12px;border-radius:16px">Operate</span>
+</nav>
+</div>
+<section style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;font-size:13px">
+<div style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:14px"><div style="color:#4A5568">Copilot licences</div><div style="font-size:22px;font-weight:600">140</div><div>From M365 export (G-05)</div></div>
+<div style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:14px"><div style="color:#4A5568">Active users, 28 days</div><div style="font-size:22px;font-weight:600">96</div></div>
+<div style="background:#FFF4E5;border:1px solid #F2C98A;border-radius:8px;padding:14px"><div style="color:#5A3200">High-risk sites</div><div style="font-size:22px;font-weight:600;color:#5A3200">7</div><div style="color:#5A3200">From Purview / SAM reports</div></div>
+<div style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:14px"><div style="color:#4A5568">Controls ready</div><div style="font-size:22px;font-weight:600">4 / 9</div></div>
+</section>
+<section style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;overflow-x:auto">
+<h2 style="margin:0;padding:14px 16px 6px;font-size:16px;font-weight:600">Site risk list</h2>
+<table>
+<thead><tr><th>Site</th><th>Sharing</th><th>Sensitive items</th><th>Label coverage</th><th>Risk</th><th>Action</th><th>Owner</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td>HR · Candidate files</td><td>Everyone except external</td><td>2,140</td><td>12%</td><td style="color:#9A3412;font-weight:600">High</td><td>Restrict discovery + fix permissions</td><td>[HR IT]</td><td>In progress</td></tr>
+<tr><td>Finance · Payroll archive</td><td>Org-wide link</td><td>860</td><td>0%</td><td style="color:#9A3412;font-weight:600">High</td><td>Fix permissions, apply label</td><td>[Finance]</td><td>Open</td></tr>
+<tr><td>Sales · Client contracts</td><td>Specific people</td><td>310</td><td>65%</td><td style="color:#7A3E00;font-weight:600">Medium</td><td>Apply label</td><td>[Sales ops]</td><td>Open</td></tr>
+<tr><td>Marketing · Public assets</td><td>Org-wide</td><td>0</td><td>—</td><td>Low</td><td>Accept</td><td>—</td><td>Done</td></tr>
+</tbody></table>
+</section>
+<div style="display:flex;flex-wrap:wrap;gap:16px">
+<section style="flex:1 1 480px;min-width:0;background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:14px;font-size:13px">
+<h2 style="margin:0 0 8px;font-size:16px;font-weight:600">Controls checklist</h2>
+<ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px">
+<li>Done · Oversharing report reviewed (evidence attached)</li>
+<li>Done · Audit logging on for Copilot</li>
+<li>Done · Copilot usage policy approved</li>
+<li>Done · Pilot group defined</li>
+<li style="color:#7A3E00">Open · DLP for Copilot on labelled content</li>
+<li style="color:#7A3E00">Open · Restricted content discovery on 7 high-risk sites</li>
+<li style="color:#7A3E00">Open · Sensitivity label coverage above target</li>
+<li style="color:#7A3E00">Open · User training (EU staff: AI literacy)</li>
+<li style="color:#7A3E00">Open · Copilot added to AI register with roles</li>
+</ul>
+</section>
+<section style="flex:1 1 480px;min-width:0;background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;overflow-x:auto">
+<h2 style="margin:0;padding:14px 16px 6px;font-size:16px;font-weight:600">Rollout waves</h2>
+<table><thead><tr><th>Wave</th><th>Groups</th><th>Date</th><th>Gate</th></tr></thead>
+<tbody>
+<tr><td>Pilot</td><td>IT, Compliance (20)</td><td>[date]</td><td style="color:#1F5130">Go</td></tr>
+<tr><td>Wave 1</td><td>Sales, Marketing (60)</td><td>[date]</td><td style="color:#7A3E00">Hold · 2 sites open</td></tr>
+<tr><td>Wave 2</td><td>HR, Finance (60)</td><td>[date]</td><td style="color:#7A3E00">Hold · HR and Finance sites</td></tr>
+</tbody></table>
+</section>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>G-09 Agent assurance</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F4F6FA}
+a{color:#1B5E9E}a:hover{color:#1B3A6B}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{text-align:left;font-weight:600;color:#3F4A5C;background:#F0F3F8;padding:9px 10px;border-bottom:1px solid #D9DFE8;white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid #E6EAF0;vertical-align:top;color:#1A2333}
+button,input,select{font-family:inherit}
+</style>
+</helmet>
+<div style="font-family:'IBM Plex Sans',system-ui,sans-serif;color:#1A2333;min-height:960px">
+<header style="background:#FFFFFF;border-bottom:1px solid #DDE3EC;display:flex;flex-wrap:wrap;align-items:center;gap:20px;padding:0 24px;min-height:56px">
+<div style="font-weight:700;font-size:16px;color:#1B3A6B">AI Governix</div>
+<nav aria-label="Main" style="display:flex;flex-wrap:wrap;gap:2px;font-size:14px">
+<a href="#" style="color:#3F4A5C;text-decoration:none;padding:16px 12px">Home</a>
+<a href="#" aria-current="page" style="color:#1B3A6B;text-decoration:none;padding:16px 12px;border-bottom:3px solid #1B3A6B;font-weight:600">AI register</a>
+<a href="#" style="color:#3F4A5C;text-decoration:none;padding:16px 12px">Governance</a>
+<a href="#" style="color:#3F4A5C;text-decoration:none;padding:16px 12px">Audits</a>
+</nav>
+<div style="margin-left:auto;font-size:13px;color:#3F4A5C">[Example] Delta Logistics · CAICO</div>
+</header>
+<main style="max-width:1240px;margin:0 auto;padding:24px;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+<div><a href="#" style="font-size:13px">AI register</a>
+<h1 style="margin:2px 0 0;font-size:24px;font-weight:600">Carrier-booking agent · Assurance</h1>
+<div style="font-size:13px;color:#4A5568">Agent · acts with approval · GuardRail policy GR-014 · Stage: ready for go-live</div></div>
+<span style="margin-left:auto;background:#FFF4E5;color:#7A3E00;padding:6px 12px;border-radius:16px;font-size:13px;font-weight:600">Agent Assure: conditional pass</span>
+</div>
+<nav aria-label="System tabs" style="display:flex;flex-wrap:wrap;gap:4px;border-bottom:1px solid #D9DFE8;font-size:14px">
+<a href="#" style="padding:12px 14px;text-decoration:none;color:#3F4A5C">Details</a>
+<a href="#" style="padding:12px 14px;text-decoration:none;color:#3F4A5C">Roles</a>
+<a href="#" style="padding:12px 14px;text-decoration:none;color:#3F4A5C">History</a>
+<a href="#" aria-current="page" style="padding:12px 14px;text-decoration:none;color:#1B3A6B;border-bottom:3px solid #1B3A6B;font-weight:600">Assurance</a>
+<a href="#" style="padding:12px 14px;text-decoration:none;color:#3F4A5C">Tracing</a>
+</nav>
+<div style="display:flex;flex-wrap:wrap;gap:16px">
+<section style="flex:999 1 560px;min-width:0;display:flex;flex-direction:column;gap:16px">
+<div style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;overflow-x:auto">
+<h2 style="margin:0;padding:14px 16px 6px;font-size:16px;font-weight:600">Release history</h2>
+<table><thead><tr><th>Release</th><th>Model</th><th>Gold eval set</th><th>15-point check</th><th>Red team</th><th>Outcome</th><th>Letter</th></tr></thead>
+<tbody>
+<tr><td>v1.2 (current)</td><td>[Provider model, version]</td><td>v3 · 240 cases</td><td>13 pass · 2 conditions</td><td>8 scenarios · 1 medium</td><td style="color:#7A3E00;font-weight:600">Conditional pass</td><td><a href="#">PDF</a></td></tr>
+<tr><td>v1.1</td><td>[Provider model, version]</td><td>v2 · 180 cases</td><td>11 pass · 4 fail</td><td>6 scenarios · 2 high</td><td style="color:#9A3412;font-weight:600">Fail</td><td>—</td></tr>
+</tbody></table></div>
+<div style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;overflow-x:auto">
+<h2 style="margin:0;padding:14px 16px 6px;font-size:16px;font-weight:600">v1.2 · open conditions</h2>
+<table><thead><tr><th>Item</th><th>Result</th><th>Condition</th><th>Due</th></tr></thead>
+<tbody>
+<tr><td>[Check item from Agent Assure methodology]</td><td style="color:#7A3E00">Conditional</td><td>Add human approval before sending external email</td><td>Before go-live</td></tr>
+<tr><td>[Check item from Agent Assure methodology]</td><td style="color:#7A3E00">Conditional</td><td>Lower per-task spend budget</td><td>Before go-live</td></tr>
+<tr><td>Red team · found credential in shared doc</td><td style="color:#7A3E00">Medium</td><td>Agent stopped but did not alert; add alert routing</td><td>30 days</td></tr>
+</tbody></table></div>
+</section>
+<aside style="flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:12px;font-size:13px">
+<section style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:14px">
+<h2 style="margin:0 0 8px;font-size:16px;font-weight:600">AgentWarden licence</h2>
+<div>Protected · acts with approval (AW-02a)</div>
+<div>Actions this month: 41,200 of 100,000 included</div>
+<div>Approver seats: 3</div>
+<div>Deployment: SaaS</div>
+<div style="color:#4A5568;margin-top:6px">Synced daily · last sync [time]</div>
+</section>
+<section style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:14px">
+<h2 style="margin:0 0 8px;font-size:16px;font-weight:600">Re-certification</h2>
+<div>Triggers a new Agent Assure run when the model or version changes, new tools are added, or a monitor check fails.</div>
+</section>
+<section style="background:#EEF3FA;border:1px solid #C9D6E8;border-radius:8px;padding:14px">Futran also audits this client. Agent Assure was delivered by a separate team (rule I-2).</section>
+</aside>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>G-10 Evidence vault and retention</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F4F6FA}
+a{color:#1B5E9E}a:hover{color:#1B3A6B}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{text-align:left;font-weight:600;color:#3F4A5C;background:#F0F3F8;padding:9px 10px;border-bottom:1px solid #D9DFE8;white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid #E6EAF0;vertical-align:top;color:#1A2333}
+button,input,select{font-family:inherit}
+</style>
+</helmet>
+<div style="font-family:'IBM Plex Sans',system-ui,sans-serif;color:#1A2333;min-height:960px">
+<header style="background:#1B3A6B;color:#FFFFFF;display:flex;flex-wrap:wrap;align-items:center;gap:20px;padding:0 24px;min-height:56px">
+<div style="font-weight:700;font-size:16px">AI Governix <span style="font-weight:400">· Futran</span></div>
+<nav aria-label="Main" style="display:flex;flex-wrap:wrap;gap:2px;font-size:14px">
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Audits</a>
+<a href="#" aria-current="page" style="color:#FFFFFF;text-decoration:none;padding:16px 12px;border-bottom:3px solid #0098D4;font-weight:600">Clients</a>
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Sales</a>
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Admin</a>
+</nav>
+<div style="margin-left:auto;font-size:13px">Chief Auditor</div>
+</header>
+<main style="max-width:1240px;margin:0 auto;padding:24px;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+<div><a href="#" style="font-size:13px">[Example] Metro Retail Inc.</a>
+<h1 style="margin:2px 0 0;font-size:24px;font-weight:600">Evidence vault and retention</h1></div>
+<button type="button" style="margin-left:auto;min-height:44px;padding:0 16px;border:0;background:#1B3A6B;color:#FFFFFF;border-radius:6px;font-weight:600">Place legal hold</button>
+</div>
+<section style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;font-size:13px">
+<div style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:14px"><div style="color:#4A5568">Storage used</div><div style="font-size:22px;font-weight:600">38 GB</div><div>of 50 GB in plan (M-06a)</div></div>
+<div style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:14px"><div style="color:#4A5568">Retention tier</div><div style="font-size:22px;font-weight:600">7 years</div><div>M-06c uplift active</div></div>
+<div style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:14px"><div style="color:#4A5568">Legal holds</div><div style="font-size:22px;font-weight:600">1 active</div><div>Billed per matter (M-06e)</div></div>
+<div style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:14px"><div style="color:#4A5568">Due for deletion, 90 days</div><div style="font-size:22px;font-weight:600">126 items</div><div>14 held, 112 will delete</div></div>
+</section>
+<section style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;overflow-x:auto">
+<h2 style="margin:0;padding:14px 16px 6px;font-size:16px;font-weight:600">Legal holds</h2>
+<table><thead><tr><th>Hold</th><th>Matter</th><th>Scope</th><th>Set by</th><th>Set on</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td>LH-001</td><td>[Client counsel request · matter ref]</td><td>All LL144 engagements since 2019, AEDT 1 evidence</td><td>Chief Auditor</td><td>[date]</td><td style="color:#1F5130;font-weight:600">Active · deletion blocked</td></tr>
+</tbody></table>
+</section>
+<section style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;overflow-x:auto">
+<h2 style="margin:0;padding:14px 16px 6px;font-size:16px;font-weight:600">Deletion countdown</h2>
+<table><thead><tr><th>Item</th><th>Engagement</th><th>Type</th><th>Delete on</th><th>Hold</th></tr></thead>
+<tbody>
+<tr><td>Applicant data extract (bias test)</td><td>LL144 audit 2019</td><td>Raw data</td><td>[date]</td><td>LH-001</td></tr>
+<tr><td>Vendor terms v3</td><td>Initial assessment 2019</td><td>Vendor document</td><td>[date]</td><td>—</td></tr>
+<tr><td>Interview notes, HR</td><td>Initial assessment 2019</td><td>Fieldwork</td><td>[date]</td><td>—</td></tr>
+</tbody></table>
+</section>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

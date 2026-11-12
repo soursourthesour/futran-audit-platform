@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SM-03 Log opportunity</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#5A6577}
+a{color:#1B5E9E}a:hover{color:#1B3A6B}
+button,input,select,textarea{font-family:inherit}
+</style>
+</helmet>
+<div style="font-family:'IBM Plex Sans',system-ui,sans-serif;color:#1A2333;min-height:960px;background:#5A6577;padding:32px 16px;box-sizing:border-box">
+<section role="dialog" aria-label="Log opportunity" style="max-width:880px;margin:0 auto;background:#FFFFFF;border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.3)">
+<div style="display:flex;align-items:center;gap:12px;padding:18px 24px;border-bottom:1px solid #E1E6EE">
+<h1 style="margin:0;font-size:20px;font-weight:600">Log opportunity</h1>
+<a href="SM02-Opportunities.dc.html" aria-label="Close" style="margin-left:auto;width:44px;height:44px;display:flex;align-items:center;justify-content:center;color:#3F4A5C;text-decoration:none;font-size:22px">×</a>
+</div>
+<form style="padding:20px 24px;display:flex;flex-direction:column;gap:18px">
+<fieldset style="border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:10px">
+<legend style="font-weight:600;font-size:15px;margin-bottom:8px">Company</legend>
+<label style="display:flex;flex-direction:column;gap:4px;font-size:13px">Search existing clients and prospects<input type="search" value="Acme Staffing" style="height:44px;border:1px solid #B8C4D6;border-radius:6px;padding:0 12px"></label>
+<div style="background:#FFF4E5;border:1px solid #F2C98A;border-radius:6px;padding:10px 12px;font-size:13px;color:#5A3200">Possible duplicate: <strong>[Example] Acme Staffing Services</strong> (prospect, same domain acmestaffing.com). <a href="#">Open it</a> or <button type="button" style="border:0;background:none;color:#1B5E9E;text-decoration:underline;padding:0;font-size:13px">confirm this is a different company</button>.</div>
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">
+<label style="display:flex;flex-direction:column;gap:4px;font-size:13px">Website<input type="text" value="acmestaffing.com" style="height:44px;border:1px solid #B8C4D6;border-radius:6px;padding:0 12px"></label>
+<label style="display:flex;flex-direction:column;gap:4px;font-size:13px">Industry<select style="height:46px;border:1px solid #B8C4D6;border-radius:6px;padding:0 8px"><option>Staffing &amp; recruitment</option><option>BFSI</option><option>Healthcare</option><option>Insurance</option><option>Pharma &amp; life sciences</option><option>Property management</option><option>Public sector</option><option>Other</option></select></label>
+<label style="display:flex;flex-direction:column;gap:4px;font-size:13px">Employees<select style="height:46px;border:1px solid #B8C4D6;border-radius:6px;padding:0 8px"><option>Up to 250</option><option selected="">251–1,000</option><option>1,000+</option></select></label>
+</div>
+</fieldset>
+<fieldset style="border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:10px">
+<legend style="font-weight:600;font-size:15px;margin-bottom:8px">Main contact</legend>
+<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px">
+<label style="display:flex;flex-direction:column;gap:4px;font-size:13px">Name<input type="text" placeholder="Full name" style="height:44px;border:1px solid #B8C4D6;border-radius:6px;padding:0 12px"></label>
+<label style="display:flex;flex-direction:column;gap:4px;font-size:13px">Title<input type="text" placeholder="e.g. VP Talent" style="height:44px;border:1px solid #B8C4D6;border-radius:6px;padding:0 12px"></label>
+<label style="display:flex;flex-direction:column;gap:4px;font-size:13px">Email<input type="email" placeholder="name@company.com" style="height:44px;border:1px solid #B8C4D6;border-radius:6px;padding:0 12px"></label>
+<label style="display:flex;flex-direction:column;gap:4px;font-size:13px">Role in deal<select style="height:46px;border:1px solid #B8C4D6;border-radius:6px;padding:0 8px"><option>Champion</option><option>Economic buyer</option><option>Technical</option><option>Legal</option><option>Procurement</option></select></label>
+</div>
+<button type="button" style="align-self:flex-start;min-height:40px;border:1px dashed #8FA2BD;background:#FFFFFF;border-radius:6px;padding:0 12px;font-size:13px;color:#1B3A6B">Add another contact</button>
+</fieldset>
+<fieldset style="border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:10px">
+<legend style="font-weight:600;font-size:15px;margin-bottom:8px">Deal</legend>
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">
+<label style="display:flex;flex-direction:column;gap:4px;font-size:13px">Source<select style="height:46px;border:1px solid #B8C4D6;border-radius:6px;padding:0 8px"><option>Outbound call</option><option>Email campaign</option><option>LinkedIn</option><option>Inbound web</option><option>Referral partner</option><option>Event</option><option>Existing client</option></select></label>
+<label style="display:flex;flex-direction:column;gap:4px;font-size:13px">Partner (if referred)<select style="height:46px;border:1px solid #B8C4D6;border-radius:6px;padding:0 8px"><option>None</option><option>[Partner] law firm</option><option>[Partner] ATS vendor</option></select></label>
+<label style="display:flex;flex-direction:column;gap:4px;font-size:13px">Segment<select style="height:46px;border:1px solid #B8C4D6;border-radius:6px;padding:0 8px"><option>Staffing / HR</option><option>Enterprise (BFSI, health, insurance)</option><option>Agents and Copilot</option></select></label>
+</div>
+<div style="font-size:13px">Trigger
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">
+<label style="display:flex;align-items:center;gap:6px;border:1px solid #B8C4D6;border-radius:20px;padding:8px 12px;background:#EEF3FA"><input type="checkbox" checked=""> LL144 audit due</label>
+<label style="display:flex;align-items:center;gap:6px;border:1px solid #B8C4D6;border-radius:20px;padding:8px 12px"><input type="checkbox"> New state law</label>
+<label style="display:flex;align-items:center;gap:6px;border:1px solid #B8C4D6;border-radius:20px;padding:8px 12px"><input type="checkbox"> Lawsuit worry</label>
+<label style="display:flex;align-items:center;gap:6px;border:1px solid #B8C4D6;border-radius:20px;padding:8px 12px"><input type="checkbox"> Customer / RFP asked</label>
+<label style="display:flex;align-items:center;gap:6px;border:1px solid #B8C4D6;border-radius:20px;padding:8px 12px"><input type="checkbox"> Agents or Copilot rollout</label>
+<label style="display:flex;align-items:center;gap:6px;border:1px solid #B8C4D6;border-radius:20px;padding:8px 12px"><input type="checkbox"> Shadow AI</label>
+<label style="display:flex;align-items:center;gap:6px;border:1px solid #B8C4D6;border-radius:20px;padding:8px 12px"><input type="checkbox"> M&amp;A</label>
+</div></div>
+<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px">
+<label style="display:flex;flex-direction:column;gap:4px;font-size:13px">Estimated value ($)<input type="text" placeholder="[VALUE]" style="height:44px;border:1px solid #B8C4D6;border-radius:6px;padding:0 12px"></label>
+<label style="display:flex;flex-direction:column;gap:4px;font-size:13px">Expected close<input type="date" style="height:44px;border:1px solid #B8C4D6;border-radius:6px;padding:0 12px"></label>
+<label style="display:flex;flex-direction:column;gap:4px;font-size:13px">Next step<input type="text" value="Scoping call" style="height:44px;border:1px solid #B8C4D6;border-radius:6px;padding:0 12px"></label>
+<label style="display:flex;flex-direction:column;gap:4px;font-size:13px">Due<input type="date" style="height:44px;border:1px solid #B8C4D6;border-radius:6px;padding:0 12px"></label>
+</div>
+</fieldset>
+<div style="background:#EEF3FA;border-radius:6px;padding:10px 12px;font-size:13px">Independence check: <strong>no flag</strong> — not a current or recent audit client.</div>
+<div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end;border-top:1px solid #E1E6EE;padding-top:16px">
+<a href="SM02-Opportunities.dc.html" style="min-height:44px;display:flex;align-items:center;padding:0 16px;border:1px solid #B8C4D6;border-radius:6px;text-decoration:none;color:#1B3A6B">Cancel</a>
+<a href="SM04-Opportunity-record.dc.html" style="min-height:44px;display:flex;align-items:center;padding:0 18px;background:#1B3A6B;color:#FFFFFF;border-radius:6px;text-decoration:none;font-weight:600">Save and open</a>
+</div>
+</form>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SM-08 Review answers</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F4F6FA}
+a{color:#1B5E9E}a:hover{color:#1B3A6B}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{text-align:left;font-weight:600;color:#3F4A5C;background:#F0F3F8;padding:9px 10px;border-bottom:1px solid #D9DFE8;white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid #E6EAF0;vertical-align:top;color:#1A2333}
+button,input,select{font-family:inherit}
+</style>
+</helmet>
+<div style="font-family:'IBM Plex Sans',system-ui,sans-serif;color:#1A2333;min-height:960px">
+<header style="background:#1B3A6B;color:#FFFFFF;display:flex;flex-wrap:wrap;align-items:center;gap:20px;padding:0 24px;min-height:56px">
+<div style="font-weight:700;font-size:16px">AI Governix <span style="font-weight:400">· Futran</span></div>
+<nav aria-label="Main" style="display:flex;flex-wrap:wrap;gap:2px;font-size:14px">
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Audits</a>
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Clients</a>
+<a href="Main.dc.html" aria-current="page" style="color:#FFFFFF;text-decoration:none;padding:16px 12px;border-bottom:3px solid #0098D4;font-weight:600">Sales</a>
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Admin</a>
+</nav>
+<div style="margin-left:auto;font-size:13px">R. Mehta · Sales Officer</div>
+</header>
+<main style="max-width:1240px;margin:0 auto;padding:24px;display:flex;flex-direction:column;gap:16px">
+<a href="SM04-Opportunity-record.dc.html" style="font-size:13px">[Example] Acme Staffing LLC</a>
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+<h1 style="margin:0;font-size:24px;font-weight:600">Review answers</h1>
+<span style="font-size:13px;color:#4A5568">Questionnaire v1 · recorded on call + client answers received Nov 1</span>
+</div>
+<section aria-label="Summary" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;font-size:13px">
+<div style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:12px"><div style="color:#4A5568">Answered</div><div style="font-size:22px;font-weight:600">61 / 68</div></div>
+<div style="background:#FFF4E5;border:1px solid #F2C98A;border-radius:8px;padding:12px"><div style="color:#5A3200">Conflicts to resolve</div><div style="font-size:22px;font-weight:600;color:#5A3200">2</div></div>
+<div style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:12px"><div style="color:#4A5568">Unknown</div><div style="font-size:22px;font-weight:600">3</div></div>
+<div style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:12px"><div style="color:#4A5568">Proposed line items</div><div style="font-size:22px;font-weight:600">11</div></div>
+</section>
+<section style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;overflow-x:auto">
+<h2 style="margin:0;padding:14px 16px 6px;font-size:16px;font-weight:600">Conflicts</h2>
+<table>
+<thead><tr><th>Question</th><th>Rep (on call)</th><th>Client (link)</th><th>Effect on price</th><th>Keep</th></tr></thead>
+<tbody>
+<tr><td>SQ-C.07 Total AI systems</td><td>6 (estimate)</td><td>12</td><td>A-02a → A-02b (11–50 tier)</td><td><fieldset style="border:0;margin:0;padding:0;display:flex;gap:10px"><legend style="position:absolute;left:-9999px">Keep for SQ-C.07</legend><label><input type="radio" name="k1"> Rep</label><label><input type="radio" name="k1" checked=""> Client</label><label><input type="radio" name="k1"> Other</label></fieldset></td></tr>
+<tr><td>SQ-D.02 Number of AEDTs</td><td>1</td><td>2</td><td>L-02 × 1 → × 2</td><td><fieldset style="border:0;margin:0;padding:0;display:flex;gap:10px"><legend style="position:absolute;left:-9999px">Keep for SQ-D.02</legend><label><input type="radio" name="k2"> Rep</label><label><input type="radio" name="k2" checked=""> Client</label><label><input type="radio" name="k2"> Other</label></fieldset></td></tr>
+</tbody></table>
+</section>
+<section style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;overflow-x:auto">
+<h2 style="margin:0;padding:14px 16px 6px;font-size:16px;font-weight:600">Unknown answers</h2>
+<table>
+<thead><tr><th>Question</th><th>Effect</th><th>Proposal assumption added</th></tr></thead>
+<tbody>
+<tr><td>SQ-C.08 Number of AI vendors</td><td>A-08 quantity not set</td><td>"Vendor review priced per vendor once the inventory is complete"</td></tr>
+<tr><td>SQ-D.03 Annual hiring volume</td><td>Data sufficiency unclear; L-04 suggested</td><td>"Synthetic test-data audit if historical data is insufficient"</td></tr>
+<tr><td>SQ-F.17 Storage volume</td><td>M-06b not priced</td><td>"Vault includes 50 GB; extra storage billed per 100 GB"</td></tr>
+</tbody></table>
+</section>
+<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:flex-end">
+<span style="font-size:13px;color:#4A5568">Locking creates version 1. Edits after that create version 2.</span>
+<a href="SM05-Scoping-call.dc.html" style="min-height:44px;display:flex;align-items:center;padding:0 16px;border:1px solid #B8C4D6;border-radius:6px;text-decoration:none;color:#1B3A6B;background:#FFFFFF">Edit answers</a>
+<a href="SM09-Proposal-builder.dc.html" style="min-height:44px;display:flex;align-items:center;padding:0 18px;background:#1B3A6B;color:#FFFFFF;border-radius:6px;text-decoration:none;font-weight:600">Lock and build proposal</a>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

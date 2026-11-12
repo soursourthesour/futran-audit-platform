@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>G-06 Service templates</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F4F6FA}
+a{color:#1B5E9E}a:hover{color:#1B3A6B}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{text-align:left;font-weight:600;color:#3F4A5C;background:#F0F3F8;padding:9px 10px;border-bottom:1px solid #D9DFE8;white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid #E6EAF0;vertical-align:top;color:#1A2333}
+button,input,select{font-family:inherit}
+</style>
+</helmet>
+<div style="font-family:'IBM Plex Sans',system-ui,sans-serif;color:#1A2333;min-height:960px">
+<header style="background:#1B3A6B;color:#FFFFFF;display:flex;flex-wrap:wrap;align-items:center;gap:20px;padding:0 24px;min-height:56px">
+<div style="font-weight:700;font-size:16px">AI Governix <span style="font-weight:400">· Futran</span></div>
+<nav aria-label="Main" style="display:flex;flex-wrap:wrap;gap:2px;font-size:14px">
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Audits</a>
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Clients</a>
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Sales</a>
+<a href="#" aria-current="page" style="color:#FFFFFF;text-decoration:none;padding:16px 12px;border-bottom:3px solid #0098D4;font-weight:600">Admin</a>
+</nav>
+<div style="margin-left:auto;font-size:13px">Futran Admin</div>
+</header>
+<main style="max-width:1240px;margin:0 auto;padding:24px;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+<div><h1 style="margin:0;font-size:24px;font-weight:600">Service templates</h1>
+<div style="font-size:13px;color:#4A5568">One template per engagement type. The Chief Auditor approves each version before use.</div></div>
+<button type="button" style="margin-left:auto;min-height:44px;padding:0 16px;border:0;background:#1B3A6B;color:#FFFFFF;border-radius:6px;font-weight:600">New template</button>
+</div>
+<section style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;overflow-x:auto">
+<table>
+<thead><tr><th>Engagement type</th><th>Template</th><th>Version</th><th>Sections · checklists</th><th>Catalog codes</th><th>Content owner</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td>initial_assessment</td><td>Futran AI System Audit</td><td>1.0 + 5.1a</td><td>13 · 5</td><td>A-02, A-03, A-06</td><td>FATF</td><td style="color:#1F5130;font-weight:600">In use (v0.6.1)</td></tr>
+<tr><td>ll144_bias_audit</td><td>LL144 Bias Audit</td><td>1.0</td><td>6 · 2</td><td>L-01, L-02, L-04, L-05</td><td>FATF</td><td style="color:#1F5130;font-weight:600">In use (v0.6.1)</td></tr>
+<tr><td>ll144_applicability</td><td>LL144 Applicability (8-case map)</td><td>0.1</td><td>3 · 1</td><td>L-03</td><td>FATF</td><td style="color:#7A3E00;font-weight:600">Awaiting Chief Auditor</td></tr>
+<tr><td>copilot_readiness</td><td>M365 Copilot Readiness</td><td>0.1</td><td>5 · 3</td><td>X-04</td><td>Microsoft practice</td><td>Draft</td></tr>
+<tr><td>eu_ai_act_readiness</td><td>EU AI Act Conformity Readiness</td><td>0.1</td><td>7 · 4</td><td>X-03, A-11</td><td>FRD</td><td>Draft</td></tr>
+<tr><td>iso42001_readiness</td><td>ISO/IEC 42001 Readiness</td><td>—</td><td>—</td><td>X-02</td><td>FATF</td><td style="color:#4A5568">Not started</td></tr>
+<tr><td>vendor_due_diligence</td><td>Vendor AI Due Diligence</td><td>0.1</td><td>1 per vendor · 1</td><td>A-08</td><td>FATF</td><td>Draft</td></tr>
+<tr><td>vendor_sponsored_audit</td><td>Vendor-Sponsored LL144 Audit</td><td>—</td><td>—</td><td>L-10</td><td>FATF</td><td style="color:#4A5568">Not started</td></tr>
+<tr><td>ma_due_diligence</td><td>M&amp;A AI Due Diligence</td><td>—</td><td>—</td><td>X-05</td><td>FATF</td><td style="color:#4A5568">Not started</td></tr>
+<tr><td>agent_assurance</td><td>Agent Assure record</td><td>—</td><td>15-point check (to be supplied)</td><td>AA-01 to AA-06</td><td>FATF</td><td style="color:#4A5568">Waiting on content</td></tr>
+<tr><td>training_workshop</td><td>Workshop record</td><td>0.1</td><td>Attendance · feedback</td><td>M-08a, M-08b</td><td>FTLC</td><td>Draft</td></tr>
+<tr><td>advisory_retainer</td><td>Retainer record</td><td>0.1</td><td>Hours · tasks</td><td>M-12, M-13, X-01</td><td>Sales Manager</td><td>Draft</td></tr>
+</tbody></table>
+</section>
+<section style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:14px;font-size:13px">
+<h2 style="margin:0 0 8px;font-size:16px;font-weight:600">Exports available on any signed report</h2>
+<div>Board readout pack (A-13): one-page summary, heat map, top 5 findings and roadmap, as PDF and PowerPoint.</div>
+</section>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>G-04 Client hierarchy</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F4F6FA}
+a{color:#1B5E9E}a:hover{color:#1B3A6B}
+button,input,select{font-family:inherit}
+</style>
+</helmet>
+<div style="font-family:'IBM Plex Sans',system-ui,sans-serif;color:#1A2333;min-height:960px">
+<header style="background:#1B3A6B;color:#FFFFFF;display:flex;flex-wrap:wrap;align-items:center;gap:20px;padding:0 24px;min-height:56px">
+<div style="font-weight:700;font-size:16px">AI Governix <span style="font-weight:400">· Futran</span></div>
+<nav aria-label="Main" style="display:flex;flex-wrap:wrap;gap:2px;font-size:14px">
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Audits</a>
+<a href="#" aria-current="page" style="color:#FFFFFF;text-decoration:none;padding:16px 12px;border-bottom:3px solid #0098D4;font-weight:600">Clients</a>
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Sales</a>
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Admin</a>
+</nav>
+<div style="margin-left:auto;font-size:13px">Futran Admin</div>
+</header>
+<main style="max-width:1240px;margin:0 auto;padding:24px;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+<div><a href="#" style="font-size:13px">[Example] Acme Staffing LLC</a>
+<h1 style="margin:2px 0 0;font-size:24px;font-weight:600">Entities and end-clients</h1></div>
+<div style="margin-left:auto;display:flex;flex-wrap:wrap;gap:8px">
+<button type="button" style="min-height:44px;padding:0 14px;border:1px solid #B8C4D6;background:#FFFFFF;border-radius:6px">Import end-clients (CSV)</button>
+<button type="button" style="min-height:44px;padding:0 16px;border:0;background:#1B3A6B;color:#FFFFFF;border-radius:6px;font-weight:600">Add entity</button>
+</div>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:16px">
+<section aria-label="Hierarchy" style="flex:999 1 560px;min-width:0;background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:16px;font-size:14px">
+<ul style="list-style:none;margin:0;padding:0">
+<li><div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px;border:2px solid #1B3A6B;border-radius:8px"><strong>[Example] Acme Staffing LLC</strong><span style="font-size:12px;background:#E6F0FA;color:#1B3A6B;padding:2px 6px;border-radius:4px">Parent · staffing firm</span><span style="margin-left:auto;font-size:12px;color:#3F4A5C">Own tenant · LL144 AEDTs: 2</span></div>
+<ul style="list-style:none;margin:0 0 0 22px;padding:10px 0 0 18px;border-left:2px solid #C9D6E8;display:flex;flex-direction:column;gap:10px">
+<li><div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px;border:1px solid #DDE3EC;border-radius:8px"><strong>Acme Healthcare Staffing Inc.</strong><span style="font-size:12px;background:#F0F3F8;color:#3F4A5C;padding:2px 6px;border-radius:4px">Subsidiary</span><span style="margin-left:auto;font-size:12px;color:#1F5130">Roll-up consent: yes</span></div></li>
+<li><div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px;border:1px solid #DDE3EC;border-radius:8px"><strong>[End-client] Riverside Hospital</strong><span style="font-size:12px;background:#FFF4E5;color:#7A3E00;padding:2px 6px;border-radius:4px">End-client · L-09</span><span style="margin-left:auto;font-size:12px;color:#3F4A5C">NYC roles · own public summary</span></div></li>
+<li><div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px;border:1px solid #DDE3EC;border-radius:8px"><strong>[End-client] Brookline Bank</strong><span style="font-size:12px;background:#FFF4E5;color:#7A3E00;padding:2px 6px;border-radius:4px">End-client · L-09</span><span style="margin-left:auto;font-size:12px;color:#3F4A5C">NYC roles · own public summary</span></div></li>
+<li><div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px;border:1px solid #DDE3EC;border-radius:8px"><strong>[End-client] Hudson Logistics</strong><span style="font-size:12px;background:#FFF4E5;color:#7A3E00;padding:2px 6px;border-radius:4px">End-client · L-09</span><span style="margin-left:auto;font-size:12px;color:#3F4A5C">NJ roles only · LL144 not in scope</span></div></li>
+</ul></li>
+</ul>
+</section>
+<aside style="flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:12px;font-size:13px">
+<section style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:14px">
+<h2 style="margin:0 0 8px;font-size:16px;font-weight:600">Selected · Riverside Hospital</h2>
+<label style="display:flex;flex-direction:column;gap:4px">Relationship<select style="height:46px;border:1px solid #B8C4D6;border-radius:6px;padding:0 8px"><option>End-client (staffing)</option><option>Subsidiary</option><option>Customer of vendor (L-10)</option></select></label>
+<div style="margin-top:10px">LL144 scope: AEDT 1 and 2 for NYC roles placed at this client</div>
+<div style="margin-top:6px">Billing: counted in L-09 (2 of 3 end-clients in LL144 scope)</div>
+</section>
+<section style="background:#EEF3FA;border:1px solid #C9D6E8;border-radius:8px;padding:14px">
+Each entity is its own tenant. The parent sees roll-up only where the child's CAICO consents. Every share is logged.
+</section>
+</aside>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

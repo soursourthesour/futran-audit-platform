@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SM-01 Sales home</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F4F6FA}
+a{color:#1B5E9E}a:hover{color:#1B3A6B}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{text-align:left;font-weight:600;color:#3F4A5C;background:#F0F3F8;padding:9px 10px;border-bottom:1px solid #D9DFE8;white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid #E6EAF0;vertical-align:top;color:#1A2333}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="font-family:'IBM Plex Sans',system-ui,sans-serif;color:#1A2333;min-height:960px">
+<header style="background:#1B3A6B;color:#FFFFFF;display:flex;flex-wrap:wrap;align-items:center;gap:20px;padding:0 24px;min-height:56px">
+<div style="font-weight:700;font-size:16px">AI Governix <span style="font-weight:400">· Futran</span></div>
+<nav aria-label="Main" style="display:flex;flex-wrap:wrap;gap:2px;font-size:14px">
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Audits</a>
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Clients</a>
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Regulatory</a>
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Litigation</a>
+<a href="#" aria-current="page" style="color:#FFFFFF;text-decoration:none;padding:16px 12px;border-bottom:3px solid #0098D4;font-weight:600">Sales</a>
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Admin</a>
+</nav>
+<div style="margin-left:auto;font-size:13px">R. Mehta · Sales Officer</div>
+</header>
+<main style="max-width:1240px;margin:0 auto;padding:24px;display:flex;flex-direction:column;gap:20px">
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+<h1 style="margin:0;font-size:24px;font-weight:600">Sales home</h1>
+<div style="margin-left:auto;display:flex;flex-wrap:wrap;gap:8px">
+<a href="SM03-Log-opportunity.dc.html" style="background:#1B3A6B;color:#FFFFFF;text-decoration:none;padding:12px 16px;border-radius:6px;font-size:14px;font-weight:600">Log opportunity</a>
+<a href="SM02-Opportunities.dc.html" style="background:#FFFFFF;color:#1B3A6B;text-decoration:none;padding:11px 16px;border-radius:6px;font-size:14px;border:1px solid #B8C4D6">All opportunities</a>
+</div>
+</div>
+<section aria-label="Key figures" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px">
+<div style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:16px"><div style="font-size:13px;color:#4A5568">Open pipeline</div><div style="font-size:26px;font-weight:600;margin-top:4px">$[VALUE]</div><div style="font-size:12px;color:#4A5568">[N] opportunities</div></div>
+<div style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:16px"><div style="font-size:13px;color:#4A5568">Weighted by stage</div><div style="font-size:26px;font-weight:600;margin-top:4px">$[VALUE]</div><div style="font-size:12px;color:#4A5568">Stage probability × value</div></div>
+<div style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:16px"><div style="font-size:13px;color:#4A5568">Proposals out</div><div style="font-size:26px;font-weight:600;margin-top:4px">[N]</div><div style="font-size:12px;color:#4A5568">[N] expiring in 5 days</div></div>
+<div style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:16px"><div style="font-size:13px;color:#4A5568">Won this quarter</div><div style="font-size:26px;font-weight:600;margin-top:4px">$[VALUE]</div><div style="font-size:12px;color:#4A5568">[N] deals · ARR $[VALUE]</div></div>
+</section>
+<section aria-label="Pipeline by stage" style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:16px">
+<h2 style="margin:0 0 12px;font-size:16px;font-weight:600">Pipeline by stage</h2>
+<div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;font-size:13px">
+<div style="background:#EEF3FA;border-radius:6px;padding:12px"><div style="font-weight:600">New</div><div>[N] · $[V]</div></div>
+<div style="background:#E3ECF7;border-radius:6px;padding:12px"><div style="font-weight:600">Qualified</div><div>[N] · $[V]</div></div>
+<div style="background:#D5E3F3;border-radius:6px;padding:12px"><div style="font-weight:600">Scoping</div><div>[N] · $[V]</div></div>
+<div style="background:#C3D7EE;border-radius:6px;padding:12px"><div style="font-weight:600">Proposal</div><div>[N] · $[V]</div></div>
+<div style="background:#AFC9E7;border-radius:6px;padding:12px"><div style="font-weight:600">Negotiation</div><div>[N] · $[V]</div></div>
+<div style="background:#1B3A6B;color:#FFFFFF;border-radius:6px;padding:12px"><div style="font-weight:600">Won (QTD)</div><div>[N] · $[V]</div></div>
+</div>
+</section>
+<div style="display:flex;flex-wrap:wrap;gap:20px">
+<section aria-label="My next steps" style="flex:999 1 560px;min-width:0;background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:16px">
+<h2 style="margin:0 0 12px;font-size:16px;font-weight:600">My next steps</h2>
+<div style="overflow-x:auto"><table>
+<thead><tr><th>Due</th><th>Opportunity</th><th>Next step</th><th>Stage</th></tr></thead>
+<tbody>
+<tr><td>Today</td><td><a href="SM04-Opportunity-record.dc.html">[Example] Acme Staffing LLC</a></td><td>Scoping call 2:00 pm</td><td>Qualified</td></tr>
+<tr><td>Tomorrow</td><td><a href="#">[Example] Northbank Credit Union</a></td><td>Chase questionnaire (client 60% done)</td><td>Scoping</td></tr>
+<tr><td>Nov 4</td><td><a href="#">[Example] Harbor Health Group</a></td><td>Proposal v2 after pricing approval</td><td>Negotiation</td></tr>
+<tr><td style="color:#9A3412;font-weight:600">Stale 16 d</td><td><a href="#">[Example] Delta Logistics</a></td><td>No activity — call or close</td><td>New</td></tr>
+</tbody></table></div>
+</section>
+<div style="flex:1 1 360px;min-width:0;display:flex;flex-direction:column;gap:20px">
+<section aria-label="Approvals" style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:16px">
+<h2 style="margin:0 0 8px;font-size:16px;font-weight:600">Waiting on approval</h2>
+<ul style="margin:0;padding-left:18px;font-size:13px;line-height:1.8">
+<li>Harbor Health v2 — P-3 discount 18% (Pricing Approver)</li>
+<li>Acme Staffing v1 — I-2 independence (Chief Auditor)</li>
+</ul>
+<a href="SM11-Approvals.dc.html" style="display:inline-block;margin-top:8px;font-size:13px">Open approvals</a>
+</section>
+<section aria-label="New automatic opportunities" style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:16px">
+<h2 style="margin:0 0 8px;font-size:16px;font-weight:600">New automatic opportunities</h2>
+<ul style="margin:0;padding-left:18px;font-size:13px;line-height:1.8">
+<li>Renewal due in 90 days — [client] LL144 audit (L-07)</li>
+<li>Copilot licences found in discovery import (X-04)</li>
+<li>Colorado SB 26-189 effective Jan 1, 2027 — 3 clients</li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

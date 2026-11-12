@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SM-05 Scoping call</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F4F6FA}
+a{color:#1B5E9E}a:hover{color:#1B3A6B}
+button,input,select,textarea{font-family:inherit}
+</style>
+</helmet>
+<div style="font-family:'IBM Plex Sans',system-ui,sans-serif;color:#1A2333;min-height:960px">
+<header style="background:#1B3A6B;color:#FFFFFF;display:flex;flex-wrap:wrap;align-items:center;gap:16px;padding:10px 24px;min-height:56px;box-sizing:border-box">
+<a href="SM04-Opportunity-record.dc.html" style="color:#DCE6F5;font-size:13px">Back to opportunity</a>
+<div style="font-weight:600;font-size:16px">Scoping call · [Example] Acme Staffing LLC</div>
+<span style="background:#2E75B6;padding:4px 10px;border-radius:12px;font-size:12px">Recording · autosaved 5 s ago</span>
+<div style="margin-left:auto;display:flex;gap:8px">
+<a href="SM06-Send-questionnaire.dc.html" style="color:#FFFFFF;border:1px solid #8FA8CC;border-radius:6px;padding:10px 14px;text-decoration:none;font-size:13px">Send rest to client</a>
+<a href="SM08-Review-answers.dc.html" style="background:#FFFFFF;color:#1B3A6B;border-radius:6px;padding:10px 14px;text-decoration:none;font-size:13px;font-weight:600">Finish and review</a>
+</div>
+</header>
+<div style="display:flex;flex-wrap:wrap;gap:16px;padding:16px 24px;max-width:1280px;margin:0 auto;box-sizing:border-box">
+<nav aria-label="Sections" style="flex:1 1 200px;min-width:0;display:flex;flex-direction:column;gap:4px;font-size:13px">
+<a href="#" style="display:flex;justify-content:space-between;padding:10px 12px;border-radius:6px;background:#FFFFFF;border:1px solid #DDE3EC;text-decoration:none;color:#1A2333">A. Account and deal <span style="color:#1F5130">Done</span></a>
+<a href="#" style="display:flex;justify-content:space-between;padding:10px 12px;border-radius:6px;background:#FFFFFF;border:1px solid #DDE3EC;text-decoration:none;color:#1A2333">B. Footprint <span style="color:#1F5130">Done</span></a>
+<a href="#" aria-current="step" style="display:flex;justify-content:space-between;padding:10px 12px;border-radius:6px;background:#1B3A6B;color:#FFFFFF;text-decoration:none;font-weight:600">C. AI inventory <span>4/9</span></a>
+<a href="#" style="display:flex;justify-content:space-between;padding:10px 12px;border-radius:6px;background:#FFFFFF;border:1px solid #DDE3EC;text-decoration:none;color:#1A2333">D. Hiring AI / LL144 <span>0/9</span></a>
+<a href="#" style="display:flex;justify-content:space-between;padding:10px 12px;border-radius:6px;background:#FFFFFF;border:1px solid #DDE3EC;text-decoration:none;color:#1A2333">E. Audit needs <span>0/8</span></a>
+<a href="#" style="display:flex;justify-content:space-between;padding:10px 12px;border-radius:6px;background:#FFFFFF;border:1px solid #DDE3EC;text-decoration:none;color:#1A2333">F. Monitoring and retention <span>0/12</span></a>
+<a href="#" style="display:flex;justify-content:space-between;padding:10px 12px;border-radius:6px;background:#F0F3F8;border:1px solid #DDE3EC;text-decoration:none;color:#3F4A5C">G. Agents <span>Skipped</span></a>
+<a href="#" style="display:flex;justify-content:space-between;padding:10px 12px;border-radius:6px;background:#FFFFFF;border:1px solid #DDE3EC;text-decoration:none;color:#1A2333">H. Other and terms <span>0/10</span></a>
+<a href="#" style="display:flex;justify-content:space-between;padding:10px 12px;border-radius:6px;background:#FFFFFF;border:1px solid #DDE3EC;text-decoration:none;color:#1A2333">Red flags (internal) <span>0</span></a>
+</nav>
+<section aria-label="Section C questions" style="flex:999 1 520px;min-width:0;display:flex;flex-direction:column;gap:12px">
+<h1 style="margin:0;font-size:20px;font-weight:600">C. AI inventory</h1>
+<p style="margin:0;font-size:13px;color:#4A5568">The number of AI systems sets the audit and Monitor tier. Unknown is fine.</p>
+<div style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:14px">
+<div style="font-size:12px;color:#4A5568">SQ-C.01–C.06 · Count by type</div>
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:8px;font-size:13px">
+<label style="display:flex;flex-direction:column;gap:4px">Vendor apps with AI<input type="number" value="3" style="height:44px;border:1px solid #B8C4D6;border-radius:6px;padding:0 10px"></label>
+<label style="display:flex;flex-direction:column;gap:4px">Embedded AI (Copilot etc.)<input type="number" value="1" style="height:44px;border:1px solid #B8C4D6;border-radius:6px;padding:0 10px"></label>
+<label style="display:flex;flex-direction:column;gap:4px">GenAI chat tools<input type="number" value="2" style="height:44px;border:1px solid #B8C4D6;border-radius:6px;padding:0 10px"></label>
+<label style="display:flex;flex-direction:column;gap:4px">Model APIs<input type="number" value="0" style="height:44px;border:1px solid #B8C4D6;border-radius:6px;padding:0 10px"></label>
+<label style="display:flex;flex-direction:column;gap:4px">In-house models<input type="number" value="0" style="height:44px;border:1px solid #B8C4D6;border-radius:6px;padding:0 10px"></label>
+<label style="display:flex;flex-direction:column;gap:4px">Agents that act<input type="number" value="0" style="height:44px;border:1px solid #B8C4D6;border-radius:6px;padding:0 10px"></label>
+</div>
+<div style="margin-top:10px;font-size:13px">SQ-C.07 Total AI systems: <strong>6</strong> <span style="color:#4A5568">(sum, can be overridden)</span> · Confidence
+<label style="margin-left:8px"><input type="radio" name="c7"> Confirmed</label>
+<label style="margin-left:8px"><input type="radio" name="c7" checked=""> Estimate</label>
+<label style="margin-left:8px"><input type="radio" name="c7"> Unknown</label></div>
+</div>
+<div style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:14px;font-size:13px">
+<div style="font-size:12px;color:#4A5568">SQ-C.10 · How well do they know their AI?</div>
+<div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">
+<label style="display:flex;gap:8px;align-items:center;min-height:36px"><input type="radio" name="inv"> Full inventory exists and is current</label>
+<label style="display:flex;gap:8px;align-items:center;min-height:36px"><input type="radio" name="inv" checked=""> Partial list, probably missing tools</label>
+<label style="display:flex;gap:8px;align-items:center;min-height:36px"><input type="radio" name="inv"> No inventory</label>
+</div></div>
+<div style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:14px;font-size:13px">
+<div style="font-size:12px;color:#4A5568">SQ-C.11 · Systems we could pull discovery data from</div>
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
+<label style="display:flex;gap:6px;align-items:center;border:1px solid #B8C4D6;border-radius:20px;padding:8px 12px;background:#EEF3FA"><input type="checkbox" checked=""> Okta / Entra ID</label>
+<label style="display:flex;gap:6px;align-items:center;border:1px solid #B8C4D6;border-radius:20px;padding:8px 12px;background:#EEF3FA"><input type="checkbox" checked=""> Microsoft 365</label>
+<label style="display:flex;gap:6px;align-items:center;border:1px solid #B8C4D6;border-radius:20px;padding:8px 12px"><input type="checkbox"> Google Workspace</label>
+<label style="display:flex;gap:6px;align-items:center;border:1px solid #B8C4D6;border-radius:20px;padding:8px 12px;background:#EEF3FA"><input type="checkbox" checked=""> Expense export</label>
+<label style="display:flex;gap:6px;align-items:center;border:1px solid #B8C4D6;border-radius:20px;padding:8px 12px"><input type="checkbox"> CASB / proxy logs</label>
+</div></div>
+<div style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:14px;font-size:13px">
+<label style="display:flex;flex-direction:column;gap:4px"><span style="font-size:12px;color:#4A5568">SQ-C.08 · Number of AI vendors</span><input type="number" placeholder="Enter a number" style="height:44px;border:1px solid #B8C4D6;border-radius:6px;padding:0 10px;max-width:200px"></label>
+<label style="display:flex;flex-direction:column;gap:4px;margin-top:10px"><span style="font-size:12px;color:#4A5568">Note</span><textarea rows="2" placeholder="What the customer said" style="border:1px solid #B8C4D6;border-radius:6px;padding:8px 10px"></textarea></label>
+</div>
+</section>
+<aside aria-label="Suggested line items" style="flex:1 1 320px;min-width:0;background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:14px;align-self:flex-start;display:flex;flex-direction:column;gap:10px;font-size:13px">
+<h2 style="margin:0;font-size:16px;font-weight:600">Suggested line items</h2>
+<p style="margin:0;color:#4A5568">Updates as you answer. Not shown to the client.</p>
+<ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px">
+<li style="border:1px solid #E1E6EE;border-radius:6px;padding:8px"><strong>A-02a</strong> Audit, up to 10 systems × 1<div style="color:#4A5568">Because SQ-C.07 = 6 (estimate)</div></li>
+<li style="border:1px solid #E1E6EE;border-radius:6px;padding:8px"><strong>A-05</strong> Discovery sweep × 3<div style="color:#4A5568">Inventory partial; 3 sources ticked</div><span style="background:#FFF4E5;color:#7A3E00;padding:1px 6px;border-radius:4px;font-size:12px">Manual delivery</span></li>
+<li style="border:1px solid #E1E6EE;border-radius:6px;padding:8px"><strong>A-06b</strong> Attestation, 251–1,000 × 1<div style="color:#4A5568">SQ-B.01 = 600 employees</div></li>
+<li style="border:1px solid #E1E6EE;border-radius:6px;padding:8px"><strong>X-04</strong> Copilot rollout × 1<div style="color:#4A5568">Embedded AI includes Copilot</div></li>
+<li style="border:1px dashed #B8C4D6;border-radius:6px;padding:8px;color:#4A5568">Section D (LL144) not answered yet</li>
+</ul>
+<div style="border-top:1px solid #E1E6EE;padding-top:8px">Running estimate (list): <strong>$[TOTAL]</strong> one-time</div>
+</aside>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

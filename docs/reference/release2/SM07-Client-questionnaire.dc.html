@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SM-07 Client questionnaire</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1B5E9E}a:hover{color:#1B3A6B}
+button,input,select,textarea{font-family:inherit}
+</style>
+</helmet>
+<div style="width:390px;height:844px;box-sizing:border-box;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#1A2333;background:#FFFFFF;display:flex;flex-direction:column;overflow:hidden">
+<header style="background:#1B3A6B;color:#FFFFFF;padding:14px 16px">
+<div style="font-weight:700;font-size:15px">Futran Solutions</div>
+<div style="font-size:12px;margin-top:2px">Scoping questions for [Example] Acme Staffing LLC</div>
+</header>
+<div style="padding:12px 16px;border-bottom:1px solid #E1E6EE">
+<div style="display:flex;justify-content:space-between;font-size:12px;color:#3F4A5C"><span>Step 2 of 3 · Hiring tools</span><span>60% done</span></div>
+<div style="height:6px;background:#E1E8F2;border-radius:3px;margin-top:6px"><div style="width:60%;height:6px;background:#2E75B6;border-radius:3px"></div></div>
+</div>
+<form style="flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:18px;font-size:14px">
+<fieldset style="border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:8px">
+<legend style="font-weight:600;margin-bottom:6px">Which hiring tools score, rank or screen candidates?</legend>
+<label style="display:flex;flex-direction:column;gap:4px;font-size:13px">Tool names<input type="text" value="ATS resume scoring, video interview tool" style="height:46px;border:1px solid #B8C4D6;border-radius:6px;padding:0 10px;font-size:14px"></label>
+<label style="display:flex;flex-direction:column;gap:4px;font-size:13px">How many tools is that?<input type="number" value="2" style="height:46px;border:1px solid #B8C4D6;border-radius:6px;padding:0 10px;font-size:14px"></label>
+</fieldset>
+<fieldset style="border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:6px">
+<legend style="font-weight:600;margin-bottom:6px">Do you collect race/ethnicity and sex data from candidates?</legend>
+<label style="display:flex;gap:10px;align-items:center;min-height:44px;border:1px solid #B8C4D6;border-radius:6px;padding:0 12px"><input type="radio" name="demo"> Yes, voluntary self-ID</label>
+<label style="display:flex;gap:10px;align-items:center;min-height:44px;border:2px solid #1B3A6B;border-radius:6px;padding:0 12px;background:#EEF3FA"><input type="radio" name="demo" checked=""> Partly</label>
+<label style="display:flex;gap:10px;align-items:center;min-height:44px;border:1px solid #B8C4D6;border-radius:6px;padding:0 12px"><input type="radio" name="demo"> No</label>
+<label style="display:flex;gap:10px;align-items:center;min-height:44px;border:1px solid #B8C4D6;border-radius:6px;padding:0 12px"><input type="radio" name="demo"> Not sure</label>
+</fieldset>
+<fieldset style="border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:6px">
+<legend style="font-weight:600;margin-bottom:6px">How long must you keep AI audit records?</legend>
+<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px">
+<label style="display:flex;justify-content:center;align-items:center;gap:4px;min-height:44px;border:1px solid #B8C4D6;border-radius:6px"><input type="radio" name="ret"> 3 yrs</label>
+<label style="display:flex;justify-content:center;align-items:center;gap:4px;min-height:44px;border:1px solid #B8C4D6;border-radius:6px"><input type="radio" name="ret"> 5 yrs</label>
+<label style="display:flex;justify-content:center;align-items:center;gap:4px;min-height:44px;border:1px solid #B8C4D6;border-radius:6px"><input type="radio" name="ret"> 7 yrs</label>
+<label style="display:flex;justify-content:center;align-items:center;gap:4px;min-height:44px;border:1px solid #B8C4D6;border-radius:6px"><input type="radio" name="ret"> Not sure</label>
+</div>
+</fieldset>
+<a href="#" style="font-size:13px">Forward these questions to a colleague</a>
+</form>
+<div style="display:flex;gap:8px;padding:12px 16px;border-top:1px solid #E1E6EE">
+<button type="button" style="flex:1;min-height:48px;border:1px solid #B8C4D6;background:#FFFFFF;border-radius:6px;font-size:14px;color:#1B3A6B">Back</button>
+<button type="button" style="flex:2;min-height:48px;border:0;background:#1B3A6B;color:#FFFFFF;border-radius:6px;font-size:14px;font-weight:600">Save and continue</button>
+</div>
+<p style="margin:0;padding:0 16px 12px;font-size:11px;color:#4A5568">Saved as you go. Used only to prepare Futran's proposal. General information, not legal advice.</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

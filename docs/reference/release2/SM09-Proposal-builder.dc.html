@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SM-09 Proposal builder</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F4F6FA}
+a{color:#1B5E9E}a:hover{color:#1B3A6B}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{text-align:left;font-weight:600;color:#3F4A5C;background:#F0F3F8;padding:9px 8px;border-bottom:1px solid #D9DFE8;white-space:nowrap}
+td{padding:8px;border-bottom:1px solid #E6EAF0;vertical-align:top;color:#1A2333}
+button,input,select,textarea{font-family:inherit}
+</style>
+</helmet>
+<div style="font-family:'IBM Plex Sans',system-ui,sans-serif;color:#1A2333;min-height:1120px">
+<header style="background:#1B3A6B;color:#FFFFFF;display:flex;flex-wrap:wrap;align-items:center;gap:20px;padding:0 24px;min-height:56px">
+<div style="font-weight:700;font-size:16px">AI Governix <span style="font-weight:400">· Futran</span></div>
+<nav aria-label="Main" style="display:flex;flex-wrap:wrap;gap:2px;font-size:14px">
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Audits</a>
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Clients</a>
+<a href="Main.dc.html" aria-current="page" style="color:#FFFFFF;text-decoration:none;padding:16px 12px;border-bottom:3px solid #0098D4;font-weight:600">Sales</a>
+<a href="#" style="color:#DCE6F5;text-decoration:none;padding:16px 12px">Admin</a>
+</nav>
+<div style="margin-left:auto;font-size:13px">R. Mehta · Sales Officer</div>
+</header>
+<main style="max-width:1240px;margin:0 auto;padding:20px 24px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px">
+<div><a href="SM04-Opportunity-record.dc.html" style="font-size:13px">[Example] Acme Staffing LLC</a>
+<h1 style="margin:2px 0 0;font-size:22px;font-weight:600">Proposal v1 <span style="font-size:13px;font-weight:500;background:#FFF4E5;color:#7A3E00;padding:2px 8px;border-radius:4px;vertical-align:middle">Draft · needs approval</span></h1>
+<div style="font-size:12px;color:#4A5568">Questionnaire v1 (locked) · Catalog v1 · valid 30 days from send</div></div>
+<div style="margin-left:auto;display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end">
+<label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:#3F4A5C">Package<select style="height:44px;border:1px solid #B8C4D6;border-radius:6px;padding:0 8px"><option>Starter (LL144)</option><option selected="">Governed</option><option>Agent-ready</option><option>Custom</option></select></label>
+<label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:#3F4A5C">Version<select style="height:44px;border:1px solid #B8C4D6;border-radius:6px;padding:0 8px"><option>v1 (draft)</option></select></label>
+<button type="button" style="min-height:44px;padding:0 14px;border:1px solid #B8C4D6;background:#FFFFFF;border-radius:6px;font-size:13px">Add line</button>
+</div>
+</div>
+<section aria-label="Line items" style="background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;overflow-x:auto">
+<table>
+<thead><tr><th>Code</th><th>Line item</th><th>Why it's here</th><th>Qty</th><th>Billing</th><th style="text-align:right">List</th><th style="text-align:right">Override</th><th style="text-align:right">Year-1 value</th><th>Status</th><th><span style="position:absolute;left:-9999px">Remove</span></th></tr></thead>
+<tbody>
+<tr><td>A-02b</td><td>Enterprise AI Governance Audit, 11–50 systems</td><td style="color:#4A5568">SQ-C.07 = 12 (client)</td><td><input aria-label="Qty A-02b" value="1" style="width:44px;height:36px;border:1px solid #B8C4D6;border-radius:4px;padding:0 6px"></td><td>One-time</td><td style="text-align:right">$35,000</td><td style="text-align:right"><input aria-label="Override A-02b" placeholder="—" style="width:80px;height:36px;border:1px solid #B8C4D6;border-radius:4px;padding:0 6px;text-align:right"></td><td style="text-align:right">$35,000</td><td><span style="background:#FFF4E5;color:#7A3E00;padding:2px 6px;border-radius:4px;font-size:12px">Proposed price</span></td><td><button type="button" aria-label="Remove A-02b" style="width:36px;height:36px;border:1px solid #D0D8E4;background:#FFFFFF;border-radius:4px">×</button></td></tr>
+<tr><td>A-05</td><td>Shadow AI discovery sweep</td><td style="color:#4A5568">Inventory partial; 3 sources</td><td><input aria-label="Qty A-05" value="3" style="width:44px;height:36px;border:1px solid #B8C4D6;border-radius:4px;padding:0 6px"></td><td>One-time</td><td style="text-align:right">$1,500</td><td style="text-align:right"><input aria-label="Override A-05" placeholder="—" style="width:80px;height:36px;border:1px solid #B8C4D6;border-radius:4px;padding:0 6px;text-align:right"></td><td style="text-align:right">$4,500</td><td><span style="background:#E8EEF7;color:#1B3A6B;padding:2px 6px;border-radius:4px;font-size:12px">Manual delivery</span></td><td><button type="button" aria-label="Remove A-05" style="width:36px;height:36px;border:1px solid #D0D8E4;background:#FFFFFF;border-radius:4px">×</button></td></tr>
+<tr><td>A-06b</td><td>Employee attestation, 251–1,000</td><td style="color:#4A5568">SQ-B.01 = 600</td><td><input aria-label="Qty A-06b" value="1" style="width:44px;height:36px;border:1px solid #B8C4D6;border-radius:4px;padding:0 6px"></td><td>One-time</td><td style="text-align:right">$4,000</td><td style="text-align:right"><input aria-label="Override A-06b" placeholder="—" style="width:80px;height:36px;border:1px solid #B8C4D6;border-radius:4px;padding:0 6px;text-align:right"></td><td style="text-align:right">$4,000</td><td><span style="background:#FFF4E5;color:#7A3E00;padding:2px 6px;border-radius:4px;font-size:12px">Proposed price</span></td><td><button type="button" aria-label="Remove A-06b" style="width:36px;height:36px;border:1px solid #D0D8E4;background:#FFFFFF;border-radius:4px">×</button></td></tr>
+<tr><td>L-01</td><td>LL144 Readiness Assessment</td><td style="color:#4A5568">NYC = yes, AEDTs = 2</td><td><input aria-label="Qty L-01" value="1" style="width:44px;height:36px;border:1px solid #B8C4D6;border-radius:4px;padding:0 6px"></td><td>One-time</td><td style="text-align:right">$8,500</td><td style="text-align:right"><input aria-label="Override L-01" placeholder="—" style="width:80px;height:36px;border:1px solid #B8C4D6;border-radius:4px;padding:0 6px;text-align:right"></td><td style="text-align:right">$8,500</td><td><span style="background:#E3F1E7;color:#1F5130;padding:2px 6px;border-radius:4px;font-size:12px">Approved</span></td><td><button type="button" aria-label="Remove L-01" style="width:36px;height:36px;border:1px solid #D0D8E4;background:#FFFFFF;border-radius:4px">×</button></td></tr>
+<tr><td>L-02</td><td>Independent bias audit, extra AEDT</td><td style="color:#4A5568">AEDTs − 1</td><td><input aria-label="Qty L-02" value="1" style="width:44px;height:36px;border:1px solid #B8C4D6;border-radius:4px;padding:0 6px"></td><td>One-time</td><td style="text-align:right">$5,000</td><td style="text-align:right"><input aria-label="Override L-02" placeholder="—" style="width:80px;height:36px;border:1px solid #B8C4D6;border-radius:4px;padding:0 6px;text-align:right"></td><td style="text-align:right">$5,000</td><td><span style="background:#E3F1E7;color:#1F5130;padding:2px 6px;border-radius:4px;font-size:12px">Approved range</span></td><td><button type="button" aria-label="Remove L-02" style="width:36px;height:36px;border:1px solid #D0D8E4;background:#FFFFFF;border-radius:4px">×</button></td></tr>
+<tr><td>L-05</td><td>Demographic data collection setup</td><td style="color:#4A5568">Collects demographics: partly</td><td><input aria-label="Qty L-05" value="1" style="width:44px;height:36px;border:1px solid #B8C4D6;border-radius:4px;padding:0 6px"></td><td>One-time</td><td style="text-align:right">$3,000</td><td style="text-align:right"><input aria-label="Override L-05" placeholder="—" style="width:80px;height:36px;border:1px solid #B8C4D6;border-radius:4px;padding:0 6px;text-align:right"></td><td style="text-align:right">$3,000</td><td><span style="background:#FFF4E5;color:#7A3E00;padding:2px 6px;border-radius:4px;font-size:12px">Proposed price</span></td><td><button type="button" aria-label="Remove L-05" style="width:36px;height:36px;border:1px solid #D0D8E4;background:#FFFFFF;border-radius:4px">×</button></td></tr>
+<tr><td>X-04</td><td>Microsoft 365 Copilot governance rollout</td><td style="color:#4A5568">Embedded AI lists Copilot</td><td><input aria-label="Qty X-04" value="1" style="width:44px;height:36px;border:1px solid #B8C4D6;border-radius:4px;padding:0 6px"></td><td>One-time</td><td style="text-align:right">$18,000</td><td style="text-align:right"><input aria-label="Override X-04" placeholder="—" style="width:80px;height:36px;border:1px solid #B8C4D6;border-radius:4px;padding:0 6px;text-align:right"></td><td style="text-align:right">$18,000</td><td><span style="background:#FFF4E5;color:#7A3E00;padding:2px 6px;border-radius:4px;font-size:12px">Proposed price</span></td><td><button type="button" aria-label="Remove X-04" style="width:36px;height:36px;border:1px solid #D0D8E4;background:#FFFFFF;border-radius:4px">×</button></td></tr>
+<tr><td>M-01b</td><td>Monitor subscription, 11–50 systems</td><td style="color:#4A5568">Plan interest: Monitor</td><td><input aria-label="Qty M-01b" value="1" style="width:44px;height:36px;border:1px solid #B8C4D6;border-radius:4px;padding:0 6px"></td><td>Annual</td><td style="text-align:right">$24,000</td><td style="text-align:right"><input aria-label="Override M-01b" placeholder="—" style="width:80px;height:36px;border:1px solid #B8C4D6;border-radius:4px;padding:0 6px;text-align:right"></td><td style="text-align:right">$24,000</td><td><span style="background:#FFF4E5;color:#7A3E00;padding:2px 6px;border-radius:4px;font-size:12px">Proposed price</span></td><td><button type="button" aria-label="Remove M-01b" style="width:36px;height:36px;border:1px solid #D0D8E4;background:#FFFFFF;border-radius:4px">×</button></td></tr>
+<tr><td>M-03a</td><td>Regulatory alert packs, 1–3 states</td><td style="color:#4A5568">NY, NJ, IL ticked</td><td><input aria-label="Qty M-03a" value="1" style="width:44px;height:36px;border:1px solid #B8C4D6;border-radius:4px;padding:0 6px"></td><td>Quarterly × 4</td><td style="text-align:right">$4,200</td><td style="text-align:right"><input aria-label="Override M-03a" placeholder="—" style="width:80px;height:36px;border:1px solid #B8C4D6;border-radius:4px;padding:0 6px;text-align:right"></td><td style="text-align:right">$16,800</td><td><span style="background:#E3F1E7;color:#1F5130;padding:2px 6px;border-radius:4px;font-size:12px">Approved</span></td><td><button type="button" aria-label="Remove M-03a" style="width:36px;height:36px;border:1px solid #D0D8E4;background:#FFFFFF;border-radius:4px">×</button></td></tr>
+<tr style="background:#F7F8FB"><td style="color:#4A5568">M-09</td><td style="color:#4A5568">Trust Center</td><td style="color:#4A5568">Client asked for a public page</td><td colspan="5" style="color:#4A5568">Shown under "Optional, when available" with no price (P-7)</td><td><span style="background:#ECEFF4;color:#3F4A5C;padding:2px 6px;border-radius:4px;font-size:12px">Roadmap</span></td><td></td></tr>
+</tbody>
+</table>
+</section>
+<div style="display:flex;flex-wrap:wrap;gap:14px">
+<section aria-label="Checks" style="flex:999 1 520px;min-width:0;display:flex;flex-direction:column;gap:10px">
+<div style="background:#FFF4E5;border:1px solid #F2C98A;border-radius:8px;padding:12px;font-size:13px;color:#5A3200"><strong>P-1 · Pricing Approver needed.</strong> 6 lines use Proposed catalog prices: A-02b, A-05, A-06b, L-05, X-04, M-01b.</div>
+<div style="background:#EEF3FA;border:1px solid #C9D6E8;border-radius:8px;padding:12px;font-size:13px"><strong>P-2 · Sales Manager.</strong> 5% discount on recurring is within your manager's limit.</div>
+<div style="background:#EEF3FA;border:1px solid #C9D6E8;border-radius:8px;padding:12px;font-size:13px"><strong>P-8 · Assumption added.</strong> "A-05 is delivered by Futran consultants from your admin exports until automatic connectors are available."</div>
+<div style="background:#E3F1E7;border:1px solid #B7D8C1;border-radius:8px;padding:12px;font-size:13px;color:#1F5130"><strong>Independence.</strong> No flag on this opportunity.</div>
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;font-size:13px">
+<label style="display:flex;flex-direction:column;gap:4px">Discount on recurring<input value="5%" style="height:44px;border:1px solid #B8C4D6;border-radius:6px;padding:0 10px"></label>
+<label style="display:flex;flex-direction:column;gap:4px">Contract term<select style="height:46px;border:1px solid #B8C4D6;border-radius:6px;padding:0 8px"><option>1 year</option><option>2 years (5% off)</option><option>3 years (10% off)</option></select></label>
+<label style="display:flex;flex-direction:column;gap:4px">Data region<select style="height:46px;border:1px solid #B8C4D6;border-radius:6px;padding:0 8px"><option>US</option><option>EU (+10%)</option><option>India (+10%)</option></select></label>
+</div>
+</section>
+<aside aria-label="Totals" style="flex:1 1 320px;min-width:0;background:#FFFFFF;border:1px solid #DDE3EC;border-radius:8px;padding:16px;font-size:14px;display:flex;flex-direction:column;gap:8px">
+<h2 style="margin:0 0 4px;font-size:16px;font-weight:600">Totals</h2>
+<div style="display:flex;justify-content:space-between"><span>One-time</span><span>$78,000</span></div>
+<div style="display:flex;justify-content:space-between"><span>Recurring, year 1</span><span>$40,800</span></div>
+<div style="display:flex;justify-content:space-between"><span>Discount on recurring (5%)</span><span>−$2,040</span></div>
+<div style="display:flex;justify-content:space-between;border-top:1px solid #E1E6EE;padding-top:8px;font-weight:600"><span>Year-1 total</span><span>$116,760</span></div>
+<div style="display:flex;justify-content:space-between;color:#3F4A5C"><span>Annual recurring after year 1</span><span>$38,760</span></div>
+<a href="SM11-Approvals.dc.html" style="margin-top:8px;min-height:44px;display:flex;align-items:center;justify-content:center;background:#1B3A6B;color:#FFFFFF;border-radius:6px;text-decoration:none;font-weight:600">Request approvals (2)</a>
+<a href="SM10-Proposal-send.dc.html" style="min-height:44px;display:flex;align-items:center;justify-content:center;border:1px solid #B8C4D6;border-radius:6px;text-decoration:none;color:#1B3A6B">Preview document</a>
+</aside>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1120}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
