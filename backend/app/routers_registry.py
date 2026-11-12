@@ -54,3 +54,5 @@ ROUTER_MODULES += ["catalog.router", "catalog.estimate_router"]
 
 # Release 2 R6a: service templates and engagement types (G-06), discovery import (G-05), agent assurance (G-09)
 ROUTER_MODULES += ["servicetemplates.router"]
+# Release 2 R3: scoping questionnaire (SM-05 to SM-08, the public SM-07 link) and the question bank and mapping rules tabs
+ROUTER_MODULES += ["scoping.router", "scoping.public_router"]

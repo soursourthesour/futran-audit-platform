@@ -520,3 +520,18 @@ _R1: dict[R, dict[A, S]] = {
 }
 for _role, _grants in _R1.items():
     MATRIX.setdefault(_role, {}).update(_grants)
+# ---- Release 2 R3: scoping questionnaire (spec §4.4, SM-05 to SM-08), question bank and mapping rules (§4.5, SM-14 tabs).
+# Sales Officer (key sales_team) and Sales Manager work questionnaires; the Chief Auditor sees them read-only. The Futran
+# Admin maintains the bank and the rules; the Sales Manager owns the bank (user's default R2-Q5); the Pricing Approver
+# approves rule edits. Roles R2 adds are granted only once they exist.
+_R3: dict[str, dict[A, S]] = {
+    "sales_team": {A.VIEW_SCOPING: S.ALL, A.WORK_SCOPING: S.ALL, A.VIEW_SCOPING_SETUP: S.ALL},
+    "sales_manager": {A.VIEW_SCOPING: S.ALL, A.WORK_SCOPING: S.ALL, A.VIEW_SCOPING_SETUP: S.ALL, A.MANAGE_SCOPING_BANK: S.ALL},
+    "chief_auditor": {A.VIEW_SCOPING: S.ALL, A.VIEW_SCOPING_SETUP: S.ALL},
+    "admin": {A.VIEW_SCOPING_SETUP: S.ALL, A.MANAGE_SCOPING_BANK: S.ALL, A.MANAGE_MAPPING_RULES: S.ALL},
+    "pricing_approver": {A.VIEW_SCOPING_SETUP: S.ALL, A.APPROVE_MAPPING_RULES: S.ALL},
+    "price_list_owner": {A.VIEW_SCOPING_SETUP: S.ALL},
+}
+for _key, _grants in _R3.items():
+    if _key in R._value2member_map_:
+        MATRIX.setdefault(R(_key), {}).update(_grants)

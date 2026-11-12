@@ -212,3 +212,10 @@ class Action(StrEnum):
     SUGGEST_CATALOG_CHANGE = "suggest_catalog_change"  # everyone else who views the grid
     MANAGE_PACKAGES = "manage_packages"  # package templates (Futran Admin; Price List Owners)
     USE_ESTIMATOR = "use_estimator"  # Sales Officer and Sales Manager
+    # Release 2 R3: scoping questionnaire (SM-05 to SM-08), question bank and mapping rules (SM-14 tabs)
+    VIEW_SCOPING = "view_scoping"
+    WORK_SCOPING = "work_scoping"  # record answers, send to the client, resolve conflicts, lock and unlock
+    VIEW_SCOPING_SETUP = "view_scoping_setup"  # the question bank and mapping rules tabs, read-only
+    MANAGE_SCOPING_BANK = "manage_scoping_bank"
+    MANAGE_MAPPING_RULES = "manage_mapping_rules"
+    APPROVE_MAPPING_RULES = "approve_mapping_rules"
