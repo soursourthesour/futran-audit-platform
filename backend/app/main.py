@@ -82,6 +82,9 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
         from app.platformtrust.startup import on_start as wsl_on_start  # wave 3 WS-L: agentic questions, SOC 2 starter list, Futran's own AI
 
         wsl_on_start(app)
+        from app.catalog.startup import seed_if_empty as catalog_on_start  # Release 2 R1: starter price list
+
+        catalog_on_start(app)
     _start_scheduler(app, settings)
     return app
 

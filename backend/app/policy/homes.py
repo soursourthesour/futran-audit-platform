@@ -13,6 +13,7 @@ HOME_PRECEDENCE: list[tuple[str, str]] = [
     ("engagement_manager", "/my-work"),
     ("legal_reviewer", "/my-work"),
     ("sales_team", "/opportunities"),
+    ("price_list_owner", "/staff/admin/catalog"),  # Release 2 R1: the CEO and President keep the master price list
     ("caico", "/start"),
     ("exec_sponsor", "/summary"),
     ("dpo", "/data-review"),

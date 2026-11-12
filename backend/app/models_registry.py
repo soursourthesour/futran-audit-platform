@@ -46,3 +46,6 @@ importlib.import_module("app.commercial.models")
 
 # Release 2 R3: scoping questionnaire (SM-05 to SM-08) and mapping rules (spec §4.4, §4.5)
 importlib.import_module("app.scoping.models")
+
+# Release 2 R1: master price list, packages and estimates (SM-14, SM-15)
+importlib.import_module("app.catalog.models")

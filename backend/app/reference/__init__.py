@@ -78,3 +78,12 @@ def _court_sources(db: Session) -> str:
 
 
 LOADERS.append(("Litigation tracker court sources", _court_sources))  # v0.6 WS-D
+
+
+def _catalog(db: Session) -> str:
+    from app.catalog.seed import seed_starter
+
+    return seed_starter(db)
+
+
+LOADERS.append(("Master price list starter items", _catalog))  # Release 2 R1: demo/starter rows until the workbook is imported

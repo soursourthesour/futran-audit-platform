@@ -10,6 +10,10 @@ class Role(StrEnum):
     ENGAGEMENT_MANAGER = "engagement_manager"
     LEGAL_REVIEWER = "legal_reviewer"
     SALES_TEAM = "sales_team"  # §27.5
+    # Release 2 §4.1 (R1 added the minimal entries; R2 owns the sales roles and their labels)
+    SALES_MANAGER = "sales_manager"
+    PRICING_APPROVER = "pricing_approver"
+    PRICE_LIST_OWNER = "price_list_owner"
     # Client
     EXEC_SPONSOR = "exec_sponsor"
     CAICO = "caico"
@@ -19,7 +23,8 @@ class Role(StrEnum):
     CONTRIBUTOR = "contributor"
 
 
-FUTRAN_ROLES = {Role.CHIEF_AUDITOR, Role.ADMIN, Role.AUDITOR, Role.QA_REVIEWER, Role.ENGAGEMENT_MANAGER, Role.LEGAL_REVIEWER, Role.SALES_TEAM}
+FUTRAN_ROLES = {Role.CHIEF_AUDITOR, Role.ADMIN, Role.AUDITOR, Role.QA_REVIEWER, Role.ENGAGEMENT_MANAGER, Role.LEGAL_REVIEWER, Role.SALES_TEAM,
+                Role.SALES_MANAGER, Role.PRICING_APPROVER, Role.PRICE_LIST_OWNER}
 CLIENT_ROLES = {Role.EXEC_SPONSOR, Role.CAICO, Role.CLIENT_ADMIN, Role.DPO, Role.DEPT_COMPLIANCE_LEAD, Role.CONTRIBUTOR}
 SIGN_OFF_ROLES = {Role.CAICO, Role.EXEC_SPONSOR, Role.DPO}
 
@@ -31,6 +36,9 @@ ROLE_LABELS: dict[str, str] = {
     "engagement_manager": "Engagement Manager",
     "legal_reviewer": "Legal/Compliance Reviewer",
     "sales_team": "Sales Team",
+    "sales_manager": "Sales Manager",
+    "pricing_approver": "Pricing Approver",
+    "price_list_owner": "Price List Owner",
     "exec_sponsor": "Executive Sponsor",
     "caico": "Chief AI Compliance Officer",
     "client_admin": "Client Admin",

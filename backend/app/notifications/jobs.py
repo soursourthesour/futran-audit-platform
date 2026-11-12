@@ -387,3 +387,5 @@ def run_model_catalogue_monthly(db: Session, settings: Settings, now) -> int:
 
 
 JOBS["model_catalogue_monthly"] = run_model_catalogue_monthly
+
+JOBS["catalog_effective_dates"] = _wsh("app.catalog.service", "run_effective_dates")  # Release 2 R1: price list changes from a future date

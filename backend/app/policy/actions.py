@@ -206,3 +206,9 @@ class Action(StrEnum):
     MANAGE_RETAINERS = "manage_retainers"  # activate the incident retainer (opens an incident engagement)
     VIEW_MARGINS = "view_margins"  # margin by engagement: Chief Auditor and Sales Manager
     MANAGE_STANDARD_COST = "manage_standard_cost"  # standard cost per hour by role: Futran Admin (user's default, R2-Q9)
+    # Release 2 R1: master price list (SM-14) and Estimator (SM-15), spec §4.9
+    VIEW_CATALOG = "view_catalog"  # the grid, history, change log and export
+    EDIT_CATALOG = "edit_catalog"  # Price List Owners only: edit, add, duplicate, retire, bulk edit, import, settings, suggestions
+    SUGGEST_CATALOG_CHANGE = "suggest_catalog_change"  # everyone else who views the grid
+    MANAGE_PACKAGES = "manage_packages"  # package templates (Futran Admin; Price List Owners)
+    USE_ESTIMATOR = "use_estimator"  # Sales Officer and Sales Manager

@@ -506,3 +506,17 @@ for _role in _R5_ALL_FUTRAN:
     _R5.setdefault(_role, {}).update({A.LOG_TIME: S.ALL, A.VIEW_HOURS_BANKS: S.ALL})
 for _role, _grants in _R5.items():
     MATRIX.setdefault(_role, {}).update(_grants)
+
+
+# ---- Release 2 R1: master price list (SM-14) and Estimator (SM-15), spec §4.9 "Who can do what". Only the Price List
+# Owners (CEO and President) change the master; the Futran Admin, Chief Auditor and sales roles view, export and suggest.
+_R1: dict[R, dict[A, S]] = {
+    R.PRICE_LIST_OWNER: {A.VIEW_CATALOG: S.ALL, A.EDIT_CATALOG: S.ALL, A.MANAGE_PACKAGES: S.ALL},
+    R.ADMIN: {A.VIEW_CATALOG: S.ALL, A.SUGGEST_CATALOG_CHANGE: S.ALL, A.MANAGE_PACKAGES: S.ALL},
+    R.CHIEF_AUDITOR: {A.VIEW_CATALOG: S.ALL, A.SUGGEST_CATALOG_CHANGE: S.ALL},
+    R.SALES_TEAM: {A.VIEW_CATALOG: S.ALL, A.SUGGEST_CATALOG_CHANGE: S.ALL, A.USE_ESTIMATOR: S.ALL},
+    R.SALES_MANAGER: {A.VIEW_CATALOG: S.ALL, A.SUGGEST_CATALOG_CHANGE: S.ALL, A.USE_ESTIMATOR: S.ALL},
+    R.PRICING_APPROVER: {A.VIEW_CATALOG: S.ALL, A.SUGGEST_CATALOG_CHANGE: S.ALL},
+}
+for _role, _grants in _R1.items():
+    MATRIX.setdefault(_role, {}).update(_grants)
