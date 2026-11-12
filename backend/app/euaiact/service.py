@@ -23,8 +23,10 @@ from app.tenancy.models import User
 ENGAGEMENT_TYPE = "eu_ai_act_readiness"
 SIGNOFF_LABELS = {"draft": "Not sent", "awaiting_signoff": "Pending", "signed_off": "Signed", "returned": "Returned"}
 OBLIGATION_LABELS = {"not_started": "Not started", "not_met": "Not met", "partly_met": "Partly met", "met": "Met", "not_applicable": "Not applicable"}
-# Changing any of these after sign-off takes the sign-off away (the reviewer signed a role and a classification).
-SIGNED_FIELDS = ("role", "also_deployer", "classification", "annex_iii_area", "public_service")
+# Changing any of these after sign-off takes the sign-off away: the reviewer signed the role, the classification, the
+# exposure and the reasoning behind them.
+SIGNED_FIELDS = ("role", "also_deployer", "classification", "annex_iii_area", "public_service", "exposure_basis", "reasoning", "legal_review_flag")
+CLOSED_ENGAGEMENTS = ("completed", "archived", "cancelled")
 
 
 @lru_cache(maxsize=1)
@@ -249,7 +251,7 @@ def update(db: Session, actor: User, s: RegisterSystem, data: dict) -> EuAiActRe
     changed = {k: v for k, v in clean.items() if getattr(rec, k) != v}
     for k, v in changed.items():
         setattr(rec, k, v)
-    if any(k in changed for k in SIGNED_FIELDS + ("reasoning",)):
+    if any(k in changed for k in SIGNED_FIELDS):
         rec.classified_by, rec.classified_at = actor.id, utcnow()
     if rec.signoff_status in ("signed_off", "awaiting_signoff") and any(k in changed for k in SIGNED_FIELDS):
         was = rec.signoff_status
@@ -263,10 +265,19 @@ def update(db: Session, actor: User, s: RegisterSystem, data: dict) -> EuAiActRe
     return rec
 
 
+def on_current_engagement_as_reviewer(db: Session, actor: User, org_id: str) -> bool:
+    """On the team of an open engagement for the client (not completed, archived or cancelled) as its
+    Legal/Compliance Reviewer."""
+    return db.scalar(select(EngagementTeam.id).join(Engagement, Engagement.id == EngagementTeam.engagement_id).where(
+        EngagementTeam.user_id == actor.id, EngagementTeam.role == "legal_reviewer", EngagementTeam.deleted_at.is_(None), Engagement.client_id == org_id,
+        Engagement.deleted_at.is_(None), Engagement.status.not_in(CLOSED_ENGAGEMENTS)).limit(1)) is not None
+
+
 def _reviewers(db: Session, rec: EuAiActRecord) -> list[User]:
     """Legal/Compliance Reviewers on the client's engagements: on the record's engagement when it has one."""
     q = select(EngagementTeam.user_id).join(Engagement, Engagement.id == EngagementTeam.engagement_id).where(
-        EngagementTeam.role == "legal_reviewer", EngagementTeam.deleted_at.is_(None), Engagement.client_id == rec.organization_id, Engagement.deleted_at.is_(None))
+        EngagementTeam.role == "legal_reviewer", EngagementTeam.deleted_at.is_(None), Engagement.client_id == rec.organization_id, Engagement.deleted_at.is_(None),
+        Engagement.status.not_in(CLOSED_ENGAGEMENTS))
     if rec.engagement_id:
         q = q.where(Engagement.id == rec.engagement_id)
     return [u for u in (db.get(User, i) for i in set(db.scalars(q))) if u is not None]
@@ -295,6 +306,8 @@ def decide(db: Session, actor: User, s: RegisterSystem, approve: bool, note: str
     rec = record_of(db, s)
     if rec is None or rec.signoff_status != "awaiting_signoff":
         raise Conflict("Nothing is waiting for your sign-off on this system.")
+    if not on_current_engagement_as_reviewer(db, actor, rec.organization_id):
+        raise Forbidden("Only the Legal/Compliance Reviewer on a current engagement for this client signs off its EU AI Act classifications.")
     if actor.id in (rec.classified_by, rec.sent_by):
         raise Forbidden("You classified this system or sent it for sign-off. Another Legal/Compliance Reviewer signs it off; nobody signs off their own classification.")
     now = utcnow()

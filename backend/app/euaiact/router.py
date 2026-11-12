@@ -109,7 +109,8 @@ def _out(db: Session, actor: Actor, s: RegisterSystem) -> dict:
     if not actor.is_futran:
         return svc.client_view(db, s, rec)
     return svc.detail(db, s, rec) | {
-        "can_edit": _may(db, actor, Action.EDIT_EU_AI_ACT, s.organization_id), "can_sign": _may(db, actor, Action.SIGN_EU_CLASSIFICATION, s.organization_id),
+        "can_edit": _may(db, actor, Action.EDIT_EU_AI_ACT, s.organization_id),
+        "can_sign": _may(db, actor, Action.SIGN_EU_CLASSIFICATION, s.organization_id) and svc.on_current_engagement_as_reviewer(db, actor.user, s.organization_id),
         "options": {"roles": rules.roles(), "classifications": rules.classifications(), "areas": {k: v["label"] for k, v in rules.areas().items()}},
     }
 

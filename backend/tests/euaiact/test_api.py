@@ -187,3 +187,38 @@ def test_client_level_view_for_systems_with_eu_geography(eu):
     assert eu.client.get(f"{API}/e/{eu.plain.id}/workspaces").status_code == 404  # not on that engagement's team
     eu.as_(eu.chief)
     assert eu.client.get(f"{API}/e/{eu.plain.id}/workspaces").json() == {"copilot": False, "eu_ai_act": False, "eu_systems": 2}
+
+
+def test_only_a_reviewer_on_a_current_engagement_of_the_client_signs(eu):
+    from app.engagements.models import Engagement, EngagementTeam
+
+    done = Engagement(organization_id=eu.org.id, client_id=eu.org.id, name="Last year's audit", type="initial_assessment", status="completed", stage=9, audit_ref="FSL-AI-AUD-2025-950")
+    eu.db.add(done)
+    eu.db.flush()
+    eu.db.add(EngagementTeam(organization_id=eu.org.id, engagement_id=done.id, user_id=eu.legal_outside.id, role="legal_reviewer"))
+    eu.db.commit()
+    eu.as_(eu.auditor)
+    _classify(eu)
+    eu.client.post(_sys(eu, eu.credit, "/send"), json={})
+    eu.as_(eu.legal_outside)  # on a completed engagement of this client only
+    r = eu.client.post(_sys(eu, eu.credit, "/signoff"), json={"approve": True})
+    assert r.status_code == 403 and "current engagement" in r.json()["detail"]
+    # on a current engagement of the client, but not as its Legal/Compliance Reviewer
+    eu.db.add(EngagementTeam(organization_id=eu.org.id, engagement_id=eu.plain.id, user_id=eu.legal_outside.id, role="auditor"))
+    eu.db.commit()
+    assert eu.client.post(_sys(eu, eu.credit, "/signoff"), json={"approve": True}).status_code == 403
+    eu.db.add(EngagementTeam(organization_id=eu.org.id, engagement_id=eu.plain.id, user_id=eu.legal_outside.id, role="legal_reviewer"))
+    eu.db.commit()
+    assert eu.client.post(_sys(eu, eu.credit, "/signoff"), json={"approve": True}).json()["signoff_status"] == "signed_off"
+
+
+def test_any_change_to_what_was_signed_clears_the_sign_off(eu):
+    for field, value in (("reasoning", "Reworded after the board meeting."), ("exposure_basis", "EU members and staff"), ("legal_review_flag", False)):
+        eu.as_(eu.auditor)
+        _classify(eu)
+        eu.client.post(_sys(eu, eu.credit, "/send"), json={})
+        eu.as_(eu.legal)
+        assert eu.client.post(_sys(eu, eu.credit, "/signoff"), json={"approve": True}).json()["signoff_status"] == "signed_off", field
+        eu.as_(eu.auditor)
+        d = eu.client.put(_sys(eu, eu.credit), json={field: value}).json()
+        assert d["signoff_status"] == "draft" and "changed after sign-off" in d["signoff_note"].lower(), field
