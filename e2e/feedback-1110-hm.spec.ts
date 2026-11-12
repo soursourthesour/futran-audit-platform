@@ -37,7 +37,7 @@ async function checkPhone(page: Page, where: string) {
   const r = await page.evaluate(() => {
     const wide = document.documentElement.scrollWidth - document.documentElement.clientWidth;
     const small: string[] = [];
-    document.querySelectorAll<HTMLElement>('button, a.btn, .shell-nav a, .timeline a, select, textarea, input:not([type=checkbox]):not([type=radio]):not([type=hidden])').forEach((el) => {
+    document.querySelectorAll<HTMLElement>('button, a.btn, .shell-nav a, .stl a, select, textarea, input:not([type=checkbox]):not([type=radio]):not([type=hidden])').forEach((el) => {
       const b = el.getBoundingClientRect();
       if (b.width > 0 && b.height > 0 && b.height < 44) small.push(`${el.tagName.toLowerCase()} "${(el.textContent || el.getAttribute('aria-label') || '').trim().slice(0, 40)}" ${Math.round(b.height)}px`);
     });
@@ -116,7 +116,7 @@ test('F2: the Sales Team still has no engagement information', async ({ page }) 
 
 // ---- U2: the audit stage timeline on the client homes
 const timeline = (page: Page) => page.getByRole('list', { name: 'Audit stages' });
-const stage = (page: Page, n: number, name: string) => timeline(page).getByRole('listitem').filter({ hasText: new RegExp(`Stage ${n}\\b`) }).filter({ hasText: name });
+const stage = (page: Page, n: number, name: string) => timeline(page).getByRole('listitem').nth(n - 1).filter({ hasText: `Stage ${n}` }).filter({ hasText: name });
 
 test('U2: Getting started shows the nine stages; a stage opens its screen or its summary', async ({ page }) => {
   await signIn(page, `maria.lopez@${ABC}`, false);

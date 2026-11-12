@@ -9,6 +9,7 @@ import { ReassessmentCard } from '@/screens/regupdates/Reassessment';
 import { useMe } from '@/api/auth';
 import { DataGrid, type GridColumn } from '@/components/ui/DataGrid';
 import { PersonHistory, type ChangeEvent } from '@/components/PersonHistory';
+import { StageTimeline } from '@/components/StageTimeline';
 
 function useHome<T>(key: string) {
   return useQuery({ queryKey: ['home', key], queryFn: () => api.get<T>(`/home/${key}`) });
@@ -69,6 +70,7 @@ export function ClientAdminHome() {
   return <Shell q={useHome<ClientAdminData>('client-admin')}>{(d) => (
     <div className="page">
       <PageHeader title="Client Admin home" subtitle="You manage who can sign in and how. You do not see audit content." />
+      <StageTimeline />
       <div className="grid-tiles home-tiles">
         <Tile label="Active users" value={d.users.active} hint={`${d.users.total} on the user list`} />
         <Tile label="Invitations pending" value={d.invitations.pending} hint={d.invitations.expiring.length ? `${d.invitations.expiring.length} expire within 2 days` : 'none expire within 2 days'} />
@@ -116,7 +118,7 @@ export function ClientAdminHome() {
 export function SponsorHome() {
   return <Shell q={useHome<SponsorData>('sponsor')}>{(d) => {
     const e = d.engagement;
-    if (!e) return <div className="page"><PageHeader title={`AI governance at ${d.organization}`} /><Card><EmptyState>{NO_ENGAGEMENT}</EmptyState></Card></div>;
+    if (!e) return <div className="page"><PageHeader title={`AI governance at ${d.organization}`} /><StageTimeline /><Card><EmptyState>{NO_ENGAGEMENT}</EmptyState></Card></div>;
     const titles: Record<string, string> = { '4': 'Sign-off 4 · Management representation: the AI inventory is complete and accurate', '6': 'Sign-off 6 · Accept the management responses and remediation plan' };
     return (
       <div className="page">
@@ -129,6 +131,7 @@ export function SponsorHome() {
             ))}</ul>
           </Card>
         )}
+        <StageTimeline />
         <div className="grid-tiles home-tiles">
           <Tile label="Overall rating" value={d.rating?.overall ? RATING_LABEL[d.rating.overall] ?? cap(d.rating.overall) : 'Not yet'} text hint={d.rating ? 'from the draft report' : 'shared with the draft report'} />
           <Tile label="Findings" value={d.findings ? d.findings.total : '—'} hint={d.findings ? ['critical', 'high', 'medium', 'low'].filter((s) => d.findings!.by_severity[s]).map((s) => `${d.findings!.by_severity[s]} ${cap(s)}`).join(' · ') || 'none' : 'shared with the draft report'} />
@@ -153,11 +156,12 @@ export function SponsorHome() {
 /** Data Protection Officer home (spec §13.1): data review (sign-off 3) and attestation privacy. */
 export function DPOHome() {
   return <Shell q={useHome<DpoData>('dpo')}>{(d) => {
-    if (!d.engagement) return <div className="page"><PageHeader title="Data review" /><Card><EmptyState>{NO_ENGAGEMENT}</EmptyState></Card></div>;
+    if (!d.engagement) return <div className="page"><PageHeader title="Data review" /><StageTimeline /><Card><EmptyState>{NO_ENGAGEMENT}</EmptyState></Card></div>;
     const so = d.signoff3?.sign_off ?? null;
     return (
       <div className="page">
         <PageHeader title="Data review" subtitle="Sign-off 3: the data categories of Tier 2 and Tier 3 use cases." actions={<ButtonLink to="/review" variant={so?.can_sign ? 'primary' : 'default'}>{so?.can_sign ? 'Review and sign' : 'Open review'}</ButtonLink>} />
+        <StageTimeline />
         <div className="grid-tiles home-tiles">
           <Tile label="Sign-off 3" value={signOffStatus(so).label} text hint={d.signoff3?.unmet?.length ? d.signoff3.unmet[0] : 'data categories for Tier 2 and 3'} />
           <Tile label="Use cases to review" value={d.use_cases.length} hint={`${d.use_cases.filter((u) => u.tier === 3).length} Tier 3 · ${d.use_cases.filter((u) => u.tier === 2).length} Tier 2`} />
@@ -253,10 +257,11 @@ export function DepartmentHome() {
   return <Shell q={useHome<DepartmentData>('department')}>{(d) => (
     <div className="page">
       <ReassessmentCard />
-      {d.departments.length === 0 ? <><PageHeader title="My department" /><Card><EmptyState>You are not the lead for a department yet. Ask your Client Admin.</EmptyState></Card></> :
+      {d.departments.length === 0 ? <><PageHeader title="My department" /><StageTimeline /><Card><EmptyState>You are not the lead for a department yet. Ask your Client Admin.</EmptyState></Card></> :
         d.departments.map((s, i) => (
           <div key={s.id} style={i ? { marginTop: 32 } : undefined}>
             <PageHeader title={s.name} subtitle={i === 0 ? 'Everything here is limited to your department.' : undefined} />
+            {i === 0 && <StageTimeline />}
             {!d.engagement ? <Card><EmptyState>{NO_ENGAGEMENT}</EmptyState></Card> : <DepartmentSection s={s} shared={d.findings_shared} />}
           </div>
         ))}
@@ -273,6 +278,7 @@ export function MyTasks() {
     return (
       <div className="page">
         <PageHeader title="My tasks" subtitle="Help your department describe how it uses AI." actions={d.engagement && d.inventory_open !== false ? <ButtonLink to="/inventory/new" variant="primary">Add a use case</ButtonLink> : undefined} />
+        <StageTimeline />
         {!d.engagement ? <Card><EmptyState>{NO_ENGAGEMENT}</EmptyState></Card> : (
           <div className="split" style={{ marginTop: 16 }}>
             <div className="main">
