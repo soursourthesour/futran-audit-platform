@@ -92,9 +92,10 @@ def ai_systems(actor: Actor = Depends(current_actor), db: Session = Depends(get_
     if not (see_register or see_inventory or may_prefill):
         raise Forbidden()
 
-    audit_systems = [s for s in (db.scalars(select(AISystem).where(AISystem.engagement_id == e.id, AISystem.deleted_at.is_(None)).order_by(AISystem.reference_id))
-                                 if see_engagement else [])]
-    answerable = {s.id for s in prefillable(db, actor, e)} if may_prefill else set()
+    # the audit's systems as the old AI systems page showed them: only those this person pre-fills. Whether anything else is
+    # in the audit is not said (None), since that page was the only place a client saw the audit's systems.
+    audit_systems = prefillable(db, actor, e) if may_prefill else []
+    answerable = {s.id for s in audit_systems}
     dept_names = {d.id: d.name for d in db.scalars(select(Department).where(Department.organization_id == org.id, Department.deleted_at.is_(None)))}
     dept = (lambda i: {"id": i, "name": dept_names[i]} if i in dept_names else None)  # noqa: E731
     rows: list[dict] = []
@@ -121,13 +122,13 @@ def ai_systems(actor: Actor = Depends(current_actor), db: Session = Depends(get_
         depts = [out["department"]] if out["department"] else out["departments"]
         rows.append(_row(f"system:{s.id}", "system", s.name, sources=sources, subtype=out["type_label"], detail=out["vendor"]["name"] if out["vendor"] else None,
                          departments=depts, company_wide=s.company_wide, stage=s.stage, stage_label=out["stage_label"], tier=s.risk_tier, registered=True,
-                         in_audit=(a is not None) if see_engagement else None, audit=_audit_info(db, e, a, a.id in answerable) if a is not None else None,
+                         in_audit=(a is not None) if may_prefill else None, audit=_audit_info(db, e, a, True) if a is not None else None,
                          system=out, open=f"/register/{s.id}"))
 
     # ---- the audit's systems not on a register row this person sees (the old AI systems list)
     shown = {s.id for s in systems}
     for a in audit_systems:
-        if a.id not in answerable or (a.register_system_id and a.register_system_id in shown):
+        if a.register_system_id and a.register_system_id in shown:
             continue
         rows.append(_row(f"audit:{a.id}", "system", a.name, sources=["audit"], subtype=a.reference_id, departments=[x for x in [dept(a.department_id)] if x],
                          stage=f"audit:{a.status}", stage_label=AUDIT_STATUS.get(a.status, a.status), registered=False if see_register else None, in_audit=True,
@@ -155,7 +156,7 @@ def ai_systems(actor: Actor = Depends(current_actor), db: Session = Depends(get_
                              subtype="Agent" if t.kind == "agent" else "Tool", detail=t.account_type.replace("_", " "), departments=tool_depts.get(t.id, []),
                              stage=f"tool:{t.approval_status}", stage_label=TOOL_STATUS.get(t.approval_status, t.approval_status),
                              registered=(home is not None) if see_register else None, in_register_as={"id": home.id, "name": home.name} if home else None,
-                             in_audit=(t.id in in_audit_tools) if see_engagement else None, tool=tool_out(t, counts=individual),
+                             in_audit=(t.id in in_audit_tools) if may_prefill else None, tool=tool_out(t, counts=individual),
                              can={"approve_tool": caico}))
         for u in ucs:
             home = by_ref.get(f"use_case:{u.id}") if see_register else None
@@ -163,7 +164,7 @@ def ai_systems(actor: Actor = Depends(current_actor), db: Session = Depends(get_
                              departments=[x for x in [dept(u.department_id)] if x], stage=f"uc:{u.status}", stage_label=USE_CASE_STATUS.get(u.status, u.status),
                              tier=inv.effective_tier(u) if (u.final_tier or u.proposed_tier) else None,
                              registered=(home is not None) if see_register else None, in_register_as={"id": home.id, "name": home.name} if home else None,
-                             in_audit=(u.id in in_audit_ucs) if see_engagement else None, use_case=use_case_out(db, u), open=f"/inventory/{u.id}",
+                             in_audit=(u.id in in_audit_ucs) if may_prefill else None, use_case=use_case_out(db, u), open=f"/inventory/{u.id}",
                              can={"review_use_case": u.status == "submitted" and _may(db, actor, Action.APPROVE_USE_CASE, engagement_id=e.id, department_id=u.department_id)}))
         inventory = {
             "tiers": {str(t): sum(1 for u in ucs if inv.effective_tier(u) == t) for t in (1, 2, 3)},
@@ -183,13 +184,12 @@ def ai_systems(actor: Actor = Depends(current_actor), db: Session = Depends(get_
 
 
 def audit_link(db: Session, actor: Actor, s: RegisterSystem) -> dict | None:
-    """The current audit's system taken from this register system, for its record page (None when it is not in the audit
-    or the person cannot see the engagement). `can_answer` is whether they pre-fill its audit questions."""
+    """The current audit's system taken from this register system, for its record page: only for someone who pre-fills it
+    (as the old AI systems page showed it), otherwise None."""
     e = current_engagement(db, actor.organization)
     if e is None or not _may(db, actor, Action.VIEW_ENGAGEMENT, engagement_id=e.id):
         return None
-    a = db.scalar(select(AISystem).where(AISystem.engagement_id == e.id, AISystem.register_system_id == s.id, AISystem.deleted_at.is_(None)).limit(1))
-    if a is None:
+    if not _may(db, actor, Action.PREFILL_SYSTEM, engagement_id=e.id, list_view=True):
         return None
-    can = _may(db, actor, Action.PREFILL_SYSTEM, engagement_id=e.id, list_view=True) and a.id in {x.id for x in prefillable(db, actor, e)}
-    return {"system_id": a.id, "reference_id": a.reference_id, "can_answer": can}
+    a = next((x for x in prefillable(db, actor, e) if x.register_system_id == s.id), None)
+    return {"system_id": a.id, "reference_id": a.reference_id, "can_answer": True} if a is not None else None

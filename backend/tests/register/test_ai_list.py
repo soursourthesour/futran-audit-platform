@@ -127,7 +127,8 @@ def test_client_admin_sees_the_register_but_no_inventory(client, db, reg):
     assert f"system:{w['fin_sys']['id']}" in rows
     assert not any(k.startswith(("tool:", "use_case:", "audit:")) for k in rows)
     assert body["inventory"] is None
-    assert rows[f"system:{w['hr_sys']['id']}"]["audit"]["can_answer"] is False  # in the audit, but not theirs to answer
+    # the audit's systems were only ever shown to those who pre-fill them: the list says nothing about the audit to the Client Admin
+    assert rows[f"system:{w['hr_sys']['id']}"]["audit"] is None and rows[f"system:{w['hr_sys']['id']}"]["in_audit"] is None
 
 
 def test_no_access_and_futran_and_other_tenants(client, db, reg):
@@ -192,4 +193,4 @@ def test_the_system_record_opens_its_audit_questions(client, db, reg):
     reg.as_(reg.caico)
     assert client.get(f"/api/v1/register/{w['fin_sys']['id']}").json()["audit"] is None
     reg.as_(reg.admin)
-    assert client.get(f"/api/v1/register/{w['hr_sys']['id']}").json()["audit"]["can_answer"] is False
+    assert client.get(f"/api/v1/register/{w['hr_sys']['id']}").json()["audit"] is None
