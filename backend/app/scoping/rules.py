@@ -192,22 +192,165 @@ def question_codes(rule: dict) -> set[str]:
     return out
 
 
-def evaluate(defs: list[dict], answers: dict, *, labels: dict | None = None, catalog: dict | None = None) -> list[dict]:
-    """The lines the active, approved rules propose, in rule order; one line per line code (the first rule wins)."""
+def evaluate(defs: list[dict], answers: dict, *, labels: dict | None = None, catalog: dict | None = None, errors: list | None = None) -> list[dict]:
+    """The lines the active, approved rules propose, in rule order; one line per line code (the first rule wins).
+    A rule that cannot run on these answers is skipped, never fatal; it is added to `errors` when a list is given."""
     labels = labels or {}
     out: list[dict] = []
     seen: set[str] = set()
-    for d in sorted(defs, key=lambda r: (r.get("order", 0), r["code"])):
-        if not d.get("active", True) or d.get("status", "approved") != "approved" or d["line_code"] in seen:
+    for d in sorted(defs, key=lambda r: (r.get("order", 0), str(r.get("code")))):
+        if not d.get("active", True) or d.get("status", "approved") != "approved" or d.get("line_code") in seen:
             continue
-        if not check(d.get("inputs") or {"all": []}, answers):
-            continue
-        qty = quantity(d.get("qty_formula") or {"const": 1}, answers, catalog)
-        if qty is None or qty <= 0:
+        try:
+            if not check(d.get("inputs") or {"all": []}, answers):
+                continue
+            qty = quantity(d.get("qty_formula") or {"const": 1}, answers, catalog)
+            if qty is None or qty <= 0:
+                continue
+            line = {"code": d["line_code"], "qty": qty, "reason": reason(d.get("reason_template", ""), answers, labels, qty), "rule_code": d["code"]}
+        except Exception as exc:  # noqa: BLE001 - one bad rule must not stop scoping for everyone
+            if errors is not None:
+                errors.append({"rule_code": d.get("code"), "line_code": d.get("line_code"), "error": type(exc).__name__,
+                               "message": f"Rule {d.get('code')} could not be applied. Ask the Futran Admin to repair it on the Mapping rules tab."})
             continue
         seen.add(d["line_code"])
-        out.append({"code": d["line_code"], "qty": qty, "reason": reason(d.get("reason_template", ""), answers, labels, qty), "rule_code": d["code"]})
+        out.append(line)
     return out
+
+
+# ---- checking a rule before it is saved
+NUMERIC_OPS = {"lt", "lte", "gt", "gte"}
+RANGE_OPS = {"between", "count_between"}
+OPS = NUMERIC_OPS | RANGE_OPS | {"eq", "ne", "in", "includes", "any_ticked", "unknown"}
+NUMERIC_TYPES = {"count", "total"}
+QTY_KEYS = {"const", "answer", "count", "sum", "first", "excess_included"}
+
+
+def _is_num(v) -> bool:
+    return isinstance(v, (int, float)) and not isinstance(v, bool)
+
+
+def validate(rule: dict, types: dict[str, str]) -> list[str]:
+    """Problems with a rule's conditions and quantity, as plain sentences; empty when it is sound. `types` maps each
+    question code in the bank to its answer type."""
+    problems: list[str] = []
+
+    def code_ok(c, numeric: bool = False) -> bool:
+        if not isinstance(c, str) or c not in types:
+            problems.append(f"{c!r} is not a question in the bank.")
+            return False
+        if numeric and types[c] not in NUMERIC_TYPES:
+            problems.append(f"{c} is not a number question, so it cannot be compared as a number.")
+            return False
+        return True
+
+    def cond(node, depth=0):
+        if depth > 6 or not isinstance(node, dict):
+            problems.append("Each condition must be an object such as {\"q\": \"SQ-C.07\", \"op\": \"gte\", \"value\": 11}.")
+            return
+        if "all" in node or "any" in node:
+            key = "all" if "all" in node else "any"
+            if set(node) != {key} or not isinstance(node[key], list):
+                problems.append(f'"{key}" must hold a list of conditions and nothing else.')
+                return
+            for c in node[key]:
+                cond(c, depth + 1)
+            return
+        op, q, value = node.get("op"), node.get("q"), node.get("value")
+        if set(node) - {"q", "op", "value"}:
+            problems.append(f"Unknown keys in a condition: {', '.join(sorted(set(node) - {'q', 'op', 'value'}))}.")
+        if op not in OPS:
+            problems.append(f"{op!r} is not a known test. Use one of: {', '.join(sorted(OPS))}.")
+            return
+        if isinstance(q, list):
+            if op not in NUMERIC_OPS | RANGE_OPS - {"count_between"} or not q:
+                problems.append("A list of questions can only be added up and compared as a number.")
+                return
+            for c in q:
+                code_ok(c, numeric=True)
+        elif not code_ok(q):
+            return
+        qtype = types.get(q) if isinstance(q, str) else "count"
+        if op in NUMERIC_OPS:
+            if not _is_num(value):
+                problems.append(f"The test {op} on {q} needs a number, not {value!r}.")
+            elif isinstance(q, str) and qtype not in NUMERIC_TYPES | {"multi"}:
+                problems.append(f"{q} is not a number question, so it cannot be compared as a number.")
+        elif op in RANGE_OPS:
+            if not (isinstance(value, list) and len(value) == 2 and all(v is None or _is_num(v) for v in value) and any(v is not None for v in value)):
+                problems.append(f"The test {op} on {q} needs [low, high] numbers (one may be null).")
+            elif op == "between" and isinstance(q, str) and qtype not in NUMERIC_TYPES:
+                problems.append(f"{q} is not a number question; use count_between for ticked options.")
+            elif op == "count_between" and qtype != "multi":
+                problems.append(f"count_between needs a tick-box question; {q} is not one.")
+        elif op in ("eq", "ne"):
+            if not (isinstance(value, str) or _is_num(value)):
+                problems.append(f"The test {op} on {q} needs a text or number value.")
+        elif op == "in":
+            if not (isinstance(value, list) and value and all(isinstance(v, (str, int, float)) for v in value)):
+                problems.append(f"The test in on {q} needs a list of values.")
+        elif op == "includes":
+            if not isinstance(value, str) or qtype != "multi":
+                problems.append(f"The test includes needs a tick-box question and one option value; check {q}.")
+        elif op == "any_ticked" and qtype != "multi":
+            problems.append(f"any_ticked needs a tick-box question; {q} is not one.")
+
+    def qty(f):
+        if not isinstance(f, dict) or len(set(f) & QTY_KEYS) != 1:
+            problems.append(f"The quantity needs exactly one of: {', '.join(sorted(QTY_KEYS))}.")
+            return
+        extra = set(f) - QTY_KEYS - {"add", "min"}
+        if extra:
+            problems.append(f"Unknown keys in the quantity: {', '.join(sorted(extra))}.")
+        for k in ("add", "min"):
+            if k in f and not _is_num(f[k]):
+                problems.append(f'"{k}" in the quantity must be a number.')
+        if "const" in f and not (_is_num(f["const"]) and f["const"] >= 0):
+            problems.append("A fixed quantity must be a number of 0 or more.")
+        if "answer" in f:
+            code_ok(f["answer"], numeric=True)
+        if "count" in f and code_ok(f["count"]) and types.get(f["count"]) != "multi":
+            problems.append(f"Counting ticked options needs a tick-box question; {f['count']} is not one.")
+        for k in ("sum", "first"):
+            if k in f:
+                if not isinstance(f[k], list) or not f[k]:
+                    problems.append(f'"{k}" needs a list of question codes.')
+                else:
+                    for c in f[k]:
+                        code_ok(c, numeric=True)
+        if "excess_included" in f:
+            e = f["excess_included"]
+            ok = isinstance(e, dict) and code_ok(e.get("q"), numeric=True) and isinstance(e.get("key", "systems"), str) and isinstance(e.get("tiers"), list) \
+                and all(isinstance(t, list) and len(t) == 3 and isinstance(t[0], str) and all(v is None or _is_num(v) for v in t[1:]) for t in e["tiers"])
+            if not ok:
+                problems.append('"excess_included" needs {"q": a number question, "tiers": [[line, low, high], ...], "key": text}.')
+
+    cond(rule.get("inputs") if rule.get("inputs") is not None else {"all": []})
+    qty(rule.get("qty_formula") if rule.get("qty_formula") is not None else {"const": 1})
+    for c in re.findall(r"\{(SQ-[A-Z]+\.\d+)", rule.get("reason_template") or ""):
+        code_ok(c)
+    return list(dict.fromkeys(problems))
+
+
+def probe(rule: dict, questions: dict) -> str | None:
+    """Run one rule on a filled-in questionnaire (every question answered with a typical value) and on an empty one;
+    the error message when it cannot run, else None. `questions` maps code to (type, option values)."""
+    filled = {}
+    for code, (qtype, values) in questions.items():
+        if qtype in NUMERIC_TYPES:
+            filled[code] = Ans(12)
+        elif qtype == "multi":
+            filled[code] = Ans(list(values[:2]))
+        elif qtype in ("single", "yes_no"):
+            filled[code] = Ans(values[0] if values else "x")
+        else:
+            filled[code] = Ans("text")
+    for answers in (filled, {}, {c: Ans(None, "unknown") for c in questions}):
+        errors: list = []
+        evaluate([{**rule, "active": True, "status": "approved"}], answers, errors=errors)
+        if errors:
+            return errors[0]["message"]
+    return None
 
 
 # ---- the rules seeded in v1 (spec §4.5). Band limits not given by the spec or the designs carry a note.

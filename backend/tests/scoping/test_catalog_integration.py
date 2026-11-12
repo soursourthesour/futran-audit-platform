@@ -49,7 +49,10 @@ def test_flags_match_the_price_lists_own_count(db, world):
     from app.catalog.service import rule_flags
 
     seed_starter(db)
-    rulebook.set_active(db, "MR-19", False)
+    from app.scoping import bank
+
+    rulebook.set_active(db, "MR-19", False, world["admin"].id, {q.code: q.type for q in bank.questions(db)})
+    rulebook.approve(db, "MR-19", world["chief"].id)
     mine = rulebook.flags(db)
     assert "MR-19" not in mine
     assert sorted(mine) == sorted(f["rule_code"] for f in rule_flags(db))

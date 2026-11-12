@@ -98,6 +98,7 @@ def _view(db: Session, actor: Actor, opp: Opportunity) -> dict:
     return {**head, "questionnaire": _q_out(db, q), "bank": {"version": q.bank_version, "starter": bank.STARTER_NOTE.startswith("Starter")},
             "sections": sections, "answers": ans_out, "suggested": lines, "not_answered_sections": [bank.SECTION_LABELS[s] for s in pending],
             "estimate": service.estimate(db, q, lines), "assumptions": service.assumptions(db, q), "conflict_count": len(service.conflicts(db, q)),
+            "rule_errors": service.rule_errors(db, q),
             "sends": [sending.send_out(db, s) for s in db.scalars(select(QuestionnaireSend).where(QuestionnaireSend.questionnaire_id == q.id)
                                                                  .order_by(QuestionnaireSend.sent_at))],
             "versions": [{"id": v.id, "version": v.version, "status": v.status} for v in service.versions(db, opp.id)]}
@@ -259,6 +260,7 @@ def review(qid: str, actor: Actor = Depends(current_actor), db: Session = Depend
             "counts": {"answered": len(answers), "total": len(qs), "conflicts": len(conflicts), "unknown": sum(a.confidence == "unknown" for a in answers.values()),
                        "lines": len([x for x in lines if not x["removed_reason"]])},
             "conflicts": conflicts, "unknowns": service.unknowns(db, q), "answers": side, "suggested": lines, "assumptions": service.assumptions(db, q),
+            "rule_errors": service.rule_errors(db, q),
             "can_work": _can(db, actor, Action.WORK_SCOPING), "can_build_proposal": builder is not None,
             "build_note": None if builder is not None else "The proposal builder is not available yet. Lock the questionnaire now; build the proposal when it is.",
             "versions": [{"id": v.id, "version": v.version, "status": v.status} for v in service.versions(db, q.opportunity_id)]}
@@ -344,12 +346,13 @@ def add_question(body: dict, request: Request, actor: Actor = Depends(current_ac
 
 
 # ---- SM-14 Mapping rules tab
-def _bank_codes(db: Session) -> set[str]:
-    return {x.code for x in bank.questions(db, include_inactive=True)}
+def _bank_codes(db: Session) -> dict[str, str]:
+    """Question code -> answer type, for checking rules."""
+    return {x.code: x.type for x in bank.questions(db, include_inactive=True)}
 
 
 def _rule_view(db: Session, r, flags: dict | None = None) -> dict:
-    flags = flags if flags is not None else rulebook.flags(db, [r])
+    flags = flags if flags is not None else {**rulebook.flags(db, [r]), **rulebook.run_flags(db, [r])}
     return rulebook.rule_out(r, flags.get(r.code), _names(db, [r.pending_by, r.approved_by]))
 
 
@@ -358,7 +361,7 @@ def get_rules(actor: Actor = Depends(current_actor), db: Session = Depends(get_d
     _futran_only(actor)
     authorize(db, actor, Action.VIEW_SCOPING_SETUP)
     rows = rulebook.all_rules(db)
-    flags = rulebook.flags(db, rows)
+    flags = {**rulebook.flags(db, rows), **rulebook.run_flags(db, rows)}
     names = _names(db, [x for r in rows for x in (r.pending_by, r.approved_by)])
     db.commit()
     return {"rules": [rulebook.rule_out(r, flags.get(r.code), names) for r in rows], "flagged": len(flags),
@@ -396,9 +399,9 @@ class ActiveIn(BaseModel):
 def set_rule_active(code: str, body: ActiveIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     _futran_only(actor)
     authorize(db, actor, Action.MANAGE_MAPPING_RULES)
-    r = rulebook.set_active(db, code, body.active)
+    r = rulebook.set_active(db, code, body.active, actor.id, _bank_codes(db))
     audit.record(db, actor_id=actor.id, action="scoping.rule_active", obj=r, organization_id=actor.organization.id, request=request,
-                 summary=f"Mapping rule {code} {'switched on' if body.active else 'switched off'}")
+                 summary=f"Mapping rule {code}: {'switch on' if body.active else 'switch off'} sent for approval")
     db.commit()
     return _rule_view(db, r)
 

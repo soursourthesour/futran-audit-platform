@@ -206,8 +206,12 @@ def close_links(db: Session, q: ScopingQuestionnaire) -> None:
 
 
 def revoke(db: Session, s: QuestionnaireSend) -> None:
-    if s.revoked_at is None:
-        s.revoked_at, s.status = utcnow(), "revoked"
+    """Close a link and every link forwarded from it."""
+    now = utcnow()
+    rows = [s] + list(db.scalars(select(QuestionnaireSend).where(QuestionnaireSend.forwarded_from_id == s.id))) if s.forwarded_from_id is None else [s]
+    for r in rows:
+        if r.revoked_at is None:
+            r.revoked_at, r.status = now, "revoked"
     db.flush()
 
 
@@ -333,7 +337,8 @@ def forward(db: Session, settings: Settings, s: QuestionnaireSend, name: str, em
     now = utcnow()
     f = QuestionnaireSend(questionnaire_id=s.questionnaire_id, contact_name=name, contact_email=email, question_codes=list(s.question_codes), due_on=s.due_on,
                           reminder_days=list(s.reminder_days or []), reminders_sent=[], allow_forward=s.allow_forward, forwarded_from_id=root, status="sent",
-                          expires_at=now + timedelta(days=LINK_DAYS), subject=s.subject, message=FORWARD_MESSAGE, sent_by=s.sent_by, sent_at=now)
+                          expires_at=min(now + timedelta(days=LINK_DAYS), s.expires_at or now), subject=s.subject, message=FORWARD_MESSAGE,
+                          sent_by=s.sent_by, sent_at=now)  # never outlives the link it came from
     db.add(f)
     db.flush()
     rep = db.get(User, s.sent_by) if s.sent_by else None

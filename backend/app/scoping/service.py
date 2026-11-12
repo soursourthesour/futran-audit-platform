@@ -311,12 +311,25 @@ def _answer_out(a: ScopingAnswer | Ans | None, labels: dict, code: str | None = 
     return out
 
 
-def _lines_for(db: Session, q: ScopingQuestionnaire, answers: dict[str, Ans]) -> list[dict]:
+def _lines_for(db: Session, q: ScopingQuestionnaire, answers: dict[str, Ans], errors: list | None = None) -> list[dict]:
     defs = rulebook.live_definitions(db)
     qs = bank.by_code(db, q.bank_version)
-    tier_codes = {t[0] for d in defs for t in (d.get("qty_formula") or {}).get("excess_included", {}).get("tiers", [])}
+    tier_codes = set()
+    for d in defs:
+        try:
+            tier_codes |= {t[0] for t in (d.get("qty_formula") or {}).get("excess_included", {}).get("tiers", [])}
+        except (AttributeError, TypeError, IndexError):
+            pass  # a malformed rule; evaluate() skips and reports it
     catalog = bridge.catalog_items(db, sorted(tier_codes)) if tier_codes else None
-    return rules.evaluate(defs, answers, labels=_labels(qs), catalog=catalog)
+    return rules.evaluate(defs, answers, labels=_labels(qs), catalog=catalog, errors=errors)
+
+
+def rule_errors(db: Session, q: ScopingQuestionnaire) -> list[dict]:
+    """Rules that could not be applied to this questionnaire's answers: [{rule_code, line_code, message}]. Their lines
+    are left out; the rep is told, and the Mapping rules tab flags them for repair."""
+    errors: list = []
+    _lines_for(db, q, effective_answers(db, q), errors)
+    return errors
 
 
 def suggest_lines(db: Session, questionnaire_id: str) -> list[dict]:

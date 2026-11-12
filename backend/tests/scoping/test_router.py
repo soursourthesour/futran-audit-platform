@@ -128,7 +128,7 @@ def test_mapping_rules_tab_flags_missing_codes_and_edits_wait_for_approval(clien
 def test_nobody_approves_their_own_rule_edit(db, world):
     from app.core.errors import Forbidden
 
-    rulebook.propose_edit(db, "MR-19", {"note": "Check the trigger list"}, world["admin"].id, {"SQ-A.01"})
+    rulebook.propose_edit(db, "MR-19", {"note": "Check the trigger list"}, world["admin"].id, {"SQ-A.01": "single"})
     with pytest.raises(Forbidden):
         rulebook.approve(db, "MR-19", world["admin"].id)
     r = rulebook.approve(db, "MR-19", world["chief"].id)

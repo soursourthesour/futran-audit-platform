@@ -195,6 +195,7 @@ export function ScopingCall() {
         <aside aria-label="Suggested line items" className="sc-aside">
           <h2>Suggested line items</h2>
           <p className="small muted">Updates as you answer. Not shown to the client.</p>
+          {(d.rule_errors ?? []).map((e) => <Alert key={e.rule_code} tone="warn">{e.message}</Alert>)}
           {live.length === 0 && <p className="small">Nothing suggested yet.</p>}
           <ul className="sc-lines">
             {live.map((l) => (

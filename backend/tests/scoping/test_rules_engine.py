@@ -82,3 +82,9 @@ def test_inactive_and_pending_rules_do_not_run():
         if d["line_code"] == "X-05":
             d["active"] = False
     assert not any(line["code"] == "X-05" for line in rules.evaluate(defs, {"SQ-A.01": Ans("ma")}, labels=LABELS))
+
+
+def test_every_seeded_rule_passes_the_save_check():
+    types = {q["code"]: q["type"] for q in STARTER}
+    for d in rules.seed_definitions():
+        assert rules.validate(d, types) == [], d["code"]

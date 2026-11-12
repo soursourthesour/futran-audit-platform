@@ -94,19 +94,19 @@ export function MappingRulesTab() {
         <tbody>{rows.map((r) => (
           <tr key={r.code} className={r.active ? '' : 'muted'}>
             <td className="nowrap"><strong>{r.code}</strong></td>
-            <td className="nowrap">{r.line_code}{r.flag && <span className="block"><Badge tone="danger">Not in price list</Badge></span>}</td>
+            <td className="nowrap">{r.line_code}{r.flag && <span className="block"><Badge tone="danger">{r.flag.includes('could not be applied') ? 'Cannot run' : 'Not in price list'}</Badge></span>}</td>
             <td className="small">{cond(r.inputs as Cond)}{r.note && <span className="block muted">{r.note}</span>}{r.flag && <span className="block sc-flag">{r.flag}</span>}</td>
             <td className="small">{qty(r.qty_formula)}</td>
             <td className="small">{r.reason_template}</td>
             <td className="small">
               {r.status === 'pending' ? <Badge tone="warn">New, waiting approval</Badge> : r.status === 'rejected' ? <Badge tone="muted">Returned</Badge> : <Badge tone="success">Approved</Badge>}
-              {r.pending && <span className="block"><Badge tone="warn">Edit waiting approval</Badge> by {r.pending_by_name}</span>}
+              {r.pending && <span className="block"><Badge tone="warn">{r.pending.active !== undefined && r.pending.active !== r.active ? (r.pending.active ? 'Switch on waiting approval' : 'Switch off waiting approval') : 'Edit waiting approval'}</Badge> by {r.pending_by_name}</span>}
               {!r.active && <span className="block"><Badge tone="muted">Switched off</Badge></span>}
               {r.approved_by_name && r.status === 'approved' && <span className="block muted">{r.approved_by_name}</span>}
             </td>
             <td><div className="stack-xs">
               {d.can_edit && <Button size="sm" onClick={() => setEdit(r)}>Edit</Button>}
-              {d.can_edit && <Button size="sm" onClick={() => act(r, 'active', { active: !r.active }, `${r.code} ${r.active ? 'switched off' : 'switched on'}.`)}>{r.active ? 'Switch off' : 'Switch on'}</Button>}
+              {d.can_edit && <Button size="sm" onClick={() => act(r, 'active', { active: !r.active }, `${r.code}: ${r.active ? 'switch off' : 'switch on'} sent to the Pricing Approver. The rule runs as it is until then.`)}>{r.active ? 'Ask to switch off' : 'Ask to switch on'}</Button>}
               {d.can_approve && (r.pending || r.status === 'pending') && <><Button size="sm" variant="primary" onClick={() => act(r, 'approve', undefined, `${r.code} approved.`)}>Approve</Button><Button size="sm" onClick={() => act(r, 'reject', undefined, `${r.code} returned.`)}>Return</Button></>}
             </div></td>
           </tr>

@@ -12,7 +12,7 @@ type Review = {
   conflicts: { code: string; label: string; rep: AnswerOut; client: AnswerOut; effect: string }[];
   unknowns: { code: string; label: string; effect: string; assumption: string | null }[];
   answers: { code: string; label: string; section: string; internal_only: boolean; rep: AnswerOut | null; client: AnswerOut | null; used: AnswerOut | null }[];
-  suggested: Line[]; assumptions: { code: string; text: string }[]; can_work: boolean; can_build_proposal: boolean; build_note: string | null;
+  suggested: Line[]; rule_errors: { rule_code: string; message: string }[]; assumptions: { code: string; text: string }[]; can_work: boolean; can_build_proposal: boolean; build_note: string | null;
   versions: { id: string; version: number; status: string }[];
 };
 
@@ -114,6 +114,7 @@ export function ReviewAnswers() {
 
       <section className="card sc-card" aria-labelledby="sc-lines">
         <h2 id="sc-lines">Proposed line items</h2>
+        {d.rule_errors.map((e) => <Alert key={e.rule_code} tone="warn">{e.message}</Alert>)}
         <ul className="sc-lines">{d.suggested.map((l) => <li key={l.code}>{l.removed_reason ? <><s>{l.code} × {l.qty}</s> — removed: {l.removed_reason}</> : <><strong>{l.code}</strong> × {l.qty} <span className="small muted">— {l.reason}</span></>}</li>)}</ul>
       </section>
 

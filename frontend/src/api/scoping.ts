@@ -18,8 +18,9 @@ export type ScopingView = {
   opportunity: { id: string; name: string; company: string; stage: string; prospect: boolean }; can_work: boolean;
   questionnaire: QOut | null; bank?: { version: number; starter: boolean }; sections?: Section[];
   answers?: Record<string, AnswerOut & { client: AnswerOut | null }>; suggested?: Line[]; not_answered_sections?: string[]; estimate?: Estimate;
-  assumptions?: { code: string; text: string }[]; conflict_count?: number; sends?: SendRow[]; versions?: { id: string; version: number; status: string }[];
+  assumptions?: { code: string; text: string }[]; conflict_count?: number; rule_errors?: RuleError[]; sends?: SendRow[]; versions?: { id: string; version: number; status: string }[];
 };
+export type RuleError = { rule_code: string; line_code: string; message: string };
 export type Draft = { value: unknown; confidence: 'confirmed' | 'estimate' | 'unknown'; note: string };
 
 export const SOURCE_LABELS: Record<string, string> = { rep: 'Rep', client: 'Client', rep_confirmed_client: 'Client, confirmed by rep', derived: 'Sum of counts' };

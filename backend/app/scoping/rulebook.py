@@ -13,7 +13,7 @@ from app.core.errors import Conflict, Forbidden, Invalid, NotFound
 from app.scoping import bridge, rules
 from app.scoping.models import MappingRule
 
-FIELDS = ("inputs", "line_code", "qty_formula", "reason_template", "note")
+FIELDS = ("inputs", "line_code", "qty_formula", "reason_template", "note", "active")  # every one goes through approval
 
 
 def ensure_seed(db: Session) -> None:
@@ -47,7 +47,9 @@ def get(db: Session, code: str) -> MappingRule:
     return r
 
 
-def _validate(data: dict, bank_codes: set[str]) -> dict:
+def _validate(data: dict, types: dict[str, str], base: dict | None = None) -> dict:
+    """The changes in `data`, checked. `types` maps each bank question code to its answer type; `base` is the rule the
+    changes apply to, so the whole rule is checked as it would run."""
     out = {k: data[k] for k in FIELDS if k in data and data[k] is not None}
     errors = []
     if "line_code" in out:
@@ -56,41 +58,43 @@ def _validate(data: dict, bank_codes: set[str]) -> dict:
             errors.append({"field": "line_code", "message": "Enter the price list code the rule proposes."})
     if "reason_template" in out and not str(out["reason_template"]).strip():
         errors.append({"field": "reason_template", "message": "Say why the line is proposed, for the rep to read."})
+    if "active" in out and not isinstance(out["active"], bool):
+        errors.append({"field": "active", "message": "Switch the rule on or off."})
     for key in ("inputs", "qty_formula"):
         if key in out and not isinstance(out[key], dict):
             errors.append({"field": key, "message": "This must be a JSON object."})
     if not errors:
-        unknown = sorted(rules.question_codes({**out}) - bank_codes)
-        if unknown:
-            errors.append({"field": "inputs", "message": f"Not in the question bank: {', '.join(unknown)}."})
-        else:
-            try:  # the rule must run on an empty questionnaire without error
-                rules.evaluate([{"code": "check", "line_code": out.get("line_code", "X"), "inputs": out.get("inputs", {"all": []}),
-                                 "qty_formula": out.get("qty_formula", {"const": 1}), "reason_template": out.get("reason_template", "")}], {})
-            except Exception:  # noqa: BLE001 - any shape error is the editor's to fix
-                errors.append({"field": "inputs", "message": "The conditions or quantity cannot be read. Check the JSON against the examples."})
+        whole = {**(base or {}), **out}
+        for problem in rules.validate(whole, types):
+            errors.append({"field": "inputs", "message": problem})
     if errors:
         raise Invalid(errors=errors)
     return out
 
 
-def propose_edit(db: Session, code: str, data: dict, actor_id: str, bank_codes: set[str]) -> MappingRule:
+def _live(r: MappingRule) -> dict:
+    return {k: getattr(r, k) for k in FIELDS}
+
+
+def propose_edit(db: Session, code: str, data: dict, actor_id: str, types: dict[str, str]) -> MappingRule:
+    """An edit (including switching the rule on or off) waits for the Pricing Approver. A second edit before approval
+    adds to the one already waiting."""
     r = get(db, code)
-    changes = _validate(data, bank_codes)
+    base = {**_live(r), **(r.pending or {})}
+    changes = _validate(data, types, base)
     if not changes:
         raise Invalid(errors=[{"field": "inputs", "message": "Nothing to change."}])
     if r.status == "pending":  # a new rule not yet approved: edit it in place
         for k, v in changes.items():
             setattr(r, k, v)
-        r.pending_by, r.pending_at = actor_id, utcnow()
     else:
-        r.pending = {**{k: getattr(r, k) for k in FIELDS}, **changes}
-        r.pending_by, r.pending_at = actor_id, utcnow()
+        r.pending = {**base, **changes}
+    r.pending_by, r.pending_at = actor_id, utcnow()
     db.flush()
     return r
 
 
-def add(db: Session, data: dict, actor_id: str, bank_codes: set[str]) -> MappingRule:
+def add(db: Session, data: dict, actor_id: str, types: dict[str, str]) -> MappingRule:
     import re
 
     code = str(data.get("code") or "").strip().upper()
@@ -99,7 +103,7 @@ def add(db: Session, data: dict, actor_id: str, bank_codes: set[str]) -> Mapping
     code = code[:5] + code[5:].lower()
     if db.scalar(select(MappingRule.id).where(MappingRule.code == code)):
         raise Invalid(errors=[{"field": "code", "message": "That rule code is already used."}])
-    fields = _validate(data, bank_codes)
+    fields = _validate(data, types, {"inputs": {"all": []}, "qty_formula": {"const": 1}})
     for need in ("line_code", "reason_template"):
         if need not in fields:
             raise Invalid(errors=[{"field": need, "message": "Enter the line code and the reason."}])
@@ -140,11 +144,9 @@ def reject(db: Session, code: str, actor_id: str) -> MappingRule:
     return r
 
 
-def set_active(db: Session, code: str, active: bool) -> MappingRule:
-    r = get(db, code)
-    r.active = bool(active)
-    db.flush()
-    return r
+def set_active(db: Session, code: str, active: bool, actor_id: str, types: dict[str, str]) -> MappingRule:
+    """Switching a rule on or off is a rule change: it waits for approval like any other edit."""
+    return propose_edit(db, code, {"active": bool(active)}, actor_id, types)
 
 
 def flags(db: Session, rows: list[MappingRule] | None = None) -> dict[str, str]:
@@ -166,6 +168,31 @@ def flags(db: Session, rows: list[MappingRule] | None = None) -> dict[str, str]:
             out[r.code] = f"{r.line_code} is not in the price list. Add it there, or change the rule."
         elif bridge.is_retired(item):
             out[r.code] = f"{r.line_code} is retired in the price list. Change the rule to a current item."
+        pending_code = (r.pending or {}).get("line_code")
+        if pending_code and pending_code != r.line_code:
+            p_item = items.get(pending_code)
+            if p_item is None or bridge.is_retired(p_item):
+                note = f"The edit waiting for approval points to {pending_code}, which is {'retired in' if p_item is not None else 'not in'} the price list."
+                out[r.code] = f"{out[r.code]} {note}" if r.code in out else note
+    return out
+
+
+def run_flags(db: Session, rows: list[MappingRule] | None = None) -> dict[str, str]:
+    """{rule code: message} for rules (approved, or an edit waiting) that cannot run on a filled-in or an empty
+    questionnaire, e.g. one saved before rules were checked. Scoping skips them; this tab shows them for repair."""
+    from app.scoping import bank
+
+    rows = rows if rows is not None else all_rules(db)
+    qs = {q.code: (q.type, [o.get("value") for o in (q.options or [])]) for q in bank.questions(db, include_inactive=True)}
+    out = {}
+    for r in rows:
+        for d in (as_definition(r), {**as_definition(r), **(r.pending or {})} if r.pending else None):
+            if d is None:
+                continue
+            msg = rules.probe(d, qs)
+            if msg:
+                out[r.code] = msg.replace(". Ask the Futran Admin to repair it on the Mapping rules tab.", ". Repair its conditions or quantity.")
+                break
     return out
 
 
