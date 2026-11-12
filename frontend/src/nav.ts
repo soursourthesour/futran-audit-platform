@@ -38,6 +38,7 @@ export const FUTRAN_GROUPS: NavGroup[] = [
     { to: '/staff/admin/catalog', label: 'Price list', requires: ['view_catalog'] },
     { to: '/sales/proposals', label: 'Proposals', requires: ['view_proposals'] },  // Release 2 R4
     { to: '/sales/approvals', label: 'Approvals', requires: ['decide_proposal_approvals'] },  // Release 2 R4 (SM-11)
+    { to: '/staff/partners', label: 'Partners', requires: ['view_partners'] },  // Release 2 R7 (G-11)
   ] },
   { id: 'assurance', label: 'Assurance', entries: [
     // wave 3 WS-I: Trust Center confirmations (32) and client policy reviews (27, independence rule)
@@ -90,6 +91,7 @@ export const CLIENT_GROUPS: NavGroup[] = [
     { to: '/updates', label: 'Regulatory updates', requires: ['view_client_updates'] }, // WS-H screen 26 (client)
     { to: '/addons', label: 'Add-ons', requires: ['view_addons'] },
     { to: '/copilot', label: 'Copilot readiness', requires: ['view_copilot_readiness'] },  // Release 2 R6b: G-07 client view
+    { to: '/group', label: 'Group', requires: ['view_group'] },  // Release 2 R7 (G-04): parent, subsidiaries, end-clients and roll-up consent
   ] },
   { id: 'people', label: 'People and training', entries: [
     { to: '/people', label: 'People', requires: ['manage_client_users'] },

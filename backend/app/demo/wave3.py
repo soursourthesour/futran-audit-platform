@@ -23,3 +23,4 @@ def seed(m: Demo, ids: dict) -> dict:
             continue
         out |= mod.seed(m, dict(ids) | out) or {}
     return out
+STEPS += ["release2_r7"]  # Release 2 R7: a staffing group, an evidence vault with a legal hold, channel partners

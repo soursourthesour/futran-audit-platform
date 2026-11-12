@@ -101,6 +101,8 @@ export function ClientPage() {
       <div className="tabs" role="tablist" aria-label="Client sections">
         {tabs.map(([k, label]) => <button key={k} type="button" role="tab" aria-selected={tab === k} className={tab === k ? 'active' : ''} onClick={() => setTab(k)}>{label}</button>)}
         {can(me, 'view_client_plan') && <Link role="tab" aria-selected={false} className="tab-link" to={`/staff/clients/${clientId}/plan`}>Plan and usage</Link>}{/* Release 2 R5 (G-01) */}
+        {can(me, 'view_client_hierarchy') && <Link role="tab" aria-selected={false} className="tab-link" to={`/staff/clients/${clientId}/entities`}>Entities</Link>}{/* Release 2 R7 (G-04) */}
+        {can(me, 'view_vault') && <Link role="tab" aria-selected={false} className="tab-link" to={`/staff/clients/${clientId}/vault`}>Evidence vault</Link>}{/* Release 2 R7 (G-10) */}
       </div>
       {tab === 'overview' && (
         <div className="stack">

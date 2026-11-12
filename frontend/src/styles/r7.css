@@ -1,0 +1,31 @@
+/* Release 2 R7: client hierarchy (G-04), evidence vault (G-10), partners (G-11) */
+.r7-tree { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.r7-node { display: flex; align-items: flex-start; gap: 10px; width: 100%; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm);
+  padding: 10px 12px; font: inherit; color: inherit; cursor: pointer; min-height: 44px; }
+.r7-node:hover { border-color: var(--input-line); }
+.r7-node[aria-pressed='true'] { border-color: var(--navy); box-shadow: inset 3px 0 0 var(--navy); background: #f3f7fd; }
+.r7-node:focus-visible { outline: none; box-shadow: var(--focus); }
+.r7-node .r7-branch { color: var(--muted); font-family: ui-monospace, monospace; flex: none; }
+.r7-node .r7-name { font-weight: 600; }
+.r7-node .r7-meta { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.r7-note { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line-soft); padding-top: 12px; margin: 4px 0 0; }
+.r7-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+.r7-kpi { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
+.r7-kpi .label { font-size: 13px; color: var(--muted); }
+.r7-kpi .value { font-size: 28px; font-weight: 600; margin: 4px 0; }
+.r7-kpi .sub { font-size: 13px; color: var(--muted); }
+.r7-bar { height: 8px; background: var(--line-soft); border-radius: 4px; overflow: hidden; margin-top: 6px; }
+.r7-bar > span { display: block; height: 100%; background: var(--navy); }
+.r7-bar.warn > span { background: var(--warn); }
+.r7-counts { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin: 8px 0 0; }
+.r7-counts div { background: var(--bg); border-radius: var(--radius-sm); padding: 8px 10px; }
+.r7-counts dt { font-size: 12px; color: var(--muted); }
+.r7-counts dd { margin: 0; font-size: 20px; font-weight: 600; }
+.r7-check-list { display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; border: 1px solid var(--line-soft); border-radius: var(--radius-sm); padding: 8px; }
+.r7-card-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.r7-card-list > li { border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; background: var(--surface); }
+@media (max-width: 480px) {
+  .r7-kpi .value { font-size: 22px; }
+  .r7-counts { grid-template-columns: 1fr 1fr; }
+}
+.r7-link { background: none; border: 0; padding: 0; color: var(--blue); font: inherit; text-decoration: underline; cursor: pointer; }
