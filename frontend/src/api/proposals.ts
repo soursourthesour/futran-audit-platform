@@ -33,7 +33,7 @@ export type Proposal = ProposalSummary & {
   lines: Line[]; discount_recurring_pct: number; terms: Terms; sections: Section[]; independence: { flag?: boolean; reason?: string };
   catalog_version: number | null; questionnaire_version: number | null; estimate_id: string | null; created_by: string | null; updated_by: string | null;
   sent_by: string | null; rules: RuleState[]; approvals_needed: RuleState[]; can_request: boolean; send_blockers: { rule: string; message: string }[];
-  versions: VersionRef[]; packages: { key: string; name: string }[]; regions: Record<string, string>; discount_limit_pct: number; can_work: boolean;
+  versions: VersionRef[]; price_changes: { code: string; name: string; edited: boolean; changes: Record<string, { from: unknown; to: unknown }> }[]; packages: { key: string; name: string }[]; regions: Record<string, string>; discount_limit_pct: number; can_work: boolean;
 };
 
 export type Diff = {

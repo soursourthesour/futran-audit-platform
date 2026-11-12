@@ -95,7 +95,7 @@ def proposal_out(db: Session, actor: Actor, p: Proposal, full: bool = True) -> d
                       "sent_at": v.sent_at.isoformat() if v.sent_at else None, "y1_total": (v.totals or {}).get("y1_total")} for v in ps.thread(db, p.thread_id)],
         "packages": [{"key": k.key, "name": k.name} for k in db.scalars(select(PackageTemplate).order_by(PackageTemplate.sort))],
         "regions": ps.REGIONS, "discount_limit_pct": guardrails.discount_limit(db), "can_work": _can(db, actor, Action.WORK_PROPOSALS),
-        "file_ids": p.file_ids or {},
+        "file_ids": p.file_ids or {}, "price_changes": ps.price_changes(db, p) if p.editable else [],
     })
     return d
 
@@ -137,7 +137,16 @@ def create(body: dict, actor: Actor = Depends(current_actor), db: Session = Depe
 @router.get("/sales/proposals/{proposal_id}")
 def get_one(proposal_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.VIEW_PROPOSALS)
-    return proposal_out(db, actor, _get(db, proposal_id))
+    p = _get(db, proposal_id)
+    ps.refresh_independence(db, p)  # a prospect may have become an audit client since the draft started
+    return proposal_out(db, actor, p)
+
+
+@router.post("/sales/proposals/{proposal_id}/current-prices")
+def current_prices(proposal_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+    p = _work(db, actor, proposal_id)
+    ps.update_to_current_prices(db, actor.user, p)
+    return proposal_out(db, actor, p)
 
 
 @router.patch("/sales/proposals/{proposal_id}")

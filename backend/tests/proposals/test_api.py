@@ -29,14 +29,14 @@ def test_build_request_approve_and_send_round_trip(db, pw):
     line = next(ln for ln in p["lines"] if ln["code"] == "A-06b")
     assert "Edited" in line["badges"] and "Below Low" in line["badges"] and line["edited_by"] == "Raj Mehta"
     p = c.patch(f"/api/v1/sales/proposals/{pid}", json={"discount_recurring_pct": 10, "terms": {"payment_days": 30, "sla": "Next business day"}}).json()
-    assert {r["rule"] for r in p["approvals_needed"]} == {"P-1", "P-2", "P-4"}
+    assert {r["rule"] for r in p["approvals_needed"]} == {"P-1", "P-2", "P-4", "P-6"}  # the SLA text is a custom term
     blocked = c.post(f"/api/v1/sales/proposals/{pid}/send", json={"recipients": [{"name": "Dana", "email": "dana@acme.example"}]})
     assert blocked.status_code == 409
     out = c.post(f"/api/v1/sales/proposals/{pid}/approvals").json()
-    assert sorted(out["requested"]) == ["P-1", "P-2", "P-4"] and out["proposal"]["status"] == "awaiting_approval"
+    assert sorted(out["requested"]) == ["P-1", "P-2", "P-4", "P-6"] and out["proposal"]["status"] == "awaiting_approval"
     a = pw.as_(pw.approver)
     queue = a.get("/api/v1/sales/approvals?tab=mine").json()
-    assert sorted(i["rule"] for i in queue["items"]) == ["P-1", "P-2", "P-4"]
+    assert sorted(i["rule"] for i in queue["items"]) == ["P-1", "P-2", "P-4", "P-6"]
     for item in queue["items"]:
         d = a.get(f"/api/v1/sales/approvals/{item['id']}").json()
         assert d["can_decide"] and d["margin_note"]

@@ -164,6 +164,7 @@ def _recipients(raw) -> list[tuple[str, str]]:
 
 def preflight(db: Session, p: Proposal) -> list[dict]:
     """What stops this version being sent now (empty when it can go)."""
+    ps.refresh_independence(db, p)  # the client may have become an audit client since the draft started (I-1 to I-4)
     out = []
     versions = ps.thread(db, p.thread_id)
     if versions[-1].id != p.id:
@@ -384,9 +385,10 @@ def _handoff(db: Session, p: Proposal, a: Acceptance) -> None:
     if fn is None:
         return
     try:
-        h = fn(db, p, a, None)
-        a.handoff_id = getattr(h, "id", None)
-        db.flush()
+        with db.begin_nested():  # its own savepoint: a database error in the hand-off rolls back the hand-off only, never the acceptance
+            h = fn(db, p, a, None)
+            a.handoff_id = getattr(h, "id", None)
+            db.flush()
     except Exception as exc:  # noqa: BLE001  the acceptance stands; the owner finishes the hand-off by hand
         _event(db, p, "handoff_failed", detail=str(exc)[:500])
         from app.notifications.service import notify
@@ -455,7 +457,7 @@ def log(db: Session, p: Proposal) -> list[dict]:
     ids = [v.id for v in ps.thread(db, p.thread_id)]
     versions = {v.id: v.version for v in ps.thread(db, p.thread_id)}
     out = []
-    for ev in db.scalars(select(ProposalEvent).where(ProposalEvent.proposal_id.in_(ids)).order_by(ProposalEvent.at.desc())):
+    for ev in db.scalars(select(ProposalEvent).where(ProposalEvent.proposal_id.in_(ids), ProposalEvent.kind != ps.TOUCH).order_by(ProposalEvent.at.desc())):
         out.append({"kind": ev.kind, "at": ev.at.isoformat(), "by": ev.by_name, "detail": ev.detail, "version": versions.get(ev.proposal_id)})
     return out
 

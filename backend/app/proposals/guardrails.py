@@ -20,7 +20,10 @@ from app.proposals.models import ApprovalRequest, Proposal, ProposalLine
 APPROVER_LABELS = {"pricing_approver": "Pricing Approver", "sales_manager": "Sales Manager", "chief_auditor": "Chief Auditor"}
 # who may decide a rule's request: a Pricing Approver also covers the Sales Manager's rules
 DECIDERS = {"sales_manager": {"sales_manager", "pricing_approver"}, "pricing_approver": {"pricing_approver"}, "chief_auditor": {"chief_auditor"}}
-FINGERPRINT_TERMS = ("payment_days", "custom_liability", "sla_credits", "discount_one_time_pct", "sla", "term_years", "data_region")
+# every term the client sees: changing any of them after an approval means asking again
+FINGERPRINT_TERMS = ("payment_days", "payment_terms", "term_years", "sla", "data_region", "custom_liability", "sla_credits", "discount_one_time_pct",
+                     "start_on")
+FREE_TEXT_TERMS = {"payment_terms": "payment terms written out", "sla": "service levels written out"}  # not the standard values: P-6
 
 
 def offered(lines: list[ProposalLine]) -> list[ProposalLine]:
@@ -40,10 +43,23 @@ def _remediation_tags(db: Session, codes: list[str]) -> dict[str, list]:
     return {c: list(it.remediation_of or []) for c, it in items_by_codes(db, codes).items()}
 
 
+def _current(db: Session, ln: ProposalLine, items: dict) -> dict:
+    """The line as the guardrails see it: the price the client is offered, checked against the price list as it is now.
+    A list price kept from an earlier catalog version counts as an edited price (rules P-4 and P-5 apply to it)."""
+    it = items.get(ln.catalog_code)
+    if it is None:
+        return {"code": ln.catalog_code, "price_status": ln.price_status, "sellable_status": ln.sellable_status, "unit_price_used": ln.unit_price_used,
+                "low": ln.low, "high": ln.high}
+    return {"code": ln.catalog_code, "price_status": it.price_status, "sellable_status": it.sellable_status, "unit_price_used": ln.unit_price_used,
+            "low": it.low, "high": it.high}
+
+
 def needed(db: Session, p: Proposal, lines: list[ProposalLine]) -> list[dict]:
+    from app.catalog.service import items_by_codes
+
     live = [ln for ln in lines if not ln.removed_reason]
-    priced = [{"code": ln.catalog_code, "price_status": ln.price_status, "sellable_status": ln.sellable_status,
-               "unit_price_used": ln.unit_price_used, "low": ln.low, "high": ln.high} for ln in live if ln.on_catalog]
+    items = items_by_codes(db, [ln.catalog_code for ln in live if ln.on_catalog])
+    priced = [_current(db, ln, items) for ln in live if ln.on_catalog]
     out: list[dict] = []
     missing = [ln.catalog_code for ln in live if not ln.on_catalog]
     if missing:
@@ -54,6 +70,14 @@ def needed(db: Session, p: Proposal, lines: list[ProposalLine]) -> list[dict]:
         out.append({"rule": "PRICE", "kind": "blocked", "approver_role": None, "approver": None, "codes": unpriced,
                     "message": f"{', '.join(unpriced)} {'has' if len(unpriced) == 1 else 'have'} no price: enter a price or remove the line."})
     out += catalog_guardrails.needed_approvals(priced, p.discount_recurring_pct, p.terms or {}, discount_limit_pct=discount_limit(db))
+    free = [label for k, label in FREE_TEXT_TERMS.items() if str((p.terms or {}).get(k) or "").strip()]
+    if free:
+        p6 = next((r for r in out if r["rule"] == "P-6"), None)
+        if p6 is None:
+            out.append({"rule": "P-6", "kind": "approval", "approver_role": "pricing_approver", "approver": "Pricing Approver", "codes": [],
+                        "message": f"Custom terms ({', '.join(free)}): Pricing Approver."})
+        else:
+            p6["message"] = p6["message"].replace("): Pricing Approver.", f", {', '.join(free)}): Pricing Approver.")
     flag = bool((p.independence or {}).get("flag"))
     tags = _remediation_tags(db, [ln.catalog_code for ln in offered(live)])
     out += independence.rules(db, p.organization_id, [{"code": ln.catalog_code, "remediation_of": tags.get(ln.catalog_code, [])} for ln in offered(live)], flag)
@@ -65,7 +89,7 @@ def needed(db: Session, p: Proposal, lines: list[ProposalLine]) -> list[dict]:
 
 def fingerprint(p: Proposal, lines: list[ProposalLine]) -> str:
     body = {"lines": sorted([[ln.catalog_code, ln.qty, ln.unit_price_used, ln.price_status, ln.sellable_status] for ln in offered(lines)], key=lambda x: x[0]),
-            "discount": p.discount_recurring_pct or 0, "terms": {k: (p.terms or {}).get(k) for k in FINGERPRINT_TERMS}}
+            "discount": p.discount_recurring_pct or 0, "terms": {k: (p.terms or {}).get(k) for k in FINGERPRINT_TERMS}, "valid_days": p.valid_days}
     return hashlib.sha256(json.dumps(body, sort_keys=True, default=str).encode()).hexdigest()
 
 

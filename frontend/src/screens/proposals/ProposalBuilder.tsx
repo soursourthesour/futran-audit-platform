@@ -108,6 +108,15 @@ export function ProposalBuilder() {
       {msg && <Alert tone="success">{msg}</Alert>}
       {!p.editable && <Alert>Version {p.version} is {p.status_label.toLowerCase()} and can't change. {p.status !== 'accepted' && 'Start a new version to make changes.'}</Alert>}
       {showDiff && prev && <DiffPanel id={id} from={prev.version} to={p.version} />}
+      {p.editable && p.price_changes.length > 0 && (
+        <Alert tone="warn">
+          <strong>List prices changed since this draft.</strong> {p.price_changes.map((c) => {
+            const lp = c.changes.list_price;
+            return lp ? `${c.code}: ${money(lp.from as number)} → ${money(lp.to as number)}` : `${c.code}: ${Object.keys(c.changes).map((k) => k.replace('_', ' ')).join(', ')} changed`;
+          }).join('; ')}. The draft keeps its prices; kept prices are checked against the current list when you send.
+          {editable && <div className="row" style={{ marginTop: 8 }}><Button size="sm" variant="primary" onClick={() => call(() => api.post(`/sales/proposals/${id}/current-prices`), 'Updated to current list prices.')}>Update to current list prices</Button></div>}
+        </Alert>
+      )}
 
       <section className="card" aria-label="Lines">
         {editable && <AddLine items={cat.data?.items ?? []} onAdd={(code, qty) => call(() => api.post(`/sales/proposals/${id}/lines`, { code, qty }), `${code} added.`)} />}

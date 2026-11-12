@@ -107,8 +107,18 @@ def _require_editable(p: Proposal) -> None:
         raise Conflict(f"Version {p.version} was sent and can't change. Start a new version to make changes.")
 
 
-def _touch(p: Proposal, actor) -> None:
+TOUCH = "edit"  # ProposalEvent kind: the append-only record of who changed what on a proposal (never shown in the send log)
+
+
+def _touch(p: Proposal, actor, what: str = "changed the proposal") -> None:
+    """Every change goes on the touch log with who made it, so nobody who worked on any version can approve it."""
+    from sqlalchemy.orm import object_session
+
+    from app.proposals.models import ProposalEvent
+
     p.updated_by, p.updated_at = _actor_id(actor), utcnow()
+    if _actor_id(actor):
+        object_session(p).add(ProposalEvent(proposal_id=p.id, kind=TOUCH, by_id=_actor_id(actor), by_name=getattr(actor, "name", None), detail=what))
 
 
 def _opportunity(db: Session, opportunity_id: str | None):
@@ -245,6 +255,7 @@ def move_stage(db: Session, opp, stage: str, actor=None) -> None:
 
 
 def _finish_create(db: Session, p: Proposal, opp, actor, how: str) -> Proposal:
+    _touch(p, actor, f"drafted v{p.version} {how}")
     recalc(db, p)
     move_stage(db, opp, "negotiation" if p.version > 1 else "proposal", actor)
     _log_opp(db, opp, f"Proposal v{p.version} drafted {how}.", actor)
@@ -272,6 +283,12 @@ def create_from_estimate(db: Session, estimate, actor) -> Proposal:
         item = items.get(ln["code"])
         pl = _line_from_item(item, code=ln["code"], qty=ln.get("qty", 1), sort=i, source="package" if ln["code"] in pkg_codes else "manual",
                              override=ln.get("edited_price"), description=ln.get("description_override"), deliverables=ln.get("deliverables_override"))
+        if item is not None:  # the prices the estimate was saved with; the builder offers the update when the list has moved
+            for col, key in (("list_price", "list_price"), ("low", "low"), ("high", "high"), ("price_status", "price_status")):
+                if key in ln:
+                    setattr(pl, col, ln[key])
+            if pl.override_price is not None and pl.override_price == pl.list_price:
+                pl.override_price = None
         if pl.override_price is not None:
             pl.edited_by = ln.get("edited_by") if isinstance(ln.get("edited_by"), str) else _actor_id(actor)
             pl.edited_at = utcnow()
@@ -361,7 +378,7 @@ def add_line(db: Session, actor, p: Proposal, code: str, qty=1) -> ProposalLine:
     ln.proposal_id = p.id
     db.add(ln)
     db.flush()
-    _touch(p, actor)
+    _touch(p, actor, "added a line")
     recalc(db, p)
     return ln
 
@@ -395,7 +412,7 @@ def update_line(db: Session, actor, p: Proposal, line_id: str, changes: dict) ->
         ln.deliverables_text = text
     if "description" in changes:
         ln.description = (changes["description"] or "").strip()[:1000] or None
-    _touch(p, actor)
+    _touch(p, actor, "changed a line")
     recalc(db, p)
     return ln
 
@@ -414,7 +431,7 @@ def remove_line(db: Session, actor, p: Proposal, line_id: str, reason: str | Non
     else:
         db.delete(ln)
     db.flush()
-    _touch(p, actor)
+    _touch(p, actor, "removed a line")
     recalc(db, p)
 
 
@@ -422,7 +439,7 @@ def restore_line(db: Session, actor, p: Proposal, line_id: str) -> None:
     _require_editable(p)
     ln = _line(db, p, line_id)
     ln.removed_reason = ln.removed_by = ln.removed_at = None
-    _touch(p, actor)
+    _touch(p, actor, "restored a line")
     recalc(db, p)
 
 
@@ -453,7 +470,7 @@ def apply_package(db: Session, actor, p: Proposal, key: str, _log: bool = True) 
         db.add(ln)
     p.package = key
     db.flush()
-    _touch(p, actor)
+    _touch(p, actor, "picked a package")
     recalc(db, p)
 
 
@@ -482,7 +499,7 @@ def update_terms(db: Session, actor, p: Proposal, body: dict) -> Proposal:
         p.title = title[:200]
     if "terms" in body:
         p.terms = clean_terms({**(p.terms or {}), **(body["terms"] or {})})
-    _touch(p, actor)
+    _touch(p, actor, "changed the discount or terms")
     recalc(db, p)
     return p
 
@@ -541,7 +558,7 @@ def update_section(db: Session, actor, p: Proposal, key: str, body: str | None) 
     else:
         s["body"], s["edited"] = text, True
     p.sections = sections
-    _touch(p, actor)
+    _touch(p, actor, "changed a section")
     db.flush()
     return s
 
@@ -566,6 +583,7 @@ def new_version(db: Session, actor, p: Proposal) -> Proposal:
     n.independence = {"flag": flag, "reason": why}
     db.add(n)
     db.flush()
+    _touch(n, actor, f"started v{n.version} from v{p.version}")
     keys = [s["key"] for s in n.sections]
     if flag and "independence" not in keys:
         tpl = templates.by_key(db)["independence"]
@@ -626,15 +644,89 @@ def diff(db: Session, a: Proposal, b: Proposal) -> dict:
 
 
 def touched_by(db: Session, p: Proposal) -> set[str]:
-    """Everyone whose work this version is: they can't approve it."""
+    """Everyone who worked on any version of this proposal (created, edited anything, sent it) and the opportunity
+    owner: none of them can approve it."""
     from app.sales.models import Opportunity
 
-    ids = {p.created_by, p.updated_by}
-    ids |= {ln.edited_by for ln in lines(db, p)}
+    from app.proposals.models import ProposalEvent
+
+    versions = thread(db, p.thread_id) if p.thread_id else [p]
+    ids = {v.created_by for v in versions} | {v.updated_by for v in versions} | {v.sent_by for v in versions}
+    vids = [v.id for v in versions]
+    ids |= set(db.scalars(select(ProposalLine.edited_by).where(ProposalLine.proposal_id.in_(vids))))
+    ids |= set(db.scalars(select(ProposalLine.removed_by).where(ProposalLine.proposal_id.in_(vids))))
+    ids |= set(db.scalars(select(ProposalEvent.by_id).where(ProposalEvent.proposal_id.in_(vids), ProposalEvent.kind == TOUCH)))
     opp = db.get(Opportunity, p.opportunity_id)
     if opp is not None:
         ids.add(opp.owner_id)
     return {i for i in ids if i}
+
+
+# ---- the price list moved on since the draft
+PRICE_FIELDS = (("list_price", "list_price"), ("low", "low"), ("high", "high"), ("price_status", "price_status"), ("sellable_status", "sellable_status"))
+
+
+def price_changes(db: Session, p: Proposal) -> list[dict]:
+    """Lines whose catalog list price, range or status changed since they were put on this proposal."""
+    from app.catalog.service import items_by_codes
+
+    ls = [ln for ln in lines(db, p) if ln.on_catalog and not ln.removed_reason]
+    items = items_by_codes(db, [ln.catalog_code for ln in ls])
+    out = []
+    for ln in ls:
+        it = items.get(ln.catalog_code)
+        if it is None:
+            continue
+        diffs = {col: {"from": getattr(ln, col), "to": getattr(it, attr)} for col, attr in PRICE_FIELDS if getattr(ln, col) != getattr(it, attr)}
+        if diffs:
+            out.append({"code": ln.catalog_code, "name": ln.name, "changes": diffs, "edited": ln.override_price is not None})
+    return out
+
+
+def update_to_current_prices(db: Session, actor, p: Proposal) -> list[dict]:
+    """Bring every line's list price, range and statuses up to the current price list. Edited prices stay edited."""
+    from app.catalog.service import current_version, items_by_codes
+
+    _require_editable(p)
+    changed = price_changes(db, p)
+    if not changed:
+        return []
+    items = items_by_codes(db, [c["code"] for c in changed])
+    for ln in lines(db, p):
+        it = items.get(ln.catalog_code)
+        if it is None or ln.removed_reason or not ln.on_catalog:
+            continue
+        for col, attr in PRICE_FIELDS:
+            setattr(ln, col, getattr(it, attr))
+        if ln.override_price is not None and ln.override_price == ln.list_price:
+            ln.override_price = ln.edited_by = ln.edited_at = None
+    p.catalog_version = current_version(db)
+    _touch(p, actor, f"updated {', '.join(c['code'] for c in changed)} to current list prices")
+    recalc(db, p)
+    return changed
+
+
+def refresh_independence(db: Session, p: Proposal) -> bool:
+    """Recompute the independence flag on a draft (on opening the builder and at send): a prospect that became an audit
+    client mid-draft gets rules I-1 to I-4 and the independence statement. Returns True when it changed."""
+    if not p.editable:
+        return False
+    flag, why = independence.flag_for(db, p.organization_id)
+    old = p.independence or {}
+    if bool(old.get("flag")) == flag and old.get("reason") == why:
+        return False
+    p.independence = {"flag": flag, "reason": why}
+    keys = [s["key"] for s in p.sections or []]
+    if flag and "independence" not in keys:
+        tpl = templates.by_key(db)["independence"]
+        secs = [dict(s) for s in p.sections or []]
+        at = keys.index("acceptance") if "acceptance" in keys else len(secs)
+        p.sections = secs[:at] + [{"key": "independence", "title": tpl.title, "body": tpl.body, "edited": False}] + secs[at:]
+    elif not flag and "independence" in keys:
+        p.sections = [s for s in p.sections if s["key"] != "independence"]
+    db.flush()
+    refresh_status(db, p)
+    return True
 
 
 def stamp(dt: datetime | None) -> str | None:
