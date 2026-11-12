@@ -5,7 +5,7 @@ import pytest
 from tests.factories import login_as, make_department, make_org, make_user
 
 FUTRAN_HOMES = {
-    "chief_auditor": "/audits",
+    "chief_auditor": "/staff/chief",
     "admin": "/staff/admin",
     "auditor": "/my-work",
     "qa_reviewer": "/qa",
@@ -93,7 +93,7 @@ def test_several_roles_see_the_union_of_their_modules(client, db, orgs):
 
 
 @pytest.mark.parametrize("roles,home", [
-    (["chief_auditor", "admin"], "/audits"),
+    (["chief_auditor", "admin"], "/staff/chief"),
     (["admin", "auditor"], "/staff/admin"),
     (["qa_reviewer", "auditor"], "/qa"),
     (["auditor", "sales_team"], "/my-work"),

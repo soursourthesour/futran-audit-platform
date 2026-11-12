@@ -1,12 +1,12 @@
 """Which home screen a person lands on after sign-in (spec §13.1).
 
 A person with several roles lands on the home of the role with the most authority and sees the union of their modules
-in the navigation. Order: Futran — Chief Auditor (Dashboard), Admin (console), QA Reviewer (queue), Auditor, Engagement
+in the navigation. Order: Futran — Chief Auditor (Chief Auditor home; 10 Nov F2: every Futran home shows the Dashboard), Admin (console), QA Reviewer (queue), Auditor, Engagement
 Manager and Legal Reviewer (My work), Sales Team (Opportunities). Client — CAICO (Getting started), Executive Sponsor
 (Summary), DPO (Data review), Client Admin (Admin home), Department Compliance Lead (My department), Contributor (My tasks).
 """
 HOME_PRECEDENCE: list[tuple[str, str]] = [
-    ("chief_auditor", "/audits"),
+    ("chief_auditor", "/staff/chief"),
     ("admin", "/staff/admin"),
     ("qa_reviewer", "/qa"),
     ("auditor", "/my-work"),

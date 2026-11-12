@@ -453,3 +453,48 @@ def my_tasks(actor: Actor = Depends(current_actor), db: Session = Depends(get_db
         inventory_open = False  # sign-off 4 or the end of fieldwork locked it; "Add a use case" would only be refused
     return {"organization": org.name, "engagement": _eng_out(e), "returned": [uc(u) for u in mine if u.status == "returned"], "drafts": drafts,
             "evidence": evidence, "documents": docs, "entries": [uc(u) for u in mine], "inventory_open": inventory_open}
+
+
+# ---- Audit stage timeline on every client home (10 Nov feedback U2)
+# What each stage means for the client, in one sentence. Deliberately generic: no open items, signers or audit log events.
+CLIENT_STAGE_SUMMARY = {
+    1: "Futran sends the initiation package. Your Chief AI Compliance Officer accepts the invitation and signs the engagement letter (sign-off 1).",
+    2: "You set up your departments and users, name your role holders and confirm the department list.",
+    3: "Your staff complete the AI use attestation, you describe your AI governance structure and record your AI use cases.",
+    4: "You review and sign your AI inventory: each department (sign-off 2), the data categories (sign-off 3) and the management representation (sign-off 4).",
+    5: "Futran assesses each AI system in scope, asks for evidence and documents, scores the systems and records findings.",
+    6: "Futran's Chief Auditor reviews the findings and risk ratings, then releases the draft report to you.",
+    7: "You respond to each finding and agree a remediation plan (sign-off 6).",
+    8: "Futran issues the final report and you acknowledge receiving it.",
+    9: "You complete the remediation items and Futran verifies and closes each one.",
+}
+
+
+def _stage_targets(e: Engagement) -> dict[int, date | None]:
+    """Planned dates from the engagement letter, shown for stages that have not finished."""
+    return {1: e.letter_due, 5: e.fieldwork_start, 6: e.draft_report_target, 8: e.final_report_target}
+
+
+@router.get("/me/stages")
+def my_stages(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+    """The nine stages of the client's current engagement: done, current or upcoming, with dates where known."""
+    org = _client_org(db, actor, Action.VIEW_ENGAGEMENT)
+    from app.engagements.stages import stage_state, windows
+
+    e = current_engagement(db, org)
+    if e is None:
+        return {"engagement": None, "stages": []}
+    authorize(db, actor, Action.VIEW_ENGAGEMENT, engagement_id=e.id)
+    spans, targets = windows(db, e), _stage_targets(e)
+    stages = []
+    for n, name in STAGE_NAMES.items():
+        state = "upcoming" if (st := stage_state(e, n)) == "not_started" else st
+        start, end = spans[n]
+        target = targets.get(n)
+        stages.append({
+            "number": n, "name": name, "state": state, "summary": CLIENT_STAGE_SUMMARY[n],
+            "started_on": start.date().isoformat() if start and state in ("done", "current") else None,
+            "finished_on": end.date().isoformat() if end and state == "done" else None,
+            "target_on": target.isoformat() if target and state != "done" else None,
+        })
+    return {"engagement": _eng_out(e), "stages": stages}

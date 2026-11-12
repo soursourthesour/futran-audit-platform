@@ -114,6 +114,7 @@ class Action(StrEnum):
     APPROVE_ADDON = "approve_addon"  # the Executive Sponsor approves, declines or cancels
     # v0.6.1 WS-F: role home screens (§13.1) and the navigation they drive
     VIEW_ADMIN_HOME = "view_admin_home"  # Futran Admin console
+    VIEW_CHIEF_HOME = "view_chief_home"  # 10 Nov F2: the Chief Auditor's home (the Dashboard and drafts awaiting approval)
     VIEW_MY_WORK = "view_my_work"  # Auditor: assigned engagements and today's tasks
     VIEW_QA_QUEUE = "view_qa_queue"  # QA Reviewer: Chief-Auditor-authored findings and score overrides
     REVIEW_SCORE_OVERRIDE = "review_score_override"  # approve or return a Chief Auditor's rating override

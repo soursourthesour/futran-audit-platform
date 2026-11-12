@@ -346,7 +346,7 @@ for _role, _grants in _WS_E.items():
 # data; the navigation (frontend/src/nav.ts) shows a module when the user holds any action it lists (/auth/me "actions").
 _WS_F: dict[R, dict[A, S]] = {
     R.ADMIN: {A.VIEW_ADMIN_HOME: S.ALL, A.VIEW_PLATFORM_SETTINGS: S.ALL},
-    R.CHIEF_AUDITOR: {A.VIEW_PLATFORM_SETTINGS: S.ALL},  # §5: V on Futran users and platform settings
+    R.CHIEF_AUDITOR: {A.VIEW_PLATFORM_SETTINGS: S.ALL, A.VIEW_CHIEF_HOME: S.ALL},  # §5: V on Futran users and platform settings; 10 Nov F2 home
     R.AUDITOR: {A.VIEW_MY_WORK: S.ASSIGNED},
     R.ENGAGEMENT_MANAGER: {A.VIEW_MY_WORK: S.ASSIGNED},
     R.LEGAL_REVIEWER: {A.VIEW_MY_WORK: S.ASSIGNED},
