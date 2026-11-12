@@ -39,6 +39,7 @@ import { LawEdit } from '@/screens/futran/reg/LawEdit';
 import { RoleCatalogue } from '@/screens/futran/reg/RoleCatalogue';
 import { Applicability } from '@/screens/futran/reg/Applicability';
 import { wsdRoutes } from '@/routes.wsd';
+import { r3FutranRoutes, r3PublicRoutes } from '@/routes.r3'; // Release 2 R3: scoping questionnaire
 import { wskClientRoutes, wskFutranRoutes } from '@/routes.wsk';
 import { wsgClientRoutes, wsgFutranRoutes } from '@/routes.wsg';
 import { clientHomeRoutes, futranHomeRoutes } from '@/routes.wsf';
@@ -60,6 +61,7 @@ import { r5ClientRoutes, r5FutranRoutes } from '@/routes.r5';  // Release 2 R5
 export const futranRoutes: RouteObject[] = [
   ...r5FutranRoutes,
   ...wsdRoutes,
+  ...r3FutranRoutes,
   ...wskFutranRoutes,
   ...wslFutranRoutes,
   ...wsgFutranRoutes,
@@ -113,6 +115,6 @@ export const clientRoutes: RouteObject[] = [...r5ClientRoutes, ...clientHomeRout
   // tracing add-on (spec §27.3): R8 requests and the Executive Sponsor's approval
   { path: '/addons', element: <AddonsPage /> },
   { path: '/governance/roles', element: <CompanyRoles /> }];
-export const publicRoutes: RouteObject[] = [...wsiPublicRoutes, ...wsjPublicRoutes, { path: '/m/s/:token', element: <LinkLanding shared /> }, { path: '/m/:token', element: <LinkLanding /> }, { path: '/mail/test-consent', element: <TestConsent /> }, { path: '/mail/consent-result', element: <ConsentResult /> }, { path: '/welcome/mailbox', element: <MailboxPrompt /> }, { path: '/attest/:token', element: <PhoneAttestation /> }, { path: '/confirm/:token', element: <NamedUserConfirm /> }];
+export const publicRoutes: RouteObject[] = [...r3PublicRoutes, ...wsiPublicRoutes, ...wsjPublicRoutes, { path: '/m/s/:token', element: <LinkLanding shared /> }, { path: '/m/:token', element: <LinkLanding /> }, { path: '/mail/test-consent', element: <TestConsent /> }, { path: '/mail/consent-result', element: <ConsentResult /> }, { path: '/welcome/mailbox', element: <MailboxPrompt /> }, { path: '/attest/:token', element: <PhoneAttestation /> }, { path: '/confirm/:token', element: <NamedUserConfirm /> }];
 /** Screens in both portals (spec §26.10: E4 and E5 are in the client and the Futran shell). */
 export const sharedRoutes: RouteObject[] = [{ path: '/send', element: <SendToGroups /> }, { path: '/admin/log', element: <EmailLog /> }];
