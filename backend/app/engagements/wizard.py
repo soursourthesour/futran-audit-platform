@@ -387,6 +387,14 @@ def _save_team(db: Session, actor: User, e: Engagement, team: Any) -> list[dict]
             except Conflict as exc:
                 errors.append({"field": f"{p}.user_id", "message": exc.detail})
                 continue
+        from app.core.errors import Conflict
+        from app.engagements.team import check_separate_team
+
+        try:  # Release 2 rule I-3: the client's governance officer or separate delivery team is never on its audit team
+            check_separate_team(db, e.client_id, user.id)
+        except Conflict as exc:
+            errors.append({"field": f"{p}.user_id", "message": exc.detail})
+            continue
         row = current.get((user.id, role))
         if row is None:
             row = EngagementTeam(organization_id=e.client_id, engagement_id=e.id, user_id=user.id, role=role, created_by=actor.id)
@@ -589,6 +597,13 @@ def _validate_team(db: Session, e: Engagement) -> list[dict]:
                 check_lead_independence(db, e.client_id, u.id)
             except Conflict as exc:
                 errs.append({"field": "scope.team", "message": exc.detail})
+        from app.core.errors import Conflict
+        from app.engagements.team import check_separate_team
+
+        try:  # Release 2 rule I-3, also for teams not saved through the wizard
+            check_separate_team(db, e.client_id, u.id)
+        except Conflict as exc:
+            errs.append({"field": "scope.team", "message": exc.detail})
     if len(by_role.get("chief_auditor", [])) != 1:
         errs.append({"field": "scope.team", "message": "Choose one Chief Auditor (Lead Auditor)."})
     if not by_role.get("engagement_manager"):

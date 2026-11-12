@@ -77,3 +77,20 @@ def check_lead_independence(db: Session, client_id: str, user_id: str) -> None:
         titles = join_words(sorted({p.title for p in hits}))
         raise Conflict(f"{u.name if u else 'This person'} helped Futran write this client's {titles}, so they cannot be Lead Auditor on its audit. "
                        "Choose a different Lead Auditor.")
+
+
+def check_separate_team(db: Session, client_id: str, user_id: str) -> None:
+    """Independence rules I-3 and I-2 (Release 2 spec §4.7): the person who holds this client's Fractional AI Governance
+    Officer role, or whom the Chief Auditor recorded as the separate delivery team for policy drafting, AgentWarden or
+    Agent Assure, cannot be on the client's audit team in any role. Raises Conflict. Every path that puts someone on an
+    engagement team calls this next to `check_lead_independence`. The records come from the hand-off (SM-13)."""
+    from app.core.errors import Conflict
+
+    try:
+        from app.commercial.handoff import separate_team_user_ids
+    except ImportError:  # the commercial module is not installed: nothing has been handed off yet
+        return
+    if user_id in separate_team_user_ids(db, client_id):
+        u = db.get(User, user_id)
+        raise Conflict(f"{u.name if u else 'This person'} delivers this client's governance work for Futran (Fractional AI Governance Officer or a "
+                       "separate delivery team), so they cannot be on its audit team.")

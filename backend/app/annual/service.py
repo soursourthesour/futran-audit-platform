@@ -23,7 +23,7 @@ from app.audit_log import service as audit
 from app.core.clock import utcnow
 from app.core.errors import Conflict, NotFound
 from app.engagements.models import ClientContact, ClientRequirement, Engagement, EngagementTeam
-from app.engagements.team import LEAD_ROLE, check_lead_independence
+from app.engagements.team import LEAD_ROLE, check_lead_independence, check_separate_team
 from app.engagements.service import create_engagement
 from app.questionnaire.models import ChecklistResult, Question, Response
 from app.scoring import scale
@@ -65,6 +65,11 @@ def start_annual_review(db: Session, actor: User, prior: Engagement) -> Engageme
             except Conflict as exc:
                 notices.append(f"{exc.detail} They were not copied in as Lead Auditor.")
                 continue
+        try:  # Release 2 rule I-3: the client's governance officer or separate delivery team is not copied onto the audit team
+            check_separate_team(db, prior.client_id, t.user_id)
+        except Conflict as exc:
+            notices.append(f"{exc.detail} They were not copied in.")
+            continue
         db.add(EngagementTeam(organization_id=t.organization_id, engagement_id=e.id, user_id=t.user_id, role=t.role, created_by=actor.id))  # conflicts are confirmed again
     e.wizard_state = e.wizard_state | {"notices": notices}
     sys_map: dict[str | None, str | None] = {None: None}
