@@ -14,3 +14,10 @@
   .aa-actions { margin-left: 0; }
   .aa-actions .btn { min-height: 44px; }
 }
+@media (max-width: 640px) {
+  .aa-stack thead { display: none; }
+  .aa-stack, .aa-stack tbody, .aa-stack tr, .aa-stack td { display: block; width: 100%; }
+  .aa-stack tr { border-bottom: 1px solid var(--line); padding: 8px 0; }
+  .aa-stack td { border: 0; padding: 4px 0; }
+  .aa-stack td::before { content: attr(data-label); display: block; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+}

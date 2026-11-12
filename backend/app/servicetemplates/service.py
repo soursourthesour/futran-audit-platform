@@ -109,7 +109,7 @@ def _seed_content() -> dict[str, dict]:
         # Types the spec names without content: a template row with no version until the owner supplies it.
         "vendor_sponsored_audit": {"name": "Vendor-Sponsored LL144 Audit", "owner": "FATF", "codes": ["L-10"], "empty": True},
         "agent_assurance": {"name": "Agent Assure record", "owner": "FATF", "codes": ["AA-01", "AA-02", "AA-03", "AA-04", "AA-05", "AA-06"], "empty": True,
-                            "note": "Waiting on content: the 15-point check is supplied by FATF (edit it under Agent Assure check list)."},
+                            "note": "Waiting on content: FATF supplies the 15-point check."},
         "training_workshop": {"name": "Workshop record", "owner": "FTLC", "codes": ["M-08a", "M-08b"], "empty": True},
         "advisory_retainer": {"name": "Retainer record", "owner": "Sales Manager", "codes": ["M-12", "M-13", "X-01"], "empty": True},
     }

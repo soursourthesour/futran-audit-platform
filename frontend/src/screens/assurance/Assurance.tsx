@@ -55,17 +55,17 @@ export function AssurancePanel({ systemId, clientId }: { systemId: string; clien
 
       <Card title="Release history">
         {d.runs.length === 0 ? <EmptyState>No Agent Assure record yet.{d.can_record ? ' Record the first release.' : ' Futran records each release of this agent here.'}</EmptyState> : (
-          <div className="table-wrap"><table className="table" aria-label="Release history">
+          <div className="table-wrap"><table className="table aa-stack" aria-label="Release history">
             <thead><tr><th>Release</th><th>Model</th><th>Gold eval set</th><th>15-point check</th><th>Red team</th><th>Outcome</th><th>Letter</th></tr></thead>
             <tbody>{d.runs.map((r, i) => (
               <tr key={r.id}>
-                <td><strong>{r.release_ref}</strong>{i === 0 && <span className="small muted"> (current)</span>}<div className="small muted">{fmtDate(r.recorded_at)}</div></td>
-                <td className="small">{r.model_ref ?? '—'}</td>
-                <td className="small">{[r.eval_set_version, r.eval_set_size != null ? `${r.eval_set_size.toLocaleString()} cases` : null].filter(Boolean).join(' · ') || '—'}{r.eval_set_owner && <div className="muted">{r.eval_set_owner}</div>}</td>
-                <td className="small">{summary(r)}</td>
-                <td className="small">{r.redteam.length ? `${r.redteam.length} scenario${r.redteam.length === 1 ? '' : 's'}${sev(r)}` : '—'}</td>
-                <td><Badge tone={OTONE[r.outcome]}>{r.outcome_label}</Badge>{r.recertification_due && <div className="small aa-warn">Re-certification due</div>}</td>
-                <td className="small">{r.letter ? <><a href={fileUrl(r.letter.id)}>PDF</a><div className="muted">{r.signed_by}{r.signed_on ? `, ${fmtDate(r.signed_on)}` : ''}</div></> : d.can_record ? <Button size="sm" onClick={() => setLetterFor(r)}>Add letter</Button> : '—'}</td>
+                <td data-label="Release"><strong>{r.release_ref}</strong>{i === 0 && <span className="small muted"> (current)</span>}<div className="small muted">{fmtDate(r.recorded_at)}</div></td>
+                <td data-label="Model" className="small">{r.model_ref ?? '—'}</td>
+                <td data-label="Gold eval set" className="small">{[r.eval_set_version, r.eval_set_size != null ? `${r.eval_set_size.toLocaleString()} cases` : null].filter(Boolean).join(' · ') || '—'}{r.eval_set_owner && <div className="muted">{r.eval_set_owner}</div>}</td>
+                <td data-label="15-point check" className="small">{summary(r)}</td>
+                <td data-label="Red team" className="small">{r.redteam.length ? `${r.redteam.length} scenario${r.redteam.length === 1 ? '' : 's'}${sev(r)}` : '—'}</td>
+                <td data-label="Outcome"><Badge tone={OTONE[r.outcome]}>{r.outcome_label}</Badge>{r.recertification_due && <div className="small aa-warn">Re-certification due</div>}</td>
+                <td data-label="Letter" className="small">{r.letter ? <><a href={fileUrl(r.letter.id)}>PDF</a><div className="muted">{r.signed_by}{r.signed_on ? `, ${fmtDate(r.signed_on)}` : ''}</div></> : d.can_record ? <Button size="sm" onClick={() => setLetterFor(r)}>Add letter</Button> : '—'}</td>
               </tr>
             ))}</tbody>
           </table></div>
@@ -75,9 +75,9 @@ export function AssurancePanel({ systemId, clientId }: { systemId: string; clien
       {latest && (
         <Card title={`${latest.release_ref} · open conditions`}>
           {d.open_conditions.length === 0 ? <EmptyState>No open conditions.</EmptyState> : (
-            <div className="table-wrap"><table className="table" aria-label="Open conditions">
+            <div className="table-wrap"><table className="table aa-stack" aria-label="Open conditions">
               <thead><tr><th>Item</th><th>Result</th><th>Condition</th><th>Due</th></tr></thead>
-              <tbody>{d.open_conditions.map((c, i) => <tr key={i}><td>{c.item}</td><td><Badge tone={c.result === 'fail' || c.result === 'high' || c.result === 'critical' ? 'danger' : 'warn'}>{cap(c.result)}</Badge></td><td>{c.condition ?? '—'}</td><td className="small">{c.due ?? '—'}</td></tr>)}</tbody>
+              <tbody>{d.open_conditions.map((c, i) => <tr key={i}><td data-label="Item">{c.item}</td><td data-label="Result"><Badge tone={c.result === 'fail' || c.result === 'high' || c.result === 'critical' ? 'danger' : 'warn'}>{cap(c.result)}</Badge></td><td data-label="Condition">{c.condition ?? '—'}</td><td data-label="Due" className="small">{c.due ?? '—'}</td></tr>)}</tbody>
             </table></div>
           )}
         </Card>

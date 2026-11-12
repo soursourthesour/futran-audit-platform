@@ -1,8 +1,8 @@
 /* Release 2 R6a: G-06 service templates */
 .st-page { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.st-name { min-width: 190px; }
 .st-note { max-width: 260px; }
-.st-actions { white-space: nowrap; }
-.st-actions .btn + .btn { margin-left: 6px; }
+.st-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .st-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
 .st-h3 { font-size: 15px; margin: 0 0 6px; }
 .st-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; max-height: 320px; overflow: auto; }

@@ -95,7 +95,7 @@ EXPORT_TYPES: dict[str, ExportType] = {t.key: t for t in (
                (Field("user", "User", False, _USER), Field("department", "Department or organizational unit", False, DEPARTMENT + ("org unit", "organizational unit", "ou")),
                 Field("app", "Gemini app", False, ("app", "application", "product", "surface", "gemini app", "service")), Field("users", "Active users", False, _COUNT)),
                account_type="enterprise"),
-    ExportType("gemini_agents", "Gemini Enterprise apps and agents", "Google Cloud console", "Agents (feeds G-09 agent assurance)",
+    ExportType("gemini_agents", "Gemini Enterprise apps and agents", "Google Cloud console", "Agents (feeds agent assurance)",
                (Field("agent", "Agent or app name", True, ("agent name", "agent", "app name", "display name", "name")), Field("type", "Type", False, ("type", "kind", "agent type")),
                 Field("owner", "Owner", False, ("owner", "created by", "creator", "owner email")), Field("department", "Department", False, DEPARTMENT)),
                account_type="enterprise"),

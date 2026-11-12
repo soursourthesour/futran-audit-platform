@@ -50,20 +50,19 @@ export function ServiceTemplates() {
         <section className="card">
           <div className="card-body stack">
             <div className="table-wrap"><table className="table" aria-label="Service templates">
-              <thead><tr><th>Engagement type</th><th>Template</th><th>Version</th><th>Sections · checklists</th><th>Catalog codes</th><th>Content owner</th><th>Status</th><th /></tr></thead>
+              <thead><tr><th>Engagement type</th><th>Template</th><th>Version</th><th>Sections · checklists</th><th>Catalog codes</th><th>Content owner</th><th>Status</th></tr></thead>
               <tbody>{d.types.map((r) => {
                 const v = r.latest;
                 return (
                   <tr key={r.engagement_type}>
                     <td><code className="small">{r.engagement_type}</code><div className="small muted">{r.type_label}</div></td>
-                    <td>{r.template?.name ?? '—'}{r.template?.note && <div className="small muted st-note">{r.template.note}</div>}</td>
+                    <td className="st-name">{r.template?.name ?? '—'}{r.template?.note && <div className="small muted st-note">{r.template.note}</div>}</td>
                     <td>{r.builtin ? (r.engagement_type === 'initial_assessment' ? '1.0 + 5.1a' : '1.0') : v?.version ?? '—'}</td>
                     <td className="small">{r.builtin ? 'Question bank' : v ? `${v.sections_count} · ${v.checklists_count}${v.questions_count ? ` · ${v.questions_count} questions` : ''}` : '—'}</td>
                     <td className="small">{r.catalog_codes.join(', ') || '—'}</td>
                     <td className="small">{r.template?.content_owner ?? '—'}</td>
-                    <td><Badge tone={TONE[r.status_label] ?? 'muted'}>{r.status_label}</Badge>{r.in_use && r.latest && r.in_use.id !== r.latest.id && <div className="small muted">{r.in_use.version} in use</div>}</td>
-                    <td className="st-actions">{v && <Button size="sm" onClick={() => setOpen(v.id)}>Open</Button>}
-                      {!r.builtin && r.template?.id && d.can_manage && (!v || v.status === 'approved') && <Button size="sm" onClick={() => start(r)}>{v ? 'New version' : 'Start a version'}</Button>}</td>
+                    <td><Badge tone={TONE[r.status_label] ?? 'muted'}>{r.status_label}</Badge>{r.in_use && r.latest && r.in_use.id !== r.latest.id && <div className="small muted">{r.in_use.version} in use</div>}<div className="st-actions">{v && <Button size="sm" onClick={() => setOpen(v.id)}>Open</Button>}
+                      {!r.builtin && r.template?.id && d.can_manage && (!v || v.status === 'approved') && <Button size="sm" onClick={() => start(r)}>{v ? 'New version' : 'Start'}</Button>}</div></td>
                   </tr>
                 );
               })}</tbody>
