@@ -28,7 +28,8 @@ KIND_LABELS = {"add_system": "Add AI systems", "add_jurisdiction": "Add jurisdic
                "extra_vendors": "Extra vendors"}
 STATUS_LABELS = {"draft": "Waiting for the Engagement Manager", "awaiting_futran_approval": "Waiting for sales approval", "awaiting_client": "Awaiting client approval",
                  "approved": "Approved", "rejected": "Rejected"}
-TRIGGERS = {"sign_off_1": "Sign-off 1 approved", "sign_off_7": "Sign-off 7 approved", "manual": "Marked by hand"}
+TRIGGERS = {"sign_off_1": "Sign-off 1 approved", "sign_off_7": "Sign-off 7 approved", "manual": "Marked by hand", "change_order": "Change order approved"}
+EDITABLE_TRIGGERS = ("sign_off_1", "sign_off_7", "manual")
 
 
 def commercial_of(db: Session, e: Engagement) -> EngagementCommercial | None:
@@ -101,7 +102,7 @@ def update_commercial(db: Session, actor: User, e: Engagement, data: dict) -> En
                 pct = -1
             if not label:
                 errors.append({"field": f"milestones.{i}.label", "message": "Name the milestone."})
-            if trig not in TRIGGERS:
+            if trig not in EDITABLE_TRIGGERS:
                 errors.append({"field": f"milestones.{i}.trigger", "message": "Choose what triggers it."})
             if not 0 < pct <= 100:
                 errors.append({"field": f"milestones.{i}.pct", "message": "Enter a percentage between 1 and 100."})
@@ -111,18 +112,24 @@ def update_commercial(db: Session, actor: User, e: Engagement, data: dict) -> En
     if errors:
         raise Invalid(errors=errors)
     before = {"fee_total": com.fee_total, "milestones": com.milestones}
+    # an approved change order is its own milestone, billed once in the month it was approved; the split covers the rest
+    co_ms = [m for m in com.milestones or [] if m.get("trigger") == "change_order"]
+    base = money(fee - sum(m.get("amount") or 0 for m in co_ms))
+    if base < 0:
+        raise Invalid(errors=[{"field": "fee_total", "message": "The fee cannot be less than the approved change orders."}])
     com.fee_total = fee
     if ms is not None:
         running = 0.0
         for i, c in enumerate(clean):
-            c["amount"] = money(fee - running) if i == len(clean) - 1 else money(fee * c["pct"] / 100)
+            c["amount"] = money(base - running) if i == len(clean) - 1 else money(base * c["pct"] / 100)
             running += c["amount"]
-        com.milestones = clean
-    elif com.milestones:
-        pcts = [m.get("pct") or 0 for m in com.milestones]
-        com.milestones = [m | {"amount": a["amount"]} for m, a in zip(com.milestones, _amounts(fee, pcts))]
+        com.milestones = clean + co_ms
+    elif [m for m in com.milestones or [] if m.get("trigger") != "change_order"]:
+        split = [m for m in com.milestones if m.get("trigger") != "change_order"]
+        pcts = [m.get("pct") or 0 for m in split]
+        com.milestones = [m | {"amount": a["amount"]} for m, a in zip(split, _amounts(base, pcts))] + co_ms
     else:
-        com.milestones = default_milestones(fee)
+        com.milestones = default_milestones(base) + co_ms
     com.updated_by = actor.id
     db.flush()
     audit.record(db, actor_id=actor.id, action="engagement.commercial_updated", obj=com, engagement_id=e.id, before=before,
@@ -285,12 +292,19 @@ def client_decision(db: Session, settings, actor: User, co: ChangeOrder, approve
 def _apply(db: Session, settings, actor: User, e: Engagement, co: ChangeOrder) -> None:
     """The scope changes only now: the order gets the line, the fee grows, and an added system is created."""
     com = commercial_of(db, e)
+    if com is None:
+        com = EngagementCommercial(organization_id=e.client_id, engagement_id=e.id, fee_total=0, milestones=[], created_by=actor.id)
+        db.add(com)
+    if not com.order_id:
+        com.order_id = _order_for(db, e).id
     for ln in co.lines or []:
-        db.add(OrderLine(organization_id=e.client_id, order_id=com.order_id if com and com.order_id else _order_for(db, e).id, catalog_code=ln["code"],
+        db.add(OrderLine(organization_id=e.client_id, order_id=com.order_id, catalog_code=ln["code"],
                          description=f"{co.ref}: {ln.get('description') or ln['code']}"[:300], qty=ln["qty"], unit_price=ln["unit_price"], line_value=ln["value"],
                          recurring=False, start_on=utcnow().date(), engagement_id=e.id, change_order_id=co.id, created_by=actor.id))
-    if com is not None:
-        com.fee_total = money(com.fee_total + sum(ln["value"] for ln in co.lines or []))
+    value = money(sum(ln["value"] for ln in co.lines or []))
+    com.fee_total = money(com.fee_total + value)
+    com.milestones = list(com.milestones or []) + [{"label": f"{co.ref} approved by the client", "trigger": "change_order", "pct": None, "amount": value,
+                                                    "status": "reached", "reached_on": utcnow().date().isoformat(), "change_order_id": co.id}]
     _release_scope(db, co, approved=True, note=None, actor=actor)
     co.applied_at = utcnow()
 
