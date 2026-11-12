@@ -87,6 +87,9 @@ export type DataGridProps<T> = {
   rowClassName?: (row: T) => string | undefined;
   /** Filter values to start with, by filter key (for example from the page address). */
   initialFilters?: Record<string, string>;
+  /** Show the rows in groups, each under a heading row (for example by client). Groups follow the current sort: the group of
+   *  the first row comes first, so sorting by the grouping column orders the groups. */
+  groupBy?: { key: (row: T) => string; label: (key: string, rows: T[]) => ReactNode };
 };
 
 type Sort = { key: string; dir: 'asc' | 'desc' } | null;
@@ -102,7 +105,7 @@ function compare(a: unknown, b: unknown): number {
 }
 
 export function DataGrid<T>(props: DataGridProps<T>) {
-  const { label, rows, columns, rowId, rowLabel, selectable, bulkActions = [], rowActions, filters = [], search, initialSort, emptyText, noMatchText, rowClassName, initialFilters } = props;
+  const { label, rows, columns, rowId, rowLabel, selectable, bulkActions = [], rowActions, filters = [], search, initialSort, emptyText, noMatchText, rowClassName, initialFilters, groupBy } = props;
   const [sort, setSort] = useState<Sort>(initialSort ?? null);
   const [filterValues, setFilterValues] = useState<Record<string, string>>(initialFilters ?? {});
   const [text, setText] = useState('');
@@ -122,8 +125,13 @@ export function DataGrid<T>(props: DataGridProps<T>) {
       const get = col.value;
       out = [...out].sort((a, b) => compare(get(a), get(b)) * (sort.dir === 'asc' ? 1 : -1));
     }
+    if (groupBy) {
+      const order = new Map<string, number>();
+      out.forEach((r) => { const k = groupBy.key(r); if (!order.has(k)) order.set(k, order.size); });
+      out = [...out].sort((a, b) => order.get(groupBy.key(a))! - order.get(groupBy.key(b))!);
+    }
     return out;
-  }, [rows, filters, filterValues, text, search, sort, columns]);
+  }, [rows, filters, filterValues, text, search, sort, columns, groupBy]);
 
   // Drop selections for rows that no longer exist (deleted, or the list reloaded).
   useEffect(() => {
@@ -227,11 +235,14 @@ export function DataGrid<T>(props: DataGridProps<T>) {
           <tbody>
             {visible.length === 0 ? (
               <tr><td colSpan={colCount} className="dg-empty">{rows.length === 0 ? (emptyText ?? 'Nothing here yet.') : (noMatchText ?? 'No rows match these filters.')}</td></tr>
-            ) : visible.map((r) => {
+            ) : visible.map((r, i) => {
               const id = rowId(r);
               const isSel = selected.has(id);
+              const gk = groupBy?.key(r);
+              const groupHead = groupBy && (i === 0 || groupBy.key(visible[i - 1]) !== gk)
+                ? <tr key={`g-${gk}`} className="dg-group-row"><th colSpan={colCount} scope="rowgroup">{groupBy.label(gk!, visible.filter((x) => groupBy.key(x) === gk))}</th></tr> : null;
               return (
-                <tr key={id} className={[isSel ? 'selected' : '', rowClassName?.(r) ?? ''].filter(Boolean).join(' ') || undefined}
+                <Fragment key={id}>{groupHead}<tr key={id} className={[isSel ? 'selected' : '', rowClassName?.(r) ?? ''].filter(Boolean).join(' ') || undefined}
                   onContextMenu={hasMenu ? (e: ReactMouseEvent) => {
                     if ((e.target as HTMLElement).closest('input, select, textarea')) return;
                     e.preventDefault();
@@ -247,7 +258,7 @@ export function DataGrid<T>(props: DataGridProps<T>) {
                       </button>
                     </td>
                   )}
-                </tr>
+                </tr></Fragment>
               );
             })}
           </tbody>

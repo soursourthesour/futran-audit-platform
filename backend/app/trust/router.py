@@ -100,7 +100,12 @@ def confirmations(actor: Actor = Depends(current_actor), db: Session = Depends(g
     if not actor.is_futran:
         raise NotFound()
     authorize(db, actor, Action.CONFIRM_TRUST_ITEMS, list_view=True)
-    return {"items": svc.confirmation_queue(db, visible_org_ids(db, actor))}
+    # feedback 10 Nov F5: by client (A to Z), oldest approval first within a client, with a count per client
+    items = sorted(svc.confirmation_queue(db, visible_org_ids(db, actor)), key=lambda i: (i["client_name"].lower(), i["client_id"]))
+    clients: dict[str, dict] = {}
+    for i in items:
+        clients.setdefault(i["client_id"], {"id": i["client_id"], "name": i["client_name"], "count": 0})["count"] += 1
+    return {"items": items, "clients": list(clients.values())}
 
 
 def _futran_item(db: Session, actor: Actor, item_id: str):

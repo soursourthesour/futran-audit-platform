@@ -37,3 +37,6 @@ th[aria-sort='none'] .dg-sort-ind { opacity: 0.35; }
   .dg-menu-btn { width: 44px; height: 44px; }
   .dg-sort { min-height: 44px; } /* column sort buttons are touch targets too */
 }
+
+/* group heading rows (groupBy) */
+.dg-table tr.dg-group-row th { background: var(--bg); text-align: left; font-weight: 600; padding: 8px 12px; border-top: 1px solid var(--line); }

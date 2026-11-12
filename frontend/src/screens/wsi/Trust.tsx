@@ -8,6 +8,7 @@ import { Alert, Badge, Button, Checkbox, Dialog, Loading, PageHeader, SelectFiel
 import { DataGrid } from '@/components/ui/DataGrid';
 import { trustHelp as H } from '@/help/wsi';
 import './wsi.css';
+import '@/styles/futran-screens.css';
 
 const STATUS: Record<TrustItem['status'], { label: string; tone: 'warn' | 'navy' | 'danger' | 'success' | 'muted' }> = {
   draft: { label: 'Draft', tone: 'warn' }, awaiting_confirmation: { label: 'Waiting for Futran', tone: 'navy' }, returned: { label: 'Returned by Futran', tone: 'danger' },
@@ -137,12 +138,15 @@ function ItemDialog({ d, item, onClose, onDone }: { d: TrustEditorData; item: Tr
   );
 }
 
-type Confirmation = TrustItem & { client_name: string; report: { ref: string; signed_on: string; period_start: string | null; period_end: string | null; overall_rating: string } | null; approved_content: Record<string, unknown> | null };
+type Confirmation = TrustItem & { client_id: string; client_name: string; report: { ref: string; signed_on: string; period_start: string | null; period_end: string | null; overall_rating: string } | null; approved_content: Record<string, unknown> | null };
+
+/** Feedback 10 Nov F5: the queue is grouped by client, with a heading row giving the count. */
+const byClient = { key: (i: Confirmation) => i.client_id, label: (_: string, rows: Confirmation[]) => `${rows[0].client_name} · ${rows.length} waiting` };
 
 /** Futran Chief Auditor `/trust-confirmations`: check each approved Trust Center item against the client's signed report. */
 export function TrustConfirmations() {
   const qc = useQueryClient();
-  const q = useQuery({ queryKey: ['trust-confirmations'], queryFn: () => api.get<{ items: Confirmation[] }>('/trust/confirmations') });
+  const q = useQuery({ queryKey: ['trust-confirmations'], queryFn: () => api.get<{ items: Confirmation[]; clients: { id: string; name: string; count: number }[] }>('/trust/confirmations') });
   const [open, setOpen] = useState<{ item: Confirmation; mode: 'confirm' | 'return' } | null>(null);
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
@@ -160,7 +164,15 @@ export function TrustConfirmations() {
       <PageHeader title="Trust Center confirmations" subtitle="Clients' Trust Center items waiting for a Chief Auditor to confirm they match the signed report. Nothing is public until you confirm it." />
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
       <section className="card"><div className="card-body">
+        {q.data.clients.length > 0 && (
+          <ul className="fx-chips" aria-label="Waiting by client">
+            {q.data.clients.map((c) => <li key={c.id} className="fx-chip">{c.name}<span className="fx-count" aria-label={`${c.count} waiting`}>{c.count}</span></li>)}
+          </ul>
+        )}
         <DataGrid label="Items to confirm" rows={q.data.items} rowId={(i) => i.id} rowLabel={(i) => `${i.client_name}: ${i.title}`} emptyText="Nothing is waiting for confirmation."
+          initialSort={{ key: 'client', dir: 'asc' }}
+          groupBy={byClient}
+          filters={[{ key: 'client', label: 'Client', options: q.data.clients.map((c) => ({ value: c.id, label: `${c.name} (${c.count})` })), test: (i, v) => i.client_id === v }]}
           columns={[
             { key: 'client', header: 'Client', value: (i) => i.client_name },
             { key: 'item', header: 'Item', value: (i) => i.title, render: (i) => <><strong>{i.title}</strong><div className="small muted">{i.kind_label} · approved by {i.client_approved_by}, {fmtDateTime(i.client_approved_at)}</div></> },
