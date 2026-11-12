@@ -361,6 +361,18 @@ def register_entry(db: Session, actor: User, e: Engagement, ws: CopilotWorkspace
 
 
 # ---------------------------------------------------------------- readiness report
+def _day(iso: str | None) -> str:
+    if not iso:
+        return "—"
+    d = imp.parse_date(iso[:10])
+    return f"{d.day} {d.strftime('%b %Y')}" if d else iso
+
+
+def _hash(h: str) -> str:
+    """The full hash in groups of 16, so the PDF table can wrap it."""
+    return " ".join(h[i:i + 16] for i in range(0, len(h), 16))
+
+
 def _md_cell(v) -> str:
     return str("—" if v in (None, "") else v).replace("|", "/").replace("\n", " ")
 
@@ -371,7 +383,7 @@ def report_markdown(db: Session, e: Engagement, ws: CopilotWorkspace) -> str:
     on = today()
     lines = ["# Microsoft 365 Copilot readiness", "", f"**{v['client']['name']}** · {e.audit_ref} · {on.day} {on.strftime('%B %Y')}", "",
              f"Phase: **{v['phase_label']}**. Copilot licences: **{s['licences'] if s['licences'] is not None else 'not imported'}**; "
-             f"active users in the 28 days to {v['usage_as_of'] or '—'}: **{s['active_users'] if s['active_users'] is not None else '—'}**. "
+             f"active users in the 28 days to {_day(v['usage_as_of'])}: **{s['active_users'] if s['active_users'] is not None else '—'}**. "
              f"High-risk sites: **{s['high_risk_sites']}**. Controls ready: **{s['controls_ready']} of {s['controls_total']}**.", ""]
     ready = [w for w in v["waves"] if w["gate"] == "go"]
     lines += ["## Summary", "",
@@ -392,7 +404,7 @@ def report_markdown(db: Session, e: Engagement, ws: CopilotWorkspace) -> str:
     if v["waves"]:
         lines += ["| Wave | Groups | Users | Date | Gate |", "|---|---|---|---|---|"]
         for w in v["waves"]:
-            lines.append(f"| {_md_cell(w['name'])} | {_md_cell(w['groups'])} | {_md_cell(w['user_count'])} | {_md_cell(w['planned_on'])} | {_md_cell(w['gate_text'])} |")
+            lines.append(f"| {_md_cell(w['name'])} | {_md_cell(w['groups'])} | {_md_cell(w['user_count'])} | {_day(w['planned_on'])} | {_md_cell(w['gate_text'])} |")
     else:
         lines.append("No waves planned yet.")
     lines += ["", "## Controls checklist", "", "| Control | Phase | Status | Evidence |", "|---|---|---|---|"]
@@ -406,7 +418,7 @@ def report_markdown(db: Session, e: Engagement, ws: CopilotWorkspace) -> str:
     lines += ["", "## Evidence", "", "Each imported report is kept as evidence with its SHA-256 hash.", ""]
     if v["imports"]:
         lines += ["| Report | File | Imported | SHA-256 |", "|---|---|---|---|"]
-        lines += [f"| {i['kind_label']} | {_md_cell(i['filename'])} | {i['imported_at'][:10]} | {i['sha256']} |" for i in v["imports"]]
+        lines += [f"| {i['kind_label']} | {_md_cell(i['filename'])} | {_day(i['imported_at'])} | {_hash(i['sha256'])} |" for i in v["imports"]]
     else:
         lines.append("No reports imported yet.")
     return "\n".join(lines) + "\n"

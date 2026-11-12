@@ -36,7 +36,7 @@ function EuWorkspace({ listPath, engagementId }: { listPath: string; engagementI
         title="EU AI Act conformity" subtitle={v.banner} />
       {v.systems.length > 0 && (v.ready_for_report
         ? <Alert tone="success">Every classification is signed off by the legal reviewer. The report can be issued.</Alert>
-        : <Alert>Each classification needs the legal reviewer's sign-off before the report is issued.</Alert>)}
+        : <Alert>{v.signed_count} of {v.due_count} classifications signed off. Each system with EU exposure needs its classification signed off by the legal reviewer before the report is issued.</Alert>)}
       <Card className="r6b-card">
         {v.systems.length === 0 ? <EmptyState>No AI system in this client's register has EU geography yet.</EmptyState> : (
           <div className="table-wrap">

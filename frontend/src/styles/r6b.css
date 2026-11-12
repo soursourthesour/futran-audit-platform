@@ -27,6 +27,9 @@
 .r6b-go { color: var(--success); font-weight: 600; }
 .r6b-hold { color: var(--warn); font-weight: 600; }
 .r6b-bad { color: var(--danger); font-weight: 600; }
+/* G-07: controls and waves side by side, as in the design; stacked when narrow */
+.r6b-halves { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+.r6b-halves > * { flex: 1 1 480px; min-width: 0; }
 .r6b-selected td { background: #eef3fa; }
 .r6b-fieldset { border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 12px; margin: 0; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .r6b-fieldset legend { font-weight: 600; font-size: 14px; padding: 0 4px; }

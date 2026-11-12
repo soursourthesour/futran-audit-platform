@@ -99,12 +99,12 @@ function CopilotWorkspace({ engagementId }: { engagementId: string }) {
         )}
       </Card>
 
-      <div className="split">
-        <div className="main"><ControlsCard v={v} base={base} run={run} /></div>
-        <div className="side">
+      <div className="r6b-halves">
+        <div><ControlsCard v={v} base={base} run={run} /></div>
+        <div>
           <Card title="Rollout waves" className="r6b-card" actions={v.can_manage ? <Button size="sm" onClick={() => setEditWave('new')}>Add wave</Button> : undefined}>
             {v.waves.length === 0 ? <EmptyState>No waves planned yet.</EmptyState> : (
-              <table className="table stack-table" aria-label="Rollout waves">
+              <div className="table-wrap"><table className="table stack-table" aria-label="Rollout waves">
                 <thead><tr><th>Wave</th><th>Groups</th><th>Date</th><th>Gate</th></tr></thead>
                 <tbody>
                   {v.waves.map((w) => (
@@ -116,7 +116,7 @@ function CopilotWorkspace({ engagementId }: { engagementId: string }) {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
             )}
           </Card>
         </div>

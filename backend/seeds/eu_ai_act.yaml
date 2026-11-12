@@ -6,12 +6,12 @@ deadlines:
   prohibited:
     date: 2025-02-02
     source: "Law library, EU AI Act: prohibitions from 2 Feb 2025"
-  high_risk_annex_iii:
+  high_risk_annex_iii:  # Release 2 spec v0.4 §5 B6
     date: 2027-12-02
-    source: "Release 2 spec v0.4 §5 B6: Annex III high-risk 2 Dec 2027 (Regulation (EU) 2026/1744)"
-  high_risk_annex_i:
+    source: "Regulation (EU) 2026/1744: Annex III high-risk from 2 Dec 2027"
+  high_risk_annex_i:  # Release 2 spec v0.4 §5 B6
     date: 2028-08-02
-    source: "Release 2 spec v0.4 §5 B6: Annex I 2 Aug 2028 (Regulation (EU) 2026/1744)"
+    source: "Regulation (EU) 2026/1744: Annex I from 2 Aug 2028"
   transparency:
     date: 2026-08-02
     source: "Law library, EU AI Act: transparency (Art. 50) from 2 Aug 2026"
@@ -20,7 +20,7 @@ deadlines:
     source: "Law library, EU AI Act: AI literacy (Art. 4) from 2 Feb 2025"
   gpai:
     date: 2025-08-02
-    source: "Regulation (EU) 2024/1689 Art. 113(b); not stated in the Release 2 spec, confirm with the legal reviewer"
+    source: "Regulation (EU) 2024/1689 Art. 113(b); confirm with the legal reviewer"  # not stated in the Release 2 spec
 
 banner: "Dates per Regulation (EU) 2026/1744: Annex III high-risk from 2 Dec 2027 · Annex I from 2 Aug 2028 · Art. 4 and Art. 50 already apply."
 

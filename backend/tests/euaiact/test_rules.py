@@ -8,7 +8,7 @@ from app.euaiact import rules
 def test_deadlines_are_the_spec_dates_and_live_in_the_data_file():
     assert rules.deadline_for("high_risk_annex_iii", today=date(2026, 11, 11))["date"] == date(2027, 12, 2)
     assert rules.deadline_for("high_risk_annex_i", today=date(2026, 11, 11))["date"] == date(2028, 8, 2)
-    assert "spec v0.4" in rules.deadline_for("high_risk_annex_iii")["source"]
+    assert "2026/1744" in rules.deadline_for("high_risk_annex_iii")["source"]
     d = rules.deadline_for("transparency", today=date(2026, 11, 11))
     assert d["in_force"] is True and d["label"] == "In force"
     assert rules.deadline_for("high_risk_annex_iii", today=date(2026, 11, 11))["label"] == "2 Dec 2027"

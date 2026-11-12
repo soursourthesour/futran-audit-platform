@@ -74,12 +74,14 @@ def _engagement(db: Session, actor: Actor, engagement_id: str) -> Engagement:
 
 def _listing(db: Session, actor: Actor, org: Organization, systems: list[RegisterSystem], engagement: Engagement | None) -> dict:
     rows = [svc.summary(db, s, svc.record_of(db, s)) for s in systems]
+    due = [r for r in rows if r["eu_exposure"] or r["classification"]]  # systems the report must cover: EU geography or assessed
     return {
         "engagement": {"id": engagement.id, "name": engagement.name, "audit_ref": engagement.audit_ref} if engagement else None,
         "client": {"id": org.id, "name": org.name}, "banner": rules.data().get("banner"), "systems": rows,
         "deadline_sources": {k: v.get("source") for k, v in rules.data()["deadlines"].items()},
         "can_edit": _may(db, actor, Action.EDIT_EU_AI_ACT, org.id), "can_sign": _may(db, actor, Action.SIGN_EU_CLASSIFICATION, org.id),
-        "ready_for_report": bool(rows) and all(r["signoff_status"] == "signed_off" for r in rows if r["classification"]) and any(r["classification"] for r in rows),
+        "ready_for_report": bool(due) and all(r["classification"] and r["signoff_status"] == "signed_off" for r in due),
+        "signed_count": sum(1 for r in due if r["classification"] and r["signoff_status"] == "signed_off"), "due_count": len(due),
         "options": {"roles": rules.roles(), "classifications": rules.classifications(), "areas": {k: v["label"] for k, v in rules.areas().items()}},
     }
 

@@ -39,7 +39,7 @@ export type EuRow = {
 };
 export type EuListing = {
   engagement: { id: string; name: string; audit_ref: string | null } | null; client: { id: string; name: string }; banner: string; systems: EuRow[];
-  deadline_sources: Record<string, string>; can_edit: boolean; can_sign: boolean; ready_for_report: boolean; options: EuOptions;
+  deadline_sources: Record<string, string>; can_edit: boolean; can_sign: boolean; ready_for_report: boolean; signed_count: number; due_count: number; options: EuOptions;
 };
 export type EuObligation = {
   key: string; article: string; title: string; status: string; status_label: string; note: string | null; evidence: Evidence[]; checked_by: string | null;

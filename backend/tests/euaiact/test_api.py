@@ -40,6 +40,8 @@ def test_engagement_workspace_lists_systems_with_exposure_role_classification_an
     row = next(x for x in eu.client.get(f"{API}/e/{eu.engagement.id}/eu-ai-act").json()["systems"] if x["name"] == "Credit decision model")
     assert row["role_label"] == "Provider (also uses it)" and row["classification_label"].startswith("High-risk · Annex III")
     assert row["deadline"]["label"] == "2 Dec 2027" and row["obligations_total"] >= 14 and row["signoff_label"] == "Not sent"
+    d = eu.client.get(f"{API}/e/{eu.engagement.id}/eu-ai-act").json()
+    assert d["ready_for_report"] is False and (d["signed_count"], d["due_count"]) == (0, 2)  # the hiring screener is not classified yet
 
 
 def test_computed_articles_deadline_annex_iv_and_fria(eu):
