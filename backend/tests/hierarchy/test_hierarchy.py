@@ -169,3 +169,15 @@ def test_import_end_clients_from_csv_previews_then_creates(hw):
     assert h.ll144_end_client_count(hw.db, hw.parent.id) == 1
     r = hw.client.post(url + "?apply=true", files={"file": ("ends.csv", csv, "text/csv")})
     assert r.json()["created"] == 0  # names already in the group are skipped
+
+
+def test_ll144_count_is_end_clients_only(hw):
+    """Fix pass 5: a vendor customer in scope (L-10) is not counted as an L-09 end-client."""
+    hw.as_(hw.fadmin)
+    end = hw.client.post(f"/api/v1/staff/clients/{hw.parent.id}/entities", json={"name": "Riverside Hospital", "relationship": "end_client"}).json()["id"]
+    cust = hw.client.post(f"/api/v1/staff/clients/{hw.parent.id}/entities", json={"name": "Customer Co", "relationship": "customer_of_vendor"}).json()["id"]
+    for eid in (end, cust):
+        assert hw.client.put(f"/api/v1/staff/entities/{eid}/ll144", json={"ll144_in_scope": True}).status_code == 200
+    assert h.ll144_end_client_count(hw.db, hw.parent.id) == 1
+    tree = hw.client.get(f"/api/v1/staff/clients/{hw.parent.id}/entities").json()
+    assert tree["ll144"]["end_clients"] == 1 and tree["ll144"]["in_scope"] == 1

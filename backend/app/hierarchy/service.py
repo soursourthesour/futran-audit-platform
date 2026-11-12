@@ -253,10 +253,10 @@ def set_scope(db: Session, actor: User, child: Organization, data: dict) -> EndC
 
 
 def ll144_end_client_count(db: Session, parent_id: str) -> int:
-    """End-clients (and vendor customers) of `parent_id` in LL144 scope — what L-09 / L-10 pricing counts."""
+    """End-clients of `parent_id` in LL144 scope — what L-09 pricing counts. Vendor customers (L-10) are not counted."""
     return db.scalar(select(func.count(EndClientScope.id)).join(Organization, Organization.id == EndClientScope.end_client_id)
                      .where(EndClientScope.organization_id == parent_id, EndClientScope.ll144_in_scope.is_(True), EndClientScope.deleted_at.is_(None),
-                            Organization.parent_id == parent_id, Organization.deleted_at.is_(None))) or 0
+                            Organization.parent_id == parent_id, Organization.relationship == "end_client", Organization.deleted_at.is_(None))) or 0
 
 
 def _scope_out(db: Session, s: EndClientScope | None, names: dict[str, str]) -> dict | None:
@@ -279,7 +279,7 @@ def futran_tree(db: Session, org: Organization) -> dict:
     for o, depth in entities:
         consent = active_consent(db, o)
         s = scope_for(db, o.id) if o.relationship in ("end_client", "customer_of_vendor") else None
-        if o.relationship in ("end_client", "customer_of_vendor") and o.parent_id == root.id:
+        if o.relationship == "end_client" and o.parent_id == root.id:  # the L-09 pricing count
             end_clients += 1
             if s is not None and s.ll144_in_scope:
                 in_scope += 1
