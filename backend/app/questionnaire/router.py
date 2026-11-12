@@ -15,7 +15,7 @@ from app.policy.authorize import authorize, departments_for
 from app.questionnaire import service as qs
 from app.questionnaire.models import Response
 from app.systems.models import AISystem
-from app.systems.service import get_system, systems_for
+from app.systems.service import get_system
 from app.tenancy.models import Organization, User
 from app.tenancy.people import current_engagement
 
@@ -271,12 +271,11 @@ def my_systems(actor: Actor = Depends(current_actor), db: Session = Depends(get_
     if e is None:
         return {"systems": [], "engagement": None}
     authorize(db, actor, Action.VIEW_ENGAGEMENT, engagement_id=e.id)
+    from app.register.ailist import prefillable
+
     depts = departments_for(actor, Action.PREFILL_SYSTEM)
-    own = {r.scope_id for r in actor.roles if r.scope_type == "system"}
     out = []
-    for s in systems_for(db, e):
-        if depts is not None and s.department_id not in depts and s.id not in own:
-            continue
+    for s in prefillable(db, actor, e):
         c = qs.completion(db, qs.Target(e, s), futran=False)
         out.append({"id": s.id, "reference_id": s.reference_id, "name": s.name, "status": s.status, "answered": c["answered"], "applicable": c["applicable"], "pct": c["pct"]})
     can_engagement = depts is None

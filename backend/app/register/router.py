@@ -174,7 +174,10 @@ def post_register(data: dict, actor: Actor = Depends(current_actor), db: Session
 
 @router.get("/register/{system_id}")
 def get_system(system_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
-    return system_out(db, load(db, actor, system_id), actor, full=True)
+    from app.register.ailist import audit_link
+
+    s = load(db, actor, system_id)
+    return system_out(db, s, actor, full=True) | {"audit": audit_link(db, actor, s)}  # 11-10 U1: its audit questions open from the record
 
 
 @router.patch("/register/{system_id}")

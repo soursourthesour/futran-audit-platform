@@ -42,3 +42,6 @@ ROUTER_MODULES += ["nav.router"]
 
 # 11-03 fixes WS-R: the Futran Admin's AI model list (C12)
 ROUTER_MODULES += ["register.catalogue_router"]
+
+# 11-10 U1: the client's one list of AI systems (register, inventory, use cases and the current audit)
+ROUTER_MODULES += ["register.ailist"]
