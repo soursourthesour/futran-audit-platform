@@ -30,7 +30,7 @@ def test_auditors_and_clients_cannot_see_prices(client, db, seeded, staff):
 
 
 def test_only_owners_edit(client, db, seeded, staff):
-    body = {"changes": [{"code": "A-02a", "field": "list_price", "value": 15500}], "reason": "r"}
+    body = {"changes": [{"code": "A-02a", "field": "list_price", "value": 15500}], "reason": "r", "base_version": 1}
     for who in ("admin", "chief", "sales", "manager"):
         assert as_(client, db, staff[who]).post(f"{API}/save", json=body).status_code == 403, who
         assert client.post(f"{API}/items", json={"code": "A-15", "product": "Audit", "name": "X", "billing": "one_time", "reason": "r"}).status_code == 403
@@ -42,17 +42,17 @@ def test_only_owners_edit(client, db, seeded, staff):
 
 def test_save_returns_field_errors_and_warnings(client, db, seeded, staff):
     as_(client, db, staff["owner"])
-    r = client.post(f"{API}/save", json={"changes": [{"code": "A-02a", "field": "low", "value": 99999}], "reason": "r"})
+    r = client.post(f"{API}/save", json={"changes": [{"code": "A-02a", "field": "low", "value": 99999}], "reason": "r", "base_version": 1})
     assert r.status_code == 422 and "Low must not be above List" in r.json()["errors"][0]["message"]
-    r = client.post(f"{API}/save", json={"changes": [{"code": "A-02b", "field": "list_price", "value": 45000}], "reason": "r"})
+    r = client.post(f"{API}/save", json={"changes": [{"code": "A-02b", "field": "list_price", "value": 45000}], "reason": "r", "base_version": 1})
     assert r.status_code == 422 and r.json()["errors"][0]["kind"] == "warning"
-    r = client.post(f"{API}/save", json={"changes": [{"code": "A-02b", "field": "list_price", "value": 45000}], "reason": "r", "confirm_warnings": True})
+    r = client.post(f"{API}/save", json={"changes": [{"code": "A-02b", "field": "list_price", "value": 45000}], "reason": "r", "confirm_warnings": True, "base_version": 1})
     assert r.status_code == 200
 
 
 def test_pending_change_shows_on_the_row(client, db, seeded, staff):
     as_(client, db, staff["owner"])
-    r = client.post(f"{API}/save", json={"changes": [{"code": "A-02a", "field": "list_price", "value": 16000}], "reason": "From January", "effective_from": "2099-01-01"})
+    r = client.post(f"{API}/save", json={"changes": [{"code": "A-02a", "field": "list_price", "value": 16000}], "reason": "From January", "effective_from": "2099-01-01", "base_version": 1})
     assert r.status_code == 200
     a = next(i for i in client.get(API).json()["items"] if i["code"] == "A-02a")
     assert a["list_price"] == 15000 and a["pending"][0]["new_value"] == 16000 and a["pending"][0]["effective_from"] == "2099-01-01"
@@ -80,7 +80,7 @@ def test_bulk_edit(client, db, seeded, staff):
 
 
 def test_change_log_and_its_export(client, db, seeded, staff):
-    as_(client, db, staff["owner"]).post(f"{API}/save", json={"changes": [{"code": "L-01", "field": "notes", "value": "=HYPERLINK(\"x\")"}], "reason": "Note"})
+    as_(client, db, staff["owner"]).post(f"{API}/save", json={"changes": [{"code": "L-01", "field": "notes", "value": "=HYPERLINK(\"x\")"}], "reason": "Note", "base_version": 1})
     for who in ("sales", "chief", "admin"):
         as_(client, db, staff[who])
         rows = client.get(f"{API}/changes?code=L-01").json()["items"]
@@ -126,6 +126,6 @@ def test_packages_tab(client, db, seeded, staff):
 
 
 def test_versions(client, db, seeded, staff):
-    as_(client, db, staff["owner"]).post(f"{API}/save", json={"changes": [{"code": "L-01", "field": "notes", "value": "n"}], "reason": "Note"})
+    as_(client, db, staff["owner"]).post(f"{API}/save", json={"changes": [{"code": "L-01", "field": "notes", "value": "n"}], "reason": "Note", "base_version": 1})
     v = client.get(f"{API}/versions").json()["items"]
     assert [x["version"] for x in v] == [2, 1] and v[0]["saved_by"] == "Pat President"

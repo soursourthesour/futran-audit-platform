@@ -93,7 +93,7 @@ class SaveIn(BaseModel):
     changes: list[dict] = Field(default_factory=list, max_length=2000)
     reason: str = ""
     effective_from: date | None = None
-    base_version: int | None = None
+    base_version: int  # the catalog version the grid was loaded at: a save over someone else's newer change is refused
     confirm_warnings: bool = False
 
 

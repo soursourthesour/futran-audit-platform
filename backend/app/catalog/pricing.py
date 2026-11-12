@@ -3,8 +3,8 @@ Estimator (SM-15) and the Proposal builder (SM-09) price lines the same way.
 
 Year-1 value = unit price used × qty × periods per year (the Quote Builder rule). A % item is its percentage of the
 year-1 value of the $ lines it applies to (its `applies_to` codes or products; empty means every $ line), times qty.
-Totals: one-time; recurring year 1; discount (discount % on recurring); year-1 total; annual recurring after year 1
-(recurring at the discounted rate)."""
+Totals: one-time, less any one-time discount; recurring year 1; discount (discount % on recurring); year-1 total net of
+both discounts; annual recurring after year 1 (recurring at the discounted rate)."""
 from sqlalchemy.orm import Session
 
 from app.catalog.fields import BILLING
@@ -37,13 +37,18 @@ def compute(lines: list[dict]) -> list[dict]:
     return lines
 
 
-def totals(lines: list[dict], discount_recurring_pct: float | None) -> dict:
+def totals(lines: list[dict], discount_recurring_pct: float | None, discount_one_time_pct: float | None = 0) -> dict:
+    """one_time (gross one-time lines), one_time_discount (one-time discount amount), one_time_net, recurring_y1,
+    discount (discount on recurring), y1_total (net of both discounts) and arr (recurring after year 1, discounted)."""
     if any("line_value" not in ln for ln in lines):
         compute(lines)
-    one_time = sum(ln["line_value"] for ln in lines if not ln.get("recurring", (ln.get("billing") or "one_time") != "one_time") and not ln.get("excluded"))
-    recurring = sum(ln["line_value"] for ln in lines if ln.get("recurring", (ln.get("billing") or "one_time") != "one_time") and not ln.get("excluded"))
+    is_rec = lambda ln: ln.get("recurring", (ln.get("billing") or "one_time") != "one_time")  # noqa: E731
+    one_time = sum(ln["line_value"] for ln in lines if not is_rec(ln) and not ln.get("excluded"))
+    recurring = sum(ln["line_value"] for ln in lines if is_rec(ln) and not ln.get("excluded"))
     discount = recurring * (discount_recurring_pct or 0) / 100
-    return {"one_time": _r(one_time), "recurring_y1": _r(recurring), "discount": _r(discount), "y1_total": _r(one_time + recurring - discount),
+    one_time_discount = one_time * (discount_one_time_pct or 0) / 100
+    return {"one_time": _r(one_time), "one_time_discount": _r(one_time_discount), "one_time_net": _r(one_time - one_time_discount),
+            "recurring_y1": _r(recurring), "discount": _r(discount), "y1_total": _r(one_time - one_time_discount + recurring - discount),
             "arr": _r(recurring - discount)}
 
 

@@ -18,7 +18,7 @@ from app.catalog.models import CatalogChange, CatalogImport, CatalogItem
 from app.core.clock import utcnow
 from app.core.errors import Conflict, Invalid, NotFound
 from app.core.xlsx_guard import WorkbookTooLarge, open_workbook, rows
-from app.documents.csvsafe import safe_cell
+from app.documents.csvsafe import FORMULA_START, safe_cell
 
 XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 MAX_ROWS, MAX_COLS = 2000, 60
@@ -48,6 +48,11 @@ HEADER_ALIASES = {
 
 
 KEEP_WHEN_BLANK = {"product", "name", "billing", "basis", "periods_per_year", "price_status", "sellable_status"}
+
+
+def _unescape(v: str) -> str:
+    """Undo the exporter's formula-safe apostrophe (csvsafe.safe_cell): only a leading ' followed by a formula character."""
+    return v[1:] if len(v) > 1 and v[0] == "'" and v[1] in "".join(FORMULA_START) else v
 
 
 def _norm(h) -> str:
@@ -164,11 +169,9 @@ def _rows(grid: list, cols: dict[int, str | None], first_row: int) -> tuple[list
                 parsed["status"] = "retired" if _norm(v) == "retired" else "active"
                 continue
             if isinstance(v, str):
-                v = v.strip()
+                v = _unescape(v).strip()
             if v in (None, "") and field in KEEP_WHEN_BLANK:
                 continue  # a blank cell in a required column leaves the value as it is (a new item takes the default)
-                if v.startswith("'") and len(v) > 1 and v[1] in "=+-@":
-                    v = v[1:]  # our own formula-safe export
             try:
                 parsed[field] = F.parse(field, v)
             except F.FieldError as exc:
@@ -277,10 +280,22 @@ def save_import(db: Session, user, import_id: str, *, reason: str, retire_missin
         if a["retired"]:
             item.status = "retired"
     items = {i.code: i for i in db.scalars(select(CatalogItem))}
+    cfg = cat.settings(db)
+    held = []
     for c in d["changes"]:
+        if cat.needs_second_check(cfg, c["field"], c["old_value"], c["new_value"]):
+            ch = CatalogChange(catalog_version_id=v.id, item_code=c["code"], field=c["field"], old_value=c["old_value"], new_value=c["new_value"],
+                               status="awaiting_check", reason=reason, changed_by=user.id, changed_at=now)
+            db.add(ch)
+            db.flush()
+            items[c["code"]].pending_change_id = ch.id
+            held.append(ch)
+            continue
         db.add(CatalogChange(catalog_version_id=v.id, item_code=c["code"], field=c["field"], old_value=c["old_value"], new_value=c["new_value"], status="applied",
                              applied_at=now, applied_version_id=v.id, reason=reason, changed_by=user.id, changed_at=now))
         cat._apply(items[c["code"]], c["field"], c["new_value"], v, user.id, now)
+    if held:
+        cat._ask_second_check(db, user, v, held)
     for lst, new in ((d["retirements"], "retired"), (d["restores"], "active")):
         for r in lst:
             item = items[r["code"]]

@@ -46,7 +46,7 @@ def test_preview_prices_lines_and_shows_guardrails(client, db, seeded, staff):
     r = as_(client, db, staff["sales"]).post(f"{API}/preview", json={"lines": GOVERNED, "discount_recurring_pct": 0, "term": 1})
     assert r.status_code == 200, r.text
     b = r.json()
-    assert b["totals"] == {"one_time": 39500, "recurring_y1": 31200, "discount": 0, "y1_total": 70700, "arr": 31200}
+    assert b["totals"] == {"one_time": 39500, "one_time_discount": 0, "one_time_net": 39500, "recurring_y1": 31200, "discount": 0, "y1_total": 70700, "arr": 31200}
     assert [a["rule"] for a in b["approvals"]] == ["P-1", "P-8"]
     assert b["summary"].startswith("1 line edited, still inside the Low–High range: no extra approval.")
 
@@ -82,7 +82,8 @@ def test_save_versions_and_master_never_changes(client, db, seeded, staff, opp):
 def test_list_price_changed_banner(client, db, seeded, staff, opp):
     e = as_(client, db, staff["sales"]).post(API, json={"name": "N", "opportunity_id": opp.id, "lines": GOVERNED}).json()
     as_(client, db, staff["owner"]).post("/api/v1/catalog/save", json={"changes": [{"code": "M-01a", "field": "list_price", "value": 12500},
-                                                                                   {"code": "A-02a", "field": "list_price", "value": 15500}], "reason": "Review"})
+                                                                                   {"code": "A-02a", "field": "list_price", "value": 15500}], "reason": "Review",
+                                                                        "base_version": 1})
     got = as_(client, db, staff["sales"]).get(f"{API}/{e['id']}").json()
     # A-02a was edited by the rep, so it keeps the rep's price; only M-01a, still at list, is offered for update
     assert got["price_changes"] == [{"code": "M-01a", "name": "Monitor, up to 10 systems", "old": 12000, "new": 12500}]

@@ -40,7 +40,7 @@ export type EstLine = {
   assumption: string | null; line_value: number; recurring: boolean; value_difference: number; unit_difference: number; fixed: boolean; edited_by?: string | null; percent_of?: number;
 };
 export type Approval = { rule: string; kind: 'approval' | 'blocked' | 'note'; approver_role: string | null; approver: string | null; codes: string[]; message: string };
-export type Totals = { one_time: number; recurring_y1: number; discount: number; y1_total: number; arr: number };
+export type Totals = { one_time: number; one_time_discount: number; one_time_net: number; recurring_y1: number; discount: number; y1_total: number; arr: number };
 export type Evaluation = { lines: EstLine[]; totals: Totals; approvals: Approval[]; summary: string; catalog_version: number };
 export type Terms = { payment_days?: number; custom_liability?: string; sla_credits?: boolean; discount_one_time_pct?: number };
 export type Estimate = {

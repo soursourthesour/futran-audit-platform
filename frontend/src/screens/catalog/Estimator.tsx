@@ -7,7 +7,7 @@ import { Alert, Badge, Button, Checkbox, fmtDateTime, Loading, PageHeader } from
 import '@/styles/catalog.css';
 
 type Raw = { code: string; qty: number; edited_price: number | null; description?: string | null; deliverables_override?: string | null };
-const EMPTY_TOTALS = { one_time: 0, recurring_y1: 0, discount: 0, y1_total: 0, arr: 0 };
+const EMPTY_TOTALS = { one_time: 0, one_time_discount: 0, one_time_net: 0, recurring_y1: 0, discount: 0, y1_total: 0, arr: 0 };
 
 function parseMoney(s: string): number | null {
   const t = s.replace(/[,$\s]/g, '');
@@ -278,8 +278,9 @@ export function Estimator() {
             </details>
             <dl className="totals">
               <dt>One-time</dt><dd>{money(totals.one_time)}</dd>
+              {totals.one_time_discount > 0 && <><dt>One-time discount</dt><dd>−{money(totals.one_time_discount)}</dd></>}
               <dt>Recurring, year 1</dt><dd>{money(totals.recurring_y1)}</dd>
-              <dt>Discount</dt><dd>{totals.discount ? `−${money(totals.discount)}` : '$0'}</dd>
+              <dt>Discount on recurring</dt><dd>{totals.discount ? `−${money(totals.discount)}` : '$0'}</dd>
               <dt className="strong">Year-1 total</dt><dd className="strong">{money(totals.y1_total)}</dd>
               <dt>Annual recurring after year 1</dt><dd>{money(totals.arr)}</dd>
             </dl>

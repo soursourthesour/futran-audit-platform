@@ -139,6 +139,11 @@ def _rel(old, new) -> float:
     return abs((new or 0) - old) / old
 
 
+def needs_second_check(cfg: CatalogSetting, field: str, old, new) -> bool:
+    """A price change above the second-check limit waits for the other Price List Owner (grid, bulk and import alike)."""
+    return bool(cfg.second_check) and field in F.PRICE_FIELDS and _rel(old, new) * 100 > cfg.second_check_pct
+
+
 def save_batch(db: Session, user: User, changes: list[dict], *, reason: str, effective_from: date | None = None, base_version: int | None = None,
                confirm_warnings: bool = False, source: str = "grid") -> CatalogVersion:
     """Save one batch of field changes [{code, field, value}] with one reason. Raises Invalid with every problem found
@@ -147,6 +152,9 @@ def save_batch(db: Session, user: User, changes: list[dict], *, reason: str, eff
     _require_owner(db, user)
     reason = _check_reason(reason)
     eff = _check_effective(effective_from)
+    from app.core.db import hold_transaction
+
+    hold_transaction(db)  # take the write lock before reading the rows, so the stale check below and the save are one step
     by_code: dict[str, dict] = defaultdict(dict)
     errors: list[dict] = []
     for ch in changes or []:
@@ -184,7 +192,7 @@ def save_batch(db: Session, user: User, changes: list[dict], *, reason: str, eff
             if new == old:
                 continue
             status = "pending" if eff else "applied"
-            if cfg.second_check and field in F.PRICE_FIELDS and _rel(old, new) * 100 > cfg.second_check_pct:
+            if needs_second_check(cfg, field, old, new):
                 status = "awaiting_check"
             plan.append((item, field, old, new, status))
     if errors:

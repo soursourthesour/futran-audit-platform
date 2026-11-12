@@ -22,7 +22,7 @@ def test_line_values_follow_the_design(lines):
 
 def test_totals_match_the_design(lines):
     t = pricing.totals(lines, 0)
-    assert t == {"one_time": 39500, "recurring_y1": 31200, "discount": 0, "y1_total": 70700, "arr": 31200}
+    assert t == {"one_time": 39500, "one_time_discount": 0, "one_time_net": 39500, "recurring_y1": 31200, "discount": 0, "y1_total": 70700, "arr": 31200}
 
 
 def test_discount_applies_to_recurring_only(lines):

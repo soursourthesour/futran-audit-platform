@@ -91,7 +91,13 @@ def _terms(body: dict) -> dict:
         if t.get(k):
             out[k] = t[k]
     if t.get("discount_one_time_pct"):
-        out["discount_one_time_pct"] = float(t["discount_one_time_pct"])
+        try:
+            pct = float(t["discount_one_time_pct"])
+        except (TypeError, ValueError) as exc:
+            raise Invalid(errors=[{"field": "discount_one_time_pct", "message": "Enter a percentage."}]) from exc
+        if not 0 <= pct <= 100:
+            raise Invalid(errors=[{"field": "discount_one_time_pct", "message": "Enter a one-time discount between 0 and 100%."}])
+        out["discount_one_time_pct"] = pct
     return out
 
 
@@ -99,7 +105,7 @@ def evaluate(db: Session, lines: list[dict], discount_recurring_pct: float, term
     priced = pricing.price_lines(db, lines)
     limit = cat.settings(db).manager_discount_limit_pct
     approvals = guardrails.needed_approvals(priced, discount_recurring_pct, terms, discount_limit_pct=limit)
-    return {"lines": priced, "totals": pricing.totals(priced, discount_recurring_pct), "approvals": approvals,
+    return {"lines": priced, "totals": pricing.totals(priced, discount_recurring_pct, terms.get("discount_one_time_pct") or 0), "approvals": approvals,
             "summary": guardrails.summary(priced, approvals), "catalog_version": cat.current_version(db)}
 
 
