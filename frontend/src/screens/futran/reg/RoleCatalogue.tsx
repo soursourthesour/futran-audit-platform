@@ -1,31 +1,57 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
 import { Alert, Badge, Button, Card, Dialog, Loading, PageHeader, SelectField, TextArea, TextField } from '@/components/ui';
 import { FieldHelp } from '@/components/ui/FieldHelp';
 import { STAGE_OPTIONS, stageLabel, type RoleCatalogue as Catalogue, type RoleRow } from '@/api/regmaster';
 import { roleHelp as H } from '@/help/regmaster';
-import { RegTabs } from './LawLibrary';
+import { RolesPivot } from './RolesPivot';
 import '@/styles/regmaster.css';
 
 const LEVELS = [{ value: 'company', label: 'Company' }, { value: 'system', label: 'System' }, { value: 'agent', label: 'Agent' }];
 const GROUPS: { level: string; title: string }[] = [{ level: 'company', title: 'Company-wide roles' }, { level: 'system', title: 'Roles for each AI system' }, { level: 'agent', title: 'Roles for each AI agent' }];
 
+/** Roles and committees (M4). Feedback 10 Nov F4: the default view is a pivot of the regulations you pick; the full catalogue,
+ *  where roles are edited, is the other view. The view and the picked regulations are kept in the page address. */
 export function RoleCatalogue() {
+  const [params, setParams] = useSearchParams();
+  const view = params.get('view') === 'catalogue' ? 'catalogue' : 'pivot';
+  const laws = (params.get('laws') ?? '').split(',').filter(Boolean);
+  const set = (next: { view?: string; laws?: string[] }) => {
+    const p = new URLSearchParams(params);
+    const v = next.view ?? view;
+    if (v === 'catalogue') p.set('view', 'catalogue'); else p.delete('view');
+    const l = next.laws ?? laws;
+    if (l.length) p.set('laws', l.join(',')); else p.delete('laws');
+    setParams(p, { replace: true });
+  };
+  return (
+    <div className="page">
+      <PageHeader title="Roles and committees"
+        subtitle="The governance roles and committees each law requires. Pick regulations to see what they need together, or open the full catalogue to review and edit the roles." />
+      <p className="small" style={{ marginTop: 0, maxWidth: 880 }}>Needed by is the point in the system's life by which the role should be filled. Every required role needed at program set-up, procurement, development or go-live is checked when the system is submitted for go-live in the client's AI system register: an empty one blocks approval, and on a system already live it is raised as a finding. Roles needed for ongoing or yearly work are not checked at go-live and raise no finding.</p>
+      <div className="fx-view-toggle" role="group" aria-label="View">
+        <button type="button" aria-pressed={view === 'pivot'} onClick={() => set({ view: 'pivot' })}>By regulation</button>
+        <button type="button" aria-pressed={view === 'catalogue'} onClick={() => set({ view: 'catalogue' })}>Full catalogue</button>
+      </div>
+      {view === 'pivot' ? <RolesPivot selected={laws} setSelected={(ids) => set({ laws: ids })} /> : <CatalogueView />}
+    </div>
+  );
+}
+
+function CatalogueView() {
   const [show, setShow] = useState('top');
   const q = useQuery({ queryKey: ['reg-roles', show], queryFn: () => api.get<Catalogue>(`/reg/roles?laws=${show}`) });
   const [editing, setEditing] = useState<RoleRow | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
-  if (q.isLoading && !q.data) return <div className="page"><Loading /></div>;
-  if (!q.data) return <div className="page"><Alert tone="danger">{errorMessage(q.error)}</Alert></div>;
+  if (q.isLoading && !q.data) return <Loading />;
+  if (!q.data) return <Alert tone="danger">{errorMessage(q.error)}</Alert>;
   const d = q.data;
   return (
-    <div className="page">
-      <PageHeader title="Role and committee catalogue"
-        subtitle="The 21 governance roles and which law requires each. A client's required roles are the union of the columns for the laws that apply to them; where laws differ, the stricter level and the earlier stage win. A refresh can propose a change to any cell." />
-      <RegTabs />
-      <p className="small" style={{ marginTop: 0, maxWidth: 880 }}>Needed by is the point in the system's life by which the role should be filled. Every required role needed at program set-up, procurement, development or go-live is checked when the system is submitted for go-live in the client's AI system register: an empty one blocks approval, and on a system already live it is raised as a finding. Roles needed for ongoing or yearly work are not checked at go-live and raise no finding.</p>
+    <div>
+      <h2 style={{ marginTop: 0 }}>Role and committee catalogue</h2>
+      <p className="small" style={{ marginTop: 0, maxWidth: 880 }}>The 21 governance roles and which law requires each. A client's required roles are the union of the columns for the laws that apply to them; where laws differ, the stricter level and the earlier stage win. A refresh can propose a change to any cell.</p>
       {flash && <Alert tone="success">{flash}</Alert>}
       <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 12 }}>
         <div style={{ minWidth: 220 }}><SelectField label="Show laws" help={H.show} value={show} onChange={(e) => setShow(e.target.value)} options={[{ value: 'top', label: '10 most used' }, { value: 'all', label: `All laws with role maps` }]} /></div>

@@ -8,7 +8,7 @@ import { fmtValue, type ChangeItem, type Queue, type Run, type RunSettings } fro
 import { Alert, Badge, Button, Card, Checkbox, Dialog, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField, WithHelp, fmtDateTime } from '@/components/ui';
 import { DataGrid, type GridColumn, type GridRowAction } from '@/components/ui/DataGrid';
 import { refreshHelp as H } from '@/help/monitoring';
-import { RegTabs, canReviewLaws } from '@/screens/futran/reg/LawLibrary';
+import { canReviewLaws } from '@/screens/futran/reg/LawLibrary';
 import '@/styles/monitoring.css';
 
 type Msg = { tone: 'success' | 'danger' | 'warn'; text: string } | null;
@@ -81,7 +81,6 @@ export function RefreshReview() {
     <div className="page">
       <PageHeader title={kind === 'law' ? 'Refresh laws and review changes' : 'Refresh cases and review updates'}
         subtitle="The AI provider only proposes. Nothing changes in the law library, the litigation tracker, client letters or AI system roles until the Chief Auditor approves it." />
-      <RegTabs pending={kind === 'law' ? queue.data?.counts.open : undefined} />
       {lawsOk && casesOk && (
         <div className="pills" role="tablist" aria-label="What to review" style={{ margin: '12px 0' }}>
           <button type="button" role="tab" className="pill" aria-selected={kind === 'law'} onClick={() => setParams({ kind: 'law' })}>Laws</button>

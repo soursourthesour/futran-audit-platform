@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
 import { can, useMe, type Me } from '@/api/auth';
@@ -12,18 +12,6 @@ import '@/styles/regmaster.css';
 /** True when the person can open the refresh and review page for laws (the queue or a run). */
 export function canReviewLaws(me: Me | null | undefined) {
   return can(me, 'view_reg_changes', 'run_law_refresh');
-}
-
-export function RegTabs({ pending }: { pending?: number }) {
-  const { data: me } = useMe();
-  const library = can(me, 'view_reg_master');
-  const tabs = [
-    library && <NavLink key="lib" to="/reg" end>Law library</NavLink>,
-    canReviewLaws(me) && <NavLink key="ref" to="/reg/refresh">Refresh and review{pending ? ` (${pending})` : ''}</NavLink>,
-    library && <NavLink key="roles" to="/reg/roles">Roles and committees</NavLink>,
-  ].filter(Boolean);
-  if (tabs.length < 2) return null;  // a single tab is just the page heading again
-  return <nav className="reg-tabs" aria-label="Law library sections">{tabs}</nav>;
 }
 
 export function LawLibrary() {
@@ -49,7 +37,6 @@ export function LawLibrary() {
           {review && <Link className="btn" to="/reg/refresh">Refresh laws with AI</Link>}
           {d.can_edit && <Button variant="primary" onClick={() => nav('/reg/new')}>Add a law</Button>}
         </>} />
-      <RegTabs pending={d.kpis.pending} />
       <div className="alert" role="note" style={{ marginBottom: 12 }}>
         <p style={{ margin: 0 }}>The law library is the laws themselves: each law's versions, statutory requirements, scope tests, required roles and penalties. Every change is reviewed before it goes live. <strong>Reference data</strong> is the lists the platform uses around the laws: the law matrix rows, the jurisdictions client sites are matched to, and the workbook import and its versions.</p>
         {can(me, 'manage_reference_data', 'run_law_refresh') && <p style={{ margin: '8px 0 0' }}><Link to="/admin/reference">Open reference data</Link></p>}

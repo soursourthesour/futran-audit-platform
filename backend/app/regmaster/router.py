@@ -588,6 +588,106 @@ def role_catalogue(laws: str = "top", jurisdiction: str | None = None, actor: Ac
     }
 
 
+# ---- feedback 10 Nov F4: the roles pivot. Pick regulations; rows are the roles and committees they require (from LawRoleMap and
+# CommitteeRule on each law's current version, the same maps the catalogue, applicability and the register read).
+
+_LEVEL_RANK = {"required": 0, "recommended": 1}
+
+
+def _pivot(db: Session, laws: str | None) -> dict:
+    ensure_versions(db)
+    live = list(db.scalars(select(Regulation).where(Regulation.superseded_by_id.is_(None), Regulation.retired_in_version_id.is_(None), Regulation.current_version_id.is_not(None))))
+    mapped = set(db.scalars(select(LawRoleMap.law_version_id).distinct())) | set(db.scalars(select(CommitteeRule.law_version_id).where(CommitteeRule.law_version_id.is_not(None)).distinct()))
+    live = [r for r in live if r.current_version_id in mapped]
+    juris = {j.id: j for j in db.scalars(select(Jurisdiction).where(Jurisdiction.id.in_({r.jurisdiction_id for r in live})))} if live else {}
+    region_label = dict(REGIONS)
+    region_order = [k for k, _ in REGIONS]
+    regs = []
+    for r in live:
+        j = juris.get(r.jurisdiction_id)
+        reg_key = _region(db, r, j)
+        regs.append({"id": r.id, "label": engine.law_label(r), "short_name": r.short_name, "jurisdiction": j.name if j else "Other", "jurisdiction_code": j.code if j else "",
+                     "region": reg_key, "region_label": region_label.get(reg_key, reg_key), "mapped": True})
+    regs.sort(key=lambda x: (region_order.index(x["region"]) if x["region"] in region_order else len(region_order), x["jurisdiction"].lower(), x["label"].lower()))
+    by_id = {r.id: r for r in live}
+    wanted = [x for x in dict.fromkeys((laws or "").split(",")) if x in by_id]
+    selected = [next(x for x in regs if x["id"] == i) for i in wanted]
+    stage_label = {"program_setup": "Program set-up", "procurement": "Procurement", "development": "Development", "go_live": "Go-live", "ongoing": "Ongoing", "yearly": "Yearly"}
+    roles = {r.id: r for r in db.scalars(select(RoleCatalog).order_by(RoleCatalog.number))}
+    role_rows: dict[str, dict] = {}
+    comm_rows: dict[str, dict] = {}
+    for law_id in wanted:
+        reg = by_id[law_id]
+        for m in db.scalars(select(LawRoleMap).where(LawRoleMap.law_version_id == reg.current_version_id)):
+            role = roles.get(m.role_id)
+            if role is None:
+                continue
+            row = role_rows.setdefault(role.code, {"code": role.code, "number": role.number, "name": role.name, "description": role.description, "level": role.level, "cells": {}})
+            stage = m.needed_by_stage or role.default_stage
+            row["cells"][law_id] = {"level": m.level, "needed_by_stage": stage, "needed_by_label": stage_label.get(stage, stage), "basis": m.basis_text}
+        for c in db.scalars(select(CommitteeRule).where(CommitteeRule.law_version_id == reg.current_version_id)):
+            row = comm_rows.setdefault(c.committee_type, {"committee_type": c.committee_type, "title": c.title or COMMITTEE_LABELS.get(c.committee_type, c.committee_type), "cells": {}})
+            prev = row["cells"].get(law_id)
+            if prev is None or _LEVEL_RANK.get(c.level, 2) < _LEVEL_RANK.get(prev["level"], 2):
+                row["cells"][law_id] = {"level": c.level, "basis": c.basis_text, "condition": c.condition_text}
+    label = {x["id"]: x["label"] for x in regs}
+    summary = []
+    for row in sorted(role_rows.values(), key=lambda x: x["number"]):
+        cells = row["cells"]
+        summary.append({"kind": "role", "code": row["code"], "name": row["name"],
+                        "level": min((c["level"] for c in cells.values()), key=lambda lv: _LEVEL_RANK.get(lv, 2)),
+                        "needed_by_stage": min((c["needed_by_stage"] for c in cells.values()), key=lambda st: STAGES.index(st) if st in STAGES else len(STAGES)),
+                        "laws": [label[i] for i in wanted if i in cells]})
+    for row in sorted(comm_rows.values(), key=lambda x: x["title"]):
+        cells = row["cells"]
+        summary.append({"kind": "committee", "code": row["committee_type"], "name": row["title"], "level": min((c["level"] for c in cells.values()), key=lambda lv: _LEVEL_RANK.get(lv, 2)),
+                        "needed_by_stage": None, "laws": [label[i] for i in wanted if i in cells]})
+    for s_ in summary:
+        s_["needed_by_label"] = stage_label.get(s_["needed_by_stage"], None) if s_["needed_by_stage"] else None
+    summary.sort(key=lambda s_: (_LEVEL_RANK.get(s_["level"], 2), s_["kind"] != "role", STAGES.index(s_["needed_by_stage"]) if s_["needed_by_stage"] in STAGES else len(STAGES), s_["name"].lower()))
+    return {"regulations": regs, "selected": selected, "roles": sorted(role_rows.values(), key=lambda x: x["number"]),
+            "committees": sorted(comm_rows.values(), key=lambda x: x["title"]), "summary": summary, "stages": STAGES,
+            "stage_labels": stage_label}
+
+
+@router.get("/reg/roles/pivot")
+def roles_pivot(laws: str | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+    authorize(db, actor, Action.VIEW_REG_MASTER)
+    return _pivot(db, laws)
+
+
+def _csv_cell(v) -> str:
+    v = "" if v is None else str(v)
+    return "'" + v if v[:1] in ("=", "+", "-", "@", "\t", "\r") else v
+
+
+@router.get("/reg/roles/pivot.csv")
+def roles_pivot_csv(laws: str | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+    """The pivot as shown: one row per role or committee, one column per selected regulation. No cell can start a formula."""
+    import csv
+    import io
+
+    from fastapi.responses import Response
+
+    authorize(db, actor, Action.VIEW_REG_MASTER)
+    p = _pivot(db, laws)
+    level_word = {"required": "Required", "recommended": "Recommended"}
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["Type", "Role or committee", "Level"] + [s["label"] for s in p["selected"]] + ["Needed by any selected regulation"])
+    lv = {"company": "Company", "system": "System", "agent": "Agent"}
+    summary = {(s_["kind"], s_["code"]): s_ for s_ in p["summary"]}
+    for r in p["roles"]:
+        cells = [(f"{level_word.get(c['level'], c['level'])}, needed by {c['needed_by_label']}" if (c := r["cells"].get(s["id"])) else "") for s in p["selected"]]
+        s_ = summary[("role", r["code"])]
+        w.writerow([_csv_cell(x) for x in ["Role", r["name"], lv.get(r["level"], r["level"]), *cells, f"{level_word.get(s_['level'])}, needed by {s_['needed_by_label']}"]])
+    for c in p["committees"]:
+        cells = [(level_word.get(x["level"], x["level"]) if (x := c["cells"].get(s["id"])) else "") for s in p["selected"]]
+        s_ = summary[("committee", c["committee_type"])]
+        w.writerow([_csv_cell(x) for x in ["Committee or program", c["title"], "Company", *cells, level_word.get(s_["level"])]])
+    return Response("\ufeff" + buf.getvalue(), media_type="text/csv; charset=utf-8", headers={"Content-Disposition": 'attachment; filename="roles_by_regulation.csv"'})
+
+
 class RoleIn(BaseModel):
     name: str | None = None
     description: str | None = None

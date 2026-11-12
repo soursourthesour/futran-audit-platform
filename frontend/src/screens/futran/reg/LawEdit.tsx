@@ -5,7 +5,6 @@ import { api, errorMessage, fieldErrors } from '@/api/client';
 import { Alert, Badge, Button, Card, Checkbox, FieldGroup, Loading, PageHeader, SelectField, TextArea, TextField } from '@/components/ui';
 import { APPLIES_OPTIONS, STATUS_OPTIONS, TYPE_OPTIONS, type LawRecord, type Library, type Requirement } from '@/api/regmaster';
 import { lawHelp as H } from '@/help/regmaster';
-import { RegTabs } from './LawLibrary';
 import '@/styles/regmaster.css';
 
 type Source = { name: string; url: string; kind: string };
@@ -125,7 +124,6 @@ export function LawEdit() {
       <PageHeader title={title} crumbs={[{ to: '/reg', label: 'Law library' }, ...(lawId && law.data ? [{ to: `/reg/${lawId}`, label: law.data.label }] : []), { label: lawId ? 'Edit' : 'Add a law' }]}
         subtitle="Saved as a proposed change. It goes live after Chief Auditor approval."
         actions={<>{!lawId && <Button onClick={saveDraft}>Save draft</Button>}<Button variant="primary" disabled={busy} onClick={send}>Send for approval</Button></>} />
-      <RegTabs />
       {flash && <Alert tone="success">{flash}</Alert>}
       {err && <Alert tone="danger">{err}</Alert>}
       {!lawId && (

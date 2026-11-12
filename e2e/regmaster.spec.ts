@@ -57,7 +57,8 @@ test('Chief Auditor browses the law library, opens Colorado SB 26-189 and an Adm
   await expect(page.getByText(/^60 days after a notice of violation/)).toBeVisible();
 
   // M4: the role matrix
-  await page.getByRole('navigation', { name: 'Law library sections' }).getByRole('link', { name: 'Roles and committees' }).click();
+  await openNav(page, 'Roles and committees');  // feedback 10 Nov F3: the menu, not in-page tabs
+  await page.getByRole('button', { name: 'Full catalogue' }).click();  // F4: the pivot is the first view
   await expect(page.getByRole('heading', { name: 'Role and committee catalogue' })).toBeVisible();
   await expect(page.getByRole('cell', { name: /Bias testing lead/ }).first()).toBeVisible();
   await noSidewaysScroll(page);

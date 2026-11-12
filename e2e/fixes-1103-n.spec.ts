@@ -127,7 +127,7 @@ test.describe('Futran', () => {
     await expect(navLink(page, 'Roles and committees')).toBeFocused();
     await page.keyboard.press('Enter');
     await expect(page).toHaveURL(/\/reg\/roles$/);
-    await expect(page.getByRole('heading', { level: 1, name: 'Role and committee catalogue' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Roles and committees' })).toBeVisible();  // feedback 10 Nov F4
     await expect(law).toHaveAttribute('aria-expanded', 'false');  // a new page closes the menu
     await expect(law).toHaveClass(/active/);                     // and its group shows as current
     await expect(navLink(page, 'Roles and committees')).toHaveAttribute('aria-current', 'page');
@@ -276,6 +276,7 @@ test.describe('Futran', () => {
     await expect(page.getByText(/Needed by is the point in the system's life/)).toBeVisible();
     await expect(page.getByText(/checked when the system is submitted for go-live/).first()).toBeVisible();
     await expect(page.getByText(/Roles needed for ongoing or yearly work are not checked at go-live/).first()).toBeVisible();
+    await page.getByRole('button', { name: 'Full catalogue' }).click();  // feedback 10 Nov F4: the pivot is the first view
     await page.getByRole('button', { name: 'About Needed by' }).first().click();
     await expect(page.getByRole('tooltip')).toContainText(/checked when the system is submitted for go-live/);
     await expect(page.getByRole('tooltip')).toContainText(/not checked at go-live/);

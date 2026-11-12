@@ -170,7 +170,7 @@ test('the Auditor is not sent to a review queue they cannot open', async ({ page
   });
   expect(bad).toEqual([]);
   await expect(page.getByRole('link', { name: 'Refresh laws with AI' })).toHaveCount(0);
-  await expect(page.getByRole('navigation', { name: 'Law library sections' }).getByRole('link', { name: /Refresh and review/ })).toHaveCount(0);
+  await expect(navLink(page, 'Refresh and review')).toHaveCount(0);  // feedback 10 Nov F3: no in-page section tabs, and the menu hides it
   const bad2 = await apiErrors(page, async () => {
     await page.goto('/reg/refresh?kind=law');
     await expect(page.getByText(/wait here for the Chief Auditor/)).toBeVisible();

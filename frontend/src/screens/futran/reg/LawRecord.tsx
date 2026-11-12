@@ -7,7 +7,7 @@ import { DataGrid } from '@/components/ui/DataGrid';
 import { AI_TYPE_OPTIONS, APPLIES_OPTIONS, STAGE_OPTIONS, appliesLabel, stageLabel, statusTone, type LawRecord as Law, type Requirement } from '@/api/regmaster';
 import { requirementHelp as H, roleHelp as RH } from '@/help/regmaster';
 import { FieldHelp } from '@/components/ui/FieldHelp';
-import { RegTabs, canReviewLaws } from './LawLibrary';
+import { canReviewLaws } from './LawLibrary';
 import { can, useMe } from '@/api/auth';
 import { LawCases } from '@/screens/litigation/LawCases';
 import { ObligationsPanel } from '@/screens/ai/Obligations';
@@ -45,7 +45,6 @@ export function LawRecord() {
           {!d.can_edit && <Button onClick={() => setSuggest(true)}>Suggest a change</Button>}
           {can(me, 'run_law_refresh') && <Link className="btn" to={`/reg/refresh?law=${d.id}`}>Refresh this law only</Link>}
         </>} />
-      <RegTabs />
       {flash && <Alert tone="success">{flash}</Alert>}
       {d.pending.length > 0 && (
         <Alert tone="warn">
