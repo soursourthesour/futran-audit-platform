@@ -252,3 +252,7 @@ class Action(StrEnum):
     MANAGE_PARTNERS = "manage_partners"  # add and edit partners, record referrals
     VIEW_COMMISSIONS = "view_commissions"  # commission rules and amounts: never Auditors
     SETTLE_COMMISSIONS = "settle_commissions"  # mark a commission paid or void
+    # Release 2 R2: sales desk (spec §4.1, SM-01 to SM-04)
+    VIEW_SALES_HOME = "view_sales_home"  # SM-01: Sales Officer and Sales Manager
+    REASSIGN_OPPORTUNITIES = "reassign_opportunities"  # move someone else's opportunity to another owner: Sales Manager, Chief Auditor
+    VIEW_TEAM_PIPELINE = "view_team_pipeline"  # the whole team's pipeline on the Sales home: Sales Manager, Chief Auditor

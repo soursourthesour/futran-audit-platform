@@ -55,7 +55,7 @@ export function CaseForm({ initial, onClose, onSaved }: { initial?: CaseDetail; 
         <TextArea label="What it is about" help={H.description} value={f.description} onChange={set('description')} rows={3} />
         <TextArea label="Why it matters to our clients" help={H.whyMatters} value={f.why_matters} onChange={set('why_matters')} rows={3} />
         <div className="form-grid">
-          <TextArea label="Talking points for the Chief Auditor and Sales Team" help={H.pointsFutran} value={f.talking_points_futran} onChange={set('talking_points_futran')} rows={4} />
+          <TextArea label="Talking points for the Chief Auditor and the sales team" help={H.pointsFutran} value={f.talking_points_futran} onChange={set('talking_points_futran')} rows={4} />
           <TextArea label="Talking points for the client (the briefing's to-dos)" help={H.pointsClient} value={f.talking_points_client} onChange={set('talking_points_client')} rows={4} />
         </div>
         <fieldset className="stack-sm">

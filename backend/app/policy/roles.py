@@ -35,7 +35,7 @@ ROLE_LABELS: dict[str, str] = {
     "qa_reviewer": "QA Reviewer",
     "engagement_manager": "Engagement Manager",
     "legal_reviewer": "Legal/Compliance Reviewer",
-    "sales_team": "Sales Team",
+    "sales_team": "Sales Officer",  # Release 2 §4.1: the key stays, the label changes
     "sales_manager": "Sales Manager",
     "pricing_approver": "Pricing Approver",
     "price_list_owner": "Price List Owner",

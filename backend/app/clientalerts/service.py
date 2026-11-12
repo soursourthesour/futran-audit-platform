@@ -33,7 +33,7 @@ AUDIENCE_LABELS = {
     "law_applies": "Every client where the law applies", "geography": "Clients in that geography", "similar_ai": "Clients using similar AI",
     "untraced_systems": "Clients with Tier 3 or agent systems untraced", "update_matches": "Clients the update matches",
 }
-APPROVAL_LABELS = {"chief_auditor": "Chief Auditor approves each send", "automatic": "Automatic", "sales_owner": "Sales Team owner approves"}
+APPROVAL_LABELS = {"chief_auditor": "Chief Auditor approves each send", "automatic": "Automatic", "sales_owner": "Sales owner approves"}
 GROUP_ROLES = {"AIComplianceTeam": {"caico", "dpo"}, "DeptHeads": {"dept_compliance_lead"}, "ChiefAIComplianceOfficer": {"caico"}}
 CHANGE_LABELS = {
     "new_rule": "New rule", "amendment": "Amended law", "effective_date": "Date change", "guidance": "New guidance", "new_law": "New AI law",

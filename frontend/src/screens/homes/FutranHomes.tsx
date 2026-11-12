@@ -10,7 +10,7 @@ import { RATING_LABEL, RoleNote, SEVERITY_TONE, Tile, cap } from './common';
 import { DashboardOverview, engagementLink, type DashboardData } from '@/screens/futran/Dashboard';
 
 const FUTRAN_ROLE_ORDER: [string, string][] = [['chief_auditor', 'Chief Auditors'], ['auditor', 'Auditors'], ['qa_reviewer', 'QA Reviewers'], ['engagement_manager', 'Engagement Managers'],
-  ['legal_reviewer', 'Legal reviewers'], ['sales_team', 'Sales Team'], ['admin', 'Admins']];
+  ['legal_reviewer', 'Legal reviewers'], ['sales_team', 'Sales Officers'], ['sales_manager', 'Sales Managers'], ['admin', 'Admins']];
 
 function useHome<T>(key: string) {
   return useQuery({ queryKey: ['home', key], queryFn: () => api.get<T>(`/home/${key}`) });

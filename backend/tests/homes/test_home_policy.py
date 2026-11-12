@@ -11,7 +11,7 @@ FUTRAN_HOMES = {
     "qa_reviewer": "/qa",
     "engagement_manager": "/my-work",
     "legal_reviewer": "/my-work",
-    "sales_team": "/opportunities",
+    "sales_team": "/sales",  # Release 2 R2: SM-01
 }
 CLIENT_HOMES = {
     "caico": "/start",

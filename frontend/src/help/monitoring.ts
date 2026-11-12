@@ -42,7 +42,7 @@ export const caseHelp = {
   stageNote: 'A short qualifier, for example “Age collective preliminarily certified”.',
   description: 'What the case is about, in two or three plain sentences.',
   whyMatters: 'One point per line. Shown on the case record.',
-  pointsFutran: 'For the Chief Auditor and the Sales Team. One point per line.',
+  pointsFutran: 'For the Chief Auditor and the sales team. One point per line.',
   pointsClient: 'Sent in the client briefing as the to-do list. One point per line.',
   types: 'Register system types that are like the AI in the case.',
   uses: 'Words that, found in a system’s name or purpose, show a similar use. Separate with commas.',
@@ -50,7 +50,7 @@ export const caseHelp = {
   impact: 'Match only systems that make consequential decisions about people.',
   sources: 'One source per line: title, a space, then the link. Court and regulator documents first.',
   laws: 'The laws the case interprets. The case then shows on each law’s record.',
-  owner: 'Who in the Sales Team owns the new opportunities.',
+  owner: 'Which Sales Officer or Sales Manager owns the new opportunities.',
 };
 
 export const oppHelp = {
@@ -60,7 +60,7 @@ export const oppHelp = {
   kind: 'Remediation of a finding raised in a current engagement cannot be offered to that client.',
   why: 'Why now: the rule, date, case or request behind it.',
   value: 'Estimated value in US dollars.',
-  owner: 'Sales Team member or Chief Auditor who owns it.',
+  owner: 'Sales Officer, Sales Manager or Chief Auditor who owns it.',
   stage: 'New, contacted, proposal, won or lost.',
   nextStep: 'The next thing to do, with a date if there is one.',
   activity: 'A call, email, meeting, note or outcome. Kept on the opportunity.',

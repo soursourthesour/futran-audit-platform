@@ -86,7 +86,7 @@ export function Litigation() {
   const lr = q.data?.last_refresh;
   return (
     <div className="page">
-      <PageHeader title="AI litigation tracker" subtitle="Court cases and decisions that shape how AI laws are read. Use them to explain risk to clients and to see which clients use similar AI. Visible to the Chief Auditor, Auditors and Sales Team; clients receive briefings, not the tracker."
+      <PageHeader title="AI litigation tracker" subtitle="Court cases and decisions that shape how AI laws are read. Use them to explain risk to clients and to see which clients use similar AI. Visible to the Chief Auditor, Auditors and the sales team; clients receive briefings, not the tracker."
         actions={canEdit ? <><Link className="btn" to="/reg/refresh?kind=litigation">Refresh with AI</Link><Button variant="primary" onClick={() => setAdding(true)}>Add case</Button></> : undefined} />
       <p className="small muted">
         {lr ? <>Last refresh {fmtDateTime(lr.started_at)} · {lr.open ? <Link to="/reg/refresh?kind=litigation">{lr.open} {lr.open === 1 ? 'update' : 'updates'} waiting for review</Link> : 'nothing waiting for review'}{lr.alert_status ? ` · ${lr.alert_status}` : ''}</> : 'No litigation refresh has run yet.'}
@@ -133,7 +133,7 @@ export function Litigation() {
 export function TalkingPoints({ c }: { c: CaseDetail }) {
   return (
     <div className="talking">
-      <div><h3>For the Chief Auditor and Sales Team</h3><ul>{lines(c.talking_points_futran).map((l, i) => <li key={i}>{l}</li>)}</ul></div>
+      <div><h3>For the Chief Auditor and the sales team</h3><ul>{lines(c.talking_points_futran).map((l, i) => <li key={i}>{l}</li>)}</ul></div>
       <div><h3>For the client's Chief AI Compliance Officer (sent in the briefing)</h3><ul>{lines(c.talking_points_client).map((l, i) => <li key={i}>{l}</li>)}</ul></div>
       <p className="small muted">Not legal advice. Clients should confirm with counsel.</p>
     </div>

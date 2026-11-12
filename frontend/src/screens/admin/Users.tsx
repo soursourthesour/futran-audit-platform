@@ -8,7 +8,7 @@ import '@/styles/futran-screens.css';
 
 type U = { id: string; name: string; email: string; job_title: string | null; department_id: string | null; department: string | null; status: string; mfa_enabled: boolean; roles: string[]; role_labels: string[] };
 type Dept = { id: string; name: string; people: number };
-const FUTRAN_ROLES = ['chief_auditor', 'admin', 'auditor', 'qa_reviewer', 'engagement_manager', 'legal_reviewer', 'sales_team'];
+const FUTRAN_ROLES = ['chief_auditor', 'admin', 'auditor', 'qa_reviewer', 'engagement_manager', 'legal_reviewer', 'sales_team', 'sales_manager', 'pricing_approver', 'price_list_owner'];
 const STATUS_LABEL: Record<string, string> = { active: 'Active', invited: 'Invited', disabled: 'Disabled' };
 
 function RolePicker({ roles, setRoles, error }: { roles: string[]; setRoles: (r: string[]) => void; error?: string }) {

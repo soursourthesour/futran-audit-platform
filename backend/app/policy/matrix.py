@@ -602,3 +602,21 @@ _R7: dict = {
 }
 for _role, _grants in _R7.items():
     MATRIX.setdefault(_role, {}).update(_grants)
+
+
+
+
+# ---- Release 2 R2: sales desk (spec §4.1). The Sales Officer (key sales_team) works opportunities and has the Sales home;
+# the Sales Manager can do everything a Sales Officer can, reassigns opportunities and sees the team's pipeline; the
+# Pricing Approver reads opportunities for the approvals it decides; the Chief Auditor reads the pipeline and approves
+# offers to audit clients (§4.7). Audit roles hold none of these, so opportunity values never reach an Auditor.
+_R2: dict = {
+    R.SALES_TEAM: {A.VIEW_SALES_HOME: S.ALL},
+    R.SALES_MANAGER: {**{a: s for a, s in MATRIX.get(R.SALES_TEAM, {}).items()}, A.VIEW_SALES_HOME: S.ALL, A.REASSIGN_OPPORTUNITIES: S.ALL,
+                      A.VIEW_TEAM_PIPELINE: S.ALL},
+    R.PRICING_APPROVER: {A.VIEW_OPPORTUNITIES: S.ALL},
+    R.CHIEF_AUDITOR: {A.REASSIGN_OPPORTUNITIES: S.ALL, A.VIEW_TEAM_PIPELINE: S.ALL},
+}
+for _role, _grants in _R2.items():
+    for _a, _s in _grants.items():
+        MATRIX.setdefault(_role, {}).setdefault(_a, _s)  # never narrows a grant another workstream gave

@@ -19,7 +19,7 @@ CANNOT = [
 
 def test_sales_team_is_a_futran_role():
     assert R.SALES_TEAM in FUTRAN_ROLES
-    assert ROLE_LABELS["sales_team"] == "Sales Team"
+    assert ROLE_LABELS["sales_team"] == "Sales Officer"  # Release 2 §4.1 relabel
 
 
 @pytest.mark.parametrize("action", CAN)
