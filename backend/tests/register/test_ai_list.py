@@ -194,3 +194,23 @@ def test_the_system_record_opens_its_audit_questions(client, db, reg):
     assert client.get(f"/api/v1/register/{w['fin_sys']['id']}").json()["audit"] is None
     reg.as_(reg.admin)
     assert client.get(f"/api/v1/register/{w['hr_sys']['id']}").json()["audit"] is None
+
+
+def test_a_register_row_the_viewer_cannot_see_is_not_called_unregistered(client, db, reg):
+    """Review 11 Nov: an audit system or a tool whose register system sits in a department the viewer cannot see was shown
+    as "not yet registered". The viewer is not told it is registered either (None, as for people without the register)."""
+    from app.tenancy.service import assign_role
+    w = _world(db, reg, client)
+    w["a2"].register_system_id = w["fin_sys"]["id"]
+    fin = db.get(RegisterSystem, w["fin_sys"]["id"])
+    fin.origin, fin.source_refs = "inventory", [f"tool:{w['attested'].id}"]
+    assign_role(db, reg.hr_lead, "contributor", scope_type="system", scope_id=w["a2"].id)
+    db.commit()
+    reg.as_(reg.hr_lead)
+    _, rows = _rows(client)
+    assert f"system:{fin.id}" not in rows
+    assert rows[f"audit:{w['a2'].id}"]["registered"] is None
+    if f"tool:{w['attested'].id}" in rows:
+        assert rows[f"tool:{w['attested'].id}"]["registered"] is None
+    # and a not-yet-registered filter would not list them
+    assert w["a2"].id not in [r["key"].split(":", 1)[1] for r in rows.values() if r["registered"] is False]

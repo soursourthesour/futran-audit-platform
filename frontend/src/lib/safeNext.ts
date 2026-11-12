@@ -5,7 +5,9 @@ export function safeNext(v: unknown): string | null {
   if (/[\u0000-\u001f\u007f\\]/.test(v)) return null;
   try {
     const u = new URL(v, window.location.origin);
-    return u.origin === window.location.origin ? u.pathname + u.search + u.hash : null;
+    // "/..//host" passes the checks above but resolves to "//host", which a browser treats as another site
+    if (u.origin !== window.location.origin || u.pathname.startsWith('//') || u.pathname.startsWith('/\\')) return null;
+    return u.pathname + u.search + u.hash;
   } catch {
     return null;
   }

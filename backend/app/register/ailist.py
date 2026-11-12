@@ -110,6 +110,12 @@ def ai_systems(actor: Actor = Depends(current_actor), db: Session = Depends(get_
         for ref in s.source_refs or []:
             by_ref.setdefault(ref, s)
     audit_by_register = {a.register_system_id: a for a in audit_systems if a.register_system_id}
+    # register rows in departments this person cannot see: a link to one of them is neither "registered" nor "not yet
+    # registered" for this person (None, as for someone without the register), so the not-registered filter does not list it
+    unseen = [x for x in svc.systems_for(db, org.id, None) if x.id not in {s.id for s in systems}] if see_register else []
+    unseen_ids = {x.id for x in unseen}
+    unseen_refs = {r for x in unseen for r in x.source_refs or []}
+    unseen_keys = {x.dedupe_key or svc_key(x, db) for x in unseen}
     for s in systems:
         out = system_out(db, s, actor)
         if s.origin == "inventory":
@@ -131,7 +137,7 @@ def ai_systems(actor: Actor = Depends(current_actor), db: Session = Depends(get_
         if a.register_system_id and a.register_system_id in shown:
             continue
         rows.append(_row(f"audit:{a.id}", "system", a.name, sources=["audit"], subtype=a.reference_id, departments=[x for x in [dept(a.department_id)] if x],
-                         stage=f"audit:{a.status}", stage_label=AUDIT_STATUS.get(a.status, a.status), registered=False if see_register else None, in_audit=True,
+                         stage=f"audit:{a.status}", stage_label=AUDIT_STATUS.get(a.status, a.status), registered=False if see_register and a.register_system_id not in unseen_ids else None, in_audit=True,
                          audit=_audit_info(db, e, a, True), open=f"/systems/{a.id}"))
 
     inventory = None
@@ -155,7 +161,8 @@ def ai_systems(actor: Actor = Depends(current_actor), db: Session = Depends(get_
             rows.append(_row(f"tool:{t.id}", "tool", f"{t.vendor} {t.product}", sources=[TOOL_SOURCE.get(t.source, "inventory")],
                              subtype="Agent" if t.kind == "agent" else "Tool", detail=t.account_type.replace("_", " "), departments=tool_depts.get(t.id, []),
                              stage=f"tool:{t.approval_status}", stage_label=TOOL_STATUS.get(t.approval_status, t.approval_status),
-                             registered=(home is not None) if see_register else None, in_register_as={"id": home.id, "name": home.name} if home else None,
+                             registered=(True if home is not None else None if (f"tool:{t.id}" in unseen_refs or dedupe_key(t.vendor, t.product) in unseen_keys) else False)
+                             if see_register else None, in_register_as={"id": home.id, "name": home.name} if home else None,
                              in_audit=(t.id in in_audit_tools) if may_prefill else None, tool=tool_out(t, counts=individual),
                              can={"approve_tool": caico}))
         for u in ucs:
@@ -163,7 +170,8 @@ def ai_systems(actor: Actor = Depends(current_actor), db: Session = Depends(get_
             rows.append(_row(f"use_case:{u.id}", "use_case", u.name, sources=["attestation" if u.created_from_attestation_id else "inventory"],
                              departments=[x for x in [dept(u.department_id)] if x], stage=f"uc:{u.status}", stage_label=USE_CASE_STATUS.get(u.status, u.status),
                              tier=inv.effective_tier(u) if (u.final_tier or u.proposed_tier) else None,
-                             registered=(home is not None) if see_register else None, in_register_as={"id": home.id, "name": home.name} if home else None,
+                             registered=(True if home is not None else None if f"use_case:{u.id}" in unseen_refs else False)
+                             if see_register else None, in_register_as={"id": home.id, "name": home.name} if home else None,
                              in_audit=(u.id in in_audit_ucs) if may_prefill else None, use_case=use_case_out(db, u), open=f"/inventory/{u.id}",
                              can={"review_use_case": u.status == "submitted" and _may(db, actor, Action.APPROVE_USE_CASE, engagement_id=e.id, department_id=u.department_id)}))
         inventory = {

@@ -249,7 +249,7 @@ test('a deep link survives the mailbox step and the personal mailbox consent; a 
     await admin.context().close();
   }
   // a next that leaves the site is not followed
-  for (const bad of ['//evil.example/x', 'https://evil.example/x', '/\\evil.example']) {
+  for (const bad of ['//evil.example/x', 'https://evil.example/x', '/\\evil.example', '/..//evil.example/x', '/%2e%2e//evil.example/x']) {
     await page.context().clearCookies();
     await page.goto(`/login?next=${encodeURIComponent(bad)}`);
     await page.getByLabel('Work email').fill('lena.fischer@meridian.example');

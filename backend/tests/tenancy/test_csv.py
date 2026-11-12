@@ -162,3 +162,27 @@ def test_other_client_cannot_manage_people(client, db, people, live):
     login_as(client, db, boss)
     assert client.get(f"/api/v1/clients/{cid}/people").status_code == 404
     assert client.post(f"/api/v1/clients/{cid}/users", json={"first_name": "A", "last_name": "B", "email": "a@b.test", "job_title": "", "department": "", "role": "contributor"}).status_code == 404
+
+
+def test_the_initiation_package_user_csv_is_the_people_screen_template():
+    """Review 11 Nov (X1): the initiation package handed clients an older user CSV (first_name, last_name, … location),
+    unlike the People screen's template. Both now use the same columns, and the package's rows parse cleanly once real
+    emails replace the example.com ones."""
+    from app.initiation.service import _user_csv
+    from app.tenancy.csv_import import USER_HEADER
+
+    text = _user_csv({})
+    header = text.lstrip("﻿").splitlines()[0].split(",")
+    assert header == USER_HEADER
+    r = parse_user_csv(text.replace("@example.com", "@acme-test.org"), ["Human Resources", "Talent Acquisition"])
+    assert not r.errors, r.errors
+    assert len(r.rows_ok) == 2
+
+
+def test_the_user_csv_template_file_has_the_people_screen_columns():
+    from pathlib import Path
+
+    from app.tenancy.csv_import import USER_HEADER
+
+    p = Path(__file__).resolve().parents[2] / "seeds" / "templates" / "user_csv.md.j2"
+    assert p.read_text().splitlines()[0].split(",") == USER_HEADER

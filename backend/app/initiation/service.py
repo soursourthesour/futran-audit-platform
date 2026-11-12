@@ -63,11 +63,11 @@ def _department_csv(ctx: dict) -> str:
 
 
 def _user_csv(ctx: dict) -> str:
-    return to_csv(
-        ["first_name", "last_name", "email", "job_title", "department", "role", "location"],
-        [["Priya", "Shah", "priya.shah@example.com", "Head of HR", "Human Resources", "Department Compliance Lead", "New York NY"],
-         ["Tom", "Reyes", "tom.reyes@example.com", "Recruiter", "Human Resources", "Contributor", "New York NY"]],
-    )
+    """The People screen's user template (same columns and example rows), so the client gets one format wherever they look."""
+    from app.tenancy.csv_import import USER_HEADER
+    from app.tenancy.people_template import EXAMPLE_PEOPLE
+
+    return to_csv(USER_HEADER, list(EXAMPLE_PEOPLE.values()))
 
 
 # CSV items are built in code, not from Markdown templates, so quoting and formula neutralising are always right.

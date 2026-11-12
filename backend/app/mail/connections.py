@@ -47,7 +47,15 @@ def safe_next(v) -> str | None:
     if not isinstance(v, str) or not v.startswith("/") or v.startswith("//") or len(v) > 500 or re.search(r"[\x00-\x1f\x7f\\]", v):
         return None
     parts = urlsplit(v)
-    return v if not parts.scheme and not parts.netloc else None
+    if parts.scheme or parts.netloc:
+        return None
+    # "." and ".." segments (also percent-encoded) are refused: a browser resolves "/..//host" to "//host", another site
+    if any(seg.lower() in _DOT_SEGMENTS for seg in parts.path.split("/")):
+        return None
+    return v
+
+
+_DOT_SEGMENTS = {".", "..", "%2e", "%2e%2e", ".%2e", "%2e."}
 
 
 def with_query(path: str, **params: str) -> str:

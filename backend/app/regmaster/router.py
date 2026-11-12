@@ -674,7 +674,7 @@ def roles_pivot_csv(laws: str | None = None, actor: Actor = Depends(current_acto
     level_word = {"required": "Required", "recommended": "Recommended"}
     buf = io.StringIO()
     w = csv.writer(buf)
-    w.writerow(["Type", "Role or committee", "Level"] + [s["label"] for s in p["selected"]] + ["Needed by any selected regulation"])
+    w.writerow([_csv_cell(x) for x in ["Type", "Role or committee", "Level"] + [s["label"] for s in p["selected"]] + ["Needed by any selected regulation"]])
     lv = {"company": "Company", "system": "System", "agent": "Agent"}
     summary = {(s_["kind"], s_["code"]): s_ for s_ in p["summary"]}
     for r in p["roles"]:

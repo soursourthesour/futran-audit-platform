@@ -88,3 +88,15 @@ def test_unknown_or_unmapped_ids_are_ignored(client, db, seeded):
     login_as(client, db, seeded["aud"])
     b = client.get(f"{API}/reg/roles/pivot?laws=nope,,").json()
     assert b["selected"] == [] and b["roles"] == []
+
+
+def test_pivot_csv_header_is_formula_safe_too(client, db, seeded):
+    login_as(client, db, seeded["aud"])
+    every = client.get(f"{API}/reg/roles/pivot").json()
+    nyc, = _ids(every, "NYC LL144")
+    reg = db.get(Regulation, nyc)
+    reg.label = "=cmd|' /C calc'!A0"
+    db.commit()
+    r = client.get(f"{API}/reg/roles/pivot.csv?laws={nyc}")
+    header = next(csv.reader(io.StringIO(r.text.lstrip("﻿"))))
+    assert not any(c[:1] in "=+-@" for c in header if c), header
