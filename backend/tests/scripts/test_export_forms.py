@@ -55,11 +55,13 @@ def test_top_level_tree(tree):
     assert {"README.md", "Home", "Audit", "AI governance", "People and training", "Data and integrations", "Email"} <= client
     futran = {p.name for p in (tree / "Futran").iterdir()}
     assert {"README.md", "Home and work", "Business", "Administration", "Law library"} <= futran
-    # every file sits at <side>/<menu group>/<screen>/<file>, apart from the two READMEs
+    assert {"Sales"} <= futran and {"Before the engagement"} <= client
+    # every file sits at <side>/<menu group>/<screen>/<file> (a workspace reached from a screen adds one folder),
+    # apart from the two READMEs
     for side in ("Client", "Futran"):
         for f in _files(tree / side):
             rel = f.relative_to(tree / side)
-            assert rel.name == "README.md" and len(rel.parts) == 1 or len(rel.parts) == 3, rel
+            assert rel.name == "README.md" and len(rel.parts) == 1 or len(rel.parts) == 3 or rel.parts[:2] == ("Home and work", "Clients") and len(rel.parts) == 4, rel
 
 
 KEY_FILES = [
@@ -84,6 +86,37 @@ KEY_FILES = [
     "Futran/Home and work/Clients/Intro letter (example).docx",
     "Futran/Business/Client alerts/Client alert rules.xlsx",
     "Futran/Administration/Email and groups/Platform email templates.md",
+    # Release 2
+    "Futran/Sales/Price list/Price list import template.xlsx",
+    "Futran/Sales/Price list/Price list starter items (export).xlsx",
+    "Futran/Sales/Price list/Price list packages.xlsx",
+    "Futran/Sales/Scoping/Scoping question bank (with internal questions).xlsx",
+    "Futran/Sales/Scoping/Scoping question bank (with internal questions).md",
+    "Futran/Sales/Scoping/Scoping mapping rules.md",
+    "Futran/Sales/Scoping/Scoping questionnaire emails.md",
+    "Futran/Sales/Proposals/Proposal section templates.md",
+    "Futran/Sales/Proposals/Sample proposal (Governed package).pdf",
+    "Futran/Sales/Proposals/Sample proposal (Governed package).docx",
+    "Futran/Administration/Service templates/Service templates.xlsx",
+    "Futran/Administration/Service templates/Agent Assure 15-point check (blank).xlsx",
+    "Futran/Administration/Billing export/Billing export template.csv",
+    "Futran/Home and work/Clients/Copilot readiness/Copilot licence and usage report template.csv",
+    "Futran/Home and work/Clients/Copilot readiness/Purview oversharing assessment template.csv",
+    "Futran/Home and work/Clients/Copilot readiness/SharePoint permission report template.csv",
+    "Futran/Home and work/Clients/Copilot readiness/Copilot readiness import column guide.md",
+    "Futran/Home and work/Clients/Copilot readiness/Copilot readiness controls checklist.xlsx",
+    "Futran/Home and work/Clients/EU AI Act/EU AI Act obligations checklist.xlsx",
+    "Futran/Home and work/Clients/EU AI Act/Annex IV technical documentation tracker.xlsx",
+    "Futran/Home and work/Clients/EU AI Act/Fundamental rights impact assessment (FRIA) template.docx",
+    "Futran/Home and work/Clients/Agent Assure/AgentWarden licence sync template.csv",
+    "Futran/Home and work/Clients/Agent Assure/Agent Assure record form.md",
+    "Futran/Home and work/Clients/Discovery import/Discovery import column guide.md",
+    "Futran/Home and work/Clients/Client hierarchy/End-client import template.csv",
+    "Client/Before the engagement/Scoping questionnaire link/Scoping questionnaire.docx",
+    "Client/Before the engagement/Scoping questionnaire link/Scoping questionnaire email.md",
+    "Client/Data and integrations/Integrations/Discovery import column guide.md",
+    "Client/AI governance/Copilot readiness/Copilot readiness site list fields.md",
+    "Client/AI governance/AI systems/Agent Assure record fields.md",
 ]
 
 
@@ -186,3 +219,131 @@ def test_generated_from_the_application(tree):
 
     parsed = parse((tree / "Client/Data and integrations/Bias test data/Bias calculator data template.csv").read_bytes())
     assert parsed.report["error_count"] == 0 and parsed.report["rows_valid"] >= 4
+
+
+# ---------------------------------------------------------------- Release 2
+
+
+def _header(p: Path) -> list[str]:
+    return next(csv.reader(io.StringIO(p.read_text(encoding="utf-8-sig"))))
+
+
+def test_price_list_files_read_back_in_the_importer(tree):
+    import openpyxl
+
+    from app.catalog import io as cio
+    from app.catalog.seed import STARTER_ITEMS
+
+    folder = tree / "Futran/Sales/Price list"
+    rows, errors = cio.parse_workbook((folder / "Price list import template.xlsx").read_bytes())
+    assert rows == [] and errors == []
+    ws = openpyxl.load_workbook(str(folder / "Price list import template.xlsx"))["Master Price List"]
+    assert [c.value for c in ws[1]] == [h for _, h in cio.COLUMNS]
+    rows, errors = cio.parse_workbook((folder / "Price list starter items (export).xlsx").read_bytes())
+    assert errors == [] and {r["code"] for r in rows} == {i["code"] for i in STARTER_ITEMS}
+
+
+def test_scoping_bank_and_rules_are_complete_in_the_futran_copy(tree):
+    from app.scoping.bank import STARTER
+    from app.scoping.rules import SEED
+
+    folder = tree / "Futran/Sales/Scoping"
+    bank_text = _text(folder / "Scoping question bank (with internal questions).xlsx")
+    md = _text(folder / "Scoping question bank (with internal questions).md")
+    for q in STARTER:
+        assert q["code"] in bank_text and q["code"] in md, q["code"]
+    assert any(q.get("internal_only") for q in STARTER)
+    rules_md = _text(folder / "Scoping mapping rules.md")
+    for r in SEED:
+        assert f"{r['code']} " in rules_md and r["line_code"] in rules_md, r["code"]
+    body = rules_md.split("\n## ", 1)[1]
+    assert '"op"' not in body and '{"' not in body  # conditions and quantities written as words, not JSON
+
+
+def test_client_scoping_questionnaire_has_every_client_question(tree):
+    from app.scoping.bank import STARTER
+
+    text = _text(tree / "Client/Before the engagement/Scoping questionnaire link/Scoping questionnaire.docx")
+    for q in STARTER:
+        if not q.get("internal_only"):
+            assert (q.get("client_label") or q["label"]) in text, q["code"]
+
+
+def test_proposal_templates_and_sample(tree):
+    from app.proposals.templates import STARTER
+
+    folder = tree / "Futran/Sales/Proposals"
+    text = _text(folder / "Proposal section templates.md")
+    for _key, title, _body in STARTER:
+        assert f"## {title}" in text
+    assert (folder / "Sample proposal (Governed package).pdf").read_bytes().startswith(b"%PDF")
+    assert "Pricing" in _text(folder / "Sample proposal (Governed package).docx")
+
+
+def test_service_templates_and_agent_assure_list(tree):
+    import openpyxl
+
+    from app.assurance.models import CHECK_POSITIONS
+    from app.servicetemplates.types import B6_ENGAGEMENT_TYPES, ENGAGEMENT_TYPES
+
+    folder = tree / "Futran/Administration/Service templates"
+    for t in B6_ENGAGEMENT_TYPES:
+        assert (folder / f"Service template - {ENGAGEMENT_TYPES[t].replace('/', '-')}.md").is_file(), t
+    ws = openpyxl.load_workbook(str(folder / "Agent Assure 15-point check (blank).xlsx")).worksheets[0]
+    assert ws.max_row == CHECK_POSITIONS + 1
+
+
+def test_import_templates_match_the_importers(tree):
+    from app.assurance.service import WARDEN_COLUMNS
+    from app.commercial.plans import COLUMNS as BILLING
+    from app.connectors import manual_import as mi
+    from app.copilot_readiness import imports as cimp
+    from app.hierarchy.service import parse_end_clients
+
+    for t in mi.EXPORT_TYPES.values():
+        for side, folder in (("Futran", "Home and work/Clients/Discovery import"), ("Client", "Data and integrations/Integrations")):
+            header = _header(tree / side / folder / f"{t.label} template.csv")
+            assert all(mi.guess_mapping(t, header).values()), (side, t.key)
+    for kind, spec in cimp.KINDS.items():
+        header = [cimp._norm(h) for h in _header(tree / f"Futran/Home and work/Clients/Copilot readiness/{spec['label']} template.csv")]
+        assert all(v is not None for v in cimp.columns(kind, header).values()), kind
+    warden = [h.lower() for h in _header(tree / "Futran/Home and work/Clients/Agent Assure/AgentWarden licence sync template.csv")]
+    assert all(any(a.replace("_", " ") in warden for a in names) for names in WARDEN_COLUMNS.values())
+    rows, errors = parse_end_clients((tree / "Futran/Home and work/Clients/Client hierarchy/End-client import template.csv").read_bytes())
+    assert rows and not errors
+    assert _header(tree / "Futran/Administration/Billing export/Billing export template.csv") == BILLING
+
+
+def test_eu_ai_act_files(tree):
+    from app.euaiact import rules
+
+    folder = tree / "Futran/Home and work/Clients/EU AI Act"
+    obligations = _text(folder / "EU AI Act obligations checklist.xlsx")
+    assert all(o["title"] in obligations for o in rules.data()["obligations"])
+    assert all(a["label"] in _text(folder / "Annex IV technical documentation tracker.xlsx") for a in rules.data()["annex_iv"])
+    assert all(q["label"] in _text(folder / "Fundamental rights impact assessment (FRIA) template.docx") for q in rules.data()["fria"])
+
+
+def test_client_folder_holds_no_internal_scoping_questions_prices_or_answer_keys(tree):
+    from app.catalog.seed import STARTER_ITEMS
+    from app.connectors.manual_import import FINDINGS
+    from app.scoping.bank import SECTION_INTROS, SECTION_LABELS, STARTER
+
+    client = _client_text(tree)
+    # internal-only scoping questions: code, wording and help never reach the client
+    for q in STARTER:
+        if q.get("internal_only"):
+            assert q["code"] not in client, q["code"]
+            assert not re.search(rf"^\W*{re.escape(q['label'])}\W*$", client, re.M), q["label"]
+        for text in (q.get("help"), q.get("unknown_assumption")):  # rep help and pricing assumptions are written for Futran
+            if text:
+                assert text not in client, q["code"]
+    assert SECTION_LABELS["RF"] not in client and SECTION_INTROS["RF"] not in client
+    # no prices, price list codes or sales findings
+    assert not re.search(r"\$\s?\d|list price|unit price", client, re.I)
+    for item in STARTER_ITEMS:
+        assert not re.search(rf"(?<![\w-]){re.escape(item['code'])}(?![\w-])", client), item["code"]
+    for service, _kind in FINDINGS.values():
+        assert service not in client
+    # no answer keys
+    assert not re.search(r"answer key|correct answer", client, re.I)

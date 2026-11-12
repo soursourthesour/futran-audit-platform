@@ -12,8 +12,10 @@ writes
 Everything comes from the application's own seeds and generators, run against a throwaway in-memory SQLite database
 loaded with the platform's reference data (the same loaders as `python -m app.cli seed-reference`). No real database
 is opened. Folder names follow the menus in frontend/src/nav.ts. Content that clients must not see (quiz answer keys,
-auditor-only questions, section guidance for auditors, scoring, Futran template sources and internal rules) is written
-to the Futran folder only.
+auditor-only questions, section guidance for auditors, scoring, Futran template sources and internal rules; from
+Release 2 also prices, the price list, internal scoping questions, mapping rules, proposals and sales findings) is
+written to the Futran folder only. A sample proposal is built by the proposal service in the throwaway database from
+the starter "Governed" package, for an example prospect and rep.
 """
 from __future__ import annotations
 
@@ -49,6 +51,7 @@ class Out:
         self.entries: list[Entry] = []
 
     def write(self, side: str, group: str, screen: str, name: str, data: bytes | str, purpose: str) -> Path:
+        assert "/" not in name and "/" not in group, name  # only `screen` may name a workspace folder below a screen
         path = self.root / side / group / screen / name
         path.parent.mkdir(parents=True, exist_ok=True)
         if isinstance(data, str):
@@ -699,15 +702,486 @@ def regulatory_updates(out: Out) -> None:
               "The fields, change types and AI features used when entering a regulatory update.")
 
 
+# ---------------------------------------------------------------- Release 2: sales
+
+
+def csv_text(header: list[str], rows: list[list] | None = None) -> str:
+    buf = io.StringIO()
+    w = csv.writer(buf, lineterminator="\n")
+    w.writerow(header)
+    w.writerows(rows or [])
+    return buf.getvalue()
+
+
+def heading(alias: str) -> str:
+    """A column heading from an importer's alias (aliases are matched without regard to case)."""
+    words = [w.upper() if w.strip("()").lower() in ("url", "upn", "utc", "ou", "id") else w for w in alias.split(" ")]
+    out = " ".join(words)
+    return out[:1].upper() + out[1:]
+
+
+def price_list(out: Out, db) -> None:
+    from sqlalchemy import select
+
+    from app.catalog import fields as F
+    from app.catalog import io as cio
+    from app.catalog.models import PackageTemplate
+
+    g, s = "Sales", "Price list"
+    values = {
+        "code": "Codes look like XX-00 with an optional letter, for example A-02a or AA-02. Fixed once the item is added.",
+        "product": ", ".join(F.PRODUCTS), "billing": ", ".join(F.BILLING.values()), "basis": " or ".join(F.BASIS),
+        "periods_per_year": "1, 4 or 12 (0 for a partner share)", "price_status": ", ".join(F.PRICE_STATUS.values()),
+        "sellable_status": ", ".join(F.SELLABLE.values()), "delivery_mode": ", ".join(F.DELIVERY.values()),
+        "included_quantities": "A number and a unit, separated by semicolons, for example \"50 systems; 5 docs; 1 readout\"",
+        "applies_to": "Price list codes, separated by commas", "remediation_of": "Price list codes, separated by commas", "status": "Active or Retired",
+        **{f: "A number in US dollars, not negative (0 to 100 for a % item)" for f in F.PRICE_FIELDS},
+    }
+    needed = {"code": "Required", "product": "Required for a new item", "name": "Required for a new item", "list_price": "Column required in the sheet"}
+    guide = [[label, F.FIELD_LABELS.get(field, field), needed.get(field, ""), values.get(field, "Text"),
+              f"Up to {F.TEXT_LIMITS[field]} characters" if field in F.TEXT_LIMITS else ""] for field, label in cio.COLUMNS]
+    rules = F.item_errors({"basis": "%", "low": 101, "list_price": 50, "high": 40, "periods_per_year": 2, "price_status": "approved"})
+    rules += [f"Warning to confirm: {F.list_move_warning(100, 200)}", "A blank cell in a required column leaves the item's value as it is.",
+              "Items on the price list but not in the workbook are retired on save, unless that option is switched off."]
+    from openpyxl import load_workbook
+
+    data = xlsx([("Master Price List", [h for _, h in cio.COLUMNS], [], [10, 14, 40, 16, 12, 8, 10, 10, 10, 10, 14, 30, 70, 16, 14, 26, 24, 20, 18, 40, 16, 16, 10]),
+                 ("Columns", ["Column", "Field", "Required", "Allowed values", "Limit"], guide, [26, 26, 26, 70, 22]),
+                 ("Validation", ["Rule checked on import"], [[r] for r in rules], [100])])
+    wb = load_workbook(io.BytesIO(data))
+    assert cio.parse_workbook(data) == ([], []), "the template must read cleanly in the importer"
+    out.write("Futran", g, s, "Price list import template.xlsx", data,
+              "Blank Master Price List sheet with the spec §4.9 columns the importer reads, plus a guide to each column and the validation rules. "
+              f"Fill in and import on Price list › Import ({len(wb.sheetnames)} sheets).")
+    export = cio.export_xlsx(db)
+    out.write("Futran", g, s, "Price list starter items (export).xlsx", export,
+              "The starter items as the price list's own Export writes them (sample items from the screen designs until the master workbook is imported). "
+              "Edit and re-import to load real prices. Futran only.")
+    pk = [[p.name, p.key, p.description, "; ".join(f"{ln['code']} × {ln['qty']}" for ln in p.lines) or "No lines yet", "Yes" if p.is_starter else ""]
+          for p in db.scalars(select(PackageTemplate).order_by(PackageTemplate.sort))]
+    out.write("Futran", g, s, "Price list packages.xlsx", xlsx([("Packages", ["Package", "Key", "Description", "Lines (code × quantity)", "Starter"], pk, [22, 14, 60, 60, 10])]),
+              "The package templates offered in the estimator and the proposal builder, with their lines.")
+
+
+SCOPING_TYPES = {"count": "Number", "total": "Number (total of the counts above)", "single": "Choose one", "multi": "Choose any that apply", "yes_no": "Yes or no",
+                 "text": "Text"}
+OP_WORDS = {"eq": "is", "ne": "is not", "lt": "is less than", "lte": "is at most", "gt": "is more than", "gte": "is at least", "in": "is", "includes": "includes"}
+
+
+def _q_name(code, qs) -> str:
+    if isinstance(code, list):
+        return " + ".join(code) + " (added up)"
+    q = qs.get(code)
+    return f"{code} ({q.label})" if q else str(code)
+
+
+def _opt(code, value, qs) -> str:
+    q = qs.get(code) if isinstance(code, str) else None
+    labels = {o["value"]: o["label"] for o in (q.options or [])} if q else {}
+    return f"\"{labels.get(str(value), value)}\""
+
+
+def _range(lo, hi) -> str:
+    if lo is not None and hi is not None:
+        return f"between {lo:,} and {hi:,}"
+    return f"at least {lo:,}" if lo is not None else f"at most {hi:,}"
+
+
+def condition_text(c: dict, qs: dict) -> str:
+    """A mapping rule condition (app/scoping/rules.py grammar) in plain words."""
+    if "all" in c or "any" in c:
+        key = "all" if "all" in c else "any"
+        parts = [condition_text(x, qs) for x in c[key]]
+        if not parts:
+            return "always"
+        if len(parts) == 1:
+            return parts[0]
+        joined = (" and " if key == "all" else " or ").join(f"({p})" if (" and " in p or " or " in p) else p for p in parts)
+        return joined
+    q, op, v = c.get("q"), c.get("op"), c.get("value")
+    name = _q_name(q, qs)
+    if op == "unknown":
+        return f"{name} is answered as unknown"
+    if op == "any_ticked":
+        return f"{name} has any option ticked"
+    if op == "between":
+        return f"{name} is {_range(*v)}"
+    if op == "count_between":
+        return f"{name} has {_range(*v)} options ticked"
+    if op == "in":
+        return f"{name} is " + " or ".join(_opt(q, x, qs) for x in v)
+    if op in ("eq", "ne", "includes"):
+        return f"{name} {OP_WORDS[op]} {_opt(q, v, qs)}"
+    return f"{name} {OP_WORDS.get(op, op)} {v:,}" if isinstance(v, (int, float)) else f"{name} {OP_WORDS.get(op, op)} {v}"
+
+
+def quantity_text(f: dict, qs: dict) -> str:
+    tail = f" (at least {f['min']})" if f.get("min") is not None else ""
+    if "const" in f:
+        return str(f["const"])
+    if "answer" in f:
+        add = f.get("add", 0)
+        return f"the answer to {_q_name(f['answer'], qs)}" + (f" plus {add}" if add > 0 else f" minus {-add}" if add < 0 else "") + tail
+    if "count" in f:
+        return f"the number of options ticked in {_q_name(f['count'], qs)}" + tail
+    if "sum" in f:
+        return f"{' + '.join(f['sum'])} added up" + tail
+    if "first" in f:
+        return f"the first of {', '.join(f['first'])} that is answered" + tail
+    if "excess_included" in f:
+        e = f["excess_included"]
+        tiers = "; ".join(f"{line} for {_range(lo, hi)}" for line, lo, hi in e["tiers"])
+        return f"the answer to {_q_name(e['q'], qs)} minus the {e.get('key', 'systems')} included in the matching price list item ({tiers})"
+    return "1"
+
+
+def scoping(out: Out, db, catalog_names: dict) -> None:
+    from app.scoping import bank, rulebook, rules
+    from app.scoping import sending as S
+
+    g, s = "Sales", "Scoping"
+    qs = bank.questions(db)
+    by = {q.code: q for q in qs}
+    rule_rows = rulebook.all_rules(db)
+    used_by: dict[str, list[str]] = {}
+    for r in rule_rows:
+        for c in rules.question_codes(rulebook.as_definition(r)):
+            used_by.setdefault(c, []).append(r.code)
+    opts = lambda q: "; ".join(o["label"] for o in q.options or [])  # noqa: E731
+    sections = list(dict.fromkeys(q.section for q in qs))
+    head = ["Section", "Section name", "Code", "Rep wording", "Client wording", "Answer type", "Options", "Total of", "Help for the rep", "Sent to the client",
+            "Assumption when unknown", "Mapping rules that read it"]
+    rows = [[q.section, bank.SECTION_LABELS.get(q.section, q.section), q.code, q.label, q.client_label or "", SCOPING_TYPES.get(q.type, q.type), opts(q),
+             ", ".join(q.sum_of or []), q.help or "", "No: internal only" if q.internal_only or not q.client_visible else "Yes", q.unknown_assumption or "",
+             ", ".join(used_by.get(q.code, []))] for q in qs]
+    index = [[sc, bank.SECTION_LABELS.get(sc, sc), bank.SECTION_INTROS.get(sc, ""), sum(1 for q in qs if q.section == sc)] for sc in sections]
+    ver = bank.current_version(db)
+    out.write("Futran", g, s, "Scoping question bank (with internal questions).xlsx",
+              xlsx([("Sections", ["Section", "Name", "Introduction", "Questions"], index, [9, 30, 80, 11]), ("Questions", head, rows, [8, 24, 10, 40, 50, 18, 50, 30, 50, 18, 50, 24])]),
+              f"Every scoping question in bank v{ver} ({bank.STARTER_LABEL.lower()}), by section: rep and client wording, options, rep help, internal-only questions and the "
+              "mapping rules that read each answer. Futran only.")
+    md = ["# Scoping question bank", "", f"Bank v{ver}. {bank.STARTER_NOTE}", "",
+          "Each answer is marked Confirmed, Estimate or Unknown. Internal questions are never sent to the client. Futran only.", ""]
+    for sc in sections:
+        md += [f"## {sc}. {bank.SECTION_LABELS.get(sc, sc)}", ""] + ([f"*{bank.SECTION_INTROS[sc]}*", ""] if sc in bank.SECTION_INTROS else [])
+        for q in (q for q in qs if q.section == sc):
+            md += [f"### {q.code} {q.label}", "", f"- Answer type: {SCOPING_TYPES.get(q.type, q.type)}" + (f": {opts(q)}" if q.options else "")]
+            if q.client_label:
+                md.append(f"- Client wording: {q.client_label}")
+            md.append("- Sent to the client: " + ("no, internal only" if q.internal_only or not q.client_visible else "yes"))
+            for label, v in (("Total of", ", ".join(q.sum_of or [])), ("Help for the rep", q.help), ("Assumption when unknown", q.unknown_assumption),
+                             ("Read by mapping rules", ", ".join(used_by.get(q.code, [])))):
+                if v:
+                    md.append(f"- {label}: {v}")
+            md.append("")
+    out.write("Futran", g, s, "Scoping question bank (with internal questions).md", "\n".join(md),
+              "The same question bank as a note to read section by section. Futran only.")
+
+    flags = rulebook.flags(db, rule_rows)
+    md = ["# Scoping mapping rules", "", "How scoping answers become suggested price list lines (spec §4.5). Rules run in order; the first rule that suggests a "
+          "line code wins. A rule edit, including switching it off, waits for the Pricing Approver. An unanswered or unknown answer fails every condition "
+          "except \"answered as unknown\". Futran only.", ""]
+    for r in rule_rows:
+        d = rulebook.as_definition(r)
+        md += [f"## {r.code} → {r.line_code} {catalog_names.get(r.line_code, '')}".rstrip(), "",
+               f"- When: {condition_text(d['inputs'] or {'all': []}, by)}", f"- Quantity: {quantity_text(d['qty_formula'] or {'const': 1}, by)}",
+               f"- Reason shown to the rep: {r.reason_template}", f"- Status: {r.status}{'' if r.active else ', switched off'}"]
+        if r.note:
+            md.append(f"- Note: {r.note}")
+        if r.code in flags:
+            md.append(f"- Needs repair: {flags[r.code]}")
+        md.append("")
+    out.write("Futran", g, s, "Scoping mapping rules.md", "\n".join(md),
+              f"All {len(rule_rows)} mapping rules in plain words: the answers each one reads, the line and quantity it suggests, and whether its line is on the price list yet.")
+
+    emails = ["# Scoping questionnaire emails", "", "Sent from the rep's own mailbox. The rep can edit the subject and message before sending. "
+              "Merge fields are in square brackets.", "", f"Subject: {S.SUBJECT}", "", "## First email", "", "```text", S.MESSAGE, "```", "",
+              "## To a colleague the client forwards it to", "", "```text", S.FORWARD_MESSAGE, "```", "", "## Reminder", "", "```text", S.REMINDER_MESSAGE, "```", "",
+              f"Reminders go on days {' and '.join(str(d) for d in S.DEFAULT_REMINDERS)} by default. Each link lasts {S.LINK_DAYS} days and can be forwarded "
+              f"to up to {S.MAX_FORWARDS} colleagues.", "", "## Shown at the foot of the questionnaire", "", S.FOOTER, "", S.PRIVACY, ""]
+    data = "\n".join(emails)
+    out.write("Futran", g, s, "Scoping questionnaire emails.md", data, "The default email, forwarding email and reminder that carry the client's questionnaire link.")
+    out.write("Client", "Before the engagement", "Scoping questionnaire link", "Scoping questionnaire email.md", data,
+              "The email that brings the personal questionnaire link, the email a forwarded colleague receives, and the reminder.")
+
+    client_qs = [q for q in qs if not q.internal_only and q.client_visible and q.active]  # as the client link shows them (scoping.sending.view)
+    md = ["# A few questions to scope your AI compliance review", "",
+          "Futran Solutions sends these questions on a personal link before preparing a proposal. \"Not sure\" is a fine answer to any question, and "
+          "your answers are saved as you go. The sales rep chooses which of these questions to send.", ""]
+    for sc in dict.fromkeys(q.section for q in client_qs):
+        md += [f"## {bank.SECTION_LABELS.get(sc, sc)}", ""]
+        for q in (q for q in client_qs if q.section == sc):
+            md += [f"### {q.client_label or q.label}", "", f"*{SCOPING_TYPES.get(q.type, q.type).replace(' (total of the counts above)', '')}*", ""]
+            if q.options:
+                md += [f"- [ ] {o['label']}" for o in q.options]
+            elif q.type in ("count", "total"):
+                md.append("Number: ____________")
+            else:
+                md.append("_______________________________________________")
+            md += ["- [ ] Not sure", ""]
+    md += ["---", "", S.FOOTER, "", S.PRIVACY]
+    out.write("Client", "Before the engagement", "Scoping questionnaire link", "Scoping questionnaire.docx", docx("\n".join(md), "Scoping questionnaire"),
+              f"The {len(client_qs)} questions a prospect can be asked on the personal scoping link, by section. Internal questions, rep notes and prices are not included.")
+
+
+def proposals(out: Out, db) -> None:
+    from app.cli import _futran_org
+    from app.proposals import document as D
+    from app.proposals import service as P
+    from app.proposals import templates as T
+    from app.sales.models import Opportunity
+    from app.sales.prospects import create_prospect
+    from app.tenancy.service import create_user
+
+    g, s = "Sales", "Proposals"
+    md = ["# Proposal section templates", "", f"Each new proposal copies this wording into its own sections; later edits never change a proposal already drafted. "
+          f"Merge fields: {', '.join(f'[{m}]' for m in T.MERGE_FIELDS)}. Edited on Price list › Proposal templates.", ""]
+    for t in T.all_templates(db):
+        md += [f"## {t.title}", "", f"*{'Always in the proposal' if t.key in ('cover', 'pricing', 'acceptance', 'independence') else 'Can be switched off'}.*", "",
+               "```text", t.body, "```", ""]
+        if T.AUTO.get(t.key):
+            md += [f"Added by the platform: {T.AUTO[t.key]}", ""]
+    out.write("Futran", g, s, "Proposal section templates.md", "\n".join(md),
+              "The wording of each proposal section, the merge fields, and what the platform adds to each section automatically.")
+
+    # A sample proposal built by the proposal service itself from the starter "Governed" package, in the throwaway database.
+    rep = create_user(db, _futran_org(db), name="[Rep name]", email="rep@example.invalid")
+    prospect = create_prospect(db, name="Example Prospect Inc.")
+    opp = Opportunity(organization_id=prospect.id, trigger="manual", service="AI governance audit", name="Example Prospect Inc.", stage="scoping", owner_id=rep.id)
+    db.add(opp)
+    db.flush()
+    p = P.create_blank(db, opp, rep, package="governed")
+    purpose = ("Example of the proposal document the platform generates (here from the starter Governed package at starter prices, for an example "
+               "prospect). Futran only: the client receives its own copy through the acceptance link.")
+    out.write("Futran", g, s, "Sample proposal (Governed package).pdf", D.to_pdf(db, p), purpose)
+    out.write("Futran", g, s, "Sample proposal (Governed package).docx", D.to_docx(db, p), purpose)
+
+
+# ---------------------------------------------------------------- Release 2: service templates, billing, agent assurance
+
+
+def service_templates(out: Out, db) -> None:
+    from sqlalchemy import select
+
+    from app.servicetemplates import service as ST
+    from app.servicetemplates.models import ServiceTemplate
+    from app.servicetemplates.types import ENGAGEMENT_TYPES
+
+    g, s = "Administration", "Service templates"
+    tpls, secs, checks, ques, dates = [], [], [], [], []
+    for key, (name, content, codes, owner) in ST.BUILTIN.items():
+        tpls.append([ENGAGEMENT_TYPES[key], name, owner, "Built in", content, ", ".join(codes), ""])
+    for tpl in db.scalars(select(ServiceTemplate).order_by(ServiceTemplate.name)):
+        label = ENGAGEMENT_TYPES.get(tpl.engagement_type, tpl.engagement_type)
+        v = (ST.versions(db, tpl) or [None])[0]
+        status = f"{v.version} {ST.STATUS_LABELS.get(v.status, v.status)}" if v else "No version yet"
+        tpls.append([label, tpl.name, tpl.content_owner, status, tpl.note or "", ", ".join(v.catalog_codes or []) if v else "", v.report_template or "" if v else ""])
+        md = [f"# {tpl.name}", "", f"- Engagement type: {label}", f"- Content owner: {tpl.content_owner}", f"- Version: {status}"]
+        if tpl.note:
+            md.append(f"- Note: {tpl.note}")
+        if v is None:
+            md += ["", "No content yet: the content owner supplies it, and the Futran Admin writes it here for the Chief Auditor to approve.", ""]
+        else:
+            md += [f"- Price list codes: {', '.join(v.catalog_codes or []) or 'none'}", f"- Report template: {v.report_template or 'not set'}",
+                   f"- Change note: {v.change_note or ''}", "", "## Sections", ""]
+            for sec in v.sections or []:
+                secs.append([tpl.name, sec.get("code"), sec.get("title"), sec.get("note") or ""])
+                md += [f"### {sec.get('code')} {sec.get('title')}", ""] + ([sec["note"], ""] if sec.get("note") else [])
+                items = [c for c in v.checklists or [] if c.get("section") == sec.get("code")]
+                md += [f"- [ ] {c.get('text')}" + (" (evidence)" if c.get("evidence") else "") for c in items] + ([""] if items else [])
+            for c in v.checklists or []:
+                checks.append([tpl.name, c.get("section"), c.get("code"), c.get("text"), "Yes" if c.get("evidence") else ""])
+            qrows = ST.questions(db, v)
+            if qrows:
+                md += ["## Questions (from the question bank)", ""] + [f"- {q['code']} {q['label']}" for q in qrows] + [""]
+                ques += [[tpl.name, q["code"], q["section_title"], q["label"]] for q in qrows]
+            md += ["## Deliverables", ""] + ([f"- {d}" for d in v.deliverables] if v.deliverables else ["None listed yet."]) + [""]
+            md += ["## Default stages", ""] + ([f"1. {d}" for d in v.default_stages] if v.default_stages else ["None listed yet."]) + [""]
+            if v.key_dates:
+                md += ["## Key dates", ""] + [f"- {d['label']}: {d['date']} ({d.get('source', '')})" for d in v.key_dates] + [""]
+                dates += [[tpl.name, d["label"], d["date"], d.get("source", "")] for d in v.key_dates]
+        out.write("Futran", g, s, f"Service template - {label.replace('/', '-')}.md", "\n".join(md),
+                  f"The {label} service template: sections, checklists, questions, deliverables and stages as the platform holds them.")
+    out.write("Futran", g, s, "Service templates.xlsx",
+              xlsx([("Templates", ["Engagement type", "Template", "Content owner", "Version", "Note", "Price list codes", "Report template"], tpls, [34, 36, 18, 24, 60, 30, 20]),
+                    ("Sections", ["Template", "Code", "Section", "Note"], secs, [36, 16, 60, 60]),
+                    ("Checklists", ["Template", "Section", "Code", "Item", "Evidence"], checks, [36, 16, 26, 80, 10]),
+                    ("Questions", ["Template", "Code", "Question bank section", "Question"], ques, [36, 10, 30, 80]),
+                    ("Key dates", ["Template", "Date for", "Date", "Source"], dates, [36, 30, 12, 50])]),
+              "Every engagement type's service template in one workbook: sections, checklists, questions and key dates.")
+
+
+def agent_assure(out: Out, db) -> None:
+    from app.assurance import service as A
+    from app.assurance.models import CHECK_RESULTS, DEPLOYMENTS, SEVERITIES
+    from app.impact.triggers import TYPE_LABELS
+
+    results = ", ".join(r.replace("_", " ") for r in CHECK_RESULTS)
+    rows = [[c["position"], c["text"] or "", "", "", ""] for c in A.checklist(db)]
+    out.write("Futran", "Administration", "Service templates", "Agent Assure 15-point check (blank).xlsx",
+              xlsx([("15-point check", ["Point", "Check item", f"Result ({results})", "Condition or note", "Due"], rows, [8, 70, 26, 50, 14])]),
+              f"The Agent Assure pre-deploy check as the platform holds it: {A.CHECKLIST_NOTE}")
+    triggers = " or ".join(TYPE_LABELS.get(t, t).lower() for t in A.RECERT_TRIGGERS)
+    md = ["# Agent Assure record", "", "One record per release of an agent, on the AI system's Assurance tab. The latest record sets the agent's Agent Assure status.", "",
+          "## Release", "", "- Release (for example v1.2)", "- Model and version tested", "", "## Gold evaluation set", "", "- Version", "- Number of cases", "- Owner", "",
+          "## 15-point pre-deploy check", "", A.CHECKLIST_NOTE, "", f"Each point: result ({results}), condition or note, due date.", ""]
+    md += [f"{c['position']}. {c['text'] or '(blank until supplied)'}" for c in A.checklist(db)] + ["", "## Red-team results", "",
+           f"Each scenario: what happened, severity ({', '.join(SEVERITIES)}).", "", "## Outcome", ""] + [f"- {v}" for v in A.OUTCOME_LABELS.values()] + [
+           "", "## Assurance letter", "", "- Signed by", "- Date signed", "- Letter (PDF)", "", "## Status shown on the AI system", ""] + [f"- {v}" for v in A.STATUS_LABELS.values()] + [
+           "", f"A new record is needed after a {triggers}.", ""]
+    record = "\n".join(md)
+    out.write("Futran", "Home and work", "Clients/Agent Assure", "Agent Assure record form.md", record,
+              "The fields a Futran auditor records for each release of an agent: evaluation set, 15-point check, red team, outcome and signed letter.")
+    out.write("Client", "AI governance", "AI systems", "Agent Assure record fields.md", record,
+              "What the Assurance tab of an agent's record shows: each Agent Assure record Futran keeps, its 15-point results, red-team results, outcome and letter.")
+    header = [heading(names[0]) for names in A.WARDEN_COLUMNS.values()]
+    out.write("Futran", "Home and work", "Clients/Agent Assure", "AgentWarden licence sync template.csv", csv_text(header),
+              "Columns of the AgentWarden licence CSV synced for a client (until the AgentWarden API exists). The Agent column holds the register reference "
+              f"(AIS-001) or the agent's name; Deployment is {' or '.join(DEPLOYMENTS)}.")
+
+
+def billing(out: Out) -> None:
+    from app.commercial.plans import COLUMNS
+    from app.documents.csvsafe import to_csv
+
+    out.write("Futran", "Administration", "Billing export", "Billing export template.csv", to_csv(COLUMNS, []),
+              "The header row of the monthly billing export CSV, one row per order line, milestone, overage, retainer hours or partner commission.")
+
+
+def end_clients(out: Out) -> None:
+    from app.hierarchy.models import RELATIONSHIP_LABELS
+    from app.hierarchy.service import parse_end_clients
+
+    data = csv_text(["name", "relationship", "ll144_in_scope", "roles_note"],
+                    [["[End-client name]", "end_client", "yes", "NYC roles only"], ["[Subsidiary name]", "subsidiary", "", ""]])
+    rows, errors = parse_end_clients(data.encode())
+    assert rows and not errors, errors
+    out.write("Futran", "Home and work", "Clients/Client hierarchy", "End-client import template.csv", data,
+              f"CSV for adding a client's subsidiaries and end-clients in bulk, with two example rows. Relationship: {', '.join(RELATIONSHIP_LABELS)}.")
+
+
+# ---------------------------------------------------------------- Release 2: engagement workspaces
+
+
+def copilot(out: Out) -> None:
+    import yaml
+
+    from app.copilot_readiness import imports as C
+    from app.copilot_readiness import service as CS
+    from app.reference.jurisdictions import SEEDS
+
+    g, s = "Home and work", "Clients/Copilot readiness"
+    md = ["# Copilot readiness imports: columns", "", "Upload each admin export unchanged, as CSV or Excel. Column names are matched without regard to case; "
+          "the first name listed is the one in the template.", ""]
+    for kind, spec in C.KINDS.items():
+        header = [heading(a) for _f, (_d, aliases) in spec["required"].items() for a in aliases[:1]]
+        for aliases in spec["optional"].values():
+            h = heading(aliases[0])
+            if h.lower() not in (x.lower() for x in header):
+                header.append(h)
+        found = C.columns(kind, [C._norm(h) for h in header])
+        assert all(v is not None for v in found.values()), kind
+        out.write("Futran", g, s, f"{spec['label']} template.csv", csv_text(header),
+                  f"Columns the platform reads from the {spec['label']} ({spec['source']}).")
+        md += [f"## {spec['label']}", "", f"From {spec['source']}.", "", "| Field | Required | Column names accepted |", "|---|---|---|"]
+        md += [f"| {d} | Yes | {', '.join(a)} |" for _f, (d, a) in spec["required"].items()]
+        md += [f"| {f.replace('_', ' ').capitalize()} | | {', '.join(a)} |" for f, a in spec["optional"].items()] + [""]
+    out.write("Futran", g, s, "Copilot readiness import column guide.md", "\n".join(md), "Every column each Copilot readiness import reads, with the other names it accepts.")
+    controls = yaml.safe_load((SEEDS / "copilot_readiness.yaml").read_text())["controls"]
+    out.write("Futran", g, s, "Copilot readiness controls checklist.xlsx",
+              xlsx([("Controls", ["Phase", "Control", "Status", "Note"], [[CS.PHASE_LABELS[c["phase"]], c["label"], "", ""] for c in controls], [12, 60, 18, 50]),
+                    ("Status values", ["Status"], [[v] for v in CS.CONTROL_LABELS.values()], [20])]),
+              "The default controls checklist a Copilot readiness workspace starts with (the approved service template's list is used instead when there is one).")
+    site = ["# Copilot readiness: site list", "", "Futran builds the site list from the Purview and SharePoint reports and rates each site's risk. "
+            "The Chief AI Compliance Officer sees the list on AI governance › Copilot readiness and can change three fields on each site.", "",
+            "## Shown for each site", "", "- Site name and address", "- Site owner", "- Sharing: " + ", ".join(CS.SHARING_LABELS.values()),
+            "- Sensitive items", "- Sensitivity label coverage (%)", "- Last activity", "- Risk: High, Medium or Low",
+            "- Action: " + ", ".join(CS.ACTION_LABELS.values()), "", "## What the Chief AI Compliance Officer updates", ""]
+    names = {"action_owner": "Action owner (name)", "status": "Status: " + ", ".join(CS.STATUS_LABELS.values()), "note": "Note"}
+    site += [f"- {names[f]}" for f in sorted(CS.CLIENT_SITE_FIELDS, key=list(names).index)] + [""]
+    out.write("Client", "AI governance", "Copilot readiness", "Copilot readiness site list fields.md", "\n".join(site),
+              "The fields on the Copilot readiness site list and the three the Chief AI Compliance Officer updates (there is no upload template for them).")
+
+
+def eu_ai_act(out: Out) -> None:
+    from app.euaiact import rules as R
+    from app.euaiact import service as E
+    from app.euaiact.models import SECTION_STATUSES
+
+    g, s = "Home and work", "Clients/EU AI Act"
+    data = R.data()
+    roles, classes = R.roles(), R.classifications()
+
+    def who(values, names):
+        return "All" if values == "all" else ", ".join(names.get(v, v) for v in values or [])
+
+    rows = [[o["article"], o["title"], who(o["when"].get("roles"), roles), who(o["when"].get("classifications"), classes),
+             "Yes" if o.get("annex_iv") else "", "Only when a FRIA is required" if o.get("fria") else "", "", "", ""] for o in data["obligations"]]
+    deadlines = [[classes.get(k, k), str(v["date"]), v.get("source", "")] for k, v in data["deadlines"].items()]
+    areas = [[a["label"], "Yes, for any deployer" if a.get("fria") else ("Never (Art. 27(1))" if a.get("no_fria") else "Public bodies and public services")]
+             for a in data["annex_iii_areas"].values()]
+    out.write("Futran", g, s, "EU AI Act obligations checklist.xlsx",
+              xlsx([("Obligations", ["Article", "Obligation", "Applies to roles", "Classifications", "Annex IV tracker", "FRIA", "Status", "Evidence", "Note"], rows,
+                     [16, 60, 40, 50, 10, 24, 16, 30, 40]),
+                    ("Status values", ["Status"], [[v] for v in E.OBLIGATION_LABELS.values()], [20]),
+                    ("Deadlines", ["Classification", "Date", "Source"], deadlines, [36, 12, 80]),
+                    ("Annex III areas", ["Area", "FRIA for a deployer"], areas, [60, 36])]),
+              f"Every obligation the EU AI Act workspace can list, with the roles and classifications it applies to and the deadlines. {data['banner']}")
+    status = ", ".join(x.replace("_", " ").capitalize() for x in SECTION_STATUSES)
+    out.write("Futran", g, s, "Annex IV technical documentation tracker.xlsx",
+              xlsx([("Annex IV", ["Point", f"Status ({status})", "Note", "Evidence"], [[a["label"], "", "", ""] for a in data["annex_iv"]], [70, 30, 50, 30])]),
+              "The nine points of Annex IV tracked for a provider of a high-risk system (Art. 11).")
+    fria_any = [a["label"] for a in data["annex_iii_areas"].values() if a.get("fria")]
+    fria_never = [a["label"] for a in data["annex_iii_areas"].values() if a.get("no_fria")]
+    md = ["# Fundamental rights impact assessment (FRIA)", "", "EU AI Act Art. 27. Completed before first use by a deployer of an Annex III high-risk system that "
+          f"is a public body or provides public services, and by any deployer of a system in: {'; '.join(fria_any)}. Never for: {'; '.join(fria_never)}.", ""]
+    for q in data["fria"]:
+        md += [f"## {q['label']}", "", "_______________________________________________", ""]
+    md += ["## Status", "", status]
+    out.write("Futran", g, s, "Fundamental rights impact assessment (FRIA) template.docx", docx("\n".join(md), "Fundamental rights impact assessment"),
+              "The FRIA questions (Art. 27(1)(a) to (f) and the notification) as the EU AI Act workspace asks them, with when a FRIA is required.")
+
+
+def discovery(out: Out) -> None:
+    from app.connectors import manual_import as mi
+
+    intro = ["Upload a standard admin export as CSV or Excel. The platform guesses which column holds each field from the headings below (matched "
+             "without regard to case), shows the mapping and a preview, and you can change the mapping or save it as a preset.", ""]
+    client = ["# Discovery import: columns", ""] + intro
+    futran = ["# Discovery import: columns", ""] + intro
+    for t in mi.EXPORT_TYPES.values():
+        header = [heading(f.aliases[0]) for f in t.fields]
+        assert all(mi.guess_mapping(t, header).values()), t.key  # every field found from the template's own headings
+        data = csv_text(header)
+        purpose = f"Column headings for the {t.label} export from {t.source}." + (" Only the AI vendor rows are kept." if t.summary_only else "")
+        out.write("Futran", "Home and work", "Clients/Discovery import", f"{t.label} template.csv", data, purpose)
+        out.write("Client", "Data and integrations", "Integrations", f"{t.label} template.csv", data, purpose)
+        table = [f"## {t.label}", "", f"From {t.source}. Read for: {t.parsed_into}." + (" Only the rows for AI vendors are kept; the file itself is not." if t.summary_only else ""),
+                 "", "| Field | Required | Column names accepted |", "|---|---|---|"] + [f"| {f.label} | {'Yes' if f.required else ''} | {', '.join(f.aliases)} |" for f in t.fields] + [""]
+        client += table
+        futran += table + [f"Recorded in the AI inventory as account type: {t.account_type.replace('_', ' ')}." + ("" if t.keep_people else " People's names are not kept."), ""]
+    futran += ["## Findings for Sales (never shown to the client)", "", "| Finding | Opportunity opened when a tool is confirmed |", "|---|---|"]
+    futran += [f"| {k.replace('_', ' ').capitalize()} | {svc} |" for k, (svc, _kind) in mi.FINDINGS.items()] + [""]
+    out.write("Futran", "Home and work", "Clients/Discovery import", "Discovery import column guide.md", "\n".join(futran),
+              "Each of the seven export types: the fields read, the column names accepted, and the sales findings each import can raise. Futran only.")
+    out.write("Client", "Data and integrations", "Integrations", "Discovery import column guide.md", "\n".join(client),
+              "Each of the seven admin exports the Client Admin can import from Integrations, with the fields read and the column names accepted.")
+
+
 # ---------------------------------------------------------------- README
 
 
 CLIENT_INTRO = ("Forms and templates the client side of the Futran Audit Platform asks people to fill in, or sends them. Folders follow the client menu: "
-                "menu group, then screen. Documents marked (example) show what the platform generates, with client details in square brackets.")
+                "menu group, then screen. Documents marked (example) show what the platform generates, with client details in square brackets. "
+                "Before the engagement › Scoping questionnaire link holds what a prospect receives on the personal link Futran's sales team sends: "
+                "the client questions only, with no internal questions, rep notes or prices.")
 FUTRAN_INTRO = ("Forms and templates for Futran staff, including the confidential copies clients never receive: quiz answer keys, auditor-only questions "
                 "and guidance, the scoring method, template sources and internal rules. Folders follow the Futran menu; material that belongs to a client "
                 "screen (Audit › Documents, AI governance › AI systems, People and training › Attestation and AI literacy training) "
-                "uses the client menu's group and screen names.")
+                "uses the client menu's group and screen names. The engagement workspaces reached from Home and work › Clients (Copilot readiness, "
+                "EU AI Act, Agent Assure, Discovery import, Client hierarchy) each have a folder under Clients. Sales › Scoping holds the scoping "
+                "question bank and mapping rules (edited on the Price list's Question bank and Mapping rules tabs, used from Opportunities). "
+                "Prices, internal scoping questions and sales findings are in this folder only.")
 
 
 def readme(out: Out, side: str) -> str:
@@ -718,10 +1192,10 @@ def readme(out: Out, side: str) -> str:
     for group in dict.fromkeys(e.group for e in entries):
         lines += [f"## {group}", ""]
         for screen in dict.fromkeys(e.screen for e in entries if e.group == group):
-            lines += [f"### {screen}", "", "| File | Section | What it is for |", "|---|---|---|"]
+            lines += [f"### {screen.replace('/', ' › ')}", "", "| File | Section | What it is for |", "|---|---|---|"]
             for e in (e for e in entries if e.group == group and e.screen == screen):
                 path = f"{e.group}/{e.screen}/{e.name}"
-                lines.append(f"| [[{path}\\|{e.name}]] | {e.group} › {e.screen} | {cell(e.purpose)} |")
+                lines.append(f"| [[{path}\\|{e.name}]] | {e.group} › {e.screen.replace('/', ' › ')} | {cell(e.purpose)} |")
             lines.append("")
     return "\n".join(lines)
 
@@ -736,6 +1210,10 @@ def export(out_dir: Path) -> Out:
 
         shutil.rmtree(root)  # a fresh tree each run, so removed forms do not linger
     out = Out(root)
+    from sqlalchemy import select
+
+    from app.catalog.models import CatalogItem
+
     db = open_database()
     try:
         blank, example = client_orgs(db)
@@ -755,6 +1233,16 @@ def export(out_dir: Path) -> Out:
         platform_emails(out)
         client_alerts(out)
         regulatory_updates(out)
+        price_list(out, db)
+        scoping(out, db, {i.code: i.name for i in db.scalars(select(CatalogItem))})
+        proposals(out, db)
+        service_templates(out, db)
+        agent_assure(out, db)
+        billing(out)
+        end_clients(out)
+        copilot(out)
+        eu_ai_act(out)
+        discovery(out)
     finally:
         db.rollback()
         db.close()
