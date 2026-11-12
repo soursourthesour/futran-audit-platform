@@ -20,6 +20,7 @@ from app.sales.models import (OPEN_STAGES, PIPELINE_STAGES, STAGE_LABELS, STAGE_
 from app.tenancy.models import Organization, RoleAssignment, User
 
 log = logging.getLogger(__name__)
+DIGEST_ROLES = ("sales_team", "sales_manager", "chief_auditor")  # who can own an opportunity (router.OWNER_ROLES)
 PURGE_AFTER_DAYS = 730  # lost prospects: 24 months unless reopened (R2-Q10)
 NEW_AUTO_DAYS = 7
 
@@ -181,9 +182,10 @@ def run_stale_digest(db: Session, settings: Settings, now) -> int:
     if not stale:
         return 0
     recipients: dict[str, tuple[User, list[Opportunity]]] = {}
+    sales_people = {u.id for u in users_with(db, None, DIGEST_ROLES)}
     for o in stale:
         owner = db.get(User, o.owner_id) if o.owner_id else None
-        if owner is not None:
+        if owner is not None and owner.id in sales_people:  # someone who moved off sales no longer gets it
             recipients.setdefault(owner.id, (owner, []))[1].append(o)
     for m in users_with(db, None, ("sales_manager",)):
         recipients.setdefault(m.id, (m, []))[1].extend(x for x in stale if x not in recipients[m.id][1])
@@ -225,17 +227,19 @@ def run_lost_prospect_purge(db: Session, settings: Settings, now) -> int:
         last = max((o.closed_at or o.updated_at or o.created_at) for o in opps)
         if last > cutoff or _on_legal_hold(db, org.id):
             continue
-        _delete_prospect(db, org, opps)
+        _delete_prospect(db, settings, org, opps)
         n += 1
     db.flush()
     return n
 
 
-def _delete_prospect(db: Session, org: Organization, opps: list[Opportunity]) -> None:
-    """Remove the prospect and its sales records (contacts are personal data). Rows other workstreams keep about these
-    opportunities (questionnaires, estimates, proposals) go first; a module that is not installed is skipped."""
+def _delete_prospect(db: Session, settings: Settings, org: Organization, opps: list[Opportunity]) -> None:
+    """Remove the prospect and its sales records (contacts are personal data). Its emails, proposal files, referral links
+    and notifications go first, then rows other workstreams keep about these opportunities (questionnaires, estimates,
+    proposals); a module that is not installed is skipped. The audit and admin logs are append-only and stay."""
     ids = [o.id for o in opps]
     name = org.name
+    _scrub_personal_data(db, settings, org, ids)
     _delete_children(db, ids)
     for model in (OpportunityContact, OpportunityActivity):
         for row in db.scalars(select(model).where(model.opportunity_id.in_(ids))):
@@ -247,6 +251,85 @@ def _delete_prospect(db: Session, org: Organization, opps: list[Opportunity]) ->
     db.delete(org)
     audit.record(db, actor_id=None, actor_name="Scheduler", action="prospect.deleted", object_type="Organization", object_id=org.id,
                  organization_id=org.id, summary=f"Lost prospect {name} deleted after 24 months without a reopened opportunity")
+
+
+def _rows(db: Session, modname: str, model: str, col: str, values) -> list:
+    mod = _module(modname)
+    m = getattr(mod, model, None) if mod is not None else None
+    if m is None or not hasattr(m, col) or not values:
+        return []
+    return list(db.scalars(select(m).where(getattr(m, col).in_(list(values)))))
+
+
+def _scrub_personal_data(db: Session, settings: Settings, org: Organization, opp_ids: list[str]) -> None:
+    """Everything that names the prospect's people: the emails sent about the deal (sales emails, questionnaire and
+    proposal sends, their recipients, outbox copies, threads and replies), the proposal documents and purchase orders
+    (through the file store), partner referral links (kept for the partner's count, with the links and note removed),
+    and the in-app notifications that point at the opportunities."""
+    from app.mail.models import MailOneTimeCode, MailRecipient, MailReply, MailSend, MailThread, OutboxMessage
+
+    proposals = _rows(db, "app.proposals.models", "Proposal", "opportunity_id", opp_ids)
+    p_ids = [p.id for p in proposals]
+    links = _rows(db, "app.proposals.models", "ProposalLink", "proposal_id", p_ids)
+    accepts = _rows(db, "app.proposals.models", "Acceptance", "proposal_id", p_ids)
+    qs = _rows(db, "app.scoping.models", "ScopingQuestionnaire", "opportunity_id", opp_ids)
+    sends = _rows(db, "app.scoping.models", "QuestionnaireSend", "questionnaire_id", [q.id for q in qs])
+    related = {*opp_ids, *p_ids, *(x.id for x in links), *(x.id for x in sends), *(x.id for x in accepts)}
+    send_ids = set(db.scalars(select(MailSend.id).where(MailSend.related_id.in_(related))))
+    send_ids |= {x.mail_send_id for x in [*links, *sends] if getattr(x, "mail_send_id", None)}
+    while True:  # reminders point at their original send
+        more = set(db.scalars(select(MailSend.id).where(MailSend.parent_send_id.in_(send_ids)))) - send_ids
+        if not more:
+            break
+        send_ids |= more
+    threads = list(db.scalars(select(MailThread.id).where(MailThread.send_id.in_(send_ids)))) if send_ids else []
+    for model, col, vals in ((MailReply, MailReply.thread_id, threads), (MailThread, MailThread.id, threads), (MailOneTimeCode, MailOneTimeCode.send_id, send_ids),
+                             (MailRecipient, MailRecipient.send_id, send_ids), (OutboxMessage, OutboxMessage.mail_send_id, send_ids)):
+        for row in (db.scalars(select(model).where(col.in_(list(vals)))) if vals else []):
+            db.delete(row)
+    for row in db.scalars(select(OutboxMessage).where(OutboxMessage.related_id.in_(related))):
+        db.delete(row)
+    db.flush()
+    for row in (db.scalars(select(MailSend).where(MailSend.id.in_(send_ids))) if send_ids else []):
+        db.delete(row)
+    # proposal documents and purchase orders, bytes and rows, unless a legal hold covers the file
+    file_ids = {fid for p in proposals for fid in (p.file_ids or {}).values() if fid} | {a.po_file_id for a in accepts if getattr(a, "po_file_id", None)}
+    from app.files.models import FileObject
+
+    files = list(db.scalars(select(FileObject).where((FileObject.id.in_(file_ids)) | (FileObject.linked_id.in_(p_ids)))))
+    vault = _module("app.vault.service")
+    from app.files.storage import get_storage
+
+    store = get_storage(settings)
+    for f in files:
+        if vault is not None and hasattr(vault, "file_hold") and vault.file_hold(db, f) is not None:
+            continue
+        from app.ai.models import DocumentText
+
+        for dt in db.scalars(select(DocumentText).where(DocumentText.file_id == f.id)):
+            db.delete(dt)
+        key = f.storage_key
+        db.delete(f)
+        db.flush()
+        try:
+            store.delete(key)
+        except FileNotFoundError:
+            pass
+    # partner referrals: the partner keeps the count; the link to the deleted company and the note go
+    futran_id = db.scalar(select(Organization.id).where(Organization.type == "futran", Organization.deleted_at.is_(None)).order_by(Organization.created_at).limit(1))
+    mod = _module("app.partners.models")
+    Referral = getattr(mod, "Referral", None) if mod is not None else None
+    if Referral is not None:
+        for r in db.scalars(select(Referral).where((Referral.opportunity_id.in_(opp_ids)) | (Referral.organization_id == org.id))):
+            r.opportunity_id, r.note = None, None
+            if r.organization_id == org.id and futran_id:
+                r.organization_id = futran_id
+    from app.notifications.models import Notification
+
+    for oid in opp_ids:
+        for n in db.scalars(select(Notification).where(Notification.link.contains(oid))):
+            db.delete(n)
+    db.flush()
 
 
 def _delete_children(db: Session, opp_ids: list[str]) -> None:
@@ -313,7 +396,7 @@ def send_email(db: Session, settings: Settings, actor_user: User, o: Opportunity
     if res.provider_thread_id:
         thread.provider_thread_id = res.provider_thread_id
     adminlog.write(db, organization_id=futran_id, category="send", action="system_send", actor_name=actor_user.name, send_id=ms.id,
-                   summary=f"Sales email to {', '.join(to)[:300]}" + ("" if res.ok else " (not delivered)"))
+                   summary=f"Sales email to {len(to)} {'recipient' if len(to) == 1 else 'recipients'}" + ("" if res.ok else " (not delivered)"))  # no addresses: this log is append-only
     if not res.ok:
         raise Conflict(f"The email was not sent: {res.error or 'delivery failed'}")
     a = OpportunityActivity(opportunity_id=o.id, kind="email", summary=f"{subject}\n\n{body}"[:4000], by_id=actor_user.id, at=now, mail_thread_id=thread.id,
