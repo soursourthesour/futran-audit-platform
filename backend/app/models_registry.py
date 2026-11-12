@@ -40,3 +40,6 @@ for _mod in ["policies", "training", "trust"]:
 importlib.import_module("app.comments.models")
 importlib.import_module("app.publicapi.models")
 importlib.import_module("app.platformtrust.models")
+
+# Release 2 R5: commercial core (orders, entitlements, usage, change orders, time and hours, handoff)
+importlib.import_module("app.commercial.models")

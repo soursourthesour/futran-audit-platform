@@ -31,6 +31,15 @@ class Subscription(TimestampedTenantMixin, Base):
     next_review_on: Mapped[date | None] = mapped_column(Date)  # next Futran annual review, when Futran has agreed one
     set_by: Mapped[str | None] = mapped_column(String(36))
     note: Mapped[str | None] = mapped_column(String(300))
+    # Release 2 B1 (G-01), all nullable so plans set before Release 2 read exactly as they did. `end_on` keeps its F3
+    # meaning (the plan was replaced on that date); the contract term end is `term_end_on`.
+    tier: Mapped[str | None] = mapped_column(String(60))
+    order_id: Mapped[str | None] = mapped_column(String(36))
+    term_end_on: Mapped[date | None] = mapped_column(Date)
+    auto_renew: Mapped[bool | None] = mapped_column(Boolean)
+    data_region: Mapped[str | None] = mapped_column(String(4))  # us | eu | in; set at creation, moved only with a migration ticket
+    support_level: Mapped[str | None] = mapped_column(String(30))
+    onboarding_fee_waived: Mapped[bool | None] = mapped_column(Boolean)
 
 
 class MonitorCheck(IdMixin, Base):
