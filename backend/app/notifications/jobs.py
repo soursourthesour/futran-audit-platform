@@ -389,3 +389,5 @@ def run_model_catalogue_monthly(db: Session, settings: Settings, now) -> int:
 JOBS["model_catalogue_monthly"] = run_model_catalogue_monthly
 
 JOBS["catalog_effective_dates"] = _wsh("app.catalog.service", "run_effective_dates")  # Release 2 R1: price list changes from a future date
+# Release 2 R5: daily usage, 90% notices, renewals and the monthly billing export (G-01); hours-bank 80% alerts (G-03)
+JOBS["commercial_usage"] = _wsh("app.commercial.plans", "run_daily_usage")

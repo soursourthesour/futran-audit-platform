@@ -47,4 +47,4 @@ ROUTER_MODULES += ["register.catalogue_router"]
 ROUTER_MODULES += ["register.ailist"]
 
 # Release 2 R5: SM-13 handoff, G-01 plan and entitlements, G-02 engagement commercials, G-03 time and hours
-ROUTER_MODULES += ["commercial.router_handoff"]
+ROUTER_MODULES += ["commercial.router_handoff", "commercial.router_plan"]
