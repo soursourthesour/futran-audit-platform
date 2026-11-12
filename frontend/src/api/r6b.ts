@@ -63,7 +63,9 @@ export type EuClientView = {
   client_view: true; id: string; name: string; eu_exposure: string | null; status_text: string; role_label: string | null; classification: string | null;
   classification_label: string | null; deadline: Deadline | null; signed_off_at: string | null;
 };
-export type Workspaces = { copilot: boolean; eu_ai_act: boolean; eu_systems: number };
+/** `elsewhere`: workspaces on the client's other engagements the person may open (the client page shows only the latest). */
+export type Workspaces = { copilot: boolean; eu_ai_act: boolean; eu_systems: number;
+  elsewhere?: { engagement_id: string; workspace: 'copilot' | 'eu_ai_act'; name: string; audit_ref: string | null }[] };
 
 export const RISK_TONE: Record<string, 'danger' | 'warn' | 'muted'> = { high: 'danger', medium: 'warn', low: 'muted' };
 export const SIGNOFF_TONE: Record<string, 'warn' | 'success' | 'danger' | 'muted'> = { draft: 'muted', awaiting_signoff: 'warn', signed_off: 'success', returned: 'danger' };

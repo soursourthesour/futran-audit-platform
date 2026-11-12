@@ -183,10 +183,32 @@ def test_client_level_view_for_systems_with_eu_geography(eu):
     r = eu.client.get(f"{API}/clients/{eu.org.id}/eu-ai-act")
     assert r.status_code == 200
     assert [x["name"] for x in r.json()["systems"]] == ["Credit decision model", "Hiring screening"]  # EU geography or a record
-    assert eu.client.get(f"{API}/e/{eu.engagement.id}/workspaces").json() == {"copilot": False, "eu_ai_act": True, "eu_systems": 2}
+    assert eu.client.get(f"{API}/e/{eu.engagement.id}/workspaces").json() == {"copilot": False, "eu_ai_act": True, "eu_systems": 2, "elsewhere": []}
     assert eu.client.get(f"{API}/e/{eu.plain.id}/workspaces").status_code == 404  # not on that engagement's team
     eu.as_(eu.chief)
-    assert eu.client.get(f"{API}/e/{eu.plain.id}/workspaces").json() == {"copilot": False, "eu_ai_act": False, "eu_systems": 2}
+    assert eu.client.get(f"{API}/e/{eu.plain.id}/workspaces").json() == {
+        "copilot": False, "eu_ai_act": False, "eu_systems": 2,
+        "elsewhere": [{"engagement_id": eu.engagement.id, "workspace": "eu_ai_act", "name": "EU AI Act readiness", "audit_ref": "FSL-AI-AUD-2026-950"}]}
+
+
+def test_workspaces_on_the_clients_other_engagements_stay_reachable(eu):
+    """The client page shows the latest engagement. A newer one (a hand-off's draft, say) must not hide the Copilot
+    readiness or EU AI Act workspace of an earlier engagement from its team; engagements the person cannot open are left out."""
+    from app.engagements.models import Engagement, EngagementTeam
+
+    cop = Engagement(organization_id=eu.org.id, client_id=eu.org.id, name="Microsoft 365 Copilot readiness", type="copilot_readiness", status="in_progress", stage=3,
+                     audit_ref="FSL-AI-AUD-2026-952")
+    eu.db.add(cop)
+    eu.db.flush()
+    eu.db.add(EngagementTeam(organization_id=eu.org.id, engagement_id=eu.plain.id, user_id=eu.auditor.id, role="auditor"))
+    eu.db.commit()
+    eu.as_(eu.auditor)  # on the EU AI Act and initial assessment engagements, not the Copilot one
+    d = eu.client.get(f"{API}/e/{eu.plain.id}/workspaces").json()
+    assert d["elsewhere"] == [{"engagement_id": eu.engagement.id, "workspace": "eu_ai_act", "name": "EU AI Act readiness", "audit_ref": "FSL-AI-AUD-2026-950"}]
+    eu.as_(eu.chief)
+    d = eu.client.get(f"{API}/e/{eu.plain.id}/workspaces").json()
+    assert sorted(x["workspace"] for x in d["elsewhere"]) == ["copilot", "eu_ai_act"]
+    assert all(x["engagement_id"] != eu.plain.id for x in d["elsewhere"])
 
 
 def test_only_a_reviewer_on_a_current_engagement_of_the_client_signs(eu):

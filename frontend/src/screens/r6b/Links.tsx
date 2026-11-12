@@ -5,18 +5,26 @@ import { can, useMe } from '@/api/auth';
 import type { EuClientView, Workspaces } from '@/api/r6b';
 import { Badge, Card } from '@/components/ui';
 
-/** On the engagement (Futran client page): the Copilot readiness and EU AI Act workspaces this engagement opens, and
- *  the EU AI Act view of the client's systems with EU geography. Renders nothing when neither applies. */
+/** On the engagement (Futran client page): the Copilot readiness and EU AI Act workspaces this engagement opens, those
+ *  on the client's other engagements (the page shows only the latest), and the EU AI Act view of the client's systems
+ *  with EU geography. Renders nothing when none applies. */
 export function DeliveryWorkspaceLinks({ engagementId, clientId }: { engagementId: string; clientId: string }) {
   const q = useQuery({ queryKey: ['workspaces', engagementId], queryFn: () => api.get<Workspaces>(`/e/${engagementId}/workspaces`), retry: false });
   const w = q.data;
-  if (!w || (!w.copilot && !w.eu_ai_act && !w.eu_systems)) return null;
+  const elsewhere = w?.elsewhere ?? [];
+  if (!w || (!w.copilot && !w.eu_ai_act && !w.eu_systems && elsewhere.length === 0)) return null;
   return (
     <Card title="Delivery workspaces">
       <ul className="small" style={{ margin: 0, paddingLeft: 18 }}>
         {w.copilot && <li><Link to={`/e/${engagementId}/copilot`}>Copilot readiness</Link>: licences and usage, site risk list, rollout waves and controls</li>}
         {w.eu_ai_act && <li><Link to={`/e/${engagementId}/eu-ai-act`}>EU AI Act conformity</Link>: role, classification, legal sign-off, articles and deadlines</li>}
-        {!w.eu_ai_act && w.eu_systems > 0 && <li><Link to={`/clients/${clientId}/eu-ai-act`}>EU AI Act conformity</Link>: {w.eu_systems} AI system{w.eu_systems > 1 ? 's' : ''} with EU geography</li>}
+        {elsewhere.map((o) => (
+          <li key={o.engagement_id}>
+            {o.workspace === 'copilot' ? <Link to={`/e/${o.engagement_id}/copilot`}>Copilot readiness</Link> : <Link to={`/e/${o.engagement_id}/eu-ai-act`}>EU AI Act conformity</Link>}
+            : {o.name}{o.audit_ref ? ` · ${o.audit_ref}` : ''}
+          </li>
+        ))}
+        {!w.eu_ai_act && !elsewhere.some((o) => o.workspace === 'eu_ai_act') && w.eu_systems > 0 && <li><Link to={`/clients/${clientId}/eu-ai-act`}>EU AI Act conformity</Link>: {w.eu_systems} AI system{w.eu_systems > 1 ? 's' : ''} with EU geography</li>}
       </ul>
     </Card>
   );
