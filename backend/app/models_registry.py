@@ -43,3 +43,6 @@ importlib.import_module("app.platformtrust.models")
 
 # Release 2 R5: commercial core (orders, entitlements, usage, change orders, time and hours, handoff)
 importlib.import_module("app.commercial.models")
+
+# Release 2 R3: scoping questionnaire (SM-05 to SM-08) and mapping rules (spec §4.4, §4.5)
+importlib.import_module("app.scoping.models")
