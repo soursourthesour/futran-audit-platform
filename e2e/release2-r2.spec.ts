@@ -140,6 +140,10 @@ test('Sales Officer: the opportunity record and the old address', async ({ page 
   await expect(page.getByText('No flag', { exact: true })).toBeVisible();
   await noSidewaysScroll(page);
   await shot(page, 'sm04-opportunity-record');
+  // "Send questionnaire" starts the questionnaire when there is none and opens R3's send dialog
+  await page.getByRole('link', { name: 'Send questionnaire' }).click();
+  await expect(page.getByRole('dialog', { name: 'Send questionnaire to client' })).toBeVisible();
+  await expect(page).not.toHaveURL(/send=1/);
   // the old list address keeps its filters
   await page.goto('/opportunities?stage=qualified');
   await expect(page).toHaveURL(/\/sales\/opportunities\?stage=qualified$/);

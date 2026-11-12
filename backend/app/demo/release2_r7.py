@@ -103,6 +103,10 @@ def _vault(db: Session, settings, chief: User, password_hash: str | None) -> dic
                     audit_ref="FSL-AI-AUD-2019-015", completed_at=done + timedelta(days=21))
     db.add_all([e1, e2])
     db.flush()
+    # The annual review is already started (a draft carrying the 2019 assessment forward), so the opportunity scan does
+    # not raise a renewal audit for Metro Retail; the 2019 evidence and its retention countdown are unchanged.
+    db.add(Engagement(organization_id=org.id, client_id=org.id, name="Annual review", type="annual_review", status="draft", stage=1, prior_engagement_id=e2.id))
+    db.flush()
     aedt = AISystem(organization_id=org.id, engagement_id=e1.id, name="AEDT 1 · Résumé screening", reference_id="SYS-001")
     db.add(aedt)
     db.flush()

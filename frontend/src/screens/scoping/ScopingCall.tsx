@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
 import { Alert, Badge, Button, Loading } from '@/components/ui';
@@ -36,6 +36,16 @@ export function ScopingCall() {
   const [notes, setNotes] = useState<Record<string, boolean>>({});
   const started = useRef(false);
   const d = q.data;
+  // SM-04 "Send questionnaire" opens this page with ?send=1: once the questionnaire exists (it is started above if
+  // there is none), open the send dialog.
+  const [params, setParams] = useSearchParams();
+  useEffect(() => {
+    const qn0 = d?.questionnaire;
+    if (params.get('send') === '1' && qn0 && !qn0.locked && d?.can_work) {
+      setSending(true);
+      const n = new URLSearchParams(params); n.delete('send'); setParams(n, { replace: true });
+    }
+  }, [d, params]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (d && !d.questionnaire && d.can_work && !started.current) {
