@@ -164,9 +164,9 @@ def commission_for_win(db: Session, opportunity, order, first_year_value) -> Com
     rate = (p.commission_rule or {}).get("rate_pct")
     if not rate:
         return None
-    existing = db.scalar(select(Commission).where(Commission.opportunity_id == opportunity.id, Commission.status != "void", Commission.deleted_at.is_(None)).limit(1))
-    if existing is not None:
-        return existing
+    existing = db.scalar(select(Commission).where(Commission.opportunity_id == opportunity.id).limit(1))
+    if existing is not None:  # already decided: a void commission stays void on a retried hand-off
+        return None if existing.status == "void" or existing.deleted_at is not None else existing
     base = _money(first_year_value)
     start = getattr(order, "start_on", None) or today()
     org_id = getattr(order, "organization_id", None) or opportunity.organization_id

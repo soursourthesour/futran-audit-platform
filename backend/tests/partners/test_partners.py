@@ -174,3 +174,23 @@ def test_a_due_row_for_a_law_firm_is_refused_wherever_it_came_from(pw):
 
     with pytest.raises(Conflict):
         partners.mark_paid(pw.db, pw.sm, c)
+
+
+def test_a_void_commission_is_not_brought_back_by_a_retried_handoff(pw):
+    """Fix pass 4: void means decided; a retry returns None and creates nothing."""
+    _refer(pw, pw.ats, pw.opp)
+    c = partners.commission_for_win(pw.db, pw.opp, pw.order, 10000.0)
+    partners.void(pw.db, pw.sm, c, "Deal restructured")
+    pw.db.commit()
+    assert partners.commission_for_win(pw.db, pw.opp, pw.order, 10000.0) is None
+    assert len(list(pw.db.scalars(select(Commission)))) == 1
+
+
+def test_one_commission_per_opportunity_in_the_database(pw):
+    from sqlalchemy.exc import IntegrityError
+
+    for _ in range(2):
+        pw.db.add(Commission(organization_id=pw.org.id, partner_id=pw.ats.id, opportunity_id=pw.opp.id, base_value=1, rate=15, amount=0.15, status="due", due_on=date(2026, 12, 1)))
+    with pytest.raises(IntegrityError):
+        pw.db.flush()
+    pw.db.rollback()

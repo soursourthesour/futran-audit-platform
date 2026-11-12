@@ -5,7 +5,7 @@ organization_id (the client tenant), so a client's billing export and audit trai
 """
 from datetime import date, datetime
 
-from sqlalchemy import JSON, Date, DateTime, Float, ForeignKey, String, Text
+from sqlalchemy import JSON, Date, DateTime, Float, ForeignKey, Index, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.models import Base, TimestampedTenantMixin
@@ -34,6 +34,7 @@ class Commission(TimestampedTenantMixin, Base):
     """organization_id is the client won."""
 
     __tablename__ = "partner_commissions"
+    __table_args__ = (Index("uq_partner_commission_opportunity", "opportunity_id", unique=True),)  # one decision per won opportunity
 
     partner_id: Mapped[str] = mapped_column(String(36), ForeignKey("partners.id"), index=True)
     opportunity_id: Mapped[str] = mapped_column(String(36), index=True)
