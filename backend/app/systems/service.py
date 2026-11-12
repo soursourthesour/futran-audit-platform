@@ -286,6 +286,12 @@ def decide_addition(db: Session, settings, actor: User, req: SystemAdditionReque
     if not approve and not comment:
         raise Invalid(errors=[{"field": "comment", "message": "Say why the system is not being added."}])
     e = db.get(Engagement, req.engagement_id)
+    from app.commercial.commercials import intercept_addition  # Release 2 G-02: on an ordered engagement this becomes a change order
+
+    if approve and intercept_addition(db, actor, req, e):
+        audit.record(db, actor_id=actor.id, action="system.addition_decided", obj=req, after={"status": req.status, "comment": req.decision_comment},
+                     summary=f"Approved a scope addition for {e.audit_ref}; sent to the client as a change order")
+        return req
     if approve:
         requester = db.get(User, req.requested_by)
         s = create_system(db, actor, e, dict(req.payload), created_by=requester.id if requester else None)

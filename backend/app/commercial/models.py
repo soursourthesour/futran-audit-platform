@@ -113,7 +113,10 @@ class ChangeOrder(TimestampedTenantMixin, Base):
     reason: Mapped[str] = mapped_column(Text)
     lines: Mapped[list] = mapped_column(JSON, default=list)  # [{code, description, qty, unit_price, list_price, value}]
     raised_by: Mapped[str | None] = mapped_column(String(36))
-    status: Mapped[str] = mapped_column(String(24), default="draft")
+    kind: Mapped[str | None] = mapped_column(String(20))  # add_system | add_jurisdiction | extra_documents | extra_readout | extra_vendors
+    status: Mapped[str] = mapped_column(String(24), default="draft")  # draft = waiting for the Engagement Manager
+    em_approved_by: Mapped[str | None] = mapped_column(String(36))
+    em_approved_at: Mapped[datetime | None] = mapped_column(DateTime)
     needs_price_approval: Mapped[bool] = mapped_column(Boolean, default=False)
     futran_approved_by: Mapped[str | None] = mapped_column(String(36))
     futran_approved_at: Mapped[datetime | None] = mapped_column(DateTime)

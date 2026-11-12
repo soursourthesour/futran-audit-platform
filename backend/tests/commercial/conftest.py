@@ -13,6 +13,7 @@ ITEMS = {
                   deliverables="Final report (sign-off 7)"),
     "A-03": dict(name="Extra AI system", billing="One-time", list_price=750, low=600, high=900, engagement_type="initial_assessment", deliverables="One more system assessed"),
     "A-04": dict(name="Extra jurisdiction", billing="One-time", list_price=1200, engagement_type="initial_assessment"),
+    "A-07": dict(name="Extra governance documents", billing="One-time", list_price=300, engagement_type="initial_assessment"),
     "A-05": dict(name="Discovery sweep", billing="One-time", list_price=1500, engagement_type="initial_assessment", deliverables="Discovered tools list (G-05)"),
     "L-01": dict(name="LL144 readiness assessment", billing="One-time", list_price=9000, engagement_type="ll144_bias_audit", deliverables="LL144 readiness memo"),
     "M-01e": dict(name="Monitor Plus, 11–50 systems", billing="Annual", periods_per_year=1, list_price=36000, entitlement_key="ai_systems",
