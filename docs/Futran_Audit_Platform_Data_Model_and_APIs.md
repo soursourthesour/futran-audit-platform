@@ -12,6 +12,8 @@ Whiteboard with the same diagram: [Futran Audit Platform architecture](https://c
 
 ## Entity relationship diagram
 
+Print-quality versions are in `docs/reference/erd/`: `Futran_Audit_Platform_ERD.pdf` (vector, one page per area, zoom to any size) and a PNG and SVG for the overview and each of the four areas: tenancy and engagement, assessment and findings, client governance, law and sales.
+
 ```mermaid
 erDiagram
   ORGANIZATION ||--o{ DEPARTMENT : has
