@@ -9,6 +9,8 @@ status: laptop live; hosting options Render, Azure, AWS, GCP
 
 The platform ships as **one Docker image running one process**. FastAPI serves the API and the pre-built React app from the same port. The same code runs in every environment; only the database, file storage, secrets and outside services change.
 
+The detailed diagram (every module group, the security layer, the scheduler, data, outside services and hosting options) is on the whiteboard: [Futran Audit Platform architecture](https://claude.ai/artifact/AstayJDr7GEai9pD9Uo6Nq).
+
 ```mermaid
 flowchart TB
   subgraph Users
