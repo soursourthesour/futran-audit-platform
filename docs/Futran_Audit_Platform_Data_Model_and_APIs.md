@@ -12,7 +12,7 @@ Whiteboard with the same diagram: [Futran Audit Platform architecture](https://c
 
 ## Entity relationship diagram
 
-Print-quality versions are in `docs/reference/erd/`: `Futran_Audit_Platform_ERD.pdf` (vector, one page per area, zoom to any size) and a PNG and SVG for the overview and each of the four areas: tenancy and engagement, assessment and findings, client governance, law and sales.
+Print-quality versions are in `docs/reference/erd/`: `Futran_Audit_Platform_ERD.pdf` (vector, zoom to any size: the overview and one page per area, then three API pages: outside APIs, the platform's own APIs with every public API endpoint, and web API operations by group) and a PNG and SVG for the overview and each of the four areas: tenancy and engagement, assessment and findings, client governance, law and sales.
 
 ```mermaid
 erDiagram
