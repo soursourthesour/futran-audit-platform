@@ -111,3 +111,8 @@ select.cell-input { width: auto; }
   .catalog-filters input[type='search'] { width: 100%; }
   .catalog-filters .field-inline { flex: 1 1 140px; }
 }
+/* Phone and touch: estimator and price list fields keep the standard 44 px control height (BUG-11). */
+@media (max-width: 600px), (pointer: coarse) {
+  .field-inline input:not([type='file']), .field-inline select, .price-input, .qty-input { min-height: var(--control-h); }
+  .estimator-page .linklike { min-height: var(--control-h); }
+}

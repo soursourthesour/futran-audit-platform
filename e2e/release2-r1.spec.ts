@@ -14,6 +14,19 @@ const SHOTS = process.env.R1_SHOTS || '/mnt/user-data/outputs/release2/r1';
 mkdirSync(SHOTS, { recursive: true });
 test.use({ viewport: { width: 1440, height: 1000 } });
 
+/** Controls under 44 px tall (spec §13: 44 px touch targets). Visually hidden inputs are skipped: their label is the target. */
+async function smallTargets(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const small: string[] = [];
+    document.querySelectorAll<HTMLElement>('button, a.btn, select, textarea, input:not([type=checkbox]):not([type=radio]):not([type=hidden]), label.check').forEach((el) => {
+      if (el.closest('.sr-only')) return;
+      const b = el.getBoundingClientRect();
+      if (b.width > 0 && b.height > 0 && b.height < 44) small.push(`${el.tagName.toLowerCase()} "${(el.getAttribute('aria-label') || el.textContent || '').trim().slice(0, 40)}" ${Math.round(b.height)}px`);
+    });
+    return small;
+  });
+}
+
 async function signIn(page: Page, email: string) {
   await page.context().clearCookies();
   await page.goto('/staff/login');
@@ -199,5 +212,6 @@ test('SM-14 for viewers, then SM-15: a Sales Officer suggests a change and build
   await page.reload();
   await expect(page.getByRole('table', { name: 'Estimate lines' }).getByRole('textbox', { name: 'Unit price A-02a' })).toHaveValue('13,500');
   await noSidewaysScroll(page);
+  expect(await smallTargets(page), 'estimator at 375 px: controls under 44 px (BUG-11)').toEqual([]);
   await shot(page, 'sm15-estimator-375');
 });

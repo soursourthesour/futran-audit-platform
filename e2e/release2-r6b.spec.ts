@@ -5,7 +5,7 @@ import { openNav } from './nav';
 /* Release 2 R6b: G-07 Copilot readiness (Futran workspace and the CAICO's phone view) and G-08 EU AI Act conformity with
    legal sign-off. Acme Staffing LLC and Northbank Credit Union come from app.demo.r6b (seed-e2e). */
 const PW = 'Demo-Password-2026';
-const SHOTS = '/mnt/user-data/outputs/release2/r6b';
+const SHOTS = process.env.R6B_SHOTS || '/mnt/user-data/outputs/release2/r6b';
 const SCRATCH = process.env.R6B_SCRATCH || '/tmp';
 
 const LICENCES = `Report Refresh Date,User Principal Name,Display Name,Department,Has Copilot License,Last Activity Date of Microsoft 365 Copilot (UTC)
@@ -20,6 +20,19 @@ Finance · Payroll archive,https://acme.sharepoint.com/sites/payroll,Finance,860
 Sales · Client contracts,https://acme.sharepoint.com/sites/contracts,Sales ops,310,65%,Specific people,2026-10-20
 Marketing · Public assets,https://acme.sharepoint.com/sites/marketing,,0,,Organization-wide,2026-11-02
 `;
+
+/** Controls under 44 px tall (spec §13: 44 px touch targets). Visually hidden inputs are skipped: their label is the target. */
+async function smallTargets(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const small: string[] = [];
+    document.querySelectorAll<HTMLElement>('button, a.btn, select, textarea, input:not([type=checkbox]):not([type=radio]):not([type=hidden]), label.check').forEach((el) => {
+      if (el.closest('.sr-only')) return;
+      const b = el.getBoundingClientRect();
+      if (b.width > 0 && b.height > 0 && b.height < 44) small.push(`${el.tagName.toLowerCase()} "${(el.getAttribute('aria-label') || el.textContent || '').trim().slice(0, 40)}" ${Math.round(b.height)}px`);
+    });
+    return small;
+  });
+}
 
 async function signIn(page: Page, email: string, staff = false) {
   await page.context().clearCookies();
@@ -132,14 +145,21 @@ test('G-07: imports, site risk list, waves, controls, register entry and report;
   await sites.scrollIntoViewIfNeeded();
   await page.screenshot({ path: `${SHOTS}/g07-1280-site-risk-list-and-waves.png` });
 
-  // the client's CAICO on a phone: the same workspace, remediation only
+  // Futran's workspace on a phone: 44 px targets (BUG-11)
   await page.setViewportSize({ width: 375, height: 812 });
+  await page.reload();
+  await expect(page.getByText('Controls ready')).toBeVisible();
+  await noSidewaysScroll(page);
+  expect(await smallTargets(page), 'Copilot readiness workspace at 375 px: controls under 44 px').toEqual([]);
+
+  // the client's CAICO on a phone: the same workspace, remediation only
   await signIn(page, 'dana.reyes@acmestaffing.example');
   await openNav(page, 'Copilot readiness');
   await expect(page.getByRole('heading', { level: 1, name: 'Microsoft 365 Copilot readiness' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Import', exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Add wave' })).toHaveCount(0);
   await noSidewaysScroll(page);
+  expect(await smallTargets(page), 'Copilot readiness client view at 375 px: controls under 44 px').toEqual([]);
   await shot(page, 'g07-375-client-view');
   await page.getByRole('button', { name: 'Update Finance · Payroll archive' }).click();
   const cd = page.getByRole('dialog', { name: 'Update Finance · Payroll archive' });
