@@ -98,3 +98,39 @@ def test_accept_api_flow(client, db):
     assert r.status_code == 200
     assert r.json()["csrf_token"]
     assert client.get("/api/v1/auth/me").status_code == 200
+
+
+def test_expired_invitation_is_marked_expired_and_keeps_its_message(client, db):
+    """BUG-H11: the status change was rolled back with the request's error, so the row stayed pending."""
+    admin, u = _setup(db)
+    start = clock.utcnow()
+    clock.set_now(start)
+    inv = invite_user(db, client.app.state.settings, admin, u)
+    db.commit()
+    token = _token_from_last_email(db, u.email)
+    clock.set_now(start + timedelta(days=7, minutes=1))
+    for _ in range(2):
+        r = client.post(f"/api/v1/invitations/accept/{token}", json={"password": "A-Long-Password-2026"})
+        assert r.status_code == 409
+        assert r.json()["detail"] == "This invitation has expired. Ask your contact at Futran to send a new one."
+    db.expire_all()
+    assert db.get(Invitation, inv.id).status == "expired"
+    info = client.get(f"/api/v1/invitations/accept/{token}").json()
+    assert info["expired"] is True and info["used"] is False
+
+
+def test_expiry_on_open_still_tells_futran_and_the_job_does_not_repeat_it(client, db):
+    from app.audit_log.models import AuditLog
+    from app.notifications.jobs import run_invitation_expiry
+
+    admin, u = _setup(db)
+    start = clock.utcnow()
+    clock.set_now(start)
+    inv = invite_user(db, client.app.state.settings, admin, u)
+    db.commit()
+    token = _token_from_last_email(db, u.email)
+    clock.set_now(start + timedelta(days=7, minutes=1))
+    assert client.post(f"/api/v1/invitations/accept/{token}", json={"password": "A-Long-Password-2026"}).status_code == 409
+    db.expire_all()
+    assert db.query(AuditLog).filter_by(object_id=inv.id, action="invitation.expired").count() == 1
+    assert run_invitation_expiry(db, client.app.state.settings, clock.utcnow()) == 0

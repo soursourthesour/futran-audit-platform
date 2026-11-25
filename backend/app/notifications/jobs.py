@@ -67,15 +67,21 @@ def run_invitation_expiry(db: Session, settings: Settings, now) -> int:
     now = _dt(now)
     n = 0
     for inv in db.scalars(select(Invitation).where(Invitation.status == "pending", Invitation.expires_at <= now)):
-        inv.status = "expired"
-        user = db.get(User, inv.user_id)
-        audit.record(db, actor_id=None, actor_name="Scheduler", action="invitation.expired", obj=inv, summary=f"The invitation for {user.email} expired unused")
-        org = db.get(Organization, user.organization_id)
-        notify(db, _futran_contacts(db, user), "invitation_expired", f"{org.name}: the invitation for {user.name} expired", f"{user.email} did not accept it within 7 days. Send a new invitation from the client page.",
-               f"/clients/{org.id}" if org.type == "client" else "/admin/users", engagement=_current_engagement(db, org.id) if org.type == "client" else None, settings=settings)
+        expire_invitation(db, settings, inv)
         n += 1
     db.flush()
     return n
+
+
+def expire_invitation(db: Session, settings: Settings, inv: Invitation, actor_name: str = "Scheduler") -> None:
+    """Mark one pending invitation expired, record it and tell the Futran contacts. Used by the daily job and when
+    someone opens an expired link before the job has run."""
+    inv.status = "expired"
+    user = db.get(User, inv.user_id)
+    audit.record(db, actor_id=None, actor_name=actor_name, action="invitation.expired", obj=inv, summary=f"The invitation for {user.email} expired unused")
+    org = db.get(Organization, user.organization_id)
+    notify(db, _futran_contacts(db, user), "invitation_expired", f"{org.name}: the invitation for {user.name} expired", f"{user.email} did not accept it within 7 days. Send a new invitation from the client page.",
+           f"/clients/{org.id}" if org.type == "client" else "/admin/users", engagement=_current_engagement(db, org.id) if org.type == "client" else None, settings=settings)
 
 
 # ---- requests due soon (evidence and document requests)
