@@ -255,6 +255,33 @@ def active_members(db: Session, group: MailGroup) -> list[DirectoryPerson]:
     return sorted((p for p in resolve(db, group).values() if p.status == "active"), key=lambda p: p.name.lower())
 
 
+def member_count(db: Session, group: MailGroup) -> int:
+    """len(active_members(group)), counted in SQL for the groups that can be large (everyone, a department, a
+    directory group) instead of loading every person (load test BUG-V02: the groups list took 90 s at 10,000)."""
+    from sqlalchemy import func
+
+    rule = group.rule or {}
+    kind = rule.get("kind")
+    everyone = kind == "all_people" and (group.source == "rule" or (group.source == "directory" and group.directory_group_id is None))
+    if group.deleted_at is not None or not (everyone or (group.source == "rule" and kind == "department") or (group.source == "directory" and group.directory_group_id)):
+        return len(active_members(db, group))
+    base = [DirectoryPerson.organization_id == group.organization_id, DirectoryPerson.deleted_at.is_(None), DirectoryPerson.status == "active"]
+    if group.exclusions:
+        base.append(DirectoryPerson.id.notin_(list(group.exclusions)))
+    if group.source == "directory" and group.directory_group_id:
+        dg = db.get(DirectoryGroup, group.directory_group_id)
+        if dg is None:
+            return 0
+        return sum(1 for (ids,) in db.execute(select(DirectoryPerson.directory_group_ids).where(*base)) if dg.directory_id in (ids or []))
+    ensure_platform_people(db, group.organization_id)
+    if everyone:
+        if not rule.get("include_guests"):
+            base.append(DirectoryPerson.is_guest.is_not(True))
+    else:
+        base.append(DirectoryPerson.department_id == rule.get("department_id"))
+    return db.scalar(select(func.count(DirectoryPerson.id)).where(*base)) or 0
+
+
 def rule_text(db: Session, g: MailGroup) -> str:
     """How the members are chosen, in words (the "Who is in it" column)."""
     if g.source == "manual":
