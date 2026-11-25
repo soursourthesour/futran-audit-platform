@@ -117,20 +117,21 @@ def ai_systems(actor: Actor = Depends(current_actor), db: Session = Depends(get_
     unseen_ids = {x.id for x in unseen}
     unseen_refs = {r for x in unseen for r in x.source_refs or []}
     unseen_keys = {x.dedupe_key or svc_key(x, db) for x in unseen}
-    for s in systems:
-        out = system_out(db, s, actor)
-        if s.origin == "inventory":
-            refs = [r.split(":", 1) for r in s.source_refs or []]
-            srcs = [TOOL_SOURCE.get(tools_all[i].source, "inventory") if k == "tool" and i in tools_all else "inventory" for k, i in refs]
-            sources = list(dict.fromkeys(srcs)) or ["inventory"]
-        else:
-            sources = ["register"]
-        a = audit_by_register.get(s.id)
-        depts = [out["department"]] if out["department"] else out["departments"]
-        rows.append(_row(f"system:{s.id}", "system", s.name, sources=sources, subtype=out["type_label"], detail=out["vendor"]["name"] if out["vendor"] else None,
-                         departments=depts, company_wide=s.company_wide, stage=s.stage, stage_label=out["stage_label"], tier=s.risk_tier, eu_risk_level=s.eu_risk_level, eu_risk_label=out["eu_risk_label"], registered=True,
-                         in_audit=(a is not None) if may_prefill else None, audit=_audit_info(db, e, a, True) if a is not None else None,
-                         system=out, open=f"/register/{s.id}"))
+    with svc.prefetched(db, systems):
+        for s in systems:
+            out = system_out(db, s, actor)
+            if s.origin == "inventory":
+                refs = [r.split(":", 1) for r in s.source_refs or []]
+                srcs = [TOOL_SOURCE.get(tools_all[i].source, "inventory") if k == "tool" and i in tools_all else "inventory" for k, i in refs]
+                sources = list(dict.fromkeys(srcs)) or ["inventory"]
+            else:
+                sources = ["register"]
+            a = audit_by_register.get(s.id)
+            depts = [out["department"]] if out["department"] else out["departments"]
+            rows.append(_row(f"system:{s.id}", "system", s.name, sources=sources, subtype=out["type_label"], detail=out["vendor"]["name"] if out["vendor"] else None,
+                             departments=depts, company_wide=s.company_wide, stage=s.stage, stage_label=out["stage_label"], tier=s.risk_tier, eu_risk_level=s.eu_risk_level, eu_risk_label=out["eu_risk_label"], registered=True,
+                             in_audit=(a is not None) if may_prefill else None, audit=_audit_info(db, e, a, True) if a is not None else None,
+                             system=out, open=f"/register/{s.id}"))
 
     # ---- the audit's systems not on a register row this person sees (the old AI systems list)
     shown = {s.id for s in systems}
