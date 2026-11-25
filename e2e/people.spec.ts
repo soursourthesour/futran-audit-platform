@@ -103,6 +103,21 @@ test('users grid: filter, sort, search, select and bulk bar', async ({ page }) =
   await expect(menu.getByRole('menuitem').nth(1)).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(menu).toHaveCount(0);
+
+  // BUG-14: a dialog opened from the row menu returns focus to the row's menu button when it closes
+  const menuBtn = row.getByRole('button', { name: 'Actions for Lena Fischer' });
+  for (const close of ['Escape', 'Close'] as const) {
+    await menuBtn.focus();
+    await page.keyboard.press('Enter');
+    await menu.getByRole('menuitem', { name: 'Job level' }).focus();
+    await page.keyboard.press('Enter');
+    const dlg = page.getByRole('dialog');
+    await expect(dlg).toBeVisible();
+    if (close === 'Escape') await page.keyboard.press('Escape');
+    else await dlg.getByRole('button', { name: 'Close' }).click();
+    await expect(dlg).toHaveCount(0);
+    await expect(menuBtn).toBeFocused();
+  }
 });
 
 test('the CAICO edits and resends the data notice; another user acknowledges it at sign-in', async ({ page }) => {

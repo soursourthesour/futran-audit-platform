@@ -416,7 +416,7 @@ export function RowMenu({ label, items, x, y, anchor, onClose }: { label: string
       {items.map((it, i) => (
         <Fragment key={it.label + i}>
           <button type="button" role="menuitem" tabIndex={-1} className={it.danger ? 'danger' : undefined} aria-disabled={it.disabled ? true : undefined}
-            onClick={() => { if (it.disabled) return; onClose(false); it.onSelect(); }}>{it.label}</button>
+            onClick={() => { if (it.disabled) return; onClose(true); it.onSelect(); }}>{it.label}</button>
         </Fragment>
       ))}
     </div>,
