@@ -230,11 +230,13 @@ def kpis(db: Session, s: RegisterSystem) -> dict:
 
 
 def csv_text(header: list[str], rows: list[list]) -> str:
+    from app.documents.csvsafe import safe_cell
+
     buf = io.StringIO()
     w = csv.writer(buf)
     w.writerow(header)
     for r in rows:
-        w.writerow(["" if v is None else ("'" + v if isinstance(v, str) and v[:1] in "=+-@" else v) for v in r])  # no spreadsheet formulas
+        w.writerow([safe_cell(v) for v in r])  # no spreadsheet formulas
     return buf.getvalue()
 
 

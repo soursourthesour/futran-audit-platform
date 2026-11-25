@@ -243,6 +243,17 @@ def client_disconnect(actor: Actor = Depends(current_actor), db: Session = Depen
     return _client_out(db, settings, actor, org)
 
 
+def _sets_up(db: Session, actor: Actor, e) -> bool:
+    """The client is still being set up: only the people preparing the draft (author, editors, submitter) or its team."""
+    from app.engagements.models import EngagementTeam
+    from app.engagements.service import preparers
+
+    if actor.id in preparers(e):
+        return True
+    return db.scalar(select(EngagementTeam.id).where(EngagementTeam.engagement_id == e.id, EngagementTeam.user_id == actor.id,
+                                                     EngagementTeam.deleted_at.is_(None)).limit(1)) is not None
+
+
 @router.get("/mail/clients/{client_id}/status")
 def client_status_for_futran(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """The client's email connection, for wizard step 6 (client contacts) and the client page."""
@@ -256,7 +267,7 @@ def client_status_for_futran(client_id: str, actor: Actor = Depends(current_acto
         from app.engagements.models import Engagement
 
         e = db.scalar(select(Engagement).where(Engagement.client_id == client_id, Engagement.deleted_at.is_(None), Engagement.type != "incident_response").order_by(Engagement.created_at.desc()).limit(1))
-        if e is not None and e.status not in ("draft", "pending_approval", "returned"):
+        if e is None or e.status not in ("draft", "pending_approval", "returned") or not _sets_up(db, actor, e):
             raise NotFound()
     conn = cx.org_connection(db, org)
     ds = directory.for_connection(db, conn) if conn else None

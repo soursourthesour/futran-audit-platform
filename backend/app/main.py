@@ -49,6 +49,9 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
     app.state.engine = engine
     app.state.sessionmaker = make_sessionmaker(engine)
     install_error_handlers(app)
+    from app.core.security_headers import SecurityHeaders
+
+    app.add_middleware(SecurityHeaders, hsts=settings.secure_cookies)
 
     importlib.import_module("app.models_registry")
     from app.routers_registry import api_routers

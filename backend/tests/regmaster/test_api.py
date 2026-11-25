@@ -122,12 +122,12 @@ def test_applicability_screen_and_letter_flow(client, db, seeded, submitted):
     r = client.post(f"{API}/clients/{cid}/geographies", json={"jurisdiction_code": "US-CO", "basis": "customers"})
     assert r.status_code == 200, r.text
     assert "Colorado" in {x["label"] for x in client.get(f"{API}/clients/{cid}/applicability").json()["laws_in"]}
-    # draft, edit, approve, send
+    # draft, edit, approve, send: the Admin drafts and edits, the Chief Auditor approves (no one approves their own draft)
+    admin = _futran(db, "admin", "Ada Admin")
+    login_as(client, db, admin)
     d = client.post(f"{API}/clients/{cid}/letters").json()
     assert d["status"] == "draft" and d["version_no"] == 1 and "NYC LL144" in d["html"]
     assert client.patch(f"{API}/clients/{cid}/letters/{d['id']}", json={"opening": "Thank you for choosing Futran."}).status_code == 200
-    admin = _futran(db, "admin", "Ada Admin")
-    login_as(client, db, admin)
     assert client.post(f"{API}/clients/{cid}/letters/{d['id']}/approve").status_code == 403
     login_as(client, db, seeded["chief"])
     a = client.post(f"{API}/clients/{cid}/letters/{d['id']}/approve")

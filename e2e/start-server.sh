@@ -16,4 +16,4 @@ if [ "$MODE" = "late" ]; then
 else
   .venv/bin/python -m app.cli seed-e2e
 fi
-exec .venv/bin/uvicorn --factory app.main:create_app --host 127.0.0.1 --port "$PORT" --log-level warning
+exec .venv/bin/uvicorn --factory app.main:create_app --host 127.0.0.1 --port "$PORT" --log-level warning --no-proxy-headers

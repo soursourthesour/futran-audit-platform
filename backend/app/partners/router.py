@@ -86,11 +86,12 @@ def edit_partner(partner_id: str, body: PartnerPatch, actor: Actor = Depends(cur
 @router.post("/staff/partners/{partner_id}/agreement")
 async def upload_agreement(partner_id: str, request: Request, file: UploadFile = File(...), actor: Actor = Depends(current_actor),
                            db: Session = Depends(get_db, scope="function")):
-    from app.files.service import upload
+    from app.files.service import read_upload, upload, upload_limit_bytes
 
     _auth(db, actor, Action.MANAGE_PARTNERS)
     p = svc.get_partner(db, partner_id)
-    f = upload(db, request.app.state.settings, actor.user, data=await file.read(), filename=file.filename or "agreement", content_type=file.content_type,
+    settings = request.app.state.settings
+    f = upload(db, settings, actor.user, data=await read_upload(file, upload_limit_bytes(settings)), filename=file.filename or "agreement", content_type=file.content_type,
                organization_id=p.organization_id, linked_type="partner_agreement", linked_id=p.id)
     p.agreement_file_id, p.updated_by = f.id, actor.id
     return _screen(db, actor)

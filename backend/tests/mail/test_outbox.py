@@ -47,3 +47,33 @@ def test_outbox_viewer_admin_only(client, db):
     r = client.get("/api/v1/admin/outbox")
     assert r.status_code == 200
     assert r.json()[0]["subject"] == "ABC Corp: test message"
+
+
+def test_outbox_goes_through_authorize_with_view_outbox(client, db, monkeypatch):
+    """Y01: the outbox used a hand-written role check; it now asks the permission matrix like every other route."""
+    from app.mail import router as outbox_router
+    from app.policy.actions import Action
+    from app.policy.matrix import Scope, scopes_for
+
+    assert scopes_for({"admin"}, Action.VIEW_OUTBOX) == {Scope.ALL}
+    assert scopes_for({"chief_auditor"}, Action.VIEW_OUTBOX) == {Scope.ALL}
+    for role in ("auditor", "qa_reviewer", "engagement_manager", "sales_team", "caico", "client_admin"):
+        assert not scopes_for({role}, Action.VIEW_OUTBOX), role
+    futran = make_org(db, type="futran")
+    chief = make_user(db, futran, roles=["chief_auditor"], name="Cara Chief", email="cara@futran.test")
+    org = make_org(db, type="client")
+    cadmin = make_user(db, org, roles=["client_admin"], name="Cleo Admin", email="cleo@abc.com")
+    db.commit()
+    seen = []
+    real = outbox_router.authorize
+
+    def spy(db_, actor, action, **kw):
+        seen.append(action)
+        return real(db_, actor, action, **kw)
+
+    monkeypatch.setattr(outbox_router, "authorize", spy)
+    login_as(client, db, chief)
+    assert client.get("/api/v1/admin/outbox").status_code == 200
+    assert seen == [Action.VIEW_OUTBOX]
+    login_as(client, db, cadmin)
+    assert client.get("/api/v1/admin/outbox").status_code in (403, 404)

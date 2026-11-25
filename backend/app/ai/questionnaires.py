@@ -393,7 +393,9 @@ def export(db: Session, settings, q: Questionnaire) -> tuple[bytes, str, str]:
             a = _final(it)
             if a is not None:
                 loc = it.locator
-                wb[loc["sheet"]].cell(row=loc["row"], column=loc["answer_col"]).value = a
+                cell = wb[loc["sheet"]].cell(row=loc["row"], column=loc["answer_col"])
+                cell.value = a
+                cell.data_type = "s"  # openpyxl would store an answer starting with = as a formula
         buf = BytesIO()
         wb.save(buf)
         return buf.getvalue(), f"{stem} - answers.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"

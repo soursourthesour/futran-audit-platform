@@ -59,6 +59,7 @@ MATRIX: dict[R, dict[A, S]] = {
         A.VIEW_FINDINGS_RESPONSES: S.ALL,
         A.CLOSE_REMEDIATION: S.ALL,
         A.VIEW_AUDIT_LOG: S.ALL,
+        A.VIEW_OUTBOX: S.ALL,
         A.VERIFY_SYSTEM_ANSWERS: S.ALL,
         A.SCORE_SYSTEM: S.ALL,
         A.VIEW_SCORES: S.ALL,
@@ -85,6 +86,7 @@ MATRIX: dict[R, dict[A, S]] = {
         A.VIEW_CLIENT_USERS: S.ALL,
         A.CONFIGURE_TEMPLATES: S.ALL,
         A.VIEW_AUDIT_LOG: S.ALL,
+        A.VIEW_OUTBOX: S.ALL,
         A.MANAGE_REFERENCE_DATA: S.ALL,
         A.RUN_LAW_REFRESH: S.ALL,
         # regulatory master (§25.7): edits become proposals the Chief Auditor approves

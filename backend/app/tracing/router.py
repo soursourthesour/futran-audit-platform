@@ -190,12 +190,17 @@ def post_trace(system_id: str, data: dict, actor: Actor = Depends(current_actor)
     return tr_svc.trace_out(tr_svc.add_manual(db, actor, s, data))
 
 
+IMPORT_MAX_BYTES = 20 * 1024 * 1024
+
+
 @router.post("/register/{system_id}/tracing/traces/import")
 async def post_import(system_id: str, file: UploadFile = File(...), actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     s = _system(db, actor, system_id, Action.RECORD_TRACES)
     _active(db, s)
-    data = await file.read()
-    if len(data) > 20 * 1024 * 1024:
+    from app.files.service import read_upload
+
+    data = await read_upload(file, IMPORT_MAX_BYTES)
+    if len(data) > IMPORT_MAX_BYTES:
         raise Invalid(errors=[{"field": "file", "message": "The file is over 20 MB. Split it and import each part."}])
     imp = tr_svc.import_file(db, actor, s, file.filename or "", data)
     return {"added": imp.added, "skipped": imp.skipped}

@@ -1,4 +1,6 @@
 """Versioned document templates (Markdown + Jinja). Admin edits create a new version."""
+import re
+
 import yaml
 from jinja2 import StrictUndefined, TemplateSyntaxError, Undefined
 from jinja2.exceptions import SecurityError
@@ -46,12 +48,38 @@ class _Sandbox(ImmutableSandboxedEnvironment):
 MD_SPECIAL = str.maketrans({c: "\\" + c for c in "[]*_`<>"})
 
 
+class _MdSafe(str):
+    """Text a filter has already escaped completely; the finaliser leaves it as it is."""
+
+
 def md_inline(value):
     """Escape Markdown that would turn client-supplied text into links, emphasis or code. A missing value prints as
     nothing, never as "None"."""
     if value is None:
         return ""
+    if isinstance(value, _MdSafe):
+        return str(value)
     return value.translate(MD_SPECIAL) if isinstance(value, str) else value
+
+
+_ORDERED = re.compile(r"^(\d+)([.)])")
+
+
+def md_block(value) -> str:
+    """Client-written paragraphs (a planned action, a commitment): line breaks and paragraphs are kept, but no line can
+    start a heading, list, quote, table, code block or setext underline, and links and emphasis are escaped as in
+    md_inline."""
+    if value is None or isinstance(value, Undefined):
+        return _MdSafe("")
+    out = []
+    for line in str(value).replace("\r\n", "\n").replace("\r", "\n").split("\n"):
+        line = line.strip().translate(MD_SPECIAL).replace("|", "\\|")  # leading spaces would make a code block
+        if m := _ORDERED.match(line):
+            line = m.group(1) + "\\" + line[len(m.group(1)):]
+        elif line[:1] in ("#", "+", "-", "=", "~"):
+            line = "\\" + line
+        out.append(line)
+    return _MdSafe("\n".join(out))
 
 
 def md_cell(value) -> str:
@@ -65,8 +93,10 @@ def md_cell(value) -> str:
 
 _env = _Sandbox(undefined=_Lenient, trim_blocks=True, lstrip_blocks=True, autoescape=False, finalize=md_inline)
 _env.filters["md_cell"] = md_cell
+_env.filters["md_block"] = md_block
 _strict = _Sandbox(undefined=StrictUndefined)
 _strict.filters["md_cell"] = md_cell
+_strict.filters["md_block"] = md_block
 
 
 def load_templates(db: Session) -> str:

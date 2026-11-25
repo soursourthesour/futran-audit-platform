@@ -84,11 +84,15 @@ def invitation_state(inv: Invitation) -> dict:
 
 def accept_invitation(db: Session, settings: Settings, raw: str, password: str) -> User:
     inv = find_invitation(db, raw)
+    if inv.status == "pending" and utcnow() >= inv.expires_at:
+        from app.notifications.jobs import expire_invitation
+
+        expire_invitation(db, settings, inv, actor_name="Invitation link")
+        db.commit()  # the request rolls back on the error below; the expiry has to stick
+    if inv.status == "expired":
+        raise Conflict("This invitation has expired. Ask your contact at Futran to send a new one.")
     if inv.status != "pending":
         raise Conflict("This invitation has already been used or replaced by a newer one. Ask for a new invitation.")
-    if utcnow() >= inv.expires_at:
-        inv.status = "expired"
-        raise Conflict("This invitation has expired. Ask your contact at Futran to send a new one.")
     user = db.get(User, inv.user_id)
     if user is None or user.deleted_at is not None or user.status == "disabled":
         inv.status = "revoked"

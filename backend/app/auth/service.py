@@ -13,10 +13,12 @@ from app.tenancy.models import User
 from app.core.ratelimit import client_ip_or_none
 
 LOCKOUT_FAILURES = 10
+IP_LOCKOUT_FAILURES = 20  # failures from one address across every account in the window (password spraying)
 LOCKOUT_WINDOW = timedelta(minutes=15)
 MFA_FAILURES = 5
 BAD_LOGIN = "Email or password is incorrect."
 LOCKED = "Too many unsuccessful attempts. Try again in 15 minutes or ask an administrator to reset your password."
+NETWORK_LOCKED = "Too many unsuccessful sign-ins from this network. Try again in 15 minutes."
 _DUMMY_HASH = hash_password("timing-equaliser-not-a-real-password")
 
 
@@ -41,12 +43,22 @@ def recent_login_failures(db: Session, email: str, ip: str | None) -> int:
     return db.scalar(stmt) or 0
 
 
+def recent_ip_failures(db: Session, ip: str | None) -> int:
+    """Failures from one address across every email: the signal for password spraying."""
+    if not ip:
+        return 0
+    since = utcnow() - LOCKOUT_WINDOW
+    return db.scalar(select(func.count()).select_from(LoginAttempt).where(LoginAttempt.ip == ip, LoginAttempt.at >= since)) or 0
+
+
 def authenticate(db: Session, email: str, password: str, request=None) -> User:
     """Same work and the same answers whether or not the email has an account."""
     email = email.strip().lower()
     ip = _ip(request)
     if recent_login_failures(db, email, ip) >= LOCKOUT_FAILURES:
         raise TooManyAttempts(LOCKED)
+    if recent_ip_failures(db, ip) >= IP_LOCKOUT_FAILURES:
+        raise TooManyAttempts(NETWORK_LOCKED)
     user = find_login_user(db, email)
     usable = user is not None and user.status == "active" and bool(user.password_hash)
     ok = verify_password(user.password_hash if usable else _DUMMY_HASH, password) and usable

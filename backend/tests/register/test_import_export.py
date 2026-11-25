@@ -142,3 +142,28 @@ def test_import_from_inventory_records_the_departments_of_a_shared_tool(client, 
     client.post("/api/v1/register/import-inventory")
     s = db.scalar(select(RegisterSystem).where(RegisterSystem.name == "Copilot"))
     assert s.department_id is None and set(s.department_ids) == {reg.hr.id, reg.fin.id}
+
+
+def test_evidence_upload_never_reads_past_the_limit(client, db, reg, settings, tmp_path, monkeypatch):
+    """BUG-H04: a file over the limit is refused without the whole of it being read into memory."""
+    from tests.files.bounded import assert_bounded, record_reads
+
+    client.app.state.settings = settings.model_copy(update={"file_store": f"local:{tmp_path}", "max_upload_mb": 1})
+    reg.as_(reg.hr_lead)
+    s = new_system(client, department_id=reg.hr.id)
+    with record_reads(monkeypatch) as calls:
+        r = client.post(f"/api/v1/register/{s['id']}/evidence", files={"file": ("big.pdf", b"x" * (3 * 1024 * 1024), "application/pdf")})
+    assert r.status_code == 422 and "1 MB" in r.json()["detail"]
+    assert_bounded(calls, 1024 * 1024)
+
+
+def test_register_import_never_reads_past_the_limit(client, db, reg, monkeypatch):
+    from app.register import io_router
+    from tests.files.bounded import assert_bounded, record_reads
+
+    monkeypatch.setattr(io_router, "IMPORT_MAX_BYTES", 1024 * 1024)
+    reg.as_(reg.caico)
+    with record_reads(monkeypatch) as calls:
+        r = client.post("/api/v1/register/import", files={"file": ("big.csv", b"x" * (3 * 1024 * 1024), "text/csv")})
+    assert r.status_code == 422
+    assert_bounded(calls, 1024 * 1024)

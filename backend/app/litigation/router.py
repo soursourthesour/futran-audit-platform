@@ -1,6 +1,4 @@
 """L1 litigation tracker and L2 case record (spec §27.4). Chief Auditor edits; Auditors and Sales Team read."""
-import csv
-import io
 from datetime import date
 
 from fastapi import APIRouter, Depends, Request
@@ -157,15 +155,15 @@ def _can(db: Session, actor: Actor, action: Action) -> bool:
 @router.get("/litigation/export.csv")
 def export(ids: str | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.VIEW_LITIGATION)
-    rows = _visible(db, ids=ids.split(",") if ids else None)
-    buf = io.StringIO()
-    w = csv.writer(buf)
-    w.writerow(["Geography", "Law or area", "Case", "Court", "Docket", "What it is about", "Stage", "Last update", "Clients with similar AI", "Sources"])
-    for c in rows:
+    from app.documents.csvsafe import to_csv
+
+    rows = []
+    for c in _visible(db, ids=ids.split(",") if ids else None):
         o = case_out(db, c)
-        w.writerow([c.geography or "", c.area, c.name, c.court or "", c.docket_ref or "", c.description or "", o["stage_label"] + (f" · {c.stage_note}" if c.stage_note else ""),
-                    o["last_update_on"] or "", o["clients_count"], " ".join(s["url"] for s in c.sources or [])])
-    return Response(buf.getvalue(), media_type="text/csv; charset=utf-8", headers={"Content-Disposition": 'attachment; filename="litigation-tracker.csv"'})
+        rows.append([c.geography or "", c.area, c.name, c.court or "", c.docket_ref or "", c.description or "", o["stage_label"] + (f" · {c.stage_note}" if c.stage_note else ""),
+                     o["last_update_on"] or "", o["clients_count"], " ".join(s["url"] for s in c.sources or [])])
+    header = ["Geography", "Law or area", "Case", "Court", "Docket", "What it is about", "Stage", "Last update", "Clients with similar AI", "Sources"]
+    return Response(to_csv(header, rows), media_type="text/csv; charset=utf-8", headers={"Content-Disposition": 'attachment; filename="litigation-tracker.csv"'})
 
 
 @router.post("/litigation")

@@ -181,3 +181,15 @@ def test_ll144_count_is_end_clients_only(hw):
     assert h.ll144_end_client_count(hw.db, hw.parent.id) == 1
     tree = hw.client.get(f"/api/v1/staff/clients/{hw.parent.id}/entities").json()
     assert tree["ll144"]["end_clients"] == 1 and tree["ll144"]["in_scope"] == 1
+
+
+def test_entity_import_never_reads_past_the_limit(hw, monkeypatch):
+    """BUG-H04: the parser refused files over 1 MB, but only after the route had read the whole upload."""
+    from app.hierarchy.service import IMPORT_MAX_BYTES
+    from tests.files.bounded import assert_bounded, record_reads
+
+    hw.as_(hw.fadmin)
+    with record_reads(monkeypatch) as calls:
+        r = hw.client.post(f"/api/v1/staff/clients/{hw.parent.id}/entities/import", files={"file": ("big.csv", b"x" * (3 * 1024 * 1024), "text/csv")})
+    assert r.status_code == 422
+    assert_bounded(calls, IMPORT_MAX_BYTES)

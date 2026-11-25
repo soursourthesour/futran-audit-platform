@@ -204,6 +204,20 @@ def render_pdf(db: Session, p: PolicyDocument) -> bytes:
     return to_pdf(f"{head}\n\n*{meta_line}*\n\n{rest}", p.title, {"audit_ref": org.name if org else ""})
 
 
+def _check_not_own_policy(db: Session, actor: User, p: PolicyDocument) -> bool:
+    """Spec §6 rule 2: whoever wrote, edited or sent the policy does not approve it. As on sign-offs, a preparer may
+    approve as a stand-in only when no other Chief AI Compliance Officer can. Returns True for a stand-in approval."""
+    from app.policy.sod import assert_not_self_approval
+    from app.tenancy.people import active_holders
+
+    preparers = {x for x in (p.created_by, p.updated_by, p.submitted_by) if x}
+    if actor.id not in preparers:
+        return False
+    if [u for u in active_holders(db, db.get(Organization, p.organization_id), "caico") if u.id not in preparers]:
+        assert_not_self_approval(actor.id, p.created_by, p.updated_by, p.submitted_by)
+    return True
+
+
 def approve(db: Session, settings, actor: User, p: PolicyDocument, acknowledgment: dict | None) -> PolicyDocument:
     """Approval publishes: PDF stored, commitment closed with it as evidence, the previous version retired, and the
     acknowledgment campaign sent when asked."""
@@ -211,6 +225,7 @@ def approve(db: Session, settings, actor: User, p: PolicyDocument, acknowledgmen
 
     if p.status != "awaiting_approval":
         raise Conflict("Send the policy for approval first.")
+    stand_in = _check_not_own_policy(db, actor, p)
     now = utcnow()
     months = T.REVIEW_MONTHS.get(p.answers.get("review_cycle"), 12)
     p.status, p.approved_by, p.approved_at, p.published_at = "published", actor.id, now, now
@@ -223,8 +238,10 @@ def approve(db: Session, settings, actor: User, p: PolicyDocument, acknowledgmen
         old = db.get(PolicyDocument, p.supersedes_id)
         if old is not None and old.status == "published":
             old.status, old.retired_at = "retired", now
-    audit.record(db, actor_id=actor.id, action="policy.publish", obj=p, after={"version_no": p.version_no, "review_due": p.review_due.isoformat(), "file_id": f.id},
-                 summary=f"Approved and published {p.title} version {p.version_no}")
+    audit.record(db, actor_id=actor.id, action="policy.publish", obj=p,
+                 after={"version_no": p.version_no, "review_due": p.review_due.isoformat(), "file_id": f.id, "stand_in": stand_in},
+                 summary=f"Approved and published {p.title} version {p.version_no}"
+                 + (" as the only Chief AI Compliance Officer, who also prepared it" if stand_in else ""))
     _close_commitment(db, actor, p)
     if acknowledgment is not None:
         send_acknowledgments(db, settings, actor, p, acknowledgment)

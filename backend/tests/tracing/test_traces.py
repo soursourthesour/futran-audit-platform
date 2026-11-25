@@ -139,3 +139,26 @@ def test_locked_system_takes_no_traces(client, db, trc, now):
     base = f"/api/v1/register/{trc.notes.id}/tracing"
     assert client.post(f"{base}/traces", json={"at": "2028-03-01T11:00", "action": "x", "decision": "allowed"}).status_code == 409
     assert _upload(client, base, "t.csv", CSV.encode()).status_code == 409
+
+
+def test_csv_text_neutralises_every_formula_start():
+    """BUG-H03 sweep: the trace export used its own check, which missed a leading tab or carriage return."""
+    from app.tracing.traces import csv_text
+
+    import csv
+    import io
+
+    out = list(csv.reader(io.StringIO(csv_text(["a", "b", "c", "d", "e", "f"], [["=1", "+1", "-1", "@1", "\t=1", "\r=1"]]))))
+    assert out[1] == ["'=1", "'+1", "'-1", "'@1", "'\t=1", "'\r=1"]
+
+
+def test_trace_import_never_reads_past_the_limit(client, db, trc, agent, monkeypatch):
+    """BUG-H04."""
+    from app.tracing import router as tracing_router
+    from tests.files.bounded import assert_bounded, record_reads
+
+    monkeypatch.setattr(tracing_router, "IMPORT_MAX_BYTES", 1024 * 1024)
+    with record_reads(monkeypatch) as calls:
+        r = _upload(client, agent, "big.csv", b"x" * (3 * 1024 * 1024))
+    assert r.status_code == 422
+    assert_bounded(calls, 1024 * 1024)
