@@ -25,7 +25,8 @@ VERSION_LABEL = {v: f"{label} {v}" for v, label in VERSIONS.items()}
 STATUS_TEXT = {"v0.1": "Draft for internal review", "v0.2": "Lead review", "v1.0": "Draft issued to the client", "v1.1": "Final"}
 # Ratings and severities print with their level on the one scale (app/scoring/scale.py): "High (4)".
 SEVERITY_LABEL = {r.key: scale.labelled(r.key) for r in scale.RISK_LEVELS}
-GROUP_LABEL = {r.key: (f"{r.label} findings ({r.level})" if r.key != "observation" else f"Observations ({r.level})") for r in scale.RISK_LEVELS}
+# Group headings say "severity" so the level is not read as a count: "High findings (severity 4)" (BUG-06).
+GROUP_LABEL = {r.key: (f"{r.label} findings (severity {r.level})" if r.key != "observation" else f"Observations (severity {r.level})") for r in scale.RISK_LEVELS}
 DUE_TEXT = {r.key: r.response_text for r in scale.RISK_LEVELS}
 RATING_LABEL = {k: scale.labelled(k) for k in scale.RATING_KEYS}
 BUILT_BY = {"in_house": "In house", "vendor": "Vendor", "open_source_customized": "Open source, customized", "hybrid": "Hybrid"}

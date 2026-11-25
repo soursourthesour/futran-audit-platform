@@ -38,3 +38,11 @@ test('staff cannot use the client sign-in', async ({ page }) => {
   await page.getByRole('link', { name: 'Futran staff portal' }).click();
   await expect(page.getByRole('heading', { name: 'Futran staff sign in' })).toBeVisible();
 });
+
+test('an unknown address shows a plain not-found page with a way home (BUG-10)', async ({ page }) => {
+  await page.goto('/nothing-here');
+  await expect(page).toHaveURL(/\/nothing-here$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Page not found' })).toBeVisible();
+  await page.getByRole('link', { name: 'Go to the home page' }).click();
+  await expect(page).toHaveURL(/\/login/);  // signed out: home is the sign-in page
+});

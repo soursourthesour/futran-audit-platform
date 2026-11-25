@@ -42,9 +42,18 @@ def propose_tier(decision_impact: str | None, data_categories: list[str], tools:
     return 1
 
 
-def tier_reason(decision_impact: str | None, data_categories: list[str], tools: list[AITool]) -> str:
+def tier_reason(decision_impact: str | None, data_categories: list[str], tools: list[AITool], *,
+                text: str = "", in_nyc: bool = False, aedt_determination: str | None = None) -> str:
+    """Why the proposed tier applies. Local Law 144 is named only for employment decisions in New York City (BUG-02):
+    the use case is determined an AEDT, or it runs in New York City (`in_nyc`) and its name or purpose (`text`) is about
+    hiring or promotion. The employment test is the applicability engine's."""
     if decision_impact == "consequential":
-        return "The output substantially assists or makes decisions about people. Employment use in New York City may be an AEDT under Local Law 144."
+        from app.regmaster.engine import EMPLOYMENT
+
+        reason = "The output substantially assists or makes decisions about people."
+        if aedt_determination == "in_scope" or (in_nyc and EMPLOYMENT.search(text or "")):
+            reason += " Employment use in New York City may be an AEDT under Local Law 144."
+        return reason
     if SENSITIVE_DATA & set(data_categories or []):
         return "Personal, health, client or confidential data goes into the tool."
     if any(t.account_type in RISKY_ACCOUNTS for t in tools):

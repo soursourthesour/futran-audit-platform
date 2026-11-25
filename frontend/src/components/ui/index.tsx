@@ -152,15 +152,46 @@ export function fmtDateTime(v?: string | null): string {
   return d.toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
+/* The last few elements that had focus, newest last. A dialog opened from a menu item mounts after the item is gone,
+   so the dialog returns focus to the newest of these still on the page (the menu's button) instead (BUG-14). */
+const focusTrail: HTMLElement[] = [];
+if (typeof document !== 'undefined') {
+  document.addEventListener('focusin', (e) => {
+    const t = e.target;
+    if (!(t instanceof HTMLElement) || t === document.body) return;
+    const i = focusTrail.indexOf(t);
+    if (i >= 0) focusTrail.splice(i, 1);
+    focusTrail.push(t);
+    if (focusTrail.length > 20) focusTrail.shift();
+  }, true);
+}
+
+function focusable(el: HTMLElement | null): el is HTMLElement {
+  return !!el && el !== document.body && document.contains(el);
+}
+
+function lastFocused(): HTMLElement | null {
+  for (let i = focusTrail.length - 1; i >= 0; i--) if (focusable(focusTrail[i])) return focusTrail[i];
+  return null;
+}
+
 /** A modal dialog. Closes on Escape, a click on the backdrop and the close button. Focus moves into it when it opens,
- *  stays inside while it is open and returns to where it was when it closes. `large` is about 760px wide and fills
- *  the screen on a phone. */
+ *  stays inside while it is open and returns to the control that opened it when it closes. When that control is gone
+ *  (a menu item, for example), focus returns to the last control still on the page (the menu's button). `large` is
+ *  about 760px wide and fills the screen on a phone. */
 export function Dialog({ title, onClose, children, wide, large, label }: { title: ReactNode; onClose: () => void; children: ReactNode; wide?: boolean; large?: boolean; label?: string }) {
   const box = useRef<HTMLDivElement>(null);
-  const opener = useRef<HTMLElement | null>(typeof document !== 'undefined' ? (document.activeElement as HTMLElement | null) : null); // read before autoFocus moves it
+  const opener = useRef<HTMLElement | null | undefined>(undefined);
+  if (opener.current === undefined && typeof document !== 'undefined') { // read before autoFocus moves it
+    const active = document.activeElement as HTMLElement | null;
+    opener.current = focusable(active) ? active : lastFocused();
+  }
   useEffect(() => {
     const back = opener.current;
-    return () => { if (back && back !== document.body && document.contains(back)) back.focus(); };
+    return () => {
+      const to = focusable(back ?? null) ? back! : lastFocused(); // the dialog's own controls are off the page by now
+      to?.focus();
+    };
   }, []);
   function trap(e: KeyboardEvent<HTMLDivElement>) {
     if (e.key === 'Escape') { onClose(); return; }

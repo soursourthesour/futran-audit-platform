@@ -347,6 +347,12 @@ def return_signoff(db: Session, settings, actor: Actor, so: SignOff, comment: st
     return so
 
 
+def correction_open(e: Engagement, number: int) -> bool:
+    """Whether sign-off `number` may still be corrected: the engagement is running and has not passed CORRECTABLE_UNTIL."""
+    last = CORRECTABLE_UNTIL.get(number)
+    return last is not None and e.status in ("initiated", "in_progress") and e.stage <= last
+
+
 def correct(db: Session, settings, actor: Actor, so: SignOff, reason: str | None) -> SignOff:
     """Changing a signed item: a new version with a reason, the signed one is kept unchanged."""
     reason = " ".join(str(reason or "").split())
@@ -361,7 +367,7 @@ def correct(db: Session, settings, actor: Actor, so: SignOff, reason: str | None
     last = CORRECTABLE_UNTIL.get(so.number)
     if last is None:
         raise Conflict(f"Sign-off {so.number} is not corrected this way." + (" Prepare the final report again instead." if so.number == 7 else ""))
-    if e.status not in ("initiated", "in_progress") or e.stage > last:
+    if not correction_open(e, so.number):
         raise Conflict(f"Sign-off {so.number} can no longer be corrected: later work relies on it (corrections are possible up to stage {last}).")
     roles, fallback = resolve_signers(db, e, spec)
     _assert_signable(db, e, roles, fallback, so.scope_ref, actor.id)

@@ -38,3 +38,8 @@
   .r6b .page-header { align-items: flex-start; }
   .r6b-tile-value { font-size: 20px; }
 }
+/* Phone and touch: phase tabs, control status, evidence and wave links keep the standard 44 px target (BUG-11). */
+@media (max-width: 600px), (pointer: coarse) {
+  .r6b-phases > *, .r6b select, .r6b .linklike, .r6b input[type=file]:not(.sr-only) { min-height: var(--control-h); }
+  .r6b-attach { display: inline-flex; align-items: center; min-height: var(--control-h); }
+}

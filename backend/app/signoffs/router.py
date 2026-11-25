@@ -105,7 +105,7 @@ def post_correct(so_id: str, body: ReasonIn, request: Request, actor: Actor = De
 def review(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     """Screen 15: the client's inventory review — sign-off 2 per department, 3, 4 and the snapshot."""
     from app.inventory.snapshot import current_snapshot
-    from app.signoffs.service import SIGNOFF_SPECS, _can_prepare
+    from app.signoffs.service import SIGNOFF_SPECS, _can_prepare, correction_open
 
     org, e = _client_engagement(db, actor, client_id)
 
@@ -113,7 +113,7 @@ def review(client_id: str, actor: Actor = Depends(current_actor), db: Session = 
         so = current(db, e, number, scope)
         return {"sign_off": sign_off_out(db, actor, so) if so else None, "unmet": unmet if unmet is not None else [],
                 "can_submit": (so is None or so.status == "returned") and _can_prepare(actor, SIGNOFF_SPECS[number], scope) and not (unmet or []),
-                "can_correct": so is not None and so.status == "approved" and _can_prepare(actor, SIGNOFF_SPECS[number], scope)}
+                "can_correct": so is not None and so.status == "approved" and correction_open(e, number) and _can_prepare(actor, SIGNOFF_SPECS[number], scope)}
 
     depts = [{"id": d.id, "name": d.name, **block(2, d.id, client_review.department_unmet(db, e, d.id))} for d in client_review.in_scope_departments(db, e)]
     snap = current_snapshot(db, e)

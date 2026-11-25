@@ -5,6 +5,7 @@ import { Terms } from '@/screens/auth/Terms';
 import { NoticeAcknowledge } from '@/screens/auth/NoticeAcknowledge';
 import { MfaSetup, MfaVerify } from '@/screens/auth/Mfa';
 import { AcceptInvite } from '@/screens/auth/AcceptInvite';
+import { NotFound } from '@/screens/auth/NotFound';
 import { AuditsRedirect } from '@/screens/futran/Dashboard';
 import { ClientsList } from '@/screens/futran/ClientsList';
 import { InitiationChecklist } from '@/screens/client/InitiationChecklist';
@@ -42,5 +43,5 @@ export const router = createBrowserRouter([
     element: <RequireAuth><EitherShell /></RequireAuth>,
     children: sharedRoutes,
   },
-  { path: '*', element: <Home /> },
+  { path: '*', element: <NotFound /> },
 ]);
