@@ -19,7 +19,10 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.get_bind().execute(sa.text("update refresh_settings set schedule_enabled = 0 where updated_by is null and schedule_enabled = 1"))
+    # Bound booleans, not 0 and 1: PostgreSQL refuses `boolean = integer`; SQLite stores them as 0 and 1 as before.
+    op.get_bind().execute(
+        sa.text("update refresh_settings set schedule_enabled = :off where updated_by is null and schedule_enabled = :on"),
+        {"off": False, "on": True})
 
 
 def downgrade() -> None:
