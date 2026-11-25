@@ -1,6 +1,6 @@
 # AI governance audit report
 
-### {{ client.name }}
+### {{ client.name | md_cell }}
 
 | Item | Detail |
 |---|---|
@@ -15,7 +15,7 @@
 | Overall risk rating | {{ overall_rating | md_cell }} |
 | Date | {{ report.date | md_cell }} |
 
-Prepared by Futran Solutions for {{ client.name }}. Confidential: for the named client's management and its auditors and regulators. Do not distribute further without the written consent of Futran Solutions.
+Prepared by Futran Solutions for {{ client.name | md_cell }}. Confidential: for the named client's management and its auditors and regulators. Do not distribute further without the written consent of Futran Solutions.
 
 <!-- pagebreak -->
 
@@ -27,7 +27,7 @@ Prepared by Futran Solutions for {{ client.name }}. Confidential: for the named 
 
 ### Scope and approach
 
-Futran Solutions assessed {{ scope.systems }} AI system{{ "s" if scope.systems != 1 else "" }} and {{ scope.use_cases }} approved AI use case{{ "s" if scope.use_cases != 1 else "" }}{% if scope.departments %} in {{ scope.departments }}{% endif %} at {{ client.name }} for the audit period {{ engagement.period }}.{% if laws %} Section 7 lists the {{ laws | length }} law{{ "s" if laws | length != 1 else "" }} and standard{{ "s" if laws | length != 1 else "" }} in scope.{% endif %} The assessment followed {% if engagement.frameworks_text %}the {{ engagement.frameworks_text }} framework{{ "s" if " and " in engagement.frameworks_text else "" }} and {% endif %}Futran's risk methodology version {{ scoring.version }}.
+Futran Solutions assessed {{ scope.systems }} AI system{{ "s" if scope.systems != 1 else "" }} and {{ scope.use_cases }} approved AI use case{{ "s" if scope.use_cases != 1 else "" }}{% if scope.departments %} in {{ scope.departments | md_cell }}{% endif %} at {{ client.name | md_cell }} for the audit period {{ engagement.period }}.{% if laws %} Section 7 lists the {{ laws | length }} law{{ "s" if laws | length != 1 else "" }} and standard{{ "s" if laws | length != 1 else "" }} in scope.{% endif %} The assessment followed {% if engagement.frameworks_text %}the {{ engagement.frameworks_text }} framework{{ "s" if " and " in engagement.frameworks_text else "" }} and {% endif %}Futran's risk methodology version {{ scoring.version }}.
 
 Evidence came from {{ scope.answers }} recorded questionnaire answers{% if scope.documents_requested %}, {{ scope.documents_received }} of {{ scope.documents_requested }} requested documents{% endif %}{% if scope.evidence_requests %}, {{ scope.evidence_requests }} targeted evidence request{{ "s" if scope.evidence_requests != 1 else "" }}{% endif %}{% if scope.attestations %} and {{ scope.attestations }} staff AI use attestation{{ "s" if scope.attestations != 1 else "" }}{% endif %}. The Lead Auditor set each control maturity score from that evidence and approved every finding in this report.
 
@@ -218,7 +218,7 @@ No findings were raised.
 {% if mr %}
 **Management response**
 
-{{ mr.response }}
+{{ mr.response | md_block }}
 
 {% endif %}
 **References**
@@ -268,7 +268,7 @@ Raised from fieldwork evidence, not from a single questionnaire answer.
 {% endfor %}
 
 {% for s in systems %}
-### {{ s.ref }} {{ s.name }}
+### {{ s.ref }} {{ s.name | md_cell }}
 
 | Item | Detail |
 |---|---|
@@ -390,7 +390,7 @@ Signing confirms receipt and reading of this report. It does not mean agreement 
 |---|---|---|---|
 | Client authorized representative | {{ declarations.client.name | md_cell }} | {{ (declarations.client.title or "Not recorded") | md_cell }} | {{ declarations.client.signed_at | md_cell }} |
 
-**Remediation commitment:** {{ declarations.client.commitment }}
+**Remediation commitment:** {{ declarations.client.commitment | md_block }}
 {% else %}
 Awaiting the client's acknowledgement of the final report.
 {% endif %}
