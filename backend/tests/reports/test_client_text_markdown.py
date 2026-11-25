@@ -53,3 +53,10 @@ def test_the_report_prints_client_text_without_markdown_structure():
     _no_structure(section)
     start = html.index("Remediation commitment")
     _no_structure(html[start:html.rindex("<h2", start, html.index("Appendix A. Methodology", start))])
+
+
+def test_a_backslash_does_not_reopen_links_or_emphasis():
+    """Review 11-25 #4: an escaped bracket written by the client must stay escaped after md_block and md_cell."""
+    for f in ("md_block", "md_cell"):
+        html = _html(render_string("{{ t | " + f + " }}", {"t": r"\[Download evidence\](https://evil.example) and \*\*bold\*\*"}))
+        assert "<a " not in html and "<strong>" not in html, (f, html)

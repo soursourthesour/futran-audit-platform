@@ -781,15 +781,16 @@ class DecisionIn(BaseModel):
 def decide(opp_id: str, body: DecisionIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.APPROVE_OPPORTUNITY)
     o = _get(db, opp_id)
-    if body.decision == "approve":  # spec §6 rule 2: whoever owns or opened the offer does not approve it
-        from app.policy.sod import assert_not_self_approval
+    stand_in = False
+    if body.decision == "approve":  # spec §6 rule 2: whoever owns or opened the offer does not approve it, unless no other Chief Auditor can
+        from app.policy.sod import self_approval_or_stand_in
 
-        assert_not_self_approval(actor.id, o.owner_id, o.created_by)
+        stand_in = self_approval_or_stand_in(db, actor.id, actor.organization, "chief_auditor", o.owner_id, o.created_by)
     check_independence(db, o.organization_id, o.service_kind)  # approval never overrides the independence rule
     o.ca_decision = "approved" if body.decision == "approve" else "declined"
     o.ca_approved_by, o.ca_approved_at, o.ca_note = actor.id, utcnow(), body.note or None
     log(db, o, "approved" if body.decision == "approve" else "declined", body.note or ("Offer approved" if body.decision == "approve" else "Offer declined"), actor.id)
-    audit.record(db, actor_id=actor.id, action=f"opportunity.{o.ca_decision}", obj=o, request=request, organization_id=actor.organization.id, summary=f"Offer {o.ca_decision}: {o.service}")
+    audit.record(db, actor_id=actor.id, action=f"opportunity.{o.ca_decision}", obj=o, request=request, organization_id=actor.organization.id, summary=f"Offer {o.ca_decision}: {o.service}" + (" (stand-in: no other Chief Auditor could approve it)" if stand_in else ""))
     if o.owner_id and o.owner_id != actor.id:
         notify(db, [db.get(User, o.owner_id)], "opportunity_decided", f"Offer {o.ca_decision}: {o.service}", body.note or None, link=f"/sales/opportunities/{o.id}")
     return opp_out(db, o)

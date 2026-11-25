@@ -13,7 +13,6 @@ PUBLIC: dict[str, str] = {
     "GET /api/openapi.json": "FastAPI schema document; describes routes, holds no tenant data.",
     "GET /api/docs": "FastAPI Swagger page; static.",
     "GET /docs/oauth2-redirect": "FastAPI Swagger OAuth helper page; static.",
-    "GET /redoc": "FastAPI ReDoc page; static.",
     "GET /api/public/v1/openapi.json": "Public API schema document; describes routes, holds no tenant data.",
     "GET /api/public/v1/docs": "Public API Swagger page; static.",
     "GET /api/public/v1/docs/oauth2-redirect": "Public API Swagger OAuth helper page; static.",

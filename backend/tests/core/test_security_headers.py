@@ -59,3 +59,16 @@ def test_hsts_when_served_over_https(settings, engine):
     with TestClient(app) as c:
         r = c.get("/api/v1/health")
     assert r.headers["strict-transport-security"] == "max-age=31536000"
+
+
+def test_api_responses_are_not_cached(client):
+    """Review 11-25 #8: API answers carry client data, so shared caches and the browser's back button don't keep them."""
+    for path in ("/api/v1/health", "/api/v1/auth/me"):
+        assert client.get(path).headers.get("cache-control") == "no-store", path
+    assert client.get("/").headers.get("cache-control") != "no-store"  # the app page itself may be cached
+
+
+def test_no_redoc_page(client):
+    """Review 11-25 #8: the unused ReDoc page got the app policy and broke; it is switched off."""
+    r = client.get("/redoc")
+    assert "redoc" not in r.text.lower()

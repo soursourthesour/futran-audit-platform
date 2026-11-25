@@ -45,7 +45,7 @@ class _Sandbox(ImmutableSandboxedEnvironment):
         raise SecurityError(f"Templates cannot use '{attribute}'.")
 
 
-MD_SPECIAL = str.maketrans({c: "\\" + c for c in "[]*_`<>"})
+MD_SPECIAL = str.maketrans({c: "\\" + c for c in "\\[]*_`<>"})  # the backslash too: left alone it undoes the other escapes (review 11-25 #4)
 
 
 class _MdSafe(str):

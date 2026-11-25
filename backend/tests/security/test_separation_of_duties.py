@@ -212,6 +212,19 @@ def _case_policy(w):
     return maria, "POST", f"/api/v1/policies/{p.id}/approve", {}
 
 
+def _second_chief(w, chief):
+    """A second active Chief Auditor, so the preparer is no stand-in and must be refused (review 11-25 #3)."""
+    from app.tenancy.models import Organization
+    from tests.factories import make_user
+
+    from app.tenancy.models import User
+
+    if w.db.query(User).filter_by(email="chief2.sod@futran.demo").first():  # the world is shared by the cases
+        return
+    make_user(w.db, w.db.get(Organization, chief.organization_id), roles=["chief_auditor"], name="Second Chief", email="chief2.sod@futran.demo")
+    w.db.commit()
+
+
 def _case_intro_letter(w):
     """The Chief Auditor drafted Meridian's intro letter (the demo does exactly this), then approves it."""
     from app.regmaster.models import IntroLetter
@@ -221,6 +234,7 @@ def _case_intro_letter(w):
     letter = first(w, IntroLetter, IntroLetter.organization_id == mer, IntroLetter.status == "draft")
     letter.created_by = chief.id  # the demo now drafts as Admin (Y04 fix); this case makes the chief the drafter
     w.db.commit()
+    _second_chief(w, chief)
     return chief, "POST", f"/api/v1/clients/{mer}/letters/{letter.id}/approve", {}
 
 
@@ -232,6 +246,7 @@ def _case_opportunity(w):
     o = first(w, Opportunity, Opportunity.organization_id == org_id(w, "Northwind Logistics"), Opportunity.service_kind == "training")
     o.owner_id = o.created_by = chief.id
     w.db.commit()
+    _second_chief(w, chief)
     return chief, "POST", f"/api/v1/opportunities/{o.id}/approve", {"decision": "approve", "note": "Self-approved"}
 
 

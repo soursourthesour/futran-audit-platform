@@ -44,7 +44,7 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
     check_secret_key(settings)
     engine = engine or make_engine(settings.database_url)
 
-    app = FastAPI(title="Futran Audit Platform", version=VERSION, docs_url="/api/docs", openapi_url="/api/openapi.json")
+    app = FastAPI(title="Futran Audit Platform", version=VERSION, docs_url="/api/docs", openapi_url="/api/openapi.json", redoc_url=None)
     app.state.settings = settings
     app.state.engine = engine
     app.state.sessionmaker = make_sessionmaker(engine)

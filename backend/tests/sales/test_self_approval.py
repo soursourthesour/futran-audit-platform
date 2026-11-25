@@ -42,3 +42,16 @@ def test_the_owner_may_still_decline_their_own_offer(client, db, lit):
     login_as(client, db, lit["chief"])
     r = client.post(f"/api/v1/opportunities/{o.id}/approve", json={"decision": "decline", "note": "Fieldwork under way"})
     assert r.status_code == 200 and r.json()["ca_decision"] == "declined"
+
+
+def test_a_sole_chief_approves_their_own_offer_as_a_recorded_stand_in(client, db, lit):
+    """Review 11-25 #3: with no other active Chief Auditor the offer could never be approved."""
+    from app.tenancy.models import User
+
+    db.get(User, lit["chief2"].id).status = "disabled"
+    o = _offer(db, lit, owner_id=lit["chief"].id)
+    login_as(client, db, lit["chief"])
+    r = _approve(client, o)
+    assert r.status_code == 200, r.text
+    log = db.query(AuditLog).filter_by(object_id=o.id, action="opportunity.approved").one()
+    assert "stand-in" in log.summary

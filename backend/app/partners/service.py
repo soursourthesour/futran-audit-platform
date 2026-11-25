@@ -150,7 +150,7 @@ def _show_on_opportunity(db: Session, actor: User, p: Partner, opp) -> None:
     read opportunity.partner_id) unless a partner is already chosen there, and goes on the opportunity's timeline."""
     from app.sales.service import log
 
-    if not opp.partner_id:
+    if not opp.partner_id and p.status == "active":  # an inactive partner would block later edits (review 11-25 #5)
         opp.partner_id, opp.updated_by = p.id, actor.id
     log(db, opp, "referral", f"Referral from {p.name} recorded by {actor.name}", actor.id)
 

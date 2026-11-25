@@ -254,16 +254,18 @@ def render_pdf(db: Session, settings: Settings, letter: IntroLetter, actor: User
 def approve(db: Session, settings: Settings, letter: IntroLetter, actor: User) -> IntroLetter:
     if letter.status != "draft":
         raise Conflict("This letter has already been approved.")
-    from app.policy.sod import assert_not_self_approval
+    from app.policy.sod import self_approval_or_stand_in
+    from app.tenancy.models import Organization
 
-    assert_not_self_approval(actor.id, letter.created_by, letter.updated_by)  # spec §6 rule 2: the drafter or editor does not approve
+    # spec §6 rule 2: the drafter or editor does not approve, unless no other Chief Auditor can (review 11-25 #3)
+    stand_in = self_approval_or_stand_in(db, actor.id, db.get(Organization, actor.organization_id), "chief_auditor", letter.created_by, letter.updated_by)
     if not letter.body.get("laws"):
         raise Conflict("No laws are in scope for this client yet. Add the client's geographies first.")
     letter.status, letter.approved_by, letter.approved_at, letter.updated_by = "approved", actor.id, utcnow(), actor.id
     render_pdf(db, settings, letter, actor)
     attach_to_package(db, settings, actor, letter)
     db.flush()
-    audit.record(db, actor_id=actor.id, action="intro_letter.approve", obj=letter, summary=f"Approved intro letter v{letter.version_no}")
+    audit.record(db, actor_id=actor.id, action="intro_letter.approve", obj=letter, summary=f"Approved intro letter v{letter.version_no}" + (" as a stand-in: no other Chief Auditor could approve it" if stand_in else ""))
     return letter
 
 

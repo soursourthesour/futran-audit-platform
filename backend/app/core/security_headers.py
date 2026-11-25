@@ -38,6 +38,8 @@ class SecurityHeaders:
                 headers = list(message.get("headers", []))
                 have = {k.lower() for k, _ in headers}
                 extra = [*_COMMON, (b"content-security-policy", csp)]
+                if path.startswith("/api/"):  # API answers carry client data: not kept by caches (review 11-25 #8)
+                    extra.append((b"cache-control", b"no-store"))
                 if self.hsts:
                     extra.append((b"strict-transport-security", HSTS.encode()))
                 headers += [(k, v) for k, v in extra if k not in have]

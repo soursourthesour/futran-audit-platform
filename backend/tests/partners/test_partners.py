@@ -278,3 +278,20 @@ def test_agreement_upload_never_reads_past_the_limit(pw, settings, tmp_path, mon
         r = pw.client.post(f"/api/v1/staff/partners/{pw.ats.id}/agreement", files={"file": ("big.pdf", b"x" * (1536 * 1024), "application/pdf")})  # over the limit, under the body limit (review 11-25 #2)
     assert r.status_code == 422, r.text
     assert_bounded(calls, 1024 * 1024)
+
+
+def test_a_referral_from_an_inactive_partner_does_not_set_the_opportunity_partner(pw):
+    """Review 11-25 #5: an inactive partner set on the opportunity would block every later edit of it ('Choose an active
+    partner.'), so only an active partner is named there; the referral and the timeline entry are still kept."""
+    from app.sales.models import OpportunityActivity
+
+    opp = Opportunity(organization_id=pw.org.id, trigger="manual", service="Bias audit", owner_id=pw.officer.id, stage="qualifying", value=15000)
+    pw.db.add(opp)
+    pw.ats.status = "inactive"
+    pw.db.commit()
+    pw.as_(pw.sm)
+    r = pw.client.post(f"/api/v1/staff/partners/{pw.ats.id}/referrals", json={"direction": "in", "opportunity_id": opp.id})
+    assert r.status_code == 200, r.text
+    pw.db.expire_all()
+    assert pw.db.get(Opportunity, opp.id).partner_id is None
+    assert pw.db.scalar(select(OpportunityActivity).where(OpportunityActivity.opportunity_id == opp.id, OpportunityActivity.kind == "referral")) is not None

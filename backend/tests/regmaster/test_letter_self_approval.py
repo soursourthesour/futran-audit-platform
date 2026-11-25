@@ -40,3 +40,18 @@ def test_a_letter_the_admin_drafted_is_approved_by_the_chief(client, db, seeded,
     r = client.post(f"{API}/clients/{cid}/letters/{d['id']}/approve")
     assert r.status_code == 200, r.text
     assert r.json()["status"] == "approved"
+
+
+def test_a_sole_chief_approves_their_own_letter_as_a_recorded_stand_in(client, db, seeded, submitted):
+    """Review 11-25 #3: with no other active Chief Auditor the letter could never be approved; the drafter may approve
+    as a stand-in, recorded in the audit log, as on sign-offs and policies."""
+    from app.audit_log.models import AuditLog
+    from app.tenancy.models import User
+
+    db.get(User, seeded["chief2"].id).status = "disabled"
+    db.commit()
+    cid, d = _draft(client, db, seeded, submitted, seeded["chief"])
+    r = client.post(f"{API}/clients/{cid}/letters/{d['id']}/approve")
+    assert r.status_code == 200, r.text
+    log = db.query(AuditLog).filter_by(object_id=d["id"], action="intro_letter.approve").one()
+    assert "stand-in" in log.summary
