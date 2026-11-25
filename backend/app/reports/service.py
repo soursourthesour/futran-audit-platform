@@ -315,8 +315,21 @@ def _content_data(db: Session, e: Engagement) -> dict:
     return data
 
 
+# The hash a signed v0.2 was sealed with. Presentation-only additions are hashed in their pre-25-Nov shape, so the
+# upgrade does not make a signed v0.2 look changed (review 11-25 #3): the EU AI Act level in the system table, and the
+# severity headings, which read "High findings (4)" before BUG-06.
+_HASH_GROUP_LABEL = {r.key: (f"{r.label} findings ({r.level})" if r.key != "observation" else f"Observations ({r.level})") for r in scale.RISK_LEVELS}
+_KEY_BY_LABEL = {v: k for k, v in GROUP_LABEL.items()}
+
+
 def _hash(data: dict) -> str:
-    return hashlib.sha256(json.dumps(data, sort_keys=True, default=str).encode()).hexdigest()
+    d = dict(data)
+    if isinstance(d.get("systems"), list):
+        d["systems"] = [{k: v for k, v in s.items() if k != "eu_level"} if isinstance(s, dict) else s for s in d["systems"]]
+    if isinstance(d.get("findings_by_severity"), list):
+        d["findings_by_severity"] = [g | {"label": _HASH_GROUP_LABEL.get(_KEY_BY_LABEL.get(g.get("label")), g.get("label"))} if isinstance(g, dict) else g
+                                     for g in d["findings_by_severity"]]
+    return hashlib.sha256(json.dumps(d, sort_keys=True, default=str).encode()).hexdigest()
 
 
 def _declarations_block(db: Session, e: Engagement, signed_on: Report | None, final: Report | None) -> dict:
