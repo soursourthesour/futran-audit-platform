@@ -56,7 +56,9 @@ export function Partners() {
                 <tr key={c.id}>
                   <td>{c.partner}</td><td>{c.client}<div className="small muted">{c.opportunity}</div></td><td>{c.order_ref ?? '—'}</td><td>{money(c.base_value)}</td><td>{c.rate}%</td>
                   <td>{money(c.amount)}</td><td>{fmtDate(c.due_on)}</td>
-                  <td><Badge tone={STATUS[c.status][0]}>{STATUS[c.status][1]}</Badge>{c.void_reason && <div className="small muted">{c.void_reason}</div>}</td>
+                  <td><Badge tone={STATUS[c.status][0]}>{STATUS[c.status][1]}</Badge>
+                    {c.status === 'paid' && c.paid_on && <div className="small muted">{fmtDate(c.paid_on)}{c.settled_by ? ` by ${c.settled_by}` : ''}</div>}
+                    {c.void_reason && <div className="small muted">{c.void_reason}{c.settled_by ? ` (${c.settled_by})` : ''}</div>}</td>
                   <td>{c.status === 'due' && v.can.settle && <div className="row" style={{ gap: 6 }}><Button size="sm" onClick={() => settle(c.id)}>Mark paid</Button><Button size="sm" variant="ghost" onClick={() => setVoiding(c.id)}>Void</Button></div>}</td>
                 </tr>
               ))}</tbody>

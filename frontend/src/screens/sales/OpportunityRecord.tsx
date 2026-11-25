@@ -9,7 +9,7 @@ import '@/styles/sales.css';
 
 type Tab = 'overview' | 'activity' | 'questionnaire' | 'proposals' | 'contacts';
 const KIND_LABEL: Record<string, string> = { call: 'Call', email: 'Email', meeting: 'Meeting', note: 'Note', task: 'Task', proposal: 'Proposal', outcome: 'Outcome', created: 'Created',
-  stage: 'Stage', approval_requested: 'Approval requested', approved: 'Approved', declined: 'Declined', approval_reset: 'Approval reset' };
+  stage: 'Stage', approval_requested: 'Approval requested', approved: 'Approved', declined: 'Declined', approval_reset: 'Approval reset', referral: 'Referral' };
 const Q_STATUS: Record<string, string> = { draft: 'In progress', sent: 'Sent to the client', client_in_progress: 'Client answering', client_submitted: 'Client submitted', locked: 'Locked' };
 
 /** SM-04 Opportunity record (spec §4.12): stage bar, overview with BANT, activity timeline, questionnaire, proposals,

@@ -37,8 +37,9 @@ def test_a_real_handoff_finds_the_partner_from_an_inbound_referral(cw, fake_cata
     cw.db.add(p)
     cw.db.flush()
     partners.record_referral(cw.db, cw.sales, p, direction="in", opportunity_id=cw.opp.id, note="Intro")
+    assert cw.opp.partner_id == p.id  # BUG-S03: the referral now names the opportunity's partner
+    cw.opp.partner_id = None  # as on a referral recorded before that fix: the referral alone is still enough
     cw.db.commit()
-    assert getattr(cw.opp, "partner_id", None) is None
     prop, acc = proposal_for(cw, STANDARD_LINES())
     h = handoff.create_from_acceptance(cw.db, prop, acc, cw.sales)
     cw.db.commit()

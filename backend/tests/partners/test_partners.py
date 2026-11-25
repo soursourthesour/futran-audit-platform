@@ -216,3 +216,53 @@ def test_referrals_are_accepted_for_prospects_but_not_futran(pw):
     futran = pw.db.scalar(select(Organization).where(Organization.type == "futran"))
     r = pw.client.post(f"/api/v1/staff/partners/{pw.law.id}/referrals", json={"direction": "out", "organization_id": futran.id})
     assert r.status_code == 422 and r.json()["errors"][0]["field"] == "organization_id"
+
+
+def test_a_prospect_referral_names_the_prospect(pw):
+    """BUG-S02: a referral for a prospect showed no company."""
+    from app.sales.prospects import create_prospect
+
+    fab = create_prospect(pw.db, name="Fabrikam Freight Inc")
+    pw.db.commit()
+    pw.as_(pw.sm)
+    r = pw.client.post(f"/api/v1/staff/partners/{pw.ats.id}/referrals", json={"direction": "in", "organization_id": fab.id})
+    assert r.status_code == 200, r.text
+    assert r.json()["referrals"][0]["client"] == "Fabrikam Freight Inc"
+
+
+def test_a_referral_from_partners_shows_on_the_opportunity_and_the_reverse(pw):
+    """BUG-S03: a referral recorded from Partners left the opportunity's partner empty, out of its timeline and out of the
+    Partner referral filter; a partner picked on the opportunity had no row in the referrals list."""
+    from app.sales.models import OpportunityActivity
+
+    open_opp = Opportunity(organization_id=pw.org.id, trigger="manual", service="Bias audit", owner_id=pw.officer.id, stage="qualifying", value=15000)
+    picked = Opportunity(organization_id=pw.org.id, trigger="manual", service="Policy review", owner_id=pw.officer.id, stage="new", value=9000, partner_id=pw.ats.id)
+    pw.db.add_all([open_opp, picked])
+    pw.db.commit()
+    pw.as_(pw.sm)
+    view = pw.client.post(f"/api/v1/staff/partners/{pw.ats.id}/referrals", json={"direction": "in", "opportunity_id": open_opp.id, "note": "Joint customer"}).json()
+    pw.db.expire_all()
+    assert pw.db.get(Opportunity, open_opp.id).partner_id == pw.ats.id
+    assert pw.db.scalar(select(OpportunityActivity).where(OpportunityActivity.opportunity_id == open_opp.id, OpportunityActivity.kind == "referral")) is not None
+    rec = pw.client.get(f"/api/v1/opportunities/{open_opp.id}").json()
+    assert rec["partner_name"] == "Greenhouse partner desk"
+    ids = [o["id"] for o in pw.client.get("/api/v1/opportunities", params={"source": "partner"}).json()["items"]]
+    assert open_opp.id in ids
+    # the partner picked on the opportunity shows in the referrals list, once
+    rows = [x for x in view["referrals"] if x["opportunity_id"] == picked.id]
+    assert len(rows) == 1 and rows[0]["direction"] == "in" and rows[0]["partner"] == "Greenhouse partner desk"
+    assert len([x for x in view["referrals"] if x["opportunity_id"] == open_opp.id]) == 1
+    # a referral from another partner does not take over a partner already chosen
+    pw.client.post(f"/api/v1/staff/partners/{pw.law.id}/referrals", json={"direction": "in", "opportunity_id": picked.id})
+    pw.db.expire_all()
+    assert pw.db.get(Opportunity, picked.id).partner_id == pw.ats.id
+
+
+def test_commissions_show_when_and_by_whom_they_were_paid(pw):
+    """BUG-S04: the Commissions row showed only 'Paid'."""
+    _refer(pw, pw.ats, pw.opp)
+    c = partners.commission_for_win(pw.db, pw.opp, pw.order, 52800.0)
+    pw.db.commit()
+    pw.as_(pw.sm)
+    row = pw.client.post(f"/api/v1/staff/partners/commissions/{c.id}/paid").json()["commissions"][0]
+    assert row["status"] == "paid" and row["paid_on"] and row["settled_by"] == "Sally Manager"
