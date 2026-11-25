@@ -254,6 +254,9 @@ def render_pdf(db: Session, settings: Settings, letter: IntroLetter, actor: User
 def approve(db: Session, settings: Settings, letter: IntroLetter, actor: User) -> IntroLetter:
     if letter.status != "draft":
         raise Conflict("This letter has already been approved.")
+    from app.policy.sod import assert_not_self_approval
+
+    assert_not_self_approval(actor.id, letter.created_by, letter.updated_by)  # spec §6 rule 2: the drafter or editor does not approve
     if not letter.body.get("laws"):
         raise Conflict("No laws are in scope for this client yet. Add the client's geographies first.")
     letter.status, letter.approved_by, letter.approved_at, letter.updated_by = "approved", actor.id, utcnow(), actor.id

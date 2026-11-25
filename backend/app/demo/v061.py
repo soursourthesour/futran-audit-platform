@@ -247,9 +247,12 @@ def abc_after_audit(m: Demo, cid: str) -> dict:
     m.as_(chief).post(f"/clients/{cid}/geographies", {"jurisdiction_code": "IN-MH", "basis": "employees"})
     m.post(f"/clients/{cid}/geographies", {"jurisdiction_code": "US-NJ", "basis": "candidates"})
     m.get(f"/clients/{cid}/applicability")
+    # the Admin drafts the letter and the Chief Auditor approves it: no one approves their own draft (spec §6 rule 2)
+    m.as_(m.user("admin@futran.demo"))
     letter = m.post(f"/clients/{cid}/letters")
     m.patch(f"/clients/{cid}/letters/{letter['id']}", {"opening": "Following the audit and the opening of your Pune sourcing centre, this letter sets out the AI laws that now apply to "
                                                                   "ABC Corp, the roles each needs and the committee that oversees them."})
+    m.as_(chief)
     m.post(f"/clients/{cid}/letters/{letter['id']}/approve")
     m.post(f"/clients/{cid}/letters/{letter['id']}/send")
     _company_roles(m, cid, {"grievance_officer_india": f"arjun.mehta@{ABC}",
@@ -480,7 +483,9 @@ def meridian_after(m: Demo, mid: str) -> None:
     chief = m.user("chief@futran.demo")
     m.as_(chief)
     m.get(f"/clients/{mid}/applicability")
+    m.as_(m.user("admin@futran.demo"))  # the Admin drafts, so the Chief Auditor can approve the draft in the demo
     m.post(f"/clients/{mid}/letters")
+    m.as_(chief)
     f = m.post(f"/clients/{mid}/findings", {
         "title": "No executive sponsor for the AI governance programme", "severity": "medium", "template_section": "4.1", "proposed_owner": "Head of AI Compliance",
         "description": "Meridian has not named an executive sponsor for its AI governance programme. The Head of AI Compliance reports to the Chief Risk Officer, but no member of "
