@@ -120,3 +120,21 @@ def test_a_scheduled_send_is_cancelled_when_the_campaign_closes_early(client, db
     assert s.status == "cancelled"
     statuses = set(db.scalars(select(MailRecipient.status).where(MailRecipient.send_id == s.id)))
     assert statuses == {"cancelled"}
+
+
+def test_after_discovery_the_closed_message_does_not_point_to_a_new_campaign(client, db, world):
+    """BUG-C01: once discovery has finished a new campaign can't start, so "Launch a new campaign first" was a dead end."""
+    cid, e, maria, depts, _ = world
+    _staff(db, cid, depts)
+    login_as(client, db, maria)
+    c = _campaign(db, cid)
+    c.status = "closed"
+    e.stage = 4
+    db.commit()
+    r = _email_send(client)
+    assert r.status_code == 409
+    msg = r.json()["detail"]
+    assert "Launch" not in msg and "Chief Auditor" in msg
+    assert client.post(f"/api/v1/clients/{cid}/attestation/send-all", json={}).json()["detail"] == msg
+    launch = client.post(f"/api/v1/clients/{cid}/attestation/campaigns", json={"department_ids": c.department_ids, "closes_at": (utcnow() + timedelta(days=7)).isoformat()})
+    assert launch.status_code == 409 and "Chief Auditor" in launch.json()["detail"]  # the advice matches what launching says

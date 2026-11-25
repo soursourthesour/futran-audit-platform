@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.attestation import service as att
 from app.attestation.models import Attestation, AttestationCampaign
 from app.core.errors import Invalid, NotFound
+from app.engagements.models import Engagement
 from app.mail import links, sending
 from app.mail.groups import default_group
 from app.mail.models import DirectoryPerson, MailRecipient, MailSend
@@ -27,7 +28,7 @@ def responded(db: Session, campaign_id: str) -> set[str]:
 
 sending.RESPONDED[CAMPAIGN] = responded
 
-CLOSED_MESSAGE = "The campaign has closed, so the attestation can't be sent. Launch a new campaign first."
+CLOSED_MESSAGE = att.CLOSED_MESSAGE
 
 
 def closed_reason(db: Session, campaign_id: str | None, at) -> str | None:
@@ -38,9 +39,10 @@ def closed_reason(db: Session, campaign_id: str | None, at) -> str | None:
     if c is None or c.deleted_at is not None:
         return "There is no attestation campaign for this engagement, so the attestation can't be sent. Launch a campaign first."
     if not att.is_open(c):
-        return CLOSED_MESSAGE
+        return att.closed_message(db, c)
     if at is not None and at >= c.closes_at:
-        return f"The campaign closes on {c.closes_at.day} {c.closes_at:%B %Y}, before this email would go out. Choose an earlier time or launch a new campaign."
+        later = "" if att.discovery_finished(db.get(Engagement, c.engagement_id)) else " or launch a new campaign"
+        return f"The campaign closes on {c.closes_at.day} {c.closes_at:%B %Y}, before this email would go out. Choose an earlier time{later}."
     return None
 
 
@@ -71,7 +73,7 @@ def send_all(db: Session, settings, actor: User, c: AttestationCampaign, body: d
     if not att.is_open(c):
         from app.core.errors import Conflict
 
-        raise Conflict(CLOSED_MESSAGE)
+        raise Conflict(att.closed_message(db, c))
     o = _options(body)
     g = default_group(db, c.organization_id, "all_employees")
     closes = f"{c.closes_at.day} {c.closes_at:%B %Y}"
