@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
-import { Alert, Badge, Button, EmptyState, Loading, TextArea, fmtDateTime } from '@/components/ui';
+import { Alert, Badge, Button, EmptyState, Loading, TextArea, fmtDateTime, TableWrap } from '@/components/ui';
 import { money, type ApprovalDetail, type ApprovalItem } from '@/api/proposals';
 import '@/styles/proposals.css';
 
@@ -78,7 +78,7 @@ export function Approvals() {
               <h2>{d.rule} · {d.approver_label}</h2>
               <p><Link to={`/sales/proposals/${d.proposal_id}`}>{d.company} · Proposal v{d.version}</Link> · Year-1 {money(d.y1_total)}</p>
               <p>{d.message}</p>
-              <div className="table-wrap">
+              <TableWrap>
                 <table className="pb-table" aria-label="Lines against the catalog">
                   <thead><tr><th>Code</th><th>Line</th><th className="num">Qty</th><th className="num">Low</th><th className="num">List</th><th className="num">Price used</th><th className="num">High</th></tr></thead>
                   <tbody>
@@ -92,7 +92,7 @@ export function Approvals() {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </TableWrap>
               <p className="small"><strong>Margin note.</strong> {d.margin_note}{d.discount_recurring_pct ? ` Discount on recurring ${d.discount_recurring_pct}%.` : ''}{d.terms.payment_days ? ` Payment in ${d.terms.payment_days} days.` : ''}</p>
               {d.independence && <Alert tone={d.independence.flag ? 'warn' : 'info'}><strong>Independence.</strong> {d.independence.reason}</Alert>}
               <p className="small muted">Approving here applies to this proposal only. To make a price standard, a Price List Owner changes it in the <Link to="/staff/admin/catalog">master price list</Link>.</p>

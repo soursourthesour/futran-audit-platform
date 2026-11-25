@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
-import { Alert, Badge, Button, Dialog, EmptyState, Loading, PageHeader, TextArea, TextField, fmtDateTime } from '@/components/ui';
+import { Alert, Badge, Button, Dialog, EmptyState, Loading, PageHeader, TextArea, TextField, fmtDateTime, TableWrap } from '@/components/ui';
 import './serviceTemplates.css';
 
 /** G-06 Service templates `/staff/admin/service-templates` (Release 2 B6). One template per engagement type; the
@@ -49,7 +49,7 @@ export function ServiceTemplates() {
       {tab === 'library' ? (
         <section className="card">
           <div className="card-body stack">
-            <div className="table-wrap"><table className="table" aria-label="Service templates">
+            <TableWrap><table className="table" aria-label="Service templates">
               <thead><tr><th>Engagement type</th><th>Template</th><th>Version</th><th>Sections · checklists</th><th>Catalog codes</th><th>Content owner</th><th>Status</th></tr></thead>
               <tbody>{d.types.map((r) => {
                 const v = r.latest;
@@ -66,7 +66,7 @@ export function ServiceTemplates() {
                   </tr>
                 );
               })}</tbody>
-            </table></div>
+            </table></TableWrap>
             <p className="small" style={{ margin: 0 }}><strong>Exports available on any signed report.</strong> Board readout pack (A-13): one-page summary, heat map, top 5 findings and roadmap, as PDF from the final report screen. PowerPoint is not produced: the platform has no PowerPoint library.</p>
           </div>
         </section>

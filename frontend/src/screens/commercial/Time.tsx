@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
 import { hrs, money, type Banks, type Margins, type TimeRow, type Week } from '@/api/commercial';
-import { Alert, Badge, Button, Card, Dialog, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField, fmtDate } from '@/components/ui';
+import { Alert, Badge, Button, Card, Dialog, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField, fmtDate, TableWrap } from '@/components/ui';
 import './commercial.css';
 
 function monday(d: Date): string {
@@ -65,7 +65,7 @@ export function TimeAndHours() {
         </>} />
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
       <Card title="Timesheet" actions={<Badge tone={STATUS[d.status]}>{d.status === 'draft' ? 'Draft' : d.status === 'submitted' ? 'Submitted' : d.status === 'approved' ? 'Approved' : 'Returned'}</Badge>}>
-        <div className="table-wrap"><table className="table timesheet">
+        <TableWrap label="Timesheet"><table className="table timesheet">
           <thead><tr><th>Charged to</th><th>Activity</th><th>Billable</th>{days.map((day) => <th key={day} className="num">{DAY(day)}</th>)}<th className="num">Total</th>{!locked && <th />}</tr></thead>
           <tbody>
             {rows.length === 0 && <tr><td colSpan={days.length + 5} className="muted">No time this week yet.</td></tr>}
@@ -95,7 +95,7 @@ export function TimeAndHours() {
               );
             })}
           </tbody>
-        </table></div>
+        </table></TableWrap>
         {!locked && (
           <div className="row" style={{ marginTop: 12 }}>
             <Button size="sm" onClick={() => { const t = d.targets[0]; setRows([...rows, { target: t.key, label: t.label, activity: t.kind === 'internal' ? 'other' : 'fieldwork', billable: t.billable_default, note: null, hours: {} }]); setDirty(true); }}>Add row</Button>
@@ -121,7 +121,7 @@ function BanksCard({ banks, canActivate, canApprove, onChange }: { banks?: Banks
   return (
     <Card title="Hours banks and retainers">
       {empty ? <EmptyState>No hours banks or retainers yet. They are created when a proposal that includes them is accepted.</EmptyState> : (
-        <div className="table-wrap"><table className="table">
+        <TableWrap label="Hours banks and retainers"><table className="table">
           <thead><tr><th>Client</th><th>Type</th><th>Balance</th><th>Expires</th><th /></tr></thead>
           <tbody>
             {banks.banks.map((b) => (
@@ -141,7 +141,7 @@ function BanksCard({ banks, canActivate, canApprove, onChange }: { banks?: Banks
                   {canApprove && r.incident_status === 'draft' && <Button size="sm" onClick={async () => { try { await api.post(`/staff/retainers/${r.id}/approve-incident`); onChange(); } catch (e) { setErr(errorMessage(e)); } }}>Approve incident engagement</Button>}</td></tr>
             ))}
           </tbody>
-        </table></div>
+        </table></TableWrap>
       )}
       {activating && (
         <Dialog title="Activate the incident retainer" onClose={() => setActivating(null)}>
@@ -173,14 +173,14 @@ function ApprovalsCard({ week }: { week: string }) {
     <Card title="Timesheets to approve">
       {err && <Alert tone="danger">{err}</Alert>}
       {!q.data || q.data.length === 0 ? <EmptyState>Nothing waiting for you.</EmptyState> : (
-        <div className="table-wrap"><table className="table">
+        <TableWrap label="Timesheets to approve"><table className="table">
           <thead><tr><th>Person</th><th>Week of</th><th className="num">Hours</th><th className="num">Billable</th><th /></tr></thead>
           <tbody>{q.data.map((r) => (
             <tr key={`${r.user_id}${r.week_start}`}><td>{r.user_name}</td><td>{fmtDate(r.week_start)}</td><td className="num">{hrs(r.hours)}</td><td className="num">{hrs(r.billable)}</td>
               <td><div className="row"><Button size="sm" variant="primary" onClick={() => decide(r.user_id, r.week_start, true)}>Approve</Button>
                 <Button size="sm" onClick={() => decide(r.user_id, r.week_start, false)}>Return</Button></div></td></tr>
           ))}</tbody>
-        </table></div>
+        </table></TableWrap>
       )}
     </Card>
   );
@@ -193,14 +193,14 @@ function MarginsCard() {
   return (
     <Card title="Margin by engagement (Chief Auditor, Sales Manager)">
       {m.engagements.length === 0 ? <EmptyState>No engagements with a fee or time yet.</EmptyState> : (
-        <div className="table-wrap"><table className="table">
+        <TableWrap label="Margin by engagement"><table className="table">
           <thead><tr><th>Engagement</th><th className="num">Fee</th><th className="num">Hours</th><th className="num">Cost</th><th className="num">Margin</th></tr></thead>
           <tbody>{m.engagements.map((r) => (
             <tr key={r.engagement_id}><td><Link to={`/e/${r.engagement_id}/commercial`}>{r.label}</Link></td><td className="num">{money(r.fee)}</td><td className="num">{hrs(r.hours)}</td>
               <td className="num">{r.cost == null ? <span className="muted">No cost</span> : money(r.cost)}</td>
               <td className="num">{r.margin_pct == null ? '—' : <span className={r.margin_pct < 0 ? 'neg' : ''}>{r.margin_pct}%</span>}</td></tr>
           ))}</tbody>
-        </table></div>
+        </table></TableWrap>
       )}
       <p className="small muted" style={{ marginBottom: 0 }}>Cost = hours × standard cost per role, entered by the Futran Admin.
         {m.missing_costs.length > 0 && ` No standard cost yet for ${m.missing_costs.map((r) => ROLE_LABEL[r] ?? r).join(', ')}.`}</p>
@@ -222,10 +222,10 @@ function CostsCard() {
     <Card title="Standard cost per hour">
       {err && <Alert tone="danger">{err}</Alert>}
       {q.data && q.data.length > 0 && (
-        <div className="table-wrap"><table className="table">
+        <TableWrap label="Standard cost per hour"><table className="table">
           <thead><tr><th>Role</th><th className="num">Cost per hour</th><th>From</th></tr></thead>
           <tbody>{q.data.map((c, i) => <tr key={i}><td>{ROLE_LABEL[c.role] ?? c.role}</td><td className="num">{money(c.cost_per_hour, true)}</td><td>{fmtDate(c.effective_from)}</td></tr>)}</tbody>
-        </table></div>
+        </table></TableWrap>
       )}
       <div className="row cost-form">
         <SelectField label="Role" value={f.role} options={Object.entries(ROLE_LABEL).map(([value, label]) => ({ value, label }))} onChange={(e) => setF({ ...f, role: e.target.value })} />

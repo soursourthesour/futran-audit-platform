@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useId, useRef, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
+import { forwardRef, useEffect, useId, useLayoutEffect, useRef, useState, type ButtonHTMLAttributes, type CSSProperties, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
 import { Link } from 'react-router-dom';
 import { FieldHelp } from './FieldHelp';
 
@@ -118,6 +118,38 @@ export function PageHeader({ title, subtitle, crumbs, actions }: { title: ReactN
         {subtitle && <p>{subtitle}</p>}
       </div>
       {actions && <div className="row">{actions}</div>}
+    </div>
+  );
+}
+
+/** The wrapper for a table that may scroll sideways (`.table-wrap`). While the table is wider than the wrapper, the
+ *  wrapper is a named region and a Tab stop, so a keyboard user can reach it and scroll with the arrow keys (WCAG 2.1.1,
+ *  BUG-G02). The name is `label`, or else the table's caption or aria-label. When the table fits, it is a plain wrapper
+ *  and adds no Tab stop. */
+export function TableWrap({ label, className, style, children }: { label?: string; className?: string; style?: CSSProperties; children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [scrolls, setScrolls] = useState(false);
+  const [name, setName] = useState(label);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const check = () => setScrolls(el.scrollWidth > el.clientWidth + 1);
+    check();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(check) : null;
+    ro?.observe(el);
+    const table = el.querySelector('table');
+    if (table) ro?.observe(table);
+    return () => ro?.disconnect();
+  });
+  useLayoutEffect(() => {
+    if (label) { setName(label); return; }
+    const t = ref.current?.querySelector('table');
+    setName(t?.getAttribute('aria-label') || t?.querySelector('caption')?.textContent?.trim() || 'Table');
+  }, [label]);
+  return (
+    <div ref={ref} className={['table-wrap', className].filter(Boolean).join(' ')} style={style}
+      {...(scrolls ? { tabIndex: 0, role: 'region', 'aria-label': name } : {})}>
+      {children}
     </div>
   );
 }

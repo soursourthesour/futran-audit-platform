@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
-import { Alert, Badge, Button, ButtonLink, Card, EmptyState, Loading, PageHeader, TextArea, TextField } from '@/components/ui';
+import { Alert, Badge, Button, ButtonLink, Card, EmptyState, Loading, PageHeader, TextArea, TextField, TableWrap } from '@/components/ui';
 import { SignPanel, type SignOffView } from '@/components/SignPanel';
 import { FindingForm, SEV_TONE, type FindingRow } from '@/screens/futran/FieldworkUseCase';
 import { findingHelp } from '@/help/fieldwork';
@@ -46,7 +46,7 @@ export function FindingsQA() {
         <div className="main stack">
           <Card>
             {d.findings.length === 0 ? <EmptyState>No findings yet. Draft them from a use case's fieldwork page or a system assessment.</EmptyState> : (
-              <div className="table-wrap"><table className="table">
+              <TableWrap label="Findings for review"><table className="table">
                 <thead><tr><th>Finding</th><th>Severity</th><th>Author</th><th>Status</th></tr></thead>
                 <tbody>{d.findings.map((x) => (
                   <tr key={x.id} className={`clickable${x.id === f?.id ? ' selected' : ''}`} onClick={() => setSel(x.id)}>
@@ -56,7 +56,7 @@ export function FindingsQA() {
                     <td>{statusText(x)}</td>
                   </tr>
                 ))}</tbody>
-              </table></div>
+              </table></TableWrap>
             )}
           </Card>
           <Card title="Sign-off 5 · Final risk tiers and findings">

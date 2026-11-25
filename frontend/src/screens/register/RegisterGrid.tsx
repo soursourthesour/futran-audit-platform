@@ -5,7 +5,7 @@ import { api, errorMessage } from '@/api/client';
 import { useMe } from '@/api/auth';
 import { SOURCE_OPTIONS, TYPE_OPTIONS, useAiSystems, type AiList, type AiRow, type AiSource } from '@/api/aiSystems';
 import { GATE_TONE, IMPACT, STAGES, TIER_LABEL, TIER_TONE, TYPES, labelOf, type RegSystem } from '@/api/register';
-import { Alert, Badge, Button, Checkbox, Dialog, EmptyState, FieldHelp, Loading, PageHeader, SelectField, TextArea, TextField } from '@/components/ui';
+import { Alert, Badge, Button, Checkbox, Dialog, EmptyState, FieldHelp, Loading, PageHeader, SelectField, TextArea, TextField, TableWrap } from '@/components/ui';
 import { DataGrid, RowMenu, type GridColumn, type GridFilter, type GridRowAction } from '@/components/ui/DataGrid';
 import { systemHelp as H } from '@/help/register';
 import { ACCOUNT_LABELS, AddTool, type Tool } from '@/screens/client/Inventory';
@@ -20,7 +20,7 @@ type Preset = 'standard' | 'roles' | 'bias' | 'all';
 const PRESETS: { value: Preset; label: string }[] = [{ value: 'standard', label: 'Standard' }, { value: 'roles', label: 'Roles view' }, { value: 'bias', label: 'Bias and data view' }, { value: 'all', label: 'All columns' }];
 
 export function Lock() {
-  return <span className="reg-lock" aria-label="Read-only" title="Read-only"><svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M4 7V5a4 4 0 1 1 8 0v2h1v8H3V7h1Zm2 0h4V5a2 2 0 1 0-4 0v2Z" /></svg></span>;
+  return <span className="reg-lock" role="img" aria-label="Read-only" title="Read-only"><svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M4 7V5a4 4 0 1 1 8 0v2h1v8H3V7h1Zm2 0h4V5a2 2 0 1 0-4 0v2Z" /></svg></span>;
 }
 
 export function RolesCell({ s }: { s: RegSystem }) {
@@ -420,8 +420,8 @@ function CsvImport({ onClose, onDone }: { onClose: () => void; onDone: (m: strin
         {errors.length > 0 && (
           <div className="stack-sm">
             <Alert tone="danger">{errors.length} problem{errors.length === 1 ? '' : 's'} found. Fix them in the file and import it again.</Alert>
-            <div className="table-wrap"><table className="table"><thead><tr><th>Row</th><th>Column</th><th>Problem</th></tr></thead>
-              <tbody>{errors.map((e, i) => <tr key={i}><td>{e.row}</td><td>{e.field}</td><td>{e.message}</td></tr>)}</tbody></table></div>
+            <TableWrap label="Problems in the file"><table className="table"><thead><tr><th>Row</th><th>Column</th><th>Problem</th></tr></thead>
+              <tbody>{errors.map((e, i) => <tr key={i}><td>{e.row}</td><td>{e.field}</td><td>{e.message}</td></tr>)}</tbody></table></TableWrap>
           </div>
         )}
         <div className="row"><Button variant="primary" disabled={busy} onClick={go}>Import</Button><Button onClick={onClose}>Cancel</Button></div>

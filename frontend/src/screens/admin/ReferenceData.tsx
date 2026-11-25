@@ -6,7 +6,7 @@ import { hasRole, useMe } from '@/api/auth';
 import { TYPE_LABELS, useFeatures, useLawJurisdictions, type Law } from '@/api/laws';
 import { LawPicker } from '@/components/LawPicker';
 import { ModelCatalogue } from './ModelCatalogue';
-import { Alert, Badge, Button, ButtonLink, Card, Checkbox, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField, fmtDate, fmtDateTime } from '@/components/ui';
+import { Alert, Badge, Button, ButtonLink, Card, Checkbox, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField, fmtDate, fmtDateTime, TableWrap } from '@/components/ui';
 
 type Tab = 'laws' | 'jurisdictions' | 'import' | 'versions' | 'updates' | 'models';
 
@@ -266,7 +266,7 @@ function ImportTab() {
               </Alert>
             )}
             <div style={{ maxWidth: 360 }}><TextField label="Filter" value={filter} onChange={(e) => setFilter(e.target.value)} /></div>
-            <div className="table-wrap">
+            <TableWrap label="Law matrix">
               <table className="table">
                 <thead><tr><th>Jurisdiction</th><th>Feature</th><th>Short name</th><th>Source text</th></tr></thead>
                 <tbody>
@@ -283,7 +283,7 @@ function ImportTab() {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </TableWrap>
           </div>
         </Card>
       )}
@@ -297,7 +297,7 @@ function VersionsTab() {
   return (
     <Card title="Version history">
       {q.isLoading ? <Loading /> : (
-        <div className="table-wrap">
+        <TableWrap label="Version history">
           <table className="table">
             <thead><tr><th>Published</th><th>Version</th><th>Source</th><th>Status</th></tr></thead>
             <tbody>
@@ -306,7 +306,7 @@ function VersionsTab() {
               ))}
             </tbody>
           </table>
-        </div>
+        </TableWrap>
       )}
     </Card>
   );

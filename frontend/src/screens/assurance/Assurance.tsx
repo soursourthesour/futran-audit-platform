@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
-import { Alert, Badge, Button, Card, Dialog, EmptyState, Loading, PageHeader, SelectField, TextField, fileUrl, fmtDate, fmtDateTime } from '@/components/ui';
+import { Alert, Badge, Button, Card, Dialog, EmptyState, Loading, PageHeader, SelectField, TextField, fileUrl, fmtDate, fmtDateTime, TableWrap } from '@/components/ui';
 import './assurance.css';
 
 /** G-09 Agent assurance (Release 2 B9). */
@@ -55,7 +55,7 @@ export function AssurancePanel({ systemId, clientId }: { systemId: string; clien
 
       <Card title="Release history">
         {d.runs.length === 0 ? <EmptyState>No Agent Assure record yet.{d.can_record ? ' Record the first release.' : ' Futran records each release of this agent here.'}</EmptyState> : (
-          <div className="table-wrap"><table className="table aa-stack" aria-label="Release history">
+          <TableWrap><table className="table aa-stack" aria-label="Release history">
             <thead><tr><th>Release</th><th>Model</th><th>Gold eval set</th><th>15-point check</th><th>Red team</th><th>Outcome</th><th>Letter</th></tr></thead>
             <tbody>{d.runs.map((r, i) => (
               <tr key={r.id}>
@@ -68,17 +68,17 @@ export function AssurancePanel({ systemId, clientId }: { systemId: string; clien
                 <td data-label="Letter" className="small">{r.letter ? <><a href={fileUrl(r.letter.id)}>PDF</a><div className="muted">{r.signed_by}{r.signed_on ? `, ${fmtDate(r.signed_on)}` : ''}</div></> : d.can_record ? <Button size="sm" onClick={() => setLetterFor(r)}>Add letter</Button> : '—'}</td>
               </tr>
             ))}</tbody>
-          </table></div>
+          </table></TableWrap>
         )}
       </Card>
 
       {latest && (
         <Card title={`${latest.release_ref} · open conditions`}>
           {d.open_conditions.length === 0 ? <EmptyState>No open conditions.</EmptyState> : (
-            <div className="table-wrap"><table className="table aa-stack" aria-label="Open conditions">
+            <TableWrap><table className="table aa-stack" aria-label="Open conditions">
               <thead><tr><th>Item</th><th>Result</th><th>Condition</th><th>Due</th></tr></thead>
               <tbody>{d.open_conditions.map((c, i) => <tr key={i}><td data-label="Item">{c.item}</td><td data-label="Result"><Badge tone={c.result === 'fail' || c.result === 'high' || c.result === 'critical' ? 'danger' : 'warn'}>{cap(c.result)}</Badge></td><td data-label="Condition">{c.condition ?? '—'}</td><td data-label="Due" className="small">{c.due ?? '—'}</td></tr>)}</tbody>
-            </table></div>
+            </table></TableWrap>
           )}
         </Card>
       )}
@@ -157,7 +157,7 @@ function RecordDialog({ clientId, systemId, d, onClose, onDone }: { clientId: st
         <fieldset className="aa-fieldset"><legend>15-point pre-deploy check</legend>
           <p className="small muted" style={{ margin: 0 }}>{d.checklist_note}</p>
           {fe.checks && <Alert tone="danger">{fe.checks}</Alert>}
-          <div className="table-wrap"><table className="table" aria-label="15-point check results">
+          <TableWrap><table className="table" aria-label="15-point check results">
             <thead><tr><th>#</th><th>Item</th><th>Result</th><th>Condition or note</th><th>Due</th></tr></thead>
             <tbody>{d.checklist.map((c) => {
               const v = checks[c.position] ?? { result: 'not_run', note: '', due: '' };
@@ -169,7 +169,7 @@ function RecordDialog({ clientId, systemId, d, onClose, onDone }: { clientId: st
                   <td><input aria-label={`Due for point ${c.position}`} value={v.due} onChange={(e) => set('due', e.target.value)} /></td></tr>
               );
             })}</tbody>
-          </table></div>
+          </table></TableWrap>
         </fieldset>
         <fieldset className="aa-fieldset"><legend>Red-team scenarios</legend>
           {fe.redteam && <Alert tone="danger">{fe.redteam}</Alert>}

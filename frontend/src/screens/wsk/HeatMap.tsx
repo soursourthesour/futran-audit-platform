@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
-import { Alert, Badge, Button, Card, Dialog, EmptyState, Loading, PageHeader, SelectField, fileUrl, fmtDate } from '@/components/ui';
+import { Alert, Badge, Button, Card, Dialog, EmptyState, Loading, PageHeader, SelectField, fileUrl, fmtDate, TableWrap } from '@/components/ui';
 import { type ControlProof, type HeatMap as Heat, type Lineage, RATING } from '@/api/wsk';
 import { heatHelp } from '@/help/wsk';
 import './wsk.css';
@@ -54,7 +54,7 @@ export function HeatMap() {
           </Card>
           <Card title="Control effect by system">
             {d.systems.length === 0 ? <EmptyState>No systems match the filters.</EmptyState> : (
-              <div className="table-wrap"><table className="table">
+              <TableWrap label="Control effect by system"><table className="table">
                 <thead><tr><th>System</th><th>Build</th><th className="num">Inherent</th><th className="num">Maturity</th><th>Control effect</th><th>Final rating</th></tr></thead>
                 <tbody>{d.systems.map((s) => (
                   <tr key={s.id}>
@@ -65,14 +65,14 @@ export function HeatMap() {
                       {s.knockouts.length > 0 && <div className="small muted">Knock-out: {s.knockouts.join('; ')}</div>}</td>
                   </tr>
                 ))}</tbody>
-              </table></div>
+              </table></TableWrap>
             )}
           </Card>
           <Card title="Findings by severity and domain" actions={<span className="small muted">{d.findings_grid.total} finding{d.findings_grid.total === 1 ? '' : 's'}, drafts included</span>}>
-            <div className="table-wrap"><table className="table findings-grid">
+            <TableWrap label="Findings by severity and domain"><table className="table findings-grid">
               <thead><tr><th>Severity</th>{d.findings_grid.domains.map((x) => <th key={x.key} className="num">{x.label}</th>)}</tr></thead>
               <tbody>{d.findings_grid.rows.map((r) => <tr key={r.severity}><th scope="row">{r.label}</th>{r.counts.map((n, i) => <td key={i} className={`num${n ? ` sev-${r.severity}` : ''}`}>{n || ''}</td>)}</tr>)}</tbody>
-            </table></div>
+            </table></TableWrap>
           </Card>
         </section>
         <aside className="side stack">

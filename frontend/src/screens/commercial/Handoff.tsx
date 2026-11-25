@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
 import { money, useHandoff, type Handoff as H } from '@/api/commercial';
-import { Alert, Badge, Button, Card, Loading, PageHeader, SelectField, TextArea, fmtDateTime } from '@/components/ui';
+import { Alert, Badge, Button, Card, Loading, PageHeader, SelectField, TextArea, fmtDateTime, TableWrap } from '@/components/ui';
 import './commercial.css';
 
 const TONE: Record<string, 'success' | 'warn' | 'muted' | 'navy'> = {
@@ -59,7 +59,7 @@ export function Handoff() {
         actions={<span className="pill-won">Won · {money(h.year1_value)} year 1</span>} />
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
       <Card title="Records created">
-        <div className="table-wrap"><table className="table">
+        <TableWrap label="Records created"><table className="table">
           <thead><tr><th>Record</th><th>Details</th><th>Status</th><th>Next owner</th></tr></thead>
           <tbody>
             {h.items.map((it, i) => (
@@ -71,7 +71,7 @@ export function Handoff() {
               </tr>
             ))}
           </tbody>
-        </table></div>
+        </table></TableWrap>
       </Card>
       <Card title="Delivery team and independence" actions={h.status === 'confirmed' ? <Badge tone="success">Confirmed</Badge> : undefined}>
         <div className="stack">

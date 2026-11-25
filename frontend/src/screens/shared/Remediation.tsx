@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
 import { useMe } from '@/api/auth';
-import { Alert, Badge, Button, Card, EmptyState, Loading, PageHeader, TextArea, fmtDate, fmtDateTime } from '@/components/ui';
+import { Alert, Badge, Button, Card, EmptyState, Loading, PageHeader, TextArea, fmtDate, fmtDateTime, TableWrap } from '@/components/ui';
 import { SEV_TONE } from '@/screens/futran/FieldworkUseCase';
 import { remediationHelp } from '@/help/client';
 import { Comments } from '@/components/Comments';
@@ -48,7 +48,7 @@ export function Remediation() {
         <div className="main">
           <Card>
             {d.items.length === 0 ? <EmptyState>No remediation items yet. They come from the management responses and the governance commitments.</EmptyState> : (
-              <div className="table-wrap"><table className="table">
+              <TableWrap label="Remediation actions"><table className="table">
                 <thead><tr><th>Action</th><th>Finding</th><th>Owner</th><th>Due</th><th>Status</th></tr></thead>
                 <tbody>{d.items.map((x) => (
                   <tr key={x.id} className={`clickable${x.id === it?.id ? ' selected' : ''}`} onClick={() => { setSel(x.id); setNote(''); }}>
@@ -57,7 +57,7 @@ export function Remediation() {
                     <td><Badge tone={TONE[x.status]}>{x.status === 'awaiting_verification' && x.verified_by ? 'Verified · with Chief Auditor' : x.status_label}</Badge></td>
                   </tr>
                 ))}</tbody>
-              </table></div>
+              </table></TableWrap>
             )}
           </Card>
         </div>

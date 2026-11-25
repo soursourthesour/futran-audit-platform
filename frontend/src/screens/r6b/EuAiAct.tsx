@@ -3,7 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
 import { SIGNOFF_TONE, type EuDetail, type EuListing, type EuObligation } from '@/api/r6b';
-import { Alert, Badge, Button, Card, Checkbox, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField, fileUrl, fmtDate, fmtDateTime } from '@/components/ui';
+import { Alert, Badge, Button, Card, Checkbox, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField, fileUrl, fmtDate, fmtDateTime, TableWrap } from '@/components/ui';
 import '@/styles/r6b.css';
 
 const opts = (m: Record<string, string>) => Object.entries(m).map(([value, label]) => ({ value, label }));
@@ -39,7 +39,7 @@ function EuWorkspace({ listPath, engagementId }: { listPath: string; engagementI
         : <Alert>{v.signed_count} of {v.due_count} classifications signed off. Each system with EU exposure needs its classification signed off by the legal reviewer before the report is issued.</Alert>)}
       <Card className="r6b-card">
         {v.systems.length === 0 ? <EmptyState>No AI system in this client's register has EU geography yet.</EmptyState> : (
-          <div className="table-wrap">
+          <TableWrap>
             <table className="table stack-table" aria-label="AI systems under the EU AI Act">
               <thead><tr><th>AI system</th><th>EU exposure</th><th>Role</th><th>Classification</th><th>Deadline</th><th>Obligations met</th><th>Legal sign-off</th></tr></thead>
               <tbody>
@@ -56,7 +56,7 @@ function EuWorkspace({ listPath, engagementId }: { listPath: string; engagementI
                 ))}
               </tbody>
             </table>
-          </div>
+          </TableWrap>
         )}
       </Card>
       {selected && <SystemPanel key={selected} systemId={selected} listPath={listPath} engagementId={engagementId} />}
@@ -113,12 +113,12 @@ function ObligationsCard({ d, base, run }: { d: EuDetail; base: string; run: Run
   return (
     <Card title={`${d.name} · ${who}`} className="r6b-card">
       {d.obligations.length === 0 ? <EmptyState>Record the role and the classification to see the articles that apply.</EmptyState> : (
-        <div className="table-wrap">
+        <TableWrap>
           <table className="table stack-table" aria-label="Obligations">
             <thead><tr><th>Article</th><th>Obligation</th><th>Status</th><th>Evidence</th></tr></thead>
             <tbody>{d.obligations.map((o) => <ObligationRow key={o.key} o={o} d={d} base={base} run={run} />)}</tbody>
           </table>
-        </div>
+        </TableWrap>
       )}
       <p className="small muted" style={{ marginBottom: 0 }}>Deadline: {d.deadline.label}{d.deadline.source ? ` (${d.deadline.source})` : ''}.</p>
     </Card>

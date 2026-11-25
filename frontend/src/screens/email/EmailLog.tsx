@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
 import { hasRole, useMe } from '@/api/auth';
 import { type AdminEntry, type SendDetail, type SendRow, downloadBlob } from '@/api/mail';
-import { Alert, Badge, Card, Dialog, EmptyState, Loading, PageHeader, SelectField, fmtDateTime } from '@/components/ui';
+import { Alert, Badge, Card, Dialog, EmptyState, Loading, PageHeader, SelectField, fmtDateTime, TableWrap } from '@/components/ui';
 import { DataGrid, type GridColumn } from '@/components/ui/DataGrid';
 import { emailHelp as H } from '@/help/email';
 import { OutboxPanel } from '@/screens/admin/Outbox';
@@ -126,12 +126,12 @@ export function EmailLog() {
           <div className="stack">
             <div className="log-filters"><SelectField label="Show" help={H.logCategory} value={category} placeholder="All actions" onChange={(e) => setCategory(e.target.value)} options={admin.data?.categories ?? []} /></div>
             {admin.isLoading ? <Loading /> : !admin.data?.entries.length ? <EmptyState>No changes yet.</EmptyState> : (
-              <div className="table-wrap" style={{ position: 'relative' }}>
+              <TableWrap label="Admin log" style={{ position: 'relative' }}>
                 <table className="table">
                   <thead><tr><th>When</th><th>Who</th><th>Action</th><th>Details</th></tr></thead>
                   <tbody>{admin.data.entries.map((e) => <tr key={e.id}><td style={{ whiteSpace: 'nowrap' }}>{fmtDateTime(e.at)}</td><td>{e.who}</td><td>{e.label}</td><td>{e.summary}</td></tr>)}</tbody>
                 </table>
-              </div>
+              </TableWrap>
             )}
             <p className="small muted" style={{ margin: 0 }}>The log cannot be edited or deleted. Kept for {admin.data?.retention_years ?? 7} years.</p>
           </div>
@@ -166,12 +166,12 @@ function SendDialog({ id, tab, onTab, onClose }: { id: string; tab: 'message' | 
             </>
           )}
           {tab === 'recipients' && (
-            <div className="table-wrap" style={{ position: 'relative' }}>
+            <TableWrap label="Recipients" style={{ position: 'relative' }}>
               <table className="table">
                 <thead><tr><th>Name</th><th>Email</th><th>Status</th><th>Reminders</th></tr></thead>
                 <tbody>{d.recipients.map((r) => <tr key={r.id}><td>{r.name ?? '—'}</td><td>{r.email}</td><td><Badge tone={STATUS_TONE[r.status] ?? 'muted'}>{STATUS_LABEL[r.status] ?? r.status}</Badge>{r.out_of_office && <> <Badge tone="warn">Out of office</Badge></>}{r.error && <div className="small muted">{r.error}</div>}</td><td className="num">{r.reminders_sent}</td></tr>)}</tbody>
               </table>
-            </div>
+            </TableWrap>
           )}
           {tab === 'replies' && (d.replies.length === 0 ? <EmptyState>No replies yet. Replies to this email are read back from the sending mailbox.</EmptyState> : (
             <ul className="member-list">{d.replies.map((r) => <li key={r.id}><div className="who"><strong>{r.from}</strong><span className="small muted">{fmtDateTime(r.received_at)} · {r.kind === 'reply' ? 'Reply' : r.kind === 'bounce' ? 'Bounce' : 'Out of office'}</span><span className="small">{r.snippet}</span></div></li>)}</ul>

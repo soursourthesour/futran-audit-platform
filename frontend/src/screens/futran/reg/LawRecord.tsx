@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
-import { Alert, Badge, Button, Card, Checkbox, Dialog, EmptyState, FieldGroup, Loading, PageHeader, SelectField, TextArea, TextField, fmtDate } from '@/components/ui';
+import { Alert, Badge, Button, Card, Checkbox, Dialog, EmptyState, FieldGroup, Loading, PageHeader, SelectField, TextArea, TextField, fmtDate, TableWrap } from '@/components/ui';
 import { DataGrid } from '@/components/ui/DataGrid';
 import { AI_TYPE_OPTIONS, APPLIES_OPTIONS, STAGE_OPTIONS, appliesLabel, stageLabel, statusTone, type LawRecord as Law, type Requirement } from '@/api/regmaster';
 import { requirementHelp as H, roleHelp as RH } from '@/help/regmaster';
@@ -100,13 +100,13 @@ export function LawRecord() {
         </section>
         <Card title="Roles and committees this law requires">
           {d.role_maps.length ? (
-            <div className="table-wrap"><table className="table">
+            <TableWrap label="Roles and committees this law requires"><table className="table">
               <thead><tr><th>Role (from the role catalogue)</th><th>Level</th><th><span className="th-help">Needed by<FieldHelp label="Needed by">{RH.neededBy}</FieldHelp></span></th><th>Basis</th></tr></thead>
               <tbody>{d.role_maps.map((m) => (
                 <tr key={m.role + m.level}><td>{m.name}</td><td>{m.level === 'required' ? <span className="reg-pill-req">Required</span> : m.level === 'recommended' ? <span className="reg-pill-rec">Recommended</span> : <span className="muted">{LEVEL_LABEL[m.level]}</span>}{m.verify && <> <Badge tone="warn">Verify</Badge></>}</td>
                   <td>{m.needed_by_stage ? stageLabel(m.needed_by_stage) : '—'}</td><td className="small">{m.basis || (m.requirements.length ? m.requirements.join(', ') : '—')}</td></tr>
               ))}</tbody>
-            </table></div>
+            </table></TableWrap>
           ) : <EmptyState>No roles mapped yet.</EmptyState>}
           {d.committees.map((c) => <p key={c.committee_type} className="small" style={{ marginTop: 12 }}><strong>{c.title}</strong> · {c.level === 'required' ? 'Required' : 'Recommended'}{c.basis ? ` · ${c.basis}` : ''}{c.condition ? `. ${c.condition}.` : ''}</p>)}
           <p className="reg-note">Change a role's level from <Link to="/reg/roles">Roles and committees</Link>.</p>
@@ -115,10 +115,10 @@ export function LawRecord() {
         {can(me, 'view_litigation') && <section id="cases" aria-label="Related cases"><LawCases regulationId={d.id} /></section>}
         <section id="history">
           <Card title="Version history">
-            <div className="table-wrap"><table className="table">
+            <TableWrap label="Version history"><table className="table">
               <thead><tr><th>Version</th><th>Change</th><th>By</th><th>Date</th></tr></thead>
               <tbody>{d.history.map((h) => <tr key={h.id}><td>{h.version_no}</td><td>{h.change}</td><td className="small">{h.by}</td><td className="small">{fmtDate(h.date)}</td></tr>)}</tbody>
-            </table></div>
+            </table></TableWrap>
             <p className="reg-note">Client letters and audits record the version they used, so earlier reports still show the rules that applied at the time.</p>
           </Card>
         </section>

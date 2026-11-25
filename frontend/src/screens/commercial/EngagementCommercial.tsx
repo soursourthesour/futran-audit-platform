@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
 import { money, useCommercial, type ChangeOrder, type CommercialPage } from '@/api/commercial';
-import { Alert, Badge, Button, Card, Dialog, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField } from '@/components/ui';
+import { Alert, Badge, Button, Card, Dialog, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField, TableWrap } from '@/components/ui';
 import './commercial.css';
 
 const STATUS_TONE: Record<string, 'success' | 'warn' | 'danger' | 'muted' | 'navy'> = {
@@ -44,7 +44,7 @@ export function EngagementCommercial() {
         <div className="main stack">
           <Card title="Order lines on this engagement" actions={d.order ? <span className="small muted">{d.order.ref}{d.order.po_number ? ` · PO ${d.order.po_number}` : ''}</span> : undefined}>
             {d.order_lines.length === 0 && d.change_orders.length === 0 ? <EmptyState>{d.has_commercials ? 'No order lines.' : 'This engagement did not come from an order. Set the fee to track it.'}</EmptyState> : (
-              <div className="table-wrap"><table className="table">
+              <TableWrap label="Order lines"><table className="table">
                 <thead><tr><th>Code</th><th>Line</th><th>Qty</th><th className="num">Value</th><th>Deliverable</th></tr></thead>
                 <tbody>
                   {d.order_lines.filter((l) => !l.change_order_id).map((l) => (
@@ -58,17 +58,17 @@ export function EngagementCommercial() {
                   ))}
                 </tbody>
                 {d.fee_total != null && <tfoot><tr><td colSpan={3}><strong>Fee</strong></td><td className="num"><strong>{money(d.fee_total)}</strong></td><td /></tr></tfoot>}
-              </table></div>
+              </table></TableWrap>
             )}
           </Card>
           <Card title="Billing milestones">
             {d.milestones.length === 0 ? <EmptyState>No milestones.</EmptyState> : (
-              <div className="table-wrap"><table className="table">
+              <TableWrap label="Billing milestones"><table className="table">
                 <thead><tr><th>Milestone</th><th>Trigger</th><th className="num">Amount</th><th>Status</th></tr></thead>
                 <tbody>{d.milestones.map((m, i) => (
                   <tr key={i}><td>{m.label}</td><td>{m.trigger_label}</td><td className="num">{money(m.amount)}</td><td>{m.reached_on ? <Badge tone="success">{m.status}</Badge> : <span className="muted">{m.status}</span>}</td></tr>
                 ))}</tbody>
-              </table></div>
+              </table></TableWrap>
             )}
           </Card>
           {d.deliverables.length > 0 && (
@@ -78,13 +78,13 @@ export function EngagementCommercial() {
           )}
           <Card title="Change orders">
             {d.change_orders.length === 0 ? <EmptyState>None.</EmptyState> : (
-              <div className="table-wrap"><table className="table">
+              <TableWrap label="Change orders"><table className="table">
                 <thead><tr><th>Ref</th><th>Change</th><th>Raised by</th><th className="num">Value</th><th>Status</th></tr></thead>
                 <tbody>{d.change_orders.map((c) => (
                   <tr key={c.id} className={selected === c.id ? 'selected' : ''}><td><button type="button" className="linklike" onClick={() => setSelected(c.id)}>{c.ref}</button></td>
                     <td>{c.kind_label}</td><td>{c.raised_by}</td><td className="num">{money(c.value)}</td><td><Badge tone={STATUS_TONE[c.status]}>{c.status_label}</Badge></td></tr>
                 ))}</tbody>
-              </table></div>
+              </table></TableWrap>
             )}
           </Card>
         </div>

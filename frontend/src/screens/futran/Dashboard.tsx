@@ -4,7 +4,7 @@ import { homePath } from '@/nav';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/api/client';
 import { hasRole, useMe } from '@/api/auth';
-import { Alert, Badge, Card, EmptyState, Loading, PageHeader, TextField, fmtDate, fmtDateTime } from '@/components/ui';
+import { Alert, Badge, Card, EmptyState, Loading, PageHeader, TextField, fmtDate, fmtDateTime, TableWrap } from '@/components/ui';
 
 type Row = { engagement_id: string; client_id: string; client_name: string; audit_ref: string; type_label: string; stage: number; stage_label: string; status: string; status_label: string; chief_auditor: string | null; target_date: string | null };
 type Data = { kpis: Record<string, number>; counts: Record<string, number>; rows: Row[] };
@@ -47,7 +47,7 @@ export function DashboardOverview() {
                 <div style={{ minWidth: 240 }}><TextField label="Search clients" value={q} onChange={(e) => setQ(e.target.value)} /></div>
               </div>
               {data.isLoading ? <Loading /> : !data.data?.rows.length ? <EmptyState>{q || filter !== 'all' ? 'No engagements match.' : 'No engagements yet. Start with New client.'}</EmptyState> : (
-                <div className="table-wrap">
+                <TableWrap label="Engagements">
                   <table className="table">
                     <thead><tr><th>Client</th><th>Engagement</th><th>Stage</th><th>Chief Auditor</th><th>Target date</th><th>Status</th></tr></thead>
                     <tbody>
@@ -63,7 +63,7 @@ export function DashboardOverview() {
                       ))}
                     </tbody>
                   </table>
-                </div>
+                </TableWrap>
               )}
             </div>
           </Card>

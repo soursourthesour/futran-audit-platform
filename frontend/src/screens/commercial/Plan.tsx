@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
 import { money, usePlan, type PlanPage } from '@/api/commercial';
-import { Alert, Badge, Button, Card, Checkbox, Dialog, EmptyState, Loading, PageHeader, SelectField, TextField, fmtDate } from '@/components/ui';
+import { Alert, Badge, Button, Card, Checkbox, Dialog, EmptyState, Loading, PageHeader, SelectField, TextField, fmtDate, TableWrap } from '@/components/ui';
 import './commercial.css';
 
 const REGIONS = [{ value: 'us', label: 'US' }, { value: 'eu', label: 'EU' }, { value: 'in', label: 'India' }];
@@ -77,13 +77,13 @@ export function Plan() {
           {p.discount_one_time_pct ? ` ${p.discount_one_time_pct}% off one-time lines` : ''}{p.discount_one_time_pct && p.discount_recurring_pct ? ' and' : ''}
           {p.discount_recurring_pct ? ` ${p.discount_recurring_pct}% off recurring lines` : ''} on the billing export.</p> : null}
         {d.order_lines.length === 0 ? <EmptyState>No order lines.</EmptyState> : (
-          <div className="table-wrap"><table className="table">
+          <TableWrap label="Order lines"><table className="table">
             <thead><tr><th>Code</th><th>Line</th><th>Qty</th><th>Billing</th><th className="num">Unit price</th><th>Start</th><th>End</th><th>Entitlement</th></tr></thead>
             <tbody>{d.order_lines.map((l) => (
               <tr key={l.id}><td>{l.code}</td><td>{l.description}</td><td>{l.qty}</td><td>{l.billing}</td><td className="num">{money(l.unit_price)}</td>
                 <td>{fmtDate(l.start_on)}</td><td>{l.end_on ? fmtDate(l.end_on) : '—'}</td><td className="small">{l.entitlement ?? '—'}</td></tr>
             ))}</tbody>
-          </table></div>
+          </table></TableWrap>
         )}
       </Card>
       {d.can_export && (

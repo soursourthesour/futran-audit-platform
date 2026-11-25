@@ -3,7 +3,7 @@ import { Link, useLocation, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
 import { can, useMe } from '@/api/auth';
-import { Alert, Badge, Button, Card, Checkbox, Dialog, EmptyState, Loading, PageHeader, SelectField, fileUrl, fmtDate, fmtDateTime } from '@/components/ui';
+import { Alert, Badge, Button, Card, Checkbox, Dialog, EmptyState, Loading, PageHeader, SelectField, fileUrl, fmtDate, fmtDateTime, TableWrap } from '@/components/ui';
 import { useTeamOptions } from '@/api/clients';
 import { ClientInsightLinks } from '@/screens/wsk/Links';
 import { DeliveryWorkspaceLinks } from '@/screens/r6b/Links';  // Release 2 R6b
@@ -165,11 +165,11 @@ export function ClientPage() {
       )}
       {tab === 'engagements' && (
         <Card>
-          <div className="table-wrap"><table className="table">
+          <TableWrap label="Engagements"><table className="table">
             <thead><tr><th>Engagement</th><th>Reference</th><th>Stage</th><th>Status</th>{can(me, 'view_engagement_fees') && <th>Commercial</th>}</tr></thead>
             <tbody><tr><td>{e.type_label}</td><td>{e.audit_ref}</td><td>{e.stage} · {e.stage_label}</td><td><Badge tone="navy">{e.status_label}</Badge></td>
               {can(me, 'view_engagement_fees') && <td><Link to={`/e/${e.id}/commercial`}>Fee and change orders</Link></td>}{/* Release 2 R5 (G-02) */}</tr></tbody>
-          </table></div>
+          </table></TableWrap>
           {live && <div style={{ marginTop: 16 }}><WorkAreas clientId={clientId} engagementId={e.id} /></div>}
         </Card>
       )}
@@ -177,8 +177,8 @@ export function ClientPage() {
         <div className="stack">
           <Card title="Sites in scope">
             {p.sites.length === 0 ? <EmptyState>No sites yet.</EmptyState> : (
-              <div className="table-wrap"><table className="table"><thead><tr><th>Site</th><th>City</th><th>Laws from</th></tr></thead>
-                <tbody>{p.sites.map((x, i) => <tr key={i}><td>{x.site_name}</td><td>{x.city ?? '—'}</td><td className="small">{x.jurisdictions.join(', ') || '—'}</td></tr>)}</tbody></table></div>
+              <TableWrap label="Sites in scope"><table className="table"><thead><tr><th>Site</th><th>City</th><th>Laws from</th></tr></thead>
+                <tbody>{p.sites.map((x, i) => <tr key={i}><td>{x.site_name}</td><td>{x.city ?? '—'}</td><td className="small">{x.jurisdictions.join(', ') || '—'}</td></tr>)}</tbody></table></TableWrap>
             )}
           </Card>
           <Card title="Laws and frameworks in scope" actions={can(me, 'view_applicability') ? <Link className="btn btn-sm" to={`/clients/${clientId}/applicability`}>Applicability and intro letter</Link> : undefined}>
@@ -213,7 +213,7 @@ export function ClientPage() {
 function LawsTable({ laws, withType }: { laws: Page['laws']; withType?: boolean }) {
   if (laws.length === 0) return <EmptyState>No laws or frameworks in scope yet.</EmptyState>;
   return (
-    <div className="table-wrap">
+    <TableWrap>
       <table className="table laws-table">
         <caption className="sr-only">Laws and frameworks in scope</caption>
         <thead><tr><th>Law or framework</th><th>Jurisdiction</th><th>Citation</th><th>Effective date</th>{withType && <th>Type</th>}</tr></thead>
@@ -229,7 +229,7 @@ function LawsTable({ laws, withType }: { laws: Page['laws']; withType?: boolean 
           ))}
         </tbody>
       </table>
-    </div>
+    </TableWrap>
   );
 }
 
@@ -242,7 +242,7 @@ function PackageDocs({ pkg, onView, onEdit }: { pkg: NonNullable<Page['package']
     return <span className="small muted">Awaiting approval</span>;
   };
   return (
-    <div className="table-wrap">
+    <TableWrap label="Initiation package documents">
       <table className="table doc-table">
         <thead><tr><th>Document</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody>
@@ -268,7 +268,7 @@ function PackageDocs({ pkg, onView, onEdit }: { pkg: NonNullable<Page['package']
           ))}
         </tbody>
       </table>
-    </div>
+    </TableWrap>
   );
 }
 

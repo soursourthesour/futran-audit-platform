@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
-import { Alert, Badge, Button, Card, Dialog, FieldHelp, Loading, PageHeader, TextArea } from '@/components/ui';
+import { Alert, Badge, Button, Card, Dialog, FieldHelp, Loading, PageHeader, TextArea, TableWrap } from '@/components/ui';
 import { scoringHelp } from '@/help/fieldwork';
 
 type Score = {
@@ -61,16 +61,16 @@ export function SystemScore() {
       <div className="split">
         <div className="main stack">
           <Card title="Inherent risk factors" actions={<span className="small muted">From §3.1–3.3 and §5.1 answers</span>}>
-            <div className="table-wrap"><table className="table">
+            <TableWrap label="Inherent risk factors"><table className="table">
               <thead><tr><th>Factor</th><th>Answer</th><th>Score</th><th>Weight</th><th>Points</th></tr></thead>
               <tbody>
                 {d.factors.map((f) => <tr key={f.key}><td>{f.label}<div className="small muted">{f.question}</div></td><td className="small">{f.answer ?? (f.score === null ? <span className="muted">Not answered</span> : '—')}</td><td>{f.score ?? '—'}</td><td>{pct(f.weight)}</td><td>{f.points ?? '—'}</td></tr>)}
                 <tr><th colSpan={4}>Inherent risk{d.eu_classification === 'high' ? ' (EU AI Act high-risk floor 70)' : ''}</th><th>{d.inherent ?? '—'}</th></tr>
               </tbody>
-            </table></div>
+            </table></TableWrap>
           </Card>
           <Card title="Control maturity by domain (§11)" actions={<span className="small muted">Proposed from evidence-confirmed checklist items; the auditor sets the final score</span>}>
-            <div className="table-wrap"><table className="table">
+            <TableWrap label="Control maturity by domain"><table className="table">
               <thead><tr><th>Domain</th><th>Weight</th><th>Evidence</th><th>Proposed</th><th>Final</th><th /></tr></thead>
               <tbody>{d.domains.map((x) => (
                 <tr key={x.key}>
@@ -80,7 +80,7 @@ export function SystemScore() {
                   <td>{editable && <Button size="sm" variant="ghost" onClick={() => setEdit(x)}>Set</Button>}</td>
                 </tr>
               ))}</tbody>
-            </table></div>
+            </table></TableWrap>
             {changed.length > 0 && <p className="small muted" style={{ marginBottom: 0 }}>{changed.map((x) => `${x.label} set to ${x.final} (proposed ${x.proposed})`).join('; ')}.</p>}
           </Card>
         </div>

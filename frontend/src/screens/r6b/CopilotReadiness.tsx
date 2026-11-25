@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
 import { RISK_TONE, type CopilotNotStarted, type CopilotSite, type CopilotView, type CopilotWave } from '@/api/r6b';
-import { Alert, Badge, Button, Card, Checkbox, Dialog, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField, fileUrl, fmtDate } from '@/components/ui';
+import { Alert, Badge, Button, Card, Checkbox, Dialog, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField, fileUrl, fmtDate, TableWrap } from '@/components/ui';
 import '@/styles/r6b.css';
 
 const opts = (m: Record<string, string>) => Object.entries(m).map(([value, label]) => ({ value, label }));
@@ -91,7 +91,7 @@ function CopilotWorkspace({ engagementId }: { engagementId: string }) {
 
       <Card title="Site risk list" className="r6b-card" actions={<a className="btn btn-sm" href={`/api/v1${base}/sites.csv`}>Export CSV</a>}>
         {v.sites.length === 0 ? <EmptyState>No sites yet. They come from the Purview oversharing and SharePoint permission reports.</EmptyState> : (
-          <div className="table-wrap">
+          <TableWrap>
             <table className="table stack-table" aria-label="Site risk list">
               <thead><tr><th>Site</th><th>Sharing</th><th>Sensitive items</th><th>Label coverage</th><th>Risk</th><th>Action</th><th>Owner</th><th>Status</th>{v.can_update_sites && <th><span className="sr-only">Edit</span></th>}</tr></thead>
               <tbody>
@@ -110,7 +110,7 @@ function CopilotWorkspace({ engagementId }: { engagementId: string }) {
                 ))}
               </tbody>
             </table>
-          </div>
+          </TableWrap>
         )}
       </Card>
 
@@ -119,7 +119,7 @@ function CopilotWorkspace({ engagementId }: { engagementId: string }) {
         <div>
           <Card title="Rollout waves" className="r6b-card" actions={v.can_manage ? <Button size="sm" onClick={() => setEditWave('new')}>Add wave</Button> : undefined}>
             {v.waves.length === 0 ? <EmptyState>No waves planned yet.</EmptyState> : (
-              <div className="table-wrap"><table className="table stack-table" aria-label="Rollout waves">
+              <TableWrap><table className="table stack-table" aria-label="Rollout waves">
                 <thead><tr><th>Wave</th><th>Groups</th><th>Date</th><th>Gate</th></tr></thead>
                 <tbody>
                   {v.waves.map((w) => (
@@ -131,7 +131,7 @@ function CopilotWorkspace({ engagementId }: { engagementId: string }) {
                     </tr>
                   ))}
                 </tbody>
-              </table></div>
+              </table></TableWrap>
             )}
           </Card>
         </div>

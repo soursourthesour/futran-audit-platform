@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/api/client';
-import { EmptyState, Loading, PageHeader, TextField, fmtDateTime } from '@/components/ui';
+import { EmptyState, Loading, PageHeader, TextField, fmtDateTime, TableWrap } from '@/components/ui';
 
 type Entry = { id: string; at: string; actor_name: string | null; action: string; object_type: string; object_id: string | null; summary: string | null; ip: string | null };
 
@@ -19,7 +19,7 @@ export function AuditLogScreen() {
       <div style={{ maxWidth: 360 }}><TextField label="Filter by action or summary" value={action} onChange={(e) => setAction(e.target.value)} /></div>
       <section className="card">
         {q.isLoading ? <Loading /> : rows.length === 0 ? <EmptyState>No entries match.</EmptyState> : (
-          <div className="table-wrap">
+          <TableWrap label="Audit log">
             <table className="table">
               {/* 11-03 F13: When keeps date and time on one line */}
               <thead><tr><th style={{ whiteSpace: 'nowrap' }}>When</th><th>Who</th><th>Action</th><th>Record</th><th>Summary</th><th>IP</th></tr></thead>
@@ -36,7 +36,7 @@ export function AuditLogScreen() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </TableWrap>
         )}
       </section>
     </div>

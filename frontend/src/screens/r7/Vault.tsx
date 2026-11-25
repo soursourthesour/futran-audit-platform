@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { errorMessage } from '@/api/client';
-import { Alert, Badge, Button, Card, Checkbox, Dialog, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField, fmtDate } from '@/components/ui';
+import { Alert, Badge, Button, Card, Checkbox, Dialog, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField, fmtDate, TableWrap } from '@/components/ui';
 import { vaultApi, type Hold, type VaultView } from '@/api/r7';
 import '@/styles/r7.css';
 
@@ -50,7 +50,7 @@ export function Vault() {
       </div>
       <Card title="Legal holds">
         {v.holds.length === 0 ? <EmptyState>No legal holds. The Chief Auditor places one on the client's request; it blocks deletion of everything in its scope until released.</EmptyState> : (
-          <div className="table-wrap"><table className="table stack-table">
+          <TableWrap label="Legal holds"><table className="table stack-table">
             <thead><tr><th>Hold</th><th>Matter</th><th>Scope</th><th>Set by</th><th>Set on</th><th>Status</th><th><span className="sr-only">Actions</span></th></tr></thead>
             <tbody>{v.holds.map((h) => (
               <tr key={h.id}>
@@ -63,12 +63,12 @@ export function Vault() {
                 <td>{h.active && v.can.manage_holds && <Button size="sm" onClick={() => setReleasing(h)}>Release</Button>}</td>
               </tr>
             ))}</tbody>
-          </table></div>
+          </table></TableWrap>
         )}
       </Card>
       <Card title="Deletion countdown">
         {v.countdown.items.length === 0 ? <EmptyState>Nothing is due for deletion in the next 90 days.</EmptyState> : (
-          <div className="table-wrap"><table className="table stack-table">
+          <TableWrap label="Deletion countdown"><table className="table stack-table">
             <thead><tr><th>Item</th><th>Engagement</th><th>Type</th><th>Delete on</th><th>Hold</th></tr></thead>
             <tbody>{v.countdown.items.map((i) => (
               <tr key={`${i.item_type}-${i.id}`}>
@@ -77,7 +77,7 @@ export function Vault() {
                 <td>{i.hold ? <Badge tone="warn">{i.hold}</Badge> : '—'}</td>
               </tr>
             ))}</tbody>
-          </table></div>
+          </table></TableWrap>
         )}
         <p className="r7-note">Engagement evidence is deleted at the end of the retention period, never sooner than 90 days after a notice to the Chief Auditor and the client's CAICO. Items under an active legal hold are kept until it is released. Reports and signed documents are not deleted here.</p>
       </Card>

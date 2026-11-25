@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
-import { Alert, Badge, Button, Card, Dialog, Loading, PageHeader, SelectField, TextArea, TextField } from '@/components/ui';
+import { Alert, Badge, Button, Card, Dialog, Loading, PageHeader, SelectField, TextArea, TextField, TableWrap } from '@/components/ui';
 import { FieldHelp } from '@/components/ui/FieldHelp';
 import { STAGE_OPTIONS, stageLabel, type RoleCatalogue as Catalogue, type RoleRow } from '@/api/regmaster';
 import { roleHelp as H } from '@/help/regmaster';
@@ -137,7 +137,7 @@ function RoleEditor({ role, cat, onClose, onDone }: { role: RoleRow; cat: Catalo
         <SelectField label="Extra checks when assigned" help={H.checks} value={f.extra_checks} onChange={(e) => setF({ ...f, extra_checks: e.target.value })} placeholder="None" options={[{ value: 'oversight_confirmations', label: 'Training completed + authority to override' }]} />
       </div>
       <TextArea label="Responsibility (shown in the intro letter) *" help={H.description} value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} error={errs.description} rows={2} />
-      <div className="table-wrap" style={{ marginTop: 12 }}>
+      <TableWrap label="Laws that require this role" style={{ marginTop: 12 }}>
         <table className="table">
           <thead><tr><th>Law</th><th>Level</th><th><span className="th-help">Needed by<FieldHelp label="Needed by">{H.neededBy}</FieldHelp></span></th><th>Basis</th></tr></thead>
           <tbody>{cat.laws.map((l) => (
@@ -151,7 +151,7 @@ function RoleEditor({ role, cat, onClose, onDone }: { role: RoleRow; cat: Catalo
             </tr>
           ))}</tbody>
         </table>
-      </div>
+      </TableWrap>
       {changed.length > 0 && <Alert tone="warn">Changing a level updates the required roles on every client AI system under that law, once the Chief Auditor approves.</Alert>}
       {metaChanged && !cat.can_approve && <Alert tone="info">Your changes to the role details go to the Chief Auditor for approval. The catalogue changes once they approve.</Alert>}
       {proposes && <TextField label="Reason for change" help={H.reason} value={reason} onChange={(e) => setReason(e.target.value)} />}

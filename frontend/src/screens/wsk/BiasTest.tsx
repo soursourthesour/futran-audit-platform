@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
-import { Alert, Badge, Button, Card, Checkbox, Dialog, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField, fmtDate, fmtDateTime } from '@/components/ui';
+import { Alert, Badge, Button, Card, Checkbox, Dialog, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField, fmtDate, fmtDateTime, TableWrap } from '@/components/ui';
 import { type BiasPage, type BiasRun, type GuardrailRun, pct, ratio } from '@/api/wsk';
 import { biasHelp } from '@/help/wsk';
 import './wsk.css';
@@ -118,7 +118,7 @@ function CategoryTable({ run, dim }: { run: BiasRun; dim: 'race' | 'sex' | 'inte
   const labels = run.results.has_labels;
   return (
     <>
-      <div className="table-wrap"><table className="table bias-table">
+      <TableWrap><table className="table bias-table">
         <caption className="sr-only">{`${t.label} categories`}</caption>
         <thead><tr><th>Category</th><th className="num">Applicants</th><th className="num">{scoring ? 'Above median' : 'Selected'}</th><th className="num">{scoring ? 'Scoring rate' : 'Selection rate'}</th><th className="num">Impact ratio</th>{labels && <th className="num">Equal opportunity difference</th>}<th className="num">Parity difference</th></tr></thead>
         <tbody>
@@ -130,7 +130,7 @@ function CategoryTable({ run, dim }: { run: BiasRun; dim: 'race' | 'sex' | 'inte
           ))}
           <tr className="muted"><td>Unknown<div className="small">not in the calculation</div></td><td className="num">{t.unknown.toLocaleString()}</td><td className="num">{t.unknown_selected.toLocaleString()}</td><td className="num">{pct(t.unknown ? t.unknown_selected / t.unknown : null)}</td><td className="num">—</td>{labels && <td />}<td /></tr>
         </tbody>
-      </table></div>
+      </table></TableWrap>
       {t.note && <Alert tone="info">{t.note}</Alert>}
       <p className="small muted" style={{ margin: 0 }}>Impact ratio = the category’s {scoring ? 'scoring' : 'selection'} rate ÷ the rate of the {scoring ? 'highest scoring' : 'most selected'} category (6 RCNY § 5-300). Categories other than Hispanic or Latino are not Hispanic or Latino.</p>
     </>
@@ -229,8 +229,8 @@ function Guardrails({ systemId, canRun }: { systemId: string; canRun: boolean })
       {last && (
         <>
           <p className="small" style={{ margin: 0 }}><strong>{last.suggestion.text}</strong> {last.endpoint_label ? `${last.endpoint_label} · ` : ''}{fmtDateTime(last.run_at)} · <Badge tone={last.status === 'accepted' ? 'success' : last.status === 'rejected' ? 'muted' : 'warn'}>{last.status === 'suggested' ? 'Suggestion' : last.status === 'accepted' ? 'Accepted' : 'Rejected'}</Badge></p>
-          <div className="table-wrap"><table className="table"><thead><tr><th>Prompt</th><th>Category</th><th>Result</th><th>Why</th></tr></thead>
-            <tbody>{last.results.map((r) => <tr key={r.id}><td>{r.id} {r.title}</td><td className="small">{r.category.replace('_', ' ')}</td><td>{r.passed ? <Badge tone="success">Passed</Badge> : <Badge tone="danger">Failed</Badge>}</td><td className="small">{r.reason}</td></tr>)}</tbody></table></div>
+          <TableWrap label="GenAI guardrail tests"><table className="table"><thead><tr><th>Prompt</th><th>Category</th><th>Result</th><th>Why</th></tr></thead>
+            <tbody>{last.results.map((r) => <tr key={r.id}><td>{r.id} {r.title}</td><td className="small">{r.category.replace('_', ' ')}</td><td>{r.passed ? <Badge tone="success">Passed</Badge> : <Badge tone="danger">Failed</Badge>}</td><td className="small">{r.reason}</td></tr>)}</tbody></table></TableWrap>
           {canRun && last.status === 'suggested' && (
             <div className="row" style={{ gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
               <div style={{ flex: '1 1 240px' }}><TextField label="Note" help={biasHelp.decisionNote} value={note} onChange={(e) => setNote(e.target.value)} /></div>

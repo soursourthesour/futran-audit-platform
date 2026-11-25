@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
-import { Alert, Badge, Button, Dialog, Loading, TextArea } from '@/components/ui';
+import { Alert, Badge, Button, Dialog, Loading, TextArea, TableWrap } from '@/components/ui';
 import { money, type Diff, type Line, type Proposal, type RuleState } from '@/api/proposals';
 import '@/styles/proposals.css';
 
@@ -120,7 +120,7 @@ export function ProposalBuilder() {
 
       <section className="card" aria-label="Lines">
         {editable && <AddLine items={cat.data?.items ?? []} onAdd={(code, qty) => call(() => api.post(`/sales/proposals/${id}/lines`, { code, qty }), `${code} added.`)} />}
-        <div className="table-wrap">
+        <TableWrap>
           <table className="pb-table" aria-label="Proposal lines">
             <thead>
               <tr><th>Code</th><th>Line item</th><th>Why it's here</th><th className="num">Qty</th><th>Billing</th><th className="num">List</th><th className="num">Edited price</th>
@@ -135,7 +135,7 @@ export function ProposalBuilder() {
               ))}
             </tbody>
           </table>
-        </div>
+        </TableWrap>
         {removed.length > 0 && (
           <details className="pb-removed">
             <summary>{removed.length} suggested line{removed.length !== 1 ? 's' : ''} removed</summary>

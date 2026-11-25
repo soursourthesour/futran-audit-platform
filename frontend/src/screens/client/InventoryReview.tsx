@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
 import { useMe } from '@/api/auth';
-import { Alert, Badge, Button, Card, Loading, PageHeader, TextArea, fmtDateTime } from '@/components/ui';
+import { Alert, Badge, Button, Card, Loading, PageHeader, TextArea, fmtDateTime, TableWrap } from '@/components/ui';
 import { SignPanel, type SignOffView } from '@/components/SignPanel';
 import { signHelp } from '@/help/client';
 import { STATUS_LABELS, tierBadge, useInventory } from '@/screens/client/Inventory';
@@ -72,10 +72,10 @@ export function InventoryReview() {
       </div>
       <div className="stack">
         <Card title={`Use cases · ${ucs.length}`} actions={<span className="small muted">Tier 3: {inv.data?.tiers['3'] ?? 0} · Tier 2: {inv.data?.tiers['2'] ?? 0} · Tier 1: {inv.data?.tiers['1'] ?? 0}</span>}>
-          <div className="table-wrap"><table className="table">
+          <TableWrap label="Use cases"><table className="table">
             <thead><tr><th>Use case</th><th>Department</th><th>Tool · account</th><th>Proposed tier</th><th>EU AI Act</th><th>Status</th></tr></thead>
             <tbody>{ucs.map((u) => <tr key={u.id}><td><strong>{u.name}</strong></td><td>{u.department}</td><td className="small">{u.tools.join(', ')}</td><td>{tierBadge(u.proposed_tier)}</td><td>{euBadge(u.eu_risk_level, u.eu_risk_label)}</td><td><Badge tone={STATUS_LABELS[u.status]?.tone ?? 'muted'}>{STATUS_LABELS[u.status]?.label ?? u.status}</Badge></td></tr>)}</tbody>
-          </table></div>
+          </table></TableWrap>
         </Card>
         <Card title="Sign-off 2 · Department inventories">
           <div className="stack">
