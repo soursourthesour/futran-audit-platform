@@ -61,7 +61,9 @@ def test_an_earlier_update_is_matched_when_the_client_gains_a_geography(client, 
     db.commit()
     a = _alert(db, d["id"], org.id)
     assert a is not None and a.affected_system_ids == [s.id]
-    assert db.scalar(select(ReassessmentTrigger.id).where(ReassessmentTrigger.register_system_id == s.id, ReassessmentTrigger.source_ref == f"update:{d['id']}")) is not None
+    # review 11-25 #7: a late re-match adds the alert but raises no reassessment trigger, which would reopen verified
+    # audit answers for an update published before; the alert asks for review and a person raises a trigger if needed
+    assert db.scalar(select(ReassessmentTrigger.id).where(ReassessmentTrigger.register_system_id == s.id, ReassessmentTrigger.source_ref == f"update:{d['id']}")) is None
     engine.run(db, org.id)  # running again adds nothing
     assert len(db.scalars(select(RegulatoryAlert).where(RegulatoryAlert.update_id == d["id"], RegulatoryAlert.organization_id == org.id)).all()) == 1
 

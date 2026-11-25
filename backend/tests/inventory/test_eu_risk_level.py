@@ -83,3 +83,26 @@ def test_tier3_reason_names_ll144_only_for_nyc_hiring(client, db, inv):
         g.deleted_at = utcnow()
     db.commit()
     assert "Local Law 144" not in client.get(f"/api/v1/use-cases/{hiring['id']}").json()["tier_reason"]
+
+
+def test_futran_correction_survives_a_client_resave(client, db, people, inv):
+    """Review 11-25 #5 and #8: Futran corrects only submitted use cases; once corrected, a client re-save after a
+    return keeps Futran's answers, and the client's audit entry records the EU fields."""
+    cid, e, maria, hr, copilot, chatgpt = inv
+    uc = _uc(client, cid, hr, [copilot["id"]], eu_screening=NOTES_SCREENING)
+    login_as(client, db, people["aud"])
+    r = client.post(f"/api/v1/use-cases/{uc['id']}/eu-screening", json={"eu_screening": HR_SCREENING, "rationale": "Ranks applicants."})
+    assert r.status_code == 409  # still a client draft
+    login_as(client, db, maria)
+    assert client.post(f"/api/v1/use-cases/{uc['id']}/submit").json()["status"] == "submitted"
+    login_as(client, db, people["aud"])
+    r = client.post(f"/api/v1/use-cases/{uc['id']}/eu-screening", json={"eu_screening": HR_SCREENING, "rationale": "Ranks applicants."})
+    assert r.status_code == 200 and r.json()["eu_set_by_futran"] is True
+    login_as(client, db, maria)
+    assert client.post(f"/api/v1/use-cases/{uc['id']}/review", json={"approve": False, "comment": "Add the purpose."}).json()["status"] == "returned"
+    body = {"name": "Résumé screening", "department_id": hr.id, "purpose": "Ranks applicants", "tool_ids": [copilot["id"]], "data_categories": ["none"],
+            "decision_impact": "none", "usage": [], "named_users": [], "eu_screening": NOTES_SCREENING}
+    r = client.put(f"/api/v1/use-cases/{uc['id']}", json=body)
+    assert r.status_code == 200 and r.json()["eu_risk_level"] == "high_risk"  # Futran's answers kept
+    log = db.scalar(select(AuditLog).where(AuditLog.object_id == uc["id"], AuditLog.action == "inventory.use_case").order_by(AuditLog.at.desc()))
+    assert "eu_risk_level" in (log.after or {})

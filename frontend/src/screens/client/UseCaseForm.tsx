@@ -11,7 +11,7 @@ import { EMPTY_SCREENING, EU_HELP, EuLevelSummary, EuScreeningFields, type EuFie
 
 type Named = { id?: string; person_name: string; email: string; role_name?: string | null; oversight_role: string; has_account?: boolean; training_complete?: boolean | null; policy_acknowledged?: boolean | null; oversight_role_confirmed?: boolean | null; link_sent?: boolean };
 type Usage = { role_name: string; headcount: string; frequency: string };
-type Detail = { id: string; name: string; department_id: string; purpose: string | null; tool_ids: string[]; data_categories: string[]; decision_impact: string | null; status: string; proposed_tier: number | null; final_tier: number | null; final_tier_rationale: string | null; aedt_determination: string | null; returned_comment: string | null; tier_reason: string; eu_screening: EuScreening | null; eu_risk_level: EuLevel | null; eu_risk_label: string; eu_risk_reason: string; usage: { role_name: string; headcount: number | null; frequency: string | null }[]; named_users: Named[] };
+type Detail = { id: string; name: string; department_id: string; purpose: string | null; tool_ids: string[]; data_categories: string[]; decision_impact: string | null; status: string; proposed_tier: number | null; final_tier: number | null; final_tier_rationale: string | null; aedt_determination: string | null; returned_comment: string | null; tier_reason: string; eu_screening: EuScreening | null; eu_risk_level: EuLevel | null; eu_risk_label: string; eu_risk_reason: string; eu_set_by_futran?: boolean; usage: { role_name: string; headcount: number | null; frequency: string | null }[]; named_users: Named[] };
 type Preview = { tier: number; label: string; reason: string } & Partial<Pick<EuFields, 'eu_risk_level' | 'eu_risk_label' | 'eu_risk_reason'>>;
 
 const DATA = [{ value: 'pii', label: 'Personal information (PII)' }, { value: 'phi', label: 'Health information (PHI)' }, { value: 'client', label: 'Client or customer data' }, { value: 'confidential', label: 'Company confidential' }, { value: 'none', label: 'None of these' }];
@@ -113,8 +113,9 @@ function Form({ clientId, uc, isFutran, canReview, canTier, euOptions }: { clien
           </Card>
           <Card title="EU AI Act screening">
             <div className="stack">
-              <p className="small muted" style={{ margin: 0 }}>Answer these for every use, even if you have no EU customers or staff yet. They decide the EU AI Act risk level shown beside the Futran tier.</p>
-              <EuScreeningFields options={euOptions} value={screening} onChange={setScreening} disabled={!editable} errors={fe} />
+              {uc?.eu_set_by_futran ? <Alert tone="info">Futran set these answers during fieldwork. Ask the auditor if they need to change.</Alert>
+                : <p className="small muted" style={{ margin: 0 }}>Answer these for every use, even if you have no EU customers or staff yet. They decide the EU AI Act risk level shown beside the Futran tier.</p>}
+              <EuScreeningFields options={euOptions} value={screening} onChange={setScreening} disabled={!editable || !!uc?.eu_set_by_futran} errors={fe} />
             </div>
           </Card>
           <Card title="Who uses it">

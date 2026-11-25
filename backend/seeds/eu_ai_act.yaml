@@ -57,7 +57,7 @@ art5_practices:
   crime_prediction: "Predicts whether a person will commit a crime from profiling or personality traits alone (Art. 5(1)(d))"
   face_scraping: "Builds facial recognition databases by untargeted scraping of images (Art. 5(1)(e))"
   emotion_work_education: "Infers emotions at work or in education, other than for medical or safety reasons (Art. 5(1)(f))"
-  biometric_categorisation: "Uses biometrics to infer race, political opinions, union membership, religion, sex life or sexual orientation (Art. 5(1)(g))"
+  biometric_categorisation: "Uses biometrics to infer race, political opinions, union membership, religious or philosophical beliefs, sex life or sexual orientation (Art. 5(1)(g))"
   realtime_rbi: "Real-time remote biometric identification in public spaces for law enforcement (Art. 5(1)(h))"
 art50_situations:
   interacts: "Talks or chats directly with people (Art. 50(1))"
@@ -65,18 +65,18 @@ art50_situations:
   emotion_biometric: "Recognises emotions or sorts people by biometric data (Art. 50(3))"
   deepfake_public_text: "Creates deepfakes or publishes AI text on matters of public interest (Art. 50(4))"
 annex_i_label: "Is a safety component of, or is itself, a product under EU product-safety law that needs a third-party conformity assessment (Annex I)"
-art6_3_label: "A documented Art. 6(3) assessment shows the Annex III use poses no significant risk (a narrow procedural or preparatory task, and no profiling of people)"
+art6_3_label: "A documented Art. 6(3) assessment shows the Annex III use poses no significant risk: it only does a narrow procedural task, improves the result of work a person already finished, spots patterns without replacing a person's review, or prepares an assessment; it never involves profiling people. The assessment is recorded and the system registered (Art. 6(4))."
 gpai_label: "We provide it as a general-purpose AI model (Art. 51–55)"
 
 # Annex III areas. `fria` true: a deployer of a system in this area completes a FRIA even when it is not a public body
 # or public service provider (Art. 27(1), Annex III point 5(b) and (c)). `no_fria`: Art. 27(1) excludes the area.
 annex_iii_areas:
-  biometrics: {label: "Biometrics (point 1)"}
+  biometrics: {label: "Biometrics, other than only confirming a person is who they say (point 1)"}
   critical_infrastructure: {label: "Critical infrastructure (point 2)", no_fria: true}
   education: {label: "Education and vocational training (point 3)"}
   employment: {label: "Employment and workers management (point 4)"}
   public_services: {label: "Public assistance benefits and services (point 5(a))"}
-  credit: {label: "Creditworthiness and credit scoring (point 5(b))", fria: true}
+  credit: {label: "Creditworthiness and credit scoring, other than fraud detection (point 5(b))", fria: true}
   insurance: {label: "Life and health insurance pricing (point 5(c))", fria: true}
   emergency: {label: "Emergency calls and dispatch (point 5(d))"}
   law_enforcement: {label: "Law enforcement (point 6)"}

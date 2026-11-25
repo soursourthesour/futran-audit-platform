@@ -76,7 +76,7 @@ def use_case_out(db: Session, uc: UseCase, detail: bool = False) -> dict:
         "id": uc.id, "name": uc.name, "department_id": uc.department_id, "department": dept.name if dept else None, "status": uc.status,
         "tools": [f"{t.product} · {t.account_type.replace('_', ' ')}" for t in tools], "tool_ids": uc.tool_ids, "proposed_tier": uc.proposed_tier,
         "final_tier": uc.final_tier, "final_tier_rationale": uc.final_tier_rationale, "aedt_determination": uc.aedt_determination, "returned_comment": uc.returned_comment,
-    } | eu_risk.out(uc.eu_screening, uc.eu_risk_level, uc.eu_risk_reason)
+    } | eu_risk.out(uc.eu_screening, uc.eu_risk_level, uc.eu_risk_reason, set_by_futran=bool(uc.eu_screening_set_by))
     if detail:
         out |= {
             "purpose": uc.purpose, "data_categories": uc.data_categories, "decision_impact": uc.decision_impact,

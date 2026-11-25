@@ -45,3 +45,15 @@ def test_signed_off_classification_overrides_the_screening(client, db, reg):
     rec.signoff_status = "draft"
     svc.apply_eu_level(db, row)
     assert row.eu_risk_level == "limited"
+
+
+def test_migration_backfills_signed_off_classifications():
+    """Review 11-25 #10: the data step maps signed-off EU workspace classifications to the level."""
+    import importlib.util
+    from pathlib import Path
+
+    p = Path(__file__).resolve().parents[2] / "migrations" / "versions" / "58f307875d99_eu_risk_level_beside_tier.py"
+    spec = importlib.util.spec_from_file_location("m58f", p)
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    assert m.BACKFILL_LEVELS == {"prohibited": "prohibited", "high_risk_annex_iii": "high_risk", "high_risk_annex_i": "high_risk", "transparency": "limited", "minimal": "minimal"}

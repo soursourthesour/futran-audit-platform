@@ -364,7 +364,7 @@ def raise_triggers(db: Session, u: RegulatoryUpdate, alerts: list[RegulatoryAler
 def rematch_org(db: Session, org_id: str, actor_id: str | None = None) -> list[RegulatoryAlert]:
     """BUG-08: open updates (published, not watch items) are matched again for one client whose applicability or
     geographies changed after they were published. Only missing alerts are added; an existing alert is left as it is.
-    Reassessment triggers follow, as at publish."""
+    No reassessment triggers: those reopen verified audit answers, so a person raises one from the alert if needed."""
     org = db.get(Organization, org_id)
     if org is None or org.type != "client" or org.deleted_at is not None:
         return []
@@ -379,7 +379,8 @@ def rematch_org(db: Session, org_id: str, actor_id: str | None = None) -> list[R
         a = RegulatoryAlert(organization_id=org_id, update_id=u.id, affected_system_ids=hit[0], match_reason=hit[1])
         db.add(a)
         db.flush()
-        raise_triggers(db, u, [a], actor_id)
+        # no raise_triggers here (review 11-25 #7): a trigger reopens verified audit answers, which is right for a new
+        # update but not for one published before this client was matched; the alert asks for review instead
         out.append((u, a))
     if out:
         audit.record(db, actor_id=actor_id, action="regupdate.rematch", organization_id=org_id, object_type="Organization", object_id=org_id,

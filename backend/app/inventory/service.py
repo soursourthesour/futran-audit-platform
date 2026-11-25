@@ -99,6 +99,8 @@ def set_eu_screening(db: Session, actor: User, uc: UseCase, raw, rationale: str)
     from app.findings.service import assert_open
 
     assert_open(db, db.get(Engagement, uc.engagement_id))
+    if uc.status in ("draft", "returned"):  # the client's to answer until submitted, as with the final tier (review 11-25 #8)
+        raise Conflict("The client has not submitted this use case yet.")
     errs: list[dict] = []
     screening = eu_risk.clean_screening(raw, errs)
     if not errs and not eu_risk.complete(screening):
@@ -109,6 +111,7 @@ def set_eu_screening(db: Session, actor: User, uc: UseCase, raw, rationale: str)
         raise Invalid(errors=errs)
     before = {"eu_screening": uc.eu_screening, "eu_risk_level": uc.eu_risk_level}
     uc.eu_screening = screening
+    uc.eu_screening_set_by = actor.id
     apply_eu_level(uc)
     uc.updated_by = actor.id
     audit.record(db, actor_id=actor.id, action="inventory.eu_screening", obj=uc, before=before,
@@ -263,7 +266,7 @@ def save_use_case(db: Session, actor: User, org: Organization, e: Engagement, da
         db.add(uc)
     for k in ("name", "department_id", "purpose", "tool_ids", "data_categories", "decision_impact"):
         setattr(uc, k, v[k])
-    if v["eu_screening"] is not _KEEP:
+    if v["eu_screening"] is not _KEEP and not uc.eu_screening_set_by:  # a Futran correction stands (review 11-25 #5)
         uc.eu_screening = v["eu_screening"]
         apply_eu_level(uc)
     uc.updated_by = actor.id
@@ -294,7 +297,7 @@ def save_use_case(db: Session, actor: User, org: Organization, e: Engagement, da
             row.deleted_at = utcnow()
             _revoke_links(db, row)
     db.flush()
-    audit.record(db, actor_id=actor.id, action="inventory.use_case", obj=uc, after={"proposed_tier": uc.proposed_tier, "status": uc.status}, summary=f"Saved use case {uc.name} (proposed tier {uc.proposed_tier})")
+    audit.record(db, actor_id=actor.id, action="inventory.use_case", obj=uc, after={"proposed_tier": uc.proposed_tier, "status": uc.status, "eu_screening": uc.eu_screening, "eu_risk_level": uc.eu_risk_level}, summary=f"Saved use case {uc.name} (proposed tier {uc.proposed_tier})")
     return uc
 
 

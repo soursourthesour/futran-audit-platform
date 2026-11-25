@@ -59,18 +59,19 @@ def complete(s: dict | None) -> bool:
 
 def level_for(s: dict | None) -> tuple[str | None, str]:
     """(level, reason) from a screening; (None, NOT_SCREENED) until all three questions are answered."""
-    if not complete(s):
-        return None, NOT_SCREENED
-    practices = _picked(s.get("art5"))
-    if practices:
+    practices = _picked((s or {}).get("art5"))
+    if practices:  # shown even when the other answers are blank (review 11-25 #6)
         names = art5_practices()
         return "prohibited", "Prohibited practice: " + "; ".join(names.get(p, p) for p in practices) + "."
+    if not complete(s):
+        return None, NOT_SCREENED
     area = s.get("annex_iii_area")
     area_label = rules.areas().get(area or "", {}).get("label") if area and area != NONE else None
+    also = " Art. 50 transparency duties also apply." if _picked(s.get("art50")) else ""
     if s.get("annex_i"):
-        return "high_risk", "Product-safety component or product under Annex I."
+        return "high_risk", "Product-safety component or product under Annex I." + also
     if area_label and not s.get("art6_3_exception"):
-        return "high_risk", f"Used in an Annex III area: {area_label}."
+        return "high_risk", f"Used in an Annex III area: {area_label}." + also
     note = f" Annex III area ({area_label}), but a documented Art. 6(3) assessment shows no significant risk." if area_label else ""
     situations = _picked(s.get("art50"))
     if situations:
@@ -138,7 +139,7 @@ def summary(s: dict | None) -> str | None:
     return "; ".join(parts)
 
 
-def out(screening: dict | None, level: str | None, reason: str | None) -> dict:
+def out(screening: dict | None, level: str | None, reason: str | None, *, set_by_futran: bool = False) -> dict:
     """The EU fields every serializer adds next to the tier."""
     return {"eu_screening": screening, "eu_risk_level": level, "eu_risk_label": label(level), "eu_risk_reason": reason or NOT_SCREENED,
-            "eu_gpai": bool((screening or {}).get("gpai"))}
+            "eu_gpai": bool((screening or {}).get("gpai")), "eu_set_by_futran": set_by_futran}

@@ -84,3 +84,22 @@ def test_workspace_labels_use_the_eu_terms():
     assert c["transparency"] == "Limited risk · transparency (Art. 50)"
     assert c["minimal"] == "Minimal risk"
     assert c["prohibited"] == "Prohibited (Art. 5)"
+
+
+def test_a_ticked_prohibited_practice_shows_even_if_the_rest_is_blank():
+    """Review 11-25 #6."""
+    level, reason = risk.level_for({"art5": ["social_scoring"]})
+    assert level == "prohibited" and "Art. 5(1)(c)" in reason
+
+
+def test_high_risk_also_names_transparency_duties():
+    """Review 11-25 #13: first match wins for the level, but Art. 50 duties still apply to a high-risk system."""
+    level, reason = risk.level_for(_scr(annex_iii_area="employment", art50=["interacts"]))
+    assert level == "high_risk" and "Art. 50" in reason
+
+
+def test_legal_wording():
+    """Review 11-25 #13: Art. 5(1)(g) includes philosophical beliefs; the Art. 6(3) label carries its conditions."""
+    assert "philosophical beliefs" in risk.art5_practices()["biometric_categorisation"]
+    o = risk.options()
+    assert "profiling" in o["art6_3_label"] and "Art. 6(4)" in o["art6_3_label"]

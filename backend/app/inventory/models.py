@@ -45,6 +45,7 @@ class UseCase(TimestampedTenantMixin, Base):
     eu_screening: Mapped[dict | None] = mapped_column(JSON)
     eu_risk_level: Mapped[str | None] = mapped_column(String(12))  # prohibited | high_risk | limited | minimal; null = not screened
     eu_risk_reason: Mapped[str | None] = mapped_column(String(400))
+    eu_screening_set_by: Mapped[str | None] = mapped_column(String(36))  # the Futran user who corrected it; the client can no longer change it
     owner_user_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("users.id"))
     status: Mapped[str] = mapped_column(String(14), default="draft")  # draft | submitted | dept_approved | returned
     returned_comment: Mapped[str | None] = mapped_column(Text)
