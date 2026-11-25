@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors, type FieldError } from '@/api/client';
 import { hasRole, useMe } from '@/api/auth';
@@ -11,7 +11,8 @@ import { EMPTY_SCREENING, EU_HELP, EuLevelSummary, EuScreeningFields, type EuFie
 
 type Named = { id?: string; person_name: string; email: string; role_name?: string | null; oversight_role: string; has_account?: boolean; training_complete?: boolean | null; policy_acknowledged?: boolean | null; oversight_role_confirmed?: boolean | null; link_sent?: boolean };
 type Usage = { role_name: string; headcount: string; frequency: string };
-type Detail = { id: string; name: string; department_id: string; purpose: string | null; tool_ids: string[]; data_categories: string[]; decision_impact: string | null; status: string; proposed_tier: number | null; final_tier: number | null; final_tier_rationale: string | null; aedt_determination: string | null; returned_comment: string | null; tier_reason: string; eu_screening: EuScreening | null; eu_risk_level: EuLevel | null; eu_risk_label: string; eu_risk_reason: string; eu_set_by_futran?: boolean; usage: { role_name: string; headcount: number | null; frequency: string | null }[]; named_users: Named[] };
+type Detail = { id: string; name: string; department_id: string; purpose: string | null; tool_ids: string[]; data_categories: string[]; decision_impact: string | null; status: string; proposed_tier: number | null; final_tier: number | null; final_tier_rationale: string | null; aedt_determination: string | null; returned_comment: string | null; tier_reason: string; tiers_locked?: boolean; eu_screening: EuScreening | null; eu_risk_level: EuLevel | null; eu_risk_label: string; eu_risk_reason: string; eu_set_by_futran?: boolean; usage: { role_name: string; headcount: number | null; frequency: string | null }[]; named_users: Named[] };
+type Carried = { submitError?: { message: string; errors: FieldError[] } };
 type Preview = { tier: number; label: string; reason: string } & Partial<Pick<EuFields, 'eu_risk_level' | 'eu_risk_label' | 'eu_risk_reason'>>;
 
 const DATA = [{ value: 'pii', label: 'Personal information (PII)' }, { value: 'phi', label: 'Health information (PHI)' }, { value: 'client', label: 'Client or customer data' }, { value: 'confidential', label: 'Company confidential' }, { value: 'none', label: 'None of these' }];
@@ -33,15 +34,17 @@ export function UseCaseForm() {
 function Form({ clientId, uc, isFutran, canReview, canTier, euOptions }: { clientId: string; uc?: Detail; isFutran: boolean; canReview: boolean; canTier: boolean; euOptions: EuOptions }) {
   const inv = useInventory(clientId).data!;
   const nav = useNavigate();
+  const loc = useLocation();
   const qc = useQueryClient();
+  const carried = (loc.state as Carried | null)?.submitError;
   const editable = !isFutran && (!uc || uc.status === 'draft' || uc.status === 'returned');
   const [f, setF] = useState({ name: uc?.name ?? '', department_id: uc?.department_id ?? inv.departments[0]?.id ?? '', purpose: uc?.purpose ?? '', tool_ids: uc?.tool_ids ?? [], data_categories: uc?.data_categories ?? [], decision_impact: uc?.decision_impact ?? '' });
   const [usage, setUsage] = useState<Usage[]>(uc?.usage.length ? uc.usage.map((u) => ({ role_name: u.role_name, headcount: u.headcount?.toString() ?? '', frequency: u.frequency ?? '' })) : [{ role_name: '', headcount: '', frequency: '' }]);
   const [named, setNamed] = useState<Named[]>(uc?.named_users ?? []);
   const [screening, setScreening] = useState<EuScreening>(uc?.eu_screening ?? EMPTY_SCREENING);
   const [preview, setPreview] = useState<Preview | null>(null);
-  const [err, setErr] = useState<string | null>(null);
-  const [errs, setErrs] = useState<FieldError[]>([]);
+  const [err, setErr] = useState<string | null>(carried?.message ?? null);
+  const [errs, setErrs] = useState<FieldError[]>(carried?.errors ?? []);
   const [msg, setMsg] = useState<string | null>(null);
 
   useEffect(() => {
@@ -59,7 +62,17 @@ function Form({ clientId, uc, isFutran, canReview, canTier, euOptions }: { clien
     setErr(null); setErrs([]); setMsg(null);
     try {
       const saved = uc ? await api.put<Detail>(`/use-cases/${uc.id}`, body()) : await api.post<Detail>(`/clients/${clientId}/use-cases`, body());
-      if (submit) await api.post(`/use-cases/${saved.id}/submit`);
+      if (submit) {
+        try {
+          await api.post(`/use-cases/${saved.id}/submit`);
+        } catch (e) {
+          if (uc) throw e;
+          // BUG-C02: the draft is saved. Move to it, so the next Submit or Save draft updates it instead of adding another.
+          await qc.invalidateQueries();
+          nav(`/inventory/${saved.id}`, { replace: true, state: { submitError: { message: `Draft saved. ${errorMessage(e)}`, errors: (e as { errors?: FieldError[] }).errors ?? [] } } satisfies Carried });
+          return;
+        }
+      }
       await qc.invalidateQueries();
       if (submit) nav('/register?type=use_case');
       else if (!uc) nav(`/inventory/${saved.id}`, { replace: true });
@@ -167,8 +180,8 @@ function Form({ clientId, uc, isFutran, canReview, canTier, euOptions }: { clien
           </Card>
           {uc && uc.final_tier && <Card title="Final tier (Futran)"><div className="stack-sm">{tierBadge(uc.final_tier)}<p className="small" style={{ margin: 0 }}>{uc.final_tier_rationale}</p>{uc.aedt_determination && <p className="small muted" style={{ margin: 0 }}>AEDT: {AEDT.find((a) => a.value === uc.aedt_determination)?.label}</p>}</div></Card>}
           {uc && !isFutran && canReview && uc.status === 'submitted' && <ReviewCard id={uc.id} onDone={() => qc.invalidateQueries()} />}
-          {uc && isFutran && canTier && uc.status !== 'draft' && uc.status !== 'returned' && <FinalTierCard uc={uc} onDone={() => qc.invalidateQueries()} />}
-          {uc && isFutran && canTier && uc.status !== 'draft' && uc.status !== 'returned' && <EuCorrectionCard uc={uc} options={euOptions} onDone={() => qc.invalidateQueries()} />}
+          {uc && isFutran && canTier && !uc.tiers_locked && uc.status !== 'draft' && uc.status !== 'returned' && <FinalTierCard uc={uc} onDone={() => qc.invalidateQueries()} />}
+          {uc && isFutran && canTier && !uc.tiers_locked && uc.status !== 'draft' && uc.status !== 'returned' && <EuCorrectionCard uc={uc} options={euOptions} onDone={() => qc.invalidateQueries()} />}
           {isFutran && <Link className="small" to={`/clients/${clientId}/inventory`}>Back to the inventory</Link>}
         </div>
       </div>
