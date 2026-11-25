@@ -6,6 +6,7 @@ import { Alert, Badge, Button, Card, Loading, PageHeader, TextArea, fmtDateTime 
 import { SignPanel, type SignOffView } from '@/components/SignPanel';
 import { signHelp } from '@/help/client';
 import { STATUS_LABELS, tierBadge, useInventory } from '@/screens/client/Inventory';
+import { euBadge } from '@/components/EuScreening';
 
 type Block = { sign_off: (SignOffView & { version: number }) | null; unmet: string[]; can_submit: boolean; can_correct: boolean };
 type Review = {
@@ -72,8 +73,8 @@ export function InventoryReview() {
       <div className="stack">
         <Card title={`Use cases · ${ucs.length}`} actions={<span className="small muted">Tier 3: {inv.data?.tiers['3'] ?? 0} · Tier 2: {inv.data?.tiers['2'] ?? 0} · Tier 1: {inv.data?.tiers['1'] ?? 0}</span>}>
           <div className="table-wrap"><table className="table">
-            <thead><tr><th>Use case</th><th>Department</th><th>Tool · account</th><th>Proposed tier</th><th>Status</th></tr></thead>
-            <tbody>{ucs.map((u) => <tr key={u.id}><td><strong>{u.name}</strong></td><td>{u.department}</td><td className="small">{u.tools.join(', ')}</td><td>{tierBadge(u.proposed_tier)}</td><td><Badge tone={STATUS_LABELS[u.status]?.tone ?? 'muted'}>{STATUS_LABELS[u.status]?.label ?? u.status}</Badge></td></tr>)}</tbody>
+            <thead><tr><th>Use case</th><th>Department</th><th>Tool · account</th><th>Proposed tier</th><th>EU AI Act</th><th>Status</th></tr></thead>
+            <tbody>{ucs.map((u) => <tr key={u.id}><td><strong>{u.name}</strong></td><td>{u.department}</td><td className="small">{u.tools.join(', ')}</td><td>{tierBadge(u.proposed_tier)}</td><td>{euBadge(u.eu_risk_level, u.eu_risk_label)}</td><td><Badge tone={STATUS_LABELS[u.status]?.tone ?? 'muted'}>{STATUS_LABELS[u.status]?.label ?? u.status}</Badge></td></tr>)}</tbody>
           </table></div>
         </Card>
         <Card title="Sign-off 2 · Department inventories">

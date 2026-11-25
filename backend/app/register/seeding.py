@@ -21,7 +21,7 @@ from app.tenancy.models import Department, Organization, User
 
 IMPORT_HEADER = ["name", "type", "sourcing", "department", "stage", "purpose", "vendor", "ai_provider", "model_name", "decision_impact", "owner_email"]  # before 11-03; still read
 EXPORT_HEADER = ["reference", "name", "type", "sourcing", "department", "stage", "purpose", "vendor", "ai_provider", "model_name", "model_version", "decision_impact",
-                 "risk_tier", "laws", "owner", "last_bias_test", "bias_status", "consent", "required_roles_filled", "go_live_gate"]
+                 "risk_tier", "eu_risk_level", "laws", "owner", "last_bias_test", "bias_status", "consent", "required_roles_filled", "go_live_gate"]
 MAX_ROWS = 2000
 DATA_MAP = {"pii": "personal", "phi": "health", "client": "confidential", "confidential": "confidential"}
 SHADOW_ACCOUNTS = {"personal_free", "personal_paid"}
@@ -48,7 +48,7 @@ def export_rows(db: Session, systems: list[RegisterSystem]) -> list[list]:
         o = system_out(db, s, None)
         out.append([o["reference"], o["name"], o["type_label"], o["sourcing_label"], (o["department"] or {}).get("name") or ("Company-wide" if o["company_wide"] else ""),
                     o["stage_label"], o["purpose"], (o["vendor"] or {}).get("name"), o["ai_provider_label"], o["model_name"], o["model_version"],
-                    svc.DECISION_LABELS.get(o["decision_impact"] or "", ""), f"Tier {o['risk_tier']}" if o["risk_tier"] else "", "; ".join(l["short_name"] for l in o["laws"]),
+                    svc.DECISION_LABELS.get(o["decision_impact"] or "", ""), f"Tier {o['risk_tier']}" if o["risk_tier"] else "", o["eu_risk_label"], "; ".join(l["short_name"] for l in o["laws"]),
                     (o["owner"] or {}).get("name"), o["bias"]["last_tested_on"], o["bias"]["label"], o["consent"]["label"],
                     f"{o['roles']['filled']} / {o['roles']['required']}", o["gate"]["label"]])
     return out

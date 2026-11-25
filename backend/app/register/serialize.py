@@ -1,6 +1,7 @@
 """JSON shapes for the register screens."""
 from sqlalchemy.orm import Session
 
+from app.euaiact import risk as eu_risk
 from app.auth.deps import Actor
 from app.register import service as svc
 from app.register.models import RegisterSystem
@@ -58,7 +59,7 @@ def system_out(db: Session, s: RegisterSystem, actor: Actor | None, *, full: boo
         "hosting": s.hosting, "vendor_trains_on_data": s.vendor_trains_on_data, "vendor_documents": s.vendor_documents or [], "autonomy": s.autonomy,
         "guardrail_policy_ref": s.guardrail_policy_ref, "agentassure_status": s.agentassure_status, "decision_impact": s.decision_impact,
         "agentassure_computed": s.type == "agent" and _assured(db, s.id),  # Release 2 B9: set from Agent Assure records
-        "risk_tier": s.risk_tier, "risk_tier_reason": s.risk_tier_reason, "bias_next_due": s.bias_next_due.isoformat() if s.bias_next_due else None,
+        "risk_tier": s.risk_tier, "risk_tier_reason": s.risk_tier_reason, **eu_risk.out(s.eu_screening, s.eu_risk_level, s.eu_risk_reason), "bias_next_due": s.bias_next_due.isoformat() if s.bias_next_due else None,
         "origin": s.origin, "live_since": s.live_since.isoformat() if s.live_since else None,
         "data": {"data_categories": d.data_categories or [], "data_subjects": d.data_subjects or [], "consent_basis": d.consent_basis, "consent_ref": d.consent_ref,
                  "consent_evidence_id": d.consent_evidence_id, "retention_period": d.retention_period, "cross_border": d.cross_border} if d else

@@ -12,6 +12,9 @@ import { ACCOUNT_LABELS, AddTool, type Tool } from '@/screens/client/Inventory';
 import { CarriedBanner } from '@/screens/wsk/Carried';
 import { BulkEdit, type BulkMode } from './RegisterBulk';
 import './register.css';
+import { euBadge } from '@/components/EuScreening';
+
+const EU_OPTS = [{ value: 'prohibited', label: 'Prohibited' }, { value: 'high_risk', label: 'High-risk' }, { value: 'limited', label: 'Limited risk' }, { value: 'minimal', label: 'Minimal risk' }, { value: 'none', label: 'Not screened' }];
 
 type Preset = 'standard' | 'roles' | 'bias' | 'all';
 const PRESETS: { value: Preset; label: string }[] = [{ value: 'standard', label: 'Standard' }, { value: 'roles', label: 'Roles view' }, { value: 'bias', label: 'Bias and data view' }, { value: 'all', label: 'All columns' }];
@@ -162,6 +165,7 @@ function AiSystemsList() {
     dept: { key: 'dept', header: 'Department', value: deptText, render: (r) => deptText(r) || <span className="muted">Not assigned</span> },
     stage: { key: 'stage', header: 'Stage or status', value: (r) => (r.system ? STAGES.findIndex((x) => x.value === r.system!.stage) : 100 + (r.stage_label ?? '').charCodeAt(0)), render: (r) => <StageCell r={r} /> },
     risk: { key: 'risk', header: 'Risk', value: (r) => r.tier ?? 0, render: (r) => r.tier ? <Badge tone={TIER_TONE[r.tier]}>{TIER_LABEL[r.tier]}</Badge> : dash },
+    eu: { key: 'eu', header: 'EU AI Act', value: (r) => ({ prohibited: 4, high_risk: 3, limited: 2, minimal: 1 } as Record<string, number>)[r.eu_risk_level ?? ''] ?? 0, render: (r) => r.kind === 'tool' ? dash : euBadge(r.eu_risk_level, r.eu_risk_label) },
     audit: { key: 'audit', header: 'Current audit', value: (r) => (r.in_audit ? 1 : 0), render: (r) => <AuditCell r={r} /> },
     vendor: { key: 'vendor', header: 'Vendor / provider', value: sysValue((s) => s.vendor?.name ?? s.ai_provider_label ?? ''), render: ifSystem((s) => <>{s.vendor?.name ?? (s.sourcing === 'in_house' ? 'Built in-house' : '—')}{s.ai_provider_label && <div className="small muted">{s.vendor ? `Built on ${s.ai_provider_label}` : s.ai_provider_label}</div>}</>) },
     model: { key: 'model', header: 'Model or algorithm', value: sysValue((s) => s.model_name ?? s.algorithm_label ?? ''), render: ifSystem((s) => <>{s.model_name ?? s.algorithm_label ?? '—'}{s.model_name && s.algorithm_label && <div className="small muted">{s.algorithm_label}</div>}</>) },
@@ -182,10 +186,10 @@ function AiSystemsList() {
   };
   const auditCol = hasAudit ? ['audit'] : [];
   const sets: Record<Preset, string[]> = {
-    standard: reg ? ['name', 'type', 'source', 'dept', 'stage', 'risk', ...auditCol, 'vendor', 'laws', 'roles', 'gate'] : ['name', 'type', 'source', 'dept', 'stage', 'risk', ...auditCol],
+    standard: reg ? ['name', 'type', 'source', 'dept', 'stage', 'risk', 'eu', ...auditCol, 'vendor', 'laws', 'roles', 'gate'] : ['name', 'type', 'source', 'dept', 'stage', 'risk', 'eu', ...auditCol],
     roles: ['name', 'type', 'dept', 'stage', 'roles', 'nsp', 'pending', 'gate', 'owner'],
-    bias: ['name', 'type', 'risk', 'impact', 'bias', 'biasDue', 'nullc', 'dataUsed', 'subjects', 'consent', 'retention'],
-    all: ['name', 'type', 'source', 'dept', 'vendor', 'model', 'stage', 'risk', ...auditCol, 'impact', 'laws', 'bias', 'biasDue', 'nullc', 'dataUsed', 'subjects', 'consent', 'retention', 'roles', 'nsp', 'pending', 'gate', 'owner'],
+    bias: ['name', 'type', 'risk', 'eu', 'impact', 'bias', 'biasDue', 'nullc', 'dataUsed', 'subjects', 'consent', 'retention'],
+    all: ['name', 'type', 'source', 'dept', 'vendor', 'model', 'stage', 'risk', 'eu', ...auditCol, 'impact', 'laws', 'bias', 'biasDue', 'nullc', 'dataUsed', 'subjects', 'consent', 'retention', 'roles', 'nsp', 'pending', 'gate', 'owner'],
   };
   const columns = sets[reg ? preset : 'standard'].map((key) => col[key]);
 
@@ -247,6 +251,7 @@ function AiSystemsList() {
     ...(deptOpts.length ? [{ key: 'dept', label: 'Department', options: deptOpts, test: (r: AiRow, v: string) => (v === '_cw' ? r.company_wide : r.departments.some((x) => x.id === v)) }] : []),
     { key: 'stage', label: 'Stage or status', options: stageOpts, test: (r, v) => r.stage === v },
     { key: 'tier', label: 'Risk tier', options: tierOpts, test: (r, v) => String(r.tier) === v },
+    { key: 'eu', label: 'EU AI Act risk level', options: EU_OPTS, test: (r, v) => (v === 'none' ? r.kind !== 'tool' && !r.eu_risk_level : r.eu_risk_level === v) },
     ...(hasAudit ? [{ key: 'audit', label: 'Current audit', options: [{ value: 'yes', label: 'In the current audit' }, { value: 'no', label: 'Not in the current audit' }], test: (r: AiRow, v: string) => (v === 'yes' ? !!r.in_audit : r.in_audit === false) }] : []),
     ...(reg ? [
       { key: 'registered', label: 'Register', options: [{ value: 'no', label: 'Not yet registered' }, { value: 'yes', label: 'In the register' }], test: (r: AiRow, v: string) => (v === 'no' ? r.registered === false : r.registered === true) },
@@ -292,7 +297,7 @@ function AiSystemsList() {
         <div className="card-body stack">
           <div className="reg-listbar">
             {reg && <div className="reg-preset"><SelectField label="Columns" help="Choose which columns to show. The Roles view adds the gap counts; the Bias and data view adds tests, data and consent. Register columns are blank for inventory items." value={preset} onChange={(e) => setPreset(e.target.value as Preset)} options={PRESETS} /></div>}
-            {inv && <p className="small muted" style={{ margin: 0 }}>Use cases by tier: Tier 3: {inv.tiers['3'] ?? 0} · Tier 2: {inv.tiers['2'] ?? 0} · Tier 1: {inv.tiers['1'] ?? 0}. The proposed tier is calculated from the answers; Futran sets the final tier.</p>}
+            {inv && <p className="small muted" style={{ margin: 0 }}>Use cases by tier: Tier 3: {inv.tiers['3'] ?? 0} · Tier 2: {inv.tiers['2'] ?? 0} · Tier 1: {inv.tiers['1'] ?? 0}.{inv.eu_levels && <> EU AI Act: high-risk {inv.eu_levels.high_risk ?? 0}{(inv.eu_levels.prohibited ?? 0) > 0 && <>, prohibited {inv.eu_levels.prohibited}</>}, limited {inv.eu_levels.limited ?? 0}, minimal {inv.eu_levels.minimal ?? 0}, not screened {inv.eu_levels.not_screened ?? 0}.</>} The proposed tier is calculated from the answers; Futran sets the final tier.</p>}
             {folded > 0 && <Checkbox label={`Also show inventory items already in the register (${folded})`} checked={showFolded} onChange={(e) => setShowFolded(e.target.checked)} />}
           </div>
           {d.rows.length === 0 ? (

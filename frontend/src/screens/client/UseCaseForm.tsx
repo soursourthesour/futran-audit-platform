@@ -7,11 +7,12 @@ import { Alert, Badge, Button, Card, Checkbox, FieldGroup, Loading, PageHeader, 
 import { useCaseHelp as H } from '@/help/client';
 import { tierHelp as T } from '@/help/fieldwork';
 import { ACCOUNT_LABELS, STATUS_LABELS, tierBadge, useInventory } from './Inventory';
+import { EMPTY_SCREENING, EU_HELP, EuLevelSummary, EuScreeningFields, type EuFields, type EuLevel, type EuOptions, type EuScreening } from '@/components/EuScreening';
 
 type Named = { id?: string; person_name: string; email: string; role_name?: string | null; oversight_role: string; has_account?: boolean; training_complete?: boolean | null; policy_acknowledged?: boolean | null; oversight_role_confirmed?: boolean | null; link_sent?: boolean };
 type Usage = { role_name: string; headcount: string; frequency: string };
-type Detail = { id: string; name: string; department_id: string; purpose: string | null; tool_ids: string[]; data_categories: string[]; decision_impact: string | null; status: string; proposed_tier: number | null; final_tier: number | null; final_tier_rationale: string | null; aedt_determination: string | null; returned_comment: string | null; tier_reason: string; usage: { role_name: string; headcount: number | null; frequency: string | null }[]; named_users: Named[] };
-type Preview = { tier: number; label: string; reason: string };
+type Detail = { id: string; name: string; department_id: string; purpose: string | null; tool_ids: string[]; data_categories: string[]; decision_impact: string | null; status: string; proposed_tier: number | null; final_tier: number | null; final_tier_rationale: string | null; aedt_determination: string | null; returned_comment: string | null; tier_reason: string; eu_screening: EuScreening | null; eu_risk_level: EuLevel | null; eu_risk_label: string; eu_risk_reason: string; usage: { role_name: string; headcount: number | null; frequency: string | null }[]; named_users: Named[] };
+type Preview = { tier: number; label: string; reason: string } & Partial<Pick<EuFields, 'eu_risk_level' | 'eu_risk_label' | 'eu_risk_reason'>>;
 
 const DATA = [{ value: 'pii', label: 'Personal information (PII)' }, { value: 'phi', label: 'Health information (PHI)' }, { value: 'client', label: 'Client or customer data' }, { value: 'confidential', label: 'Company confidential' }, { value: 'none', label: 'None of these' }];
 const IMPACT = [{ value: 'none', label: 'No effect on decisions about people' }, { value: 'informs', label: 'Informs a decision a person makes' }, { value: 'consequential', label: 'Substantially assists or makes decisions on hiring, promotion, credit, housing, insurance or health' }];
@@ -24,11 +25,12 @@ export function UseCaseForm() {
   const isFutran = !!futranClient;
   const inv = useInventory(clientId);
   const detail = useQuery({ queryKey: ['use-case', useCaseId], queryFn: () => api.get<Detail>(`/use-cases/${useCaseId}`), enabled: !!useCaseId });
-  if (inv.isLoading || (useCaseId && detail.isLoading) || !inv.data) return <div className="page"><Loading /></div>;
-  return <Form key={detail.data?.id ?? 'new'} clientId={clientId} isFutran={isFutran} uc={detail.data} canReview={hasRole(me ?? undefined, 'caico', 'dept_compliance_lead')} canTier={hasRole(me ?? undefined, 'auditor', 'chief_auditor')} />;
+  const eu = useQuery({ queryKey: ['eu-screening-options', clientId], queryFn: () => api.get<EuOptions>(`/clients/${clientId}/eu-screening-options`), enabled: !!clientId, staleTime: Infinity });
+  if (inv.isLoading || (useCaseId && detail.isLoading) || !inv.data || !eu.data) return <div className="page"><Loading /></div>;
+  return <Form key={detail.data?.id ?? 'new'} clientId={clientId} isFutran={isFutran} uc={detail.data} euOptions={eu.data} canReview={hasRole(me ?? undefined, 'caico', 'dept_compliance_lead')} canTier={hasRole(me ?? undefined, 'auditor', 'chief_auditor')} />;
 }
 
-function Form({ clientId, uc, isFutran, canReview, canTier }: { clientId: string; uc?: Detail; isFutran: boolean; canReview: boolean; canTier: boolean }) {
+function Form({ clientId, uc, isFutran, canReview, canTier, euOptions }: { clientId: string; uc?: Detail; isFutran: boolean; canReview: boolean; canTier: boolean; euOptions: EuOptions }) {
   const inv = useInventory(clientId).data!;
   const nav = useNavigate();
   const qc = useQueryClient();
@@ -36,6 +38,7 @@ function Form({ clientId, uc, isFutran, canReview, canTier }: { clientId: string
   const [f, setF] = useState({ name: uc?.name ?? '', department_id: uc?.department_id ?? inv.departments[0]?.id ?? '', purpose: uc?.purpose ?? '', tool_ids: uc?.tool_ids ?? [], data_categories: uc?.data_categories ?? [], decision_impact: uc?.decision_impact ?? '' });
   const [usage, setUsage] = useState<Usage[]>(uc?.usage.length ? uc.usage.map((u) => ({ role_name: u.role_name, headcount: u.headcount?.toString() ?? '', frequency: u.frequency ?? '' })) : [{ role_name: '', headcount: '', frequency: '' }]);
   const [named, setNamed] = useState<Named[]>(uc?.named_users ?? []);
+  const [screening, setScreening] = useState<EuScreening>(uc?.eu_screening ?? EMPTY_SCREENING);
   const [preview, setPreview] = useState<Preview | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [errs, setErrs] = useState<FieldError[]>([]);
@@ -43,14 +46,14 @@ function Form({ clientId, uc, isFutran, canReview, canTier }: { clientId: string
 
   useEffect(() => {
     const t = window.setTimeout(() => {
-      api.post<Preview>(`/clients/${clientId}/use-cases/tier-preview`, { decision_impact: f.decision_impact || null, data_categories: f.data_categories, tool_ids: f.tool_ids }).then(setPreview).catch(() => undefined);
+      api.post<Preview>(`/clients/${clientId}/use-cases/tier-preview`, { decision_impact: f.decision_impact || null, data_categories: f.data_categories, tool_ids: f.tool_ids, eu_screening: screening }).then(setPreview).catch(() => undefined);
     }, 250);
     return () => window.clearTimeout(t);
-  }, [clientId, f.decision_impact, f.data_categories, f.tool_ids]);
+  }, [clientId, f.decision_impact, f.data_categories, f.tool_ids, screening]);
 
   const fe = Object.fromEntries(errs.map((e) => [e.field, e.message]));
   const toggle = (k: 'tool_ids' | 'data_categories', v: string) => setF({ ...f, [k]: f[k].includes(v) ? f[k].filter((x) => x !== v) : [...f[k], v] });
-  const body = () => ({ ...f, usage: usage.filter((u) => u.role_name.trim()), named_users: named.filter((n) => n.person_name.trim()) });
+  const body = () => ({ ...f, usage: usage.filter((u) => u.role_name.trim()), named_users: named.filter((n) => n.person_name.trim()), eu_screening: screening });
 
   async function save(submit: boolean) {
     setErr(null); setErrs([]); setMsg(null);
@@ -98,6 +101,12 @@ function Form({ clientId, uc, isFutran, canReview, canTier }: { clientId: string
               </FieldGroup>
             </div>
           </Card>
+          <Card title="EU AI Act screening">
+            <div className="stack">
+              <p className="small muted" style={{ margin: 0 }}>Answer these for every use, even if you have no EU customers or staff yet. They decide the EU AI Act risk level shown beside the Futran tier.</p>
+              <EuScreeningFields options={euOptions} value={screening} onChange={setScreening} disabled={!editable} errors={fe} />
+            </div>
+          </Card>
           <Card title="Who uses it">
             <div className="stack">
               {usage.map((u, i) => (
@@ -141,9 +150,13 @@ function Form({ clientId, uc, isFutran, canReview, canTier }: { clientId: string
               <p className="small muted" style={{ margin: 0 }}>The Futran auditor sets the final tier.</p>
             </div>
           </Card>
+          <Card title="EU AI Act risk level" actions={<span className="small muted" title={EU_HELP.level}>Separate from the tier</span>}>
+            <EuLevelSummary level={preview?.eu_risk_level ?? uc?.eu_risk_level} label={preview?.eu_risk_label ?? uc?.eu_risk_label} reason={preview?.eu_risk_reason ?? uc?.eu_risk_reason} />
+          </Card>
           {uc && uc.final_tier && <Card title="Final tier (Futran)"><div className="stack-sm">{tierBadge(uc.final_tier)}<p className="small" style={{ margin: 0 }}>{uc.final_tier_rationale}</p>{uc.aedt_determination && <p className="small muted" style={{ margin: 0 }}>AEDT: {AEDT.find((a) => a.value === uc.aedt_determination)?.label}</p>}</div></Card>}
           {uc && !isFutran && canReview && uc.status === 'submitted' && <ReviewCard id={uc.id} onDone={() => qc.invalidateQueries()} />}
           {uc && isFutran && canTier && uc.status !== 'draft' && uc.status !== 'returned' && <FinalTierCard uc={uc} onDone={() => qc.invalidateQueries()} />}
+          {uc && isFutran && canTier && uc.status !== 'draft' && uc.status !== 'returned' && <EuCorrectionCard uc={uc} options={euOptions} onDone={() => qc.invalidateQueries()} />}
           {isFutran && <Link className="small" to={`/clients/${clientId}/inventory`}>Back to the inventory</Link>}
         </div>
       </div>
@@ -189,6 +202,30 @@ function FinalTierCard({ uc, onDone }: { uc: Detail; onDone: () => void }) {
         <Button variant="primary" onClick={save}>Save final tier</Button>
         <p className="small muted" style={{ margin: 0 }}>Raising the tier re-sends confirmation links to the named users.</p>
       </div>
+    </Card>
+  );
+}
+
+function EuCorrectionCard({ uc, options, onDone }: { uc: Detail; options: EuOptions; onDone: () => void }) {
+  const [screening, setScreening] = useState<EuScreening>(uc.eu_screening ?? EMPTY_SCREENING);
+  const [rationale, setRationale] = useState('');
+  const [open, setOpen] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [fe, setFe] = useState<Record<string, string>>({});
+  async function save() {
+    setErr(null); setFe({});
+    try { await api.post(`/use-cases/${uc.id}/eu-screening`, { eu_screening: screening, rationale }); setRationale(''); setOpen(false); onDone(); } catch (e) { setErr(errorMessage(e)); setFe(fieldErrors(e)); }
+  }
+  return (
+    <Card title="Correct the EU AI Act screening">
+      {!open ? <div className="stack-sm"><p className="small muted" style={{ margin: 0 }}>Change the client's answers if fieldwork shows they are wrong. The reason goes in the audit log.</p><div><Button size="sm" onClick={() => setOpen(true)}>Correct the screening</Button></div></div> : (
+        <div className="stack">
+          {err && <Alert tone="danger">{err}</Alert>}
+          <EuScreeningFields options={options} value={screening} onChange={setScreening} errors={fe} />
+          <TextArea label="Reason for the change" value={rationale} onChange={(e) => setRationale(e.target.value)} error={fe.rationale} />
+          <div className="row"><Button variant="primary" onClick={save}>Save EU screening</Button><Button onClick={() => setOpen(false)}>Cancel</Button></div>
+        </div>
+      )}
     </Card>
   );
 }

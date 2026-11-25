@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.euaiact import risk as eu_risk
 from app.auth.deps import Actor, current_actor
 from app.core.db import get_db
 from app.core.errors import Forbidden, NotFound
@@ -190,7 +191,7 @@ def get_register_record(system_id: str, actor: Actor = Depends(current_actor), d
     audit.record(db, actor_id=actor.id, action="register.view_by_auditor", obj=rs, engagement_id=s.engagement_id, summary=f"Viewed the register record of {rs.reference} {rs.name}")
     return {
         "system": {"id": rs.id, "reference": rs.reference, "name": rs.name, "type_label": TYPE_LABELS.get(rs.type, rs.type), "stage_label": STAGE_LABELS.get(rs.stage, rs.stage),
-                   "risk_tier": rs.risk_tier, "live_since": rs.live_since.isoformat() if rs.live_since else None, "bias": bias_status(db, rs), "history_answers": rs.history_answers or {}},
+                   "risk_tier": rs.risk_tier, "eu_risk_level": rs.eu_risk_level, "eu_risk_label": eu_risk.label(rs.eu_risk_level), "eu_risk_reason": rs.eu_risk_reason, "live_since": rs.live_since.isoformat() if rs.live_since else None, "bias": bias_status(db, rs), "history_answers": rs.history_answers or {}},
         "bias_tests": [{"id": b.id, "tested_on": b.tested_on.isoformat(), "next_due": b.next_due.isoformat() if b.next_due else None, "tester_type": b.tester_type, "tester_name": b.tester_name,
                         "method": b.method, "groups_tested": b.groups_tested, "result": b.result, "result_text": b.result_text, "unknown_share": b.unknown_share,
                         "null_compliance": (b.unknown_share or 0) > 50} for b in tests],

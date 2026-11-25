@@ -4,6 +4,7 @@ from dataclasses import asdict, dataclass, field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.euaiact import risk as eu_risk
 from app.engagements.models import ClientRequirement, Engagement
 from app.inventory.models import NamedUser, UseCase
 from app.inventory.service import effective_tier
@@ -72,7 +73,7 @@ def fieldwork_view(db: Session, uc: UseCase) -> dict:
     findings = [f for f in db.scalars(select(Finding).where(Finding.engagement_id == e.id, Finding.deleted_at.is_(None)).order_by(Finding.ref)) if uc.id in (f.use_case_ids or [])]
     return {
         "use_case": {"id": uc.id, "name": uc.name, "department": dept.name if dept else None, "purpose": uc.purpose, "data_categories": uc.data_categories, "decision_impact": uc.decision_impact,
-                     "proposed_tier": uc.proposed_tier, "final_tier": uc.final_tier, "final_tier_rationale": uc.final_tier_rationale, "aedt_determination": uc.aedt_determination, "status": uc.status,
+                     "proposed_tier": uc.proposed_tier, "final_tier": uc.final_tier, **eu_risk.out(uc.eu_screening, uc.eu_risk_level, uc.eu_risk_reason), "final_tier_rationale": uc.final_tier_rationale, "aedt_determination": uc.aedt_determination, "status": uc.status,
                      "submitted_by": submitter.name if submitter else None},
         "named_users": {"count": len(named), "not_trained": sum(1 for n in named if n.training_complete is False), "unconfirmed": sum(1 for n in named if n.training_complete is None and not n.unable_reason)},
         "systems": [{"id": s.id, "reference_id": s.reference_id, "name": s.name} for s in _systems_for(db, uc)],

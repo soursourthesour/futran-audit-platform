@@ -262,7 +262,14 @@ def update(db: Session, actor: User, s: RegisterSystem, data: dict) -> EuAiActRe
         audit.record(db, actor_id=actor.id, action="euaiact.update", obj=rec, before={k: before[k] for k in changed}, after=changed, engagement_id=rec.engagement_id,
                      summary=f"Updated the EU AI Act record of {s.reference} {s.name}")
     db.flush()
+    _refresh_level(db, actor, s, "The EU AI Act classification changed after sign-off; the screening applies until it is signed off again.")
     return rec
+
+
+def _refresh_level(db: Session, actor: User, s: RegisterSystem, reason: str) -> None:
+    from app.register.service import refresh_eu_level
+
+    refresh_eu_level(db, actor, s, reason)
 
 
 def on_current_engagement_as_reviewer(db: Session, actor: User, org_id: str) -> bool:
@@ -327,6 +334,8 @@ def decide(db: Session, actor: User, s: RegisterSystem, approve: bool, note: str
     notify(db, people, "eu_classification_signed" if approve else "eu_classification_returned",
            f"EU AI Act classification {'signed off' if approve else 'returned'}: {s.name}", rec.signoff_note, link)
     db.flush()
+    if approve:
+        _refresh_level(db, actor, s, "The legal reviewer signed off the EU AI Act classification.")
     return rec
 
 

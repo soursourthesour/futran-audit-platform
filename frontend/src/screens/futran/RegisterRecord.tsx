@@ -5,7 +5,7 @@ import { Alert, Badge, Card, EmptyState, Loading, fmtDate, fmtDateTime, fileUrl 
 
 type BiasTest = { id: string; tested_on: string; next_due: string | null; tester_type: string; tester_name: string | null; method: string | null; groups_tested: string | null; result: string; result_text: string | null; unknown_share: number | null; null_compliance: boolean };
 export type RegisterRecordData = {
-  system: { id: string; reference: string; name: string; type_label: string; stage_label: string; risk_tier: number | null; live_since: string | null; bias: Bias; history_answers: Record<string, string> } | null;
+  system: { id: string; reference: string; name: string; type_label: string; stage_label: string; risk_tier: number | null; eu_risk_label?: string; eu_risk_reason?: string; live_since: string | null; bias: Bias; history_answers: Record<string, string> } | null;
   bias_tests: BiasTest[]; history: HistoryEntry[]; statement: Statement;
 };
 const TESTER: Record<string, string> = { independent: 'Independent auditor', internal: 'Internal team', vendor: 'Vendor' };
@@ -29,6 +29,7 @@ export function RegisterRecord({ systemId }: { systemId: string }) {
             <dt>System</dt><dd>{s.name} · {s.type_label}</dd>
             <dt>Stage</dt><dd>{s.stage_label}{s.live_since ? ` since ${fmtDate(s.live_since)}` : ''}</dd>
             <dt>Client's risk tier</dt><dd>{s.risk_tier ? `Tier ${s.risk_tier}` : '—'}</dd>
+            <dt>EU AI Act risk level</dt><dd>{s.eu_risk_label ?? 'Not screened'}{s.eu_risk_reason && <div className="small muted">{s.eu_risk_reason}</div>}</dd>
             <dt>Bias testing</dt><dd>{s.bias.last_tested_on ? `Last test ${date(s.bias.last_tested_on)} · ${s.bias.label}` : s.bias.label}{s.bias.null_compliance && <> <Badge tone="danger">Over 50% unknown demographics</Badge></>}</dd>
             <dt>Incidents question</dt><dd>{s.history_answers.incidents === 'no' ? 'No incidents known' : s.history_answers.incidents === 'yes' ? 'Incidents reported, see the log' : 'Not answered'}</dd>
           </dl>

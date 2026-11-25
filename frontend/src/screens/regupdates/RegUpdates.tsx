@@ -29,7 +29,7 @@ const TONE: Record<string, 'navy' | 'danger' | 'warn' | 'muted' | 'success'> = {
   effective_date: 'navy', new_law: 'navy', amendment: 'navy', enforcement_action: 'danger', enforcement: 'danger', guidance: 'success', court_ruling: 'warn', pending_bill: 'muted',
   new_rule: 'navy', repeal: 'muted', role_mapping: 'navy',
 };
-const TIER: Record<number, string> = { 1: 'Tier 1 · Baseline', 2: 'Tier 2 · Elevated', 3: 'Tier 3 · High' };
+const TIER: Record<number, string> = { 1: 'Tier 1 · Baseline', 2: 'Tier 2 · Elevated', 3: 'Tier 3 · High-risk' };
 const TABS = [{ key: 'all', label: 'All' }, { key: 'awaiting_review', label: 'Awaiting review' }, { key: 'published', label: 'Published' }] as const;
 const KINDS: Opt[] = [{ value: 'advisory', label: 'Advisory' }, { value: 'readiness', label: 'Readiness review' }, { value: 'bias_audit', label: 'Bias audit' },
   { value: 'training', label: 'Training' }, { value: 'remediation', label: 'Remediation support' }];

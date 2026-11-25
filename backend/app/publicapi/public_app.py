@@ -74,7 +74,7 @@ def _system_out(db: Session, s) -> dict:
     dept = db.get(Department, s.department_id) if s.department_id else None
     vendor = db.get(Vendor, s.vendor_id) if s.vendor_id else None
     return {"id": s.id, "reference": s.reference, "name": s.name, "type": s.type, "sourcing": s.sourcing, "stage": s.stage, "department_id": s.department_id,
-            "department": dept.name if dept else ("Company-wide" if s.company_wide else None), "purpose": s.purpose, "risk_tier": s.risk_tier, "vendor": vendor.legal_name if vendor else None,
+            "department": dept.name if dept else ("Company-wide" if s.company_wide else None), "purpose": s.purpose, "risk_tier": s.risk_tier, "eu_risk_level": s.eu_risk_level, "vendor": vendor.legal_name if vendor else None,
             "ai_provider": s.ai_provider, "model_name": s.model_name, "model_version": s.model_version, "autonomy": s.autonomy, "decision_impact": s.decision_impact,
             "live_since": s.live_since.isoformat() if s.live_since else None, "updated_at": s.updated_at.isoformat() if s.updated_at else None}
 
@@ -160,7 +160,7 @@ def create_use_case(data: dict, c: Caller = Depends(caller), db: Session = Depen
     if e is None:
         raise Conflict("There is no audit in progress to take use cases. Add the system to the register instead.")
     uc = save_use_case(db, c.owner(db), c.organization, e, data)
-    return {"id": uc.id, "name": uc.name, "status": uc.status, "proposed_tier": uc.proposed_tier}
+    return {"id": uc.id, "name": uc.name, "status": uc.status, "proposed_tier": uc.proposed_tier, "eu_risk_level": uc.eu_risk_level}
 
 
 # ---------------------------------------------------------------- attestation

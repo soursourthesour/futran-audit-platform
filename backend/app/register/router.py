@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.euaiact import risk as eu_risk
 from app.auth.deps import Actor, current_actor
 from app.core.db import get_db
 from app.core.errors import Forbidden, Invalid, NotFound
@@ -114,6 +115,7 @@ def options(db: Session, actor: Actor) -> dict:
         "job_levels": [{"value": k, "label": v} for k, v in svc.JOB_LEVELS.items()],
         "compliance_roles": [{"value": k, "label": svc.ROLE_NAMES[k]} for k in svc.COMPLIANCE_ROLES],
         "vendors": [{"id": v.id, "name": v.legal_name} for v in vendors],
+        "eu_screening_options": eu_risk.options(),
     }
 
 

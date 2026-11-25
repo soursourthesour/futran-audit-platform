@@ -5,6 +5,7 @@ import { api, errorMessage, fieldErrors } from '@/api/client';
 import { Alert, Badge, Button, Card, Dialog, Loading, PageHeader, SelectField, TextArea, TextField, fileUrl, fmtDate } from '@/components/ui';
 import { CommentsToggle } from '@/components/Comments';
 import { evidenceRequestHelp, findingHelp, tierHelp } from '@/help/fieldwork';
+import { euBadge, type EuLevel } from '@/components/EuScreening';
 import { FieldworkAsk } from '@/screens/ai/Copilot';
 
 export type FindingRow = {
@@ -14,7 +15,7 @@ export type FindingRow = {
 };
 type EvidenceReq = { id: string; ref: string; description: string; status: string; due_date: string; answer: string | null; owner: string | null; files: { id: string; filename: string }[]; overdue: boolean; waived_reason?: string | null };
 type View = {
-  use_case: { id: string; name: string; department: string | null; purpose: string | null; data_categories: string[]; decision_impact: string | null; proposed_tier: number | null; final_tier: number | null; final_tier_rationale: string | null; aedt_determination: string | null; status: string; submitted_by: string | null };
+  use_case: { id: string; name: string; department: string | null; purpose: string | null; data_categories: string[]; decision_impact: string | null; proposed_tier: number | null; final_tier: number | null; final_tier_rationale: string | null; aedt_determination: string | null; status: string; submitted_by: string | null; eu_risk_level?: EuLevel | null; eu_risk_label?: string; eu_risk_reason?: string };
   named_users: { count: number; not_trained: number; unconfirmed: number }; systems: { id: string; reference_id: string; name: string }[];
   evidence_requests: EvidenceReq[]; findings: FindingRow[];
   null_compliance: { applies: boolean; message: string | null; systems: string[]; suggested_finding: Partial<FindingRow> | null };
@@ -43,7 +44,7 @@ export function FieldworkUseCase() {
     <div className="page">
       <PageHeader title={u.name} crumbs={[{ to: '/audits', label: 'Audits' }, { to: `/clients/${d.client_id}`, label: d.audit_ref }, { to: `/clients/${d.client_id}/inventory`, label: 'AI inventory' }, { label: u.name }]}
         subtitle={`${u.department ?? ''} · stage ${d.stage} fieldwork${d.systems.length ? ` · ${d.systems.map((s) => s.reference_id).join(', ')}` : ''}`}
-        actions={u.proposed_tier ? <Badge tone={u.proposed_tier === 3 ? 'danger' : 'warn'}>Client proposed Tier {u.proposed_tier}</Badge> : undefined} />
+        actions={<>{u.proposed_tier ? <Badge tone={u.proposed_tier === 3 ? 'danger' : 'warn'}>Client proposed Tier {u.proposed_tier}</Badge> : null} <span title={u.eu_risk_reason}>EU AI Act: {euBadge(u.eu_risk_level, u.eu_risk_label)}</span></>} />
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
       <div className="split">
         <div className="main stack">

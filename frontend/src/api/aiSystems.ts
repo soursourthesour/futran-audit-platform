@@ -1,3 +1,4 @@
+import type { EuLevel } from '@/components/EuScreening';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/api/client';
 import type { Register, RegSystem } from '@/api/register';
@@ -11,7 +12,7 @@ export type AiAudit = { system_id: string; reference_id: string; status: string;
 export type AiRow = {
   key: string; kind: AiKind; type_label: string; subtype: string | null; name: string; detail: string | null;
   sources: AiSource[]; source_label: string; departments: { id: string; name: string }[]; company_wide: boolean;
-  stage: string | null; stage_label: string | null; tier: number | null;
+  stage: string | null; stage_label: string | null; tier: number | null; eu_risk_level?: EuLevel | null; eu_risk_label?: string | null;
   /** null: this person cannot see the register, so nothing is said either way */
   registered: boolean | null; in_register_as: { id: string; name: string } | null;
   in_audit: boolean | null; audit: AiAudit | null;
@@ -21,7 +22,7 @@ export type AiRow = {
 export type AiList = {
   rows: AiRow[];
   register: Omit<Register, 'systems'> | null;
-  inventory: { tiers: Record<string, number>; can_add_tool: boolean; can_add_use_case: boolean } | null;
+  inventory: { tiers: Record<string, number>; eu_levels?: Record<string, number>; can_add_tool: boolean; can_add_use_case: boolean } | null;
   audit: { engagement_id: string; audit_ref: string; locked: boolean; can_answer_governance_questions: boolean; systems: number } | null;
 };
 

@@ -23,6 +23,7 @@ TERMS: list[tuple[str, str, str]] = [
     ("AEDT", r"aedt|automated employment", "Automated employment decision tool: software that substantially assists decisions about hiring or promotion (NYC Local Law 144)."),
     ("Null-compliance risk", r"null|sufficien", "When a process is followed on paper but has no real substance, for example a bias audit run without demographic data."),
     ("Risk tier", r"tier", "Futran's rating of how much harm a use of AI could do: 1 baseline, 2 elevated, 3 high-risk."),
+    ("EU AI Act risk level", r"eu ai act risk level|eu risk level", "The EU AI Act's own category for a use of AI, shown beside the Futran tier: prohibited (Art. 5), high-risk (Annex I or III), limited risk (Art. 50 transparency) or minimal risk. Three screening questions decide it; a classification signed off by the legal reviewer overrides them."),
     ("Source person", r"source person|who gave", "The person who gave an answer, recorded by name and job title so the auditor can follow up."),
 ]
 

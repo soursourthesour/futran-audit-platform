@@ -10,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.euaiact import risk as eu_risk
 from app.audit_log import service as audit
 from app.core.clock import utcnow
 from app.core.errors import Conflict, Forbidden, Invalid
@@ -237,10 +238,13 @@ def _content_data(db: Session, e: Engagement) -> dict:
         row = latest_score(db, s)
         dept = db.get(Department, s.department_id) if s.department_id else None
         vendor = db.get(Vendor, s.vendor_id) if s.vendor_id else None
-        ucs = [u.name for u in (db.get(UseCase, i) for i in s.use_case_ids or []) if u is not None]
+        uc_rows = [u for u in (db.get(UseCase, i) for i in s.use_case_ids or []) if u is not None]
+        ucs = [u.name for u in uc_rows]
+        eu_level = eu_risk.highest(u.eu_risk_level for u in uc_rows)
         final = row.final_rating if row else None
         systems.append({"ref": s.reference_id, "name": s.name, "built_by": BUILT_BY.get(s.built_by or "", "Not recorded"), "vendor": vendor.legal_name if vendor else "",
                         "department": dept.name if dept else "Not recorded", "use_cases": ", ".join(ucs) or "Not linked",
+                        "eu_level": eu_risk.label(eu_level) if eu_level else "Not screened",
                         "depth": "Light (Tier 2)" if s.assessment_depth == "light" else "Full",
                         "inherent": row.inherent if row and row.inherent is not None else "Not scored",
                         "maturity": row.maturity if row and row.maturity is not None else "Not scored",

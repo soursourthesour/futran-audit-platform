@@ -244,3 +244,25 @@ def test_any_change_to_what_was_signed_clears_the_sign_off(eu):
         eu.as_(eu.auditor)
         d = eu.client.put(_sys(eu, eu.credit), json={field: value}).json()
         assert d["signoff_status"] == "draft" and "changed after sign-off" in d["signoff_note"].lower(), field
+
+
+def test_signoff_sets_the_register_eu_level_and_a_later_change_falls_back_to_the_screening(eu):
+    """11-25 change: the register shows the EU level; a signed-off classification wins over the system's screening."""
+    from app.register.models import ChangeLog, RegisterSystem
+
+    eu.as_(eu.auditor)
+    _classify(eu)
+    eu.client.post(_sys(eu, eu.credit, "/send"), json={})
+    row = eu.db.get(RegisterSystem, eu.credit.id)
+    assert row.eu_risk_level is None  # sent, not yet signed off; no screening on the system
+    eu.as_(eu.legal)
+    assert eu.client.post(_sys(eu, eu.credit, "/signoff"), json={"approve": True}).status_code == 200
+    eu.db.expire_all()
+    row = eu.db.get(RegisterSystem, eu.credit.id)
+    assert row.eu_risk_level == "high_risk" and row.eu_risk_reason.startswith("Signed off by the legal reviewer")
+    log = eu.db.scalar(select(ChangeLog).where(ChangeLog.register_system_id == row.id, ChangeLog.field == "eu_risk_level"))
+    assert log is not None and log.new_value == "High-risk"
+    eu.as_(eu.auditor)
+    _classify(eu, classification="transparency", annex_iii_area=None)  # takes the sign-off away
+    eu.db.expire_all()
+    assert eu.db.get(RegisterSystem, eu.credit.id).eu_risk_level is None  # back to the (empty) screening

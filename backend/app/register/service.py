@@ -7,6 +7,7 @@ from datetime import date, timedelta
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.euaiact import risk as eu_risk
 from app.audit_log import service as audit
 from app.core.clock import utcnow
 from app.core.errors import Conflict, Invalid, NotFound
@@ -59,7 +60,7 @@ FIELD_LABELS = {
     "users_description": "Users", "user_count": "Number of users", "owner_user_id": "System owner", "vendor_id": "Vendor", "ai_provider": "Underlying AI provider",
     "model_name": "Model name", "model_version": "Model version", "algorithm_type": "Algorithm type", "hosting": "Hosting", "vendor_trains_on_data": "Vendor trains on our data",
     "vendor_documents": "Vendor documents received", "autonomy": "How much it acts on its own", "guardrail_policy_ref": "Runtime controls", "agentassure_status": "Pre-release testing",
-    "decision_impact": "Effect on decisions about people", "risk_tier": "Risk tier", "company_wide": "Company-wide", "bias_next_due": "Next bias test due",
+    "decision_impact": "Effect on decisions about people", "risk_tier": "Risk tier", "eu_screening": "EU AI Act screening", "eu_risk_level": "EU AI Act risk level", "company_wide": "Company-wide", "bias_next_due": "Next bias test due",
     "data_categories": "Data used", "data_subjects": "Whose data", "consent_basis": "Consent or lawful basis", "consent_ref": "Consent date or version",
     "consent_evidence_id": "Consent evidence", "retention_period": "Retention period", "cross_border": "Data leaves the country", "actions": "Actions and tools", "laws": "Laws that apply",
     "created": "Added to the register", "department_ids": "Used by departments", "law_suggestions": "Suggested laws", "user_selection": "Users chosen",
@@ -67,7 +68,7 @@ FIELD_LABELS = {
 }
 SYSTEM_FIELDS = ("name", "type", "sourcing", "department_id", "stage", "purpose", "users_scope", "users_description", "user_count", "owner_user_id", "vendor_id", "ai_provider",
                  "model_name", "model_version", "algorithm_type", "hosting", "vendor_trains_on_data", "vendor_documents", "autonomy", "guardrail_policy_ref", "agentassure_status",
-                 "decision_impact", "company_wide", "bias_next_due", "department_ids", "user_selection", "run_location", "data_locations")
+                 "decision_impact", "company_wide", "bias_next_due", "department_ids", "user_selection", "run_location", "data_locations", "eu_screening")
 DATA_FIELDS = ("data_categories", "data_subjects", "consent_basis", "consent_ref", "consent_evidence_id", "retention_period", "cross_border")
 CODE_LABELS = {"type": TYPE_LABELS, "sourcing": SOURCING_LABELS, "stage": STAGE_LABELS, "ai_provider": AI_PROVIDERS, "algorithm_type": ALGORITHM_TYPES, "hosting": HOSTING,
                "vendor_trains_on_data": TRAINS_LABELS, "vendor_documents": VENDOR_DOCS, "autonomy": AUTONOMY_LABELS, "agentassure_status": AGENTASSURE,
@@ -167,6 +168,32 @@ def calc_tier(s: RegisterSystem, d: RegisterSystemData | None) -> tuple[int, str
 
 def apply_tier(db: Session, s: RegisterSystem) -> None:
     s.risk_tier, s.risk_tier_reason = calc_tier(s, data_row(db, s))
+    apply_eu_level(db, s)
+
+
+def apply_eu_level(db: Session, s: RegisterSystem) -> None:
+    """EU AI Act risk level beside the tier (11-25 change). A classification signed off in the EU AI Act workspace wins;
+    otherwise the system's own screening decides."""
+    from app.euaiact.models import EuAiActRecord
+
+    rec = db.scalar(select(EuAiActRecord).where(EuAiActRecord.register_system_id == s.id, EuAiActRecord.deleted_at.is_(None))) if s.id else None
+    signed = eu_risk.level_from_classification(rec.classification) if rec is not None and rec.signoff_status == "signed_off" else None
+    if signed:
+        from app.euaiact import rules as eu_rules
+
+        s.eu_risk_level = signed
+        s.eu_risk_reason = f"Signed off by the legal reviewer: {eu_rules.classifications().get(rec.classification, rec.classification)}."[:400]
+    else:
+        level, why = eu_risk.level_for(s.eu_screening)
+        s.eu_risk_level, s.eu_risk_reason = level, why[:400]
+
+
+def refresh_eu_level(db: Session, actor: User | None, s: RegisterSystem, reason: str) -> None:
+    """Recalculate after the EU AI Act workspace changes, and log the move in the system's history."""
+    before = s.eu_risk_level
+    apply_eu_level(db, s)
+    if s.eu_risk_level != before:
+        log_change(db, actor, s, "eu_risk_level", eu_risk.label(before) if before else None, eu_risk.label(s.eu_risk_level), reason, raw=True)
 
 
 # ---- change log
@@ -191,6 +218,8 @@ def display(db: Session, field: str, value) -> str | None:
         if ids:
             parts.append(", ".join((u.name if u else i) for i, u in ((i, db.get(User, i)) for i in ids[:20])) + (f" and {len(ids) - 20} more" if len(ids) > 20 else ""))
         return "; ".join(p for p in parts if p) or None
+    if field == "eu_screening":
+        return eu_risk.summary(value)
     if field == "run_location":
         return place_label(db, value)
     if field == "data_locations":
@@ -311,6 +340,8 @@ def clean(db: Session, org: Organization, data: dict, current: RegisterSystem | 
         if "consent_evidence_id" in dd:
             dv["consent_evidence_id"] = _file(db, org.id, dd.get("consent_evidence_id"), "data.consent_evidence_id", errs)
         out["_data"] = dv
+    if "eu_screening" in data:
+        out["eu_screening"] = eu_risk.clean_screening(data.get("eu_screening"), errs)
     if "department_ids" in data:
         out["department_ids"] = _departments(db, org.id, data.get("department_ids"), errs)
     if "user_selection" in data:
@@ -598,6 +629,7 @@ def update_system(db: Session, actor: User, s: RegisterSystem, data: dict, *, re
             raise Invalid(errors=[{"field": "agentassure_status", "message": "Pre-release testing is set from the Agent Assure records on the Assurance tab."}])
     before = _snapshot(db, s)
     tier_before = s.risk_tier
+    eu_before = s.eu_risk_level
     decisions = _pop_decisions(v)
     _write(db, actor, org, s, v)
     s.updated_by = actor.id
@@ -616,6 +648,9 @@ def update_system(db: Session, actor: User, s: RegisterSystem, data: dict, *, re
         _remember_model(db, actor, s)
     if s.risk_tier != tier_before:
         log_change(db, actor, s, "risk_tier", f"Tier {tier_before}" if tier_before else None, f"Tier {s.risk_tier}", "Recalculated from the system's data and decisions.", batch_id=batch_id, raw=True)
+    if s.eu_risk_level != eu_before:
+        log_change(db, actor, s, "eu_risk_level", eu_risk.label(eu_before) if eu_before else None, eu_risk.label(s.eu_risk_level),
+                   "Worked out from the EU AI Act screening.", batch_id=batch_id, raw=True)
     if changed:
         from app.impact.detect import detect  # wave 3 WS-H: reassessment triggers (§21 F8)
 

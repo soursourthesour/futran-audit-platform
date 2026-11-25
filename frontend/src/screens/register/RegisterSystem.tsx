@@ -7,7 +7,8 @@ import { GATE_TONE, TIER_LABEL, TIER_TONE, useRegister, useRegSystem, type Chang
 import { Alert, Badge, Button, Dialog, EmptyState, Loading, PageHeader, TextArea, TextField, fmtDate, fmtDateTime, fileUrl } from '@/components/ui';
 import { DataGrid } from '@/components/ui/DataGrid';
 import { historyHelp, systemHelp as H } from '@/help/register';
-import { AgentActions, Card, DataConsent, ImpactField, VendorModel, WhatItIs, emptyForm, formFrom, payload, scrollToError, type Form } from './SystemForm';
+import { AgentActions, Card, DataConsent, EuCard, ImpactField, VendorModel, WhatItIs, emptyForm, formFrom, payload, scrollToError, type Form } from './SystemForm';
+import { euBadge } from '@/components/EuScreening';
 import { LawSearch } from './LawSearch';
 import { LawSelect, Places, SuggestionList, useLawSuggestions, type Draft } from './LawsStep';
 import { RolesTab } from './RolesTab';
@@ -55,6 +56,7 @@ export function RegisterSystemPage({ tab }: { tab: Tab }) {
           <span>{s.type_label} · {s.sourcing_label.toLowerCase()}</span>
           {(s.ai_provider_label || s.model_name) && <span>{[s.ai_provider_label, s.model_name].filter(Boolean).join(' · ')}</span>}
           {s.risk_tier && <Badge tone={TIER_TONE[s.risk_tier]}>{TIER_LABEL[s.risk_tier]}</Badge>}
+          <span title={s.eu_risk_reason}>EU AI Act: {euBadge(s.eu_risk_level, s.eu_risk_label)}</span>
           <span>Stage: {s.stage_label}{s.stage === 'live' && s.live_since ? ` since ${fmtDate(s.live_since)}` : ''}</span>
           <span>{s.roles.filled} of {s.roles.required} required roles filled</span>
           {s.laws.length > 0 && <span>{s.laws.map((l) => l.short_name).join(' · ')}</span>}
@@ -185,7 +187,8 @@ function DetailsTab({ s, d, onSaved }: { s: RegSystem; d: Register; onSaved: (m:
       {f.type === 'agent' && <AgentActions {...props} n={3} />}
       <DataConsent {...props} n={f.type === 'agent' ? 4 : 3} />
       <LawsCard s={s} n={f.type === 'agent' ? 5 : 4} f={f} set={setF} fe={fe} ro={ro} decisions={decisions} setDecisions={setDecisions} onChanged={() => onSaved('Laws updated. Required roles were recalculated.')} />
-      <BiasCard s={s} n={f.type === 'agent' ? 6 : 5} f={f} set={setF} ro={ro} />
+      <EuCard n={f.type === 'agent' ? 6 : 5} f={f} set={setF} fe={fe} options={d.eu_screening_options} disabled={ro} level={s.eu_risk_level} label={s.eu_risk_label} reason={s.eu_risk_reason} />
+      <BiasCard s={s} n={f.type === 'agent' ? 7 : 6} f={f} set={setF} ro={ro} />
       {!ro && (
         <section className="card"><div className="card-body stack">
           <TextField label="Reason for change" help={H.reason} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Optional for a single edit" />
@@ -354,7 +357,7 @@ export function RegisterNew() {
       {name === 'Vendor and model' && <VendorModel {...props} />}
       {name === 'What the agent can do' && <AgentActions {...props} />}
       {name === 'Data and consent' && <DataConsent {...props} />}
-      {name === 'Laws and risk' && <NewLaws f={f} set={setF} fe={fe} laws={laws} setLaws={setLaws} dismissed={dismissed} setDismissed={setDismissed} />}
+      {name === 'Laws and risk' && <><NewLaws f={f} set={setF} fe={fe} laws={laws} setLaws={setLaws} dismissed={dismissed} setDismissed={setDismissed} /><EuCard f={f} set={setF} fe={fe} options={d.eu_screening_options} /></>}
       {name === 'History to date' && (
         <Card title="History to date">
           <FirstEntryQuestions stage={f.stage} answers={answers} onChange={setAnswers} help={historyHelp} />

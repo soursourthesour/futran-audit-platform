@@ -6,6 +6,7 @@ import {
 import { Checkbox, FieldGroup, FieldHelp, SelectField, TextArea, TextField } from '@/components/ui';
 import { systemHelp as H } from '@/help/register';
 import { WhoUses, countFor } from './WhoUses';
+import { EMPTY_SCREENING, EU_HELP, EuLevelSummary, EuScreeningFields, type EuLevel, type EuOptions, type EuScreening } from '@/components/EuScreening';
 
 export type Form = {
   name: string; type: string; sourcing: string; department_id: string; company_wide: boolean; stage: string; purpose: string; users_scope: string; users_description: string; user_count: string;
@@ -15,6 +16,8 @@ export type Form = {
   data_categories: string[]; data_subjects: string[]; consent_basis: string; consent_ref: string; retention_period: string; cross_border: string;
   // 11-03: several departments (C9), who uses it (C10), "Other" model (C12), places (C14)
   multi_dept: boolean; department_ids: string[]; user_selection: UserSelection; model_other: boolean; run_location: Place | null; data_locations: Place[];
+  // 11-25: EU AI Act screening, which decides the EU risk level shown beside the tier
+  eu_screening: EuScreening;
 };
 
 export function emptyForm(deptId = ''): Form {
@@ -23,7 +26,7 @@ export function emptyForm(deptId = ''): Form {
     vendor_id: '', new_vendor: false, vendor_name: '', ai_provider: '', model_name: '', model_version: '', algorithm_type: '', hosting: '', vendor_trains_on_data: '', vendor_documents: [], autonomy: '',
     guardrail_policy_ref: '', agentassure_status: '', actions: [], other_action: '', decision_impact: '', bias_next_due: '', data_categories: [], data_subjects: [], consent_basis: '',
     consent_ref: '', retention_period: '', cross_border: '',
-    multi_dept: false, department_ids: [], user_selection: {}, model_other: false, run_location: null, data_locations: [],
+    multi_dept: false, department_ids: [], user_selection: {}, model_other: false, run_location: null, data_locations: [], eu_screening: EMPTY_SCREENING,
   };
 }
 
@@ -38,7 +41,7 @@ export function formFrom(s: RegSystem): Form {
     decision_impact: s.decision_impact ?? '', bias_next_due: s.bias_next_due ?? '', data_categories: s.data.data_categories, data_subjects: s.data.data_subjects,
     consent_basis: s.data.consent_basis ?? '', consent_ref: s.data.consent_ref ?? '', retention_period: s.data.retention_period ?? '', cross_border: s.data.cross_border ?? '',
     multi_dept: (s.departments ?? []).length > 0, department_ids: (s.departments ?? []).map((x) => x.id), user_selection: s.user_selection ?? {}, model_other: false,
-    run_location: s.run_location ?? null, data_locations: s.data_locations ?? [],
+    run_location: s.run_location ?? null, data_locations: s.data_locations ?? [], eu_screening: s.eu_screening ?? EMPTY_SCREENING,
   };
 }
 
@@ -66,7 +69,23 @@ export function payload(f: Form): Record<string, unknown> {
     data: { data_categories: f.data_categories, data_subjects: f.data_subjects, consent_basis: n(f.consent_basis), consent_ref: n(f.consent_ref), retention_period: n(f.retention_period), cross_border: n(f.cross_border) },
     department_ids: f.multi_dept && f.department_ids.length ? f.department_ids : null, user_selection: selectionFor(f),
     run_location: cleanPlace(f.run_location), data_locations: f.data_locations.map(cleanPlace).filter(Boolean).length ? f.data_locations.map(cleanPlace).filter(Boolean) : null,
+    eu_screening: answered(f.eu_screening) ? f.eu_screening : null,
   };
+}
+
+const answered = (s: EuScreening) => s.art5.length > 0 || !!s.annex_iii_area || s.art50.length > 0 || s.annex_i || s.gpai;
+
+/** 11-25: the EU AI Act screening and the level it gives, beside the Futran tier. */
+export function EuCard({ n, f, set, fe, options, disabled, level, label, reason }: { n?: number; f: Form; set: (f: Form) => void; fe: Record<string, string>; options?: EuOptions; disabled?: boolean; level?: EuLevel | null; label?: string | null; reason?: string | null }) {
+  if (!options) return null;
+  return (
+    <Card n={n} title="EU AI Act risk level">
+      <p className="small muted" style={{ margin: 0 }}>{EU_HELP.level}</p>
+      {level !== undefined && <EuLevelSummary level={level} label={label} reason={reason} />}
+      <EuScreeningFields options={options} value={f.eu_screening} onChange={(eu_screening) => set({ ...f, eu_screening })} disabled={disabled} errors={fe} />
+      {level !== undefined && <p className="small muted" style={{ margin: 0 }}>The level updates when you save.</p>}
+    </Card>
+  );
 }
 
 type Props = { f: Form; set: (f: Form) => void; fe: Record<string, string>; d: Pick<Register, 'departments' | 'people' | 'vendors' | 'can' | 'job_levels' | 'compliance_roles'>; disabled?: boolean; editing?: boolean };

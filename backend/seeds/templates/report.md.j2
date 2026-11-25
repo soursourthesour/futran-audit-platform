@@ -278,6 +278,9 @@ Raised from fieldwork evidence, not from a single questionnaire answer.
 | Vendor | {{ s.vendor | md_cell }} |
 {% endif %}
 | Use cases | {{ s.use_cases | md_cell }} |
+{% if s.eu_level is defined %}
+| EU AI Act risk level | {{ s.eu_level | md_cell }} |
+{% endif %}
 | Assessment | {{ s.depth }}, {{ s.weights | lower }} |
 | Inherent risk (0–100) | {{ s.inherent }} |
 | Control maturity (1–5) | {{ s.maturity }} |

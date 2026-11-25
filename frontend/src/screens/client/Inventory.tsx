@@ -4,10 +4,11 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
 import { Alert, Badge, Button, ButtonLink, Card, Dialog, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField } from '@/components/ui';
 import { toolHelp as H } from '@/help/client';
+import { euBadge, type EuLevel } from '@/components/EuScreening';
 
 export type Tool = { id: string; vendor: string; product: string; plan: string | null; account_type: string; sso: boolean | null; training_on_inputs: string; retention_terms: string | null; approval_status: string; source: string; kind?: 'tool' | 'agent'; declared_count: number | null };
-export type UseCaseRow = { id: string; name: string; department_id: string; department: string | null; status: string; tools: string[]; tool_ids: string[]; proposed_tier: number | null; final_tier: number | null; final_tier_rationale: string | null; aedt_determination: string | null; returned_comment: string | null };
-export type InventoryData = { tools: Tool[]; use_cases: UseCaseRow[]; tiers: Record<string, number>; departments: { id: string; name: string }[]; is_futran: boolean };
+export type UseCaseRow = { id: string; name: string; department_id: string; department: string | null; status: string; tools: string[]; tool_ids: string[]; proposed_tier: number | null; final_tier: number | null; final_tier_rationale: string | null; aedt_determination: string | null; returned_comment: string | null; eu_risk_level?: EuLevel | null; eu_risk_label?: string };
+export type InventoryData = { tools: Tool[]; use_cases: UseCaseRow[]; tiers: Record<string, number>; eu_levels?: Record<string, number>; departments: { id: string; name: string }[]; is_futran: boolean };
 
 export const ACCOUNT_LABELS: Record<string, string> = { enterprise: 'Company (enterprise)', team: 'Company (team plan)', personal_paid: 'Personal, paid', personal_free: 'Personal, free', unknown: 'Not known' };
 export const STATUS_LABELS: Record<string, { label: string; tone: 'muted' | 'navy' | 'success' | 'warn' }> = { draft: { label: 'Draft', tone: 'muted' }, submitted: { label: 'Submitted', tone: 'navy' }, dept_approved: { label: 'Dept approved', tone: 'success' }, returned: { label: 'Returned', tone: 'warn' } };
@@ -38,15 +39,15 @@ function InventoryView({ clientId }: { clientId: string }) {
         actions={!d.is_futran ? <><Button onClick={() => setAddingTool(true)}>Add tool</Button><ButtonLink to="/inventory/new" variant="primary">Add use case</ButtonLink></> : undefined} />
       <div className="split">
         <div className="main">
-          <Card title={`Use cases · ${d.use_cases.length}`} actions={<span className="small muted">Tier 3: {d.tiers['3'] ?? 0} · Tier 2: {d.tiers['2'] ?? 0} · Tier 1: {d.tiers['1'] ?? 0}</span>}>
+          <Card title={`Use cases · ${d.use_cases.length}`} actions={<span className="small muted">Tier 3: {d.tiers['3'] ?? 0} · Tier 2: {d.tiers['2'] ?? 0} · Tier 1: {d.tiers['1'] ?? 0}{d.eu_levels && <> · EU high-risk: {d.eu_levels.high_risk ?? 0}{(d.eu_levels.prohibited ?? 0) > 0 && <>, prohibited: {d.eu_levels.prohibited}</>}, not screened: {d.eu_levels.not_screened ?? 0}</>}</span>}>
             {d.use_cases.length === 0 ? <EmptyState>No use cases yet.{!d.is_futran && ' Add one for each way your team uses an AI tool.'}</EmptyState> : (
               <div className="table-wrap"><table className="table">
-                <thead><tr><th>Use case</th><th>Department</th><th>Tool · account</th><th>Proposed</th><th>Final</th><th>Status</th></tr></thead>
+                <thead><tr><th>Use case</th><th>Department</th><th>Tool · account</th><th>Proposed</th><th>Final</th><th>EU AI Act</th><th>Status</th></tr></thead>
                 <tbody>{d.use_cases.map((u) => (
                   <tr key={u.id}>
                     <td><Link to={`${base}/${u.id}`}><strong>{u.name}</strong></Link>{d.is_futran && <> · <Link className="small" to={`/clients/${clientId}/fieldwork/${u.id}`}>Fieldwork</Link></>}{u.returned_comment && u.status === 'returned' && <div className="small" style={{ color: 'var(--warn)' }}>{u.returned_comment}</div>}</td>
                     <td>{u.department}</td><td className="small">{u.tools.join(', ')}</td>
-                    <td>{tierBadge(u.proposed_tier)}</td><td>{tierBadge(u.final_tier)}</td>
+                    <td>{tierBadge(u.proposed_tier)}</td><td>{tierBadge(u.final_tier)}</td><td>{euBadge(u.eu_risk_level, u.eu_risk_label)}</td>
                     <td><Badge tone={STATUS_LABELS[u.status]?.tone ?? 'muted'}>{STATUS_LABELS[u.status]?.label ?? u.status}</Badge></td>
                   </tr>
                 ))}</tbody>

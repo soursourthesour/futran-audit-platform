@@ -41,6 +41,10 @@ class UseCase(TimestampedTenantMixin, Base):
     final_tier_set_by: Mapped[str | None] = mapped_column(String(36))
     final_tier_set_at: Mapped[datetime | None] = mapped_column(DateTime)
     aedt_determination: Mapped[str | None] = mapped_column(String(14))  # in_scope | out_of_scope | undetermined
+    # EU AI Act risk level beside the tier (11-25 change). The screening answers decide the level (app.euaiact.risk).
+    eu_screening: Mapped[dict | None] = mapped_column(JSON)
+    eu_risk_level: Mapped[str | None] = mapped_column(String(12))  # prohibited | high_risk | limited | minimal; null = not screened
+    eu_risk_reason: Mapped[str | None] = mapped_column(String(400))
     owner_user_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("users.id"))
     status: Mapped[str] = mapped_column(String(14), default="draft")  # draft | submitted | dept_approved | returned
     returned_comment: Mapped[str | None] = mapped_column(Text)

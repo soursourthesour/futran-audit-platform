@@ -1,3 +1,4 @@
+import type { EuLevel, EuOptions, EuScreening } from '@/components/EuScreening';
 import { useQuery } from '@tanstack/react-query';
 import { api } from './client';
 
@@ -19,7 +20,7 @@ export type RegSystem = {
   department: { id: string; name: string } | null; company_wide: boolean; purpose: string | null; users_scope: string | null; users_description: string | null; user_count: number | null;
   owner: PersonRef; vendor: { id: string; name: string } | null; ai_provider: string | null; ai_provider_label: string | null; model_name: string | null; model_version: string | null;
   algorithm_type: string | null; algorithm_label: string | null; hosting: string | null; vendor_trains_on_data: string | null; vendor_documents: string[]; autonomy: string | null;
-  guardrail_policy_ref: string | null; agentassure_status: string | null; agentassure_computed?: boolean; decision_impact: string | null; risk_tier: number | null; risk_tier_reason: string | null;
+  guardrail_policy_ref: string | null; agentassure_status: string | null; agentassure_computed?: boolean; decision_impact: string | null; risk_tier: number | null; risk_tier_reason: string | null; eu_screening: EuScreening | null; eu_risk_level: EuLevel | null; eu_risk_label: string; eu_risk_reason: string; eu_gpai?: boolean;
   bias_next_due: string | null; origin: string; live_since: string | null; data: SystemData; actions: { action_code: string; label: string; description: string | null }[];
   laws: LawLink[]; bias: Bias; consent: { label: string; missing: boolean }; roles: RoleSummary; gate: Gate;
   go_live: { requested_by: PersonRef; requested_at: string | null; approved_by: PersonRef; approved_at: string | null };
@@ -47,6 +48,7 @@ export type Register = {
   departments: { id: string; name: string; can_edit: boolean }[];
   people: RegPerson[];
   vendors: { id: string; name: string }[];
+  eu_screening_options?: EuOptions;
   job_levels?: Opt[];
   compliance_roles?: Opt[];
 };
@@ -129,7 +131,7 @@ export const HISTORY_TYPES: Opt[] = [
 ];
 export const labelOf = (opts: Opt[], v: string | null | undefined) => opts.find((o) => o.value === v)?.label ?? '';
 
-export const TIER_LABEL: Record<number, string> = { 3: 'Tier 3 · High', 2: 'Tier 2 · Medium', 1: 'Tier 1 · Low' };
+export const TIER_LABEL: Record<number, string> = { 3: 'Tier 3 · High-risk', 2: 'Tier 2 · Elevated', 1: 'Tier 1 · Baseline' };  // same names as the inventory (11-25)
 export const TIER_TONE: Record<number, 'danger' | 'warn' | 'muted'> = { 3: 'danger', 2: 'warn', 1: 'muted' };
 export const STATUS_TONE: Record<string, 'success' | 'navy' | 'danger' | 'warn' | 'muted'> = { assigned: 'success', external: 'navy', no_such_person: 'danger', pending_committee: 'warn', not_applicable: 'muted' };
 export const GATE_TONE: Record<string, 'success' | 'danger' | 'warn' | 'muted' | 'navy'> = { live_clear: 'success', live_finding: 'danger', blocked: 'danger', not_due: 'muted', awaiting_approval: 'navy', ready: 'success', retired: 'muted' };

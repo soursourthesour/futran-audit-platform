@@ -22,7 +22,7 @@ def snapshot_payload(db: Session, e: Engagement) -> dict:
     ucs = []
     for u in db.scalars(select(UseCase).where(UseCase.engagement_id == e.id, UseCase.deleted_at.is_(None)).order_by(UseCase.name)):
         named = db.scalars(select(NamedUser).where(NamedUser.use_case_id == u.id, NamedUser.deleted_at.is_(None)))
-        ucs.append({"id": u.id, "name": u.name, "department": depts.get(u.department_id), "status": u.status, "proposed_tier": u.proposed_tier, "final_tier": u.final_tier, "tier": effective_tier(u),
+        ucs.append({"id": u.id, "name": u.name, "department": depts.get(u.department_id), "status": u.status, "proposed_tier": u.proposed_tier, "final_tier": u.final_tier, "tier": effective_tier(u), "eu_risk_level": u.eu_risk_level,
                     "tool_ids": u.tool_ids, "data_categories": u.data_categories, "decision_impact": u.decision_impact,
                     "named_users": [{"name": n.person_name, "training_complete": n.training_complete, "policy_acknowledged": n.policy_acknowledged, "oversight_role_confirmed": n.oversight_role_confirmed, "unable_reason": n.unable_reason} for n in named]})
     systems = [{"id": s.id, "reference_id": s.reference_id, "name": s.name, "built_by": s.built_by, "depth": s.assessment_depth, "use_case_ids": s.use_case_ids} for s in systems_for(db, e)]

@@ -56,6 +56,10 @@ class RegisterSystem(TimestampedTenantMixin, Base):
     decision_impact: Mapped[str | None] = mapped_column(String(14))
     risk_tier: Mapped[int | None] = mapped_column(Integer)
     risk_tier_reason: Mapped[str | None] = mapped_column(String(300))
+    # EU AI Act risk level beside the tier (11-25 change): from the screening, or from a signed-off EU workspace classification.
+    eu_screening: Mapped[dict | None] = mapped_column(JSON)
+    eu_risk_level: Mapped[str | None] = mapped_column(String(12))  # prohibited | high_risk | limited | minimal; null = not screened
+    eu_risk_reason: Mapped[str | None] = mapped_column(String(400))
     company_wide: Mapped[bool] = mapped_column(Boolean, default=False)
     bias_next_due: Mapped[date | None] = mapped_column(Date)  # before the first test; afterwards the latest test sets it
     origin: Mapped[str] = mapped_column(String(14), default="manual")  # manual | csv | inventory | duplicate

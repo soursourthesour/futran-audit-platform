@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.euaiact import risk as eu_risk
 from app.attestation.service import TYPED_VENDORS
 from app.auth.deps import Actor, current_actor
 from app.core.db import get_db
@@ -72,7 +73,7 @@ def _row(key: str, kind: str, name: str, **kw) -> dict:
     sources = kw.pop("sources")
     return {"key": key, "kind": kind, "type_label": TYPE_LABELS[kind], "name": name, "sources": sources,
             "source_label": " · ".join(SOURCE_LABELS[x] for x in sources), "subtype": None, "detail": None, "departments": [], "company_wide": False,
-            "stage": None, "stage_label": None, "tier": None, "registered": None, "in_register_as": None, "in_audit": None, "audit": None,
+            "stage": None, "stage_label": None, "tier": None, "eu_risk_level": None, "eu_risk_label": None, "registered": None, "in_register_as": None, "in_audit": None, "audit": None,
             "system": None, "tool": None, "use_case": None, "open": None, "can": {}} | kw
 
 
@@ -127,7 +128,7 @@ def ai_systems(actor: Actor = Depends(current_actor), db: Session = Depends(get_
         a = audit_by_register.get(s.id)
         depts = [out["department"]] if out["department"] else out["departments"]
         rows.append(_row(f"system:{s.id}", "system", s.name, sources=sources, subtype=out["type_label"], detail=out["vendor"]["name"] if out["vendor"] else None,
-                         departments=depts, company_wide=s.company_wide, stage=s.stage, stage_label=out["stage_label"], tier=s.risk_tier, registered=True,
+                         departments=depts, company_wide=s.company_wide, stage=s.stage, stage_label=out["stage_label"], tier=s.risk_tier, eu_risk_level=s.eu_risk_level, eu_risk_label=out["eu_risk_label"], registered=True,
                          in_audit=(a is not None) if may_prefill else None, audit=_audit_info(db, e, a, True) if a is not None else None,
                          system=out, open=f"/register/{s.id}"))
 
@@ -170,12 +171,14 @@ def ai_systems(actor: Actor = Depends(current_actor), db: Session = Depends(get_
             rows.append(_row(f"use_case:{u.id}", "use_case", u.name, sources=["attestation" if u.created_from_attestation_id else "inventory"],
                              departments=[x for x in [dept(u.department_id)] if x], stage=f"uc:{u.status}", stage_label=USE_CASE_STATUS.get(u.status, u.status),
                              tier=inv.effective_tier(u) if (u.final_tier or u.proposed_tier) else None,
+                             eu_risk_level=u.eu_risk_level, eu_risk_label=eu_risk.label(u.eu_risk_level),
                              registered=(True if home is not None else None if f"use_case:{u.id}" in unseen_refs else False)
                              if see_register else None, in_register_as={"id": home.id, "name": home.name} if home else None,
                              in_audit=(u.id in in_audit_ucs) if may_prefill else None, use_case=use_case_out(db, u), open=f"/inventory/{u.id}",
                              can={"review_use_case": u.status == "submitted" and _may(db, actor, Action.APPROVE_USE_CASE, engagement_id=e.id, department_id=u.department_id)}))
         inventory = {
             "tiers": {str(t): sum(1 for u in ucs if inv.effective_tier(u) == t) for t in (1, 2, 3)},
+            "eu_levels": inv.eu_counts(ucs),
             "can_add_tool": _may(db, actor, Action.REGISTER_AI_TOOL, engagement_id=e.id, list_view=True),
             "can_add_use_case": _may(db, actor, Action.SUBMIT_USE_CASE, engagement_id=e.id, list_view=True),
         }

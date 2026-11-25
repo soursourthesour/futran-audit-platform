@@ -11,6 +11,7 @@ from app.core.clock import utcnow
 from app.core.config import Settings
 from app.core.errors import AppError, Conflict, Invalid, NotFound
 from app.engagements.models import Engagement
+from app.euaiact import risk as eu_risk
 from app.inventory.models import AITool, NamedUser, NamedUserLink, UsageRecord, UseCase
 from app.tenancy.models import Department, Organization, User
 from app.tenancy.service import find_user_by_email
@@ -53,6 +54,44 @@ def tier_reason(decision_impact: str | None, data_categories: list[str], tools: 
 
 def effective_tier(uc: UseCase) -> int:
     return uc.final_tier or uc.proposed_tier or 1
+
+
+# ---- EU AI Act risk level beside the tier (11-25 change)
+_KEEP = object()  # the payload did not mention eu_screening: leave it as it is
+
+
+def apply_eu_level(uc: UseCase) -> None:
+    uc.eu_risk_level, uc.eu_risk_reason = eu_risk.level_for(uc.eu_screening)
+
+
+def eu_counts(ucs: list[UseCase]) -> dict[str, int]:
+    out = {k: 0 for k in eu_risk.LEVELS} | {"not_screened": 0}
+    for u in ucs:
+        out[u.eu_risk_level if u.eu_risk_level in eu_risk.LEVELS else "not_screened"] += 1
+    return out
+
+
+def set_eu_screening(db: Session, actor: User, uc: UseCase, raw, rationale: str) -> UseCase:
+    """Futran corrects the client's EU screening after submission, with a reason. Locked with the final tiers (sign-off 5)."""
+    from app.findings.service import assert_open
+
+    assert_open(db, db.get(Engagement, uc.engagement_id))
+    errs: list[dict] = []
+    screening = eu_risk.clean_screening(raw, errs)
+    if not errs and not eu_risk.complete(screening):
+        errs.append({"field": "eu_screening", "message": "Answer all three EU AI Act screening questions."})
+    if not (rationale or "").strip():
+        errs.append({"field": "rationale", "message": "Give the reason for the change."})
+    if errs:
+        raise Invalid(errors=errs)
+    before = {"eu_screening": uc.eu_screening, "eu_risk_level": uc.eu_risk_level}
+    uc.eu_screening = screening
+    apply_eu_level(uc)
+    uc.updated_by = actor.id
+    audit.record(db, actor_id=actor.id, action="inventory.eu_screening", obj=uc, before=before,
+                 after={"eu_screening": screening, "eu_risk_level": uc.eu_risk_level, "rationale": rationale.strip()},
+                 summary=f"Set the EU AI Act risk level of {uc.name} to {eu_risk.label(uc.eu_risk_level)}")
+    return uc
 
 
 # ---- tools
@@ -180,9 +219,11 @@ def _clean_use_case(db: Session, org: Organization, data: dict) -> dict:
             if email and ("@" not in email or " " in email):
                 errs.append({"field": "named_users", "message": f"{n['person_name']}: enter a valid work email."})
             named.append({"person_name": " ".join(str(n["person_name"]).split())[:120], "email": email, "role_name": (str(n.get("role_name") or "").strip()[:120] or None), "oversight_role": (str(n.get("oversight_role") or "").strip()[:200] or None)})
+    screening = eu_risk.clean_screening(data.get("eu_screening"), errs) if "eu_screening" in data else _KEEP
     if errs:
         raise Invalid(errors=errs)
-    return {"name": name, "department_id": dept.id, "purpose": (str(data.get("purpose") or "").strip() or None), "tool_ids": tool_ids, "data_categories": cats, "decision_impact": impact, "usage": usage, "named": named}
+    return {"name": name, "department_id": dept.id, "purpose": (str(data.get("purpose") or "").strip() or None), "tool_ids": tool_ids, "data_categories": cats, "decision_impact": impact, "usage": usage, "named": named,
+            "eu_screening": screening}
 
 
 def _tools(db: Session, uc: UseCase) -> list[AITool]:
@@ -199,6 +240,9 @@ def save_use_case(db: Session, actor: User, org: Organization, e: Engagement, da
         db.add(uc)
     for k in ("name", "department_id", "purpose", "tool_ids", "data_categories", "decision_impact"):
         setattr(uc, k, v[k])
+    if v["eu_screening"] is not _KEEP:
+        uc.eu_screening = v["eu_screening"]
+        apply_eu_level(uc)
     uc.updated_by = actor.id
     uc.editor_ids = list(dict.fromkeys([*(uc.editor_ids or []), actor.id]))
     db.flush()

@@ -35,9 +35,38 @@ classifications:
   prohibited: "Prohibited (Art. 5)"
   high_risk_annex_iii: "High-risk · Annex III"
   high_risk_annex_i: "High-risk · Annex I (product safety)"
-  transparency: "Transparency only (Art. 50)"
-  minimal: "Minimal"
+  transparency: "Limited risk · transparency (Art. 50)"
+  minimal: "Minimal risk"
   gpai: "General-purpose AI model"
+
+
+# EU risk level shown beside the Futran tier on use cases and register systems (11-25 change). The four levels are the
+# Commission's terms; only "high-risk" appears in the Act's text. The screening questions decide the level, first match
+# wins: an Art. 5 practice, then Annex I or an Annex III area (unless a documented Art. 6(3) assessment), then an Art. 50
+# situation, else minimal. A classification signed off in the EU AI Act workspace overrides the screening.
+risk_levels:
+  prohibited: "Prohibited"
+  high_risk: "High-risk"
+  limited: "Limited risk"
+  minimal: "Minimal risk"
+classification_levels: {prohibited: prohibited, high_risk_annex_iii: high_risk, high_risk_annex_i: high_risk, transparency: limited, minimal: minimal}
+art5_practices:
+  manipulation: "Manipulates or deceives people in ways that cause significant harm (Art. 5(1)(a))"
+  exploits_vulnerability: "Exploits people's age, disability or social or economic situation (Art. 5(1)(b))"
+  social_scoring: "Social scoring that leads to unfair or unrelated treatment (Art. 5(1)(c))"
+  crime_prediction: "Predicts whether a person will commit a crime from profiling or personality traits alone (Art. 5(1)(d))"
+  face_scraping: "Builds facial recognition databases by untargeted scraping of images (Art. 5(1)(e))"
+  emotion_work_education: "Infers emotions at work or in education, other than for medical or safety reasons (Art. 5(1)(f))"
+  biometric_categorisation: "Uses biometrics to infer race, political opinions, union membership, religion, sex life or sexual orientation (Art. 5(1)(g))"
+  realtime_rbi: "Real-time remote biometric identification in public spaces for law enforcement (Art. 5(1)(h))"
+art50_situations:
+  interacts: "Talks or chats directly with people (Art. 50(1))"
+  synthetic_content: "Generates text, images, audio or video (Art. 50(2))"
+  emotion_biometric: "Recognises emotions or sorts people by biometric data (Art. 50(3))"
+  deepfake_public_text: "Creates deepfakes or publishes AI text on matters of public interest (Art. 50(4))"
+annex_i_label: "Is a safety component of, or is itself, a product under EU product-safety law that needs a third-party conformity assessment (Annex I)"
+art6_3_label: "A documented Art. 6(3) assessment shows the Annex III use poses no significant risk (a narrow procedural or preparatory task, and no profiling of people)"
+gpai_label: "We provide it as a general-purpose AI model (Art. 51–55)"
 
 # Annex III areas. `fria` true: a deployer of a system in this area completes a FRIA even when it is not a public body
 # or public service provider (Art. 27(1), Annex III point 5(b) and (c)). `no_fria`: Art. 27(1) excludes the area.

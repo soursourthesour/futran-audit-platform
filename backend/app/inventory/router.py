@@ -9,6 +9,7 @@ from app.core.db import get_db
 from app.core.errors import Forbidden, NotFound
 from app.core.ratelimit import client_ip, limiter
 from app.engagements.models import Engagement
+from app.euaiact import risk as eu_risk
 from app.inventory import service as inv
 from app.inventory.models import AITool, NamedUserLink, UsageRecord, UseCase
 from app.policy.actions import Action
@@ -35,6 +36,12 @@ class PreviewIn(BaseModel):
     decision_impact: str | None = None
     data_categories: list[str] = []
     tool_ids: list[str] = []
+    eu_screening: dict | None = None
+
+
+class EuScreeningIn(BaseModel):
+    eu_screening: dict | None = None
+    rationale: str = ""
 
 
 def _ctx(db: Session, actor: Actor, client_id: str, action: Action, department_id: str | None = None, list_view: bool = False) -> tuple[Organization, Engagement]:
@@ -67,7 +74,7 @@ def use_case_out(db: Session, uc: UseCase, detail: bool = False) -> dict:
         "id": uc.id, "name": uc.name, "department_id": uc.department_id, "department": dept.name if dept else None, "status": uc.status,
         "tools": [f"{t.product} · {t.account_type.replace('_', ' ')}" for t in tools], "tool_ids": uc.tool_ids, "proposed_tier": uc.proposed_tier,
         "final_tier": uc.final_tier, "final_tier_rationale": uc.final_tier_rationale, "aedt_determination": uc.aedt_determination, "returned_comment": uc.returned_comment,
-    }
+    } | eu_risk.out(uc.eu_screening, uc.eu_risk_level, uc.eu_risk_reason)
     if detail:
         out |= {
             "purpose": uc.purpose, "data_categories": uc.data_categories, "decision_impact": uc.decision_impact,
@@ -97,6 +104,7 @@ def get_inventory(client_id: str, actor: Actor = Depends(current_actor), db: Ses
         "tools": [tool_out(t, counts=individual) for t in tools],
         "use_cases": [use_case_out(db, u) for u in ucs],
         "tiers": tiers,
+        "eu_levels": inv.eu_counts(ucs),
         "departments": [{"id": d.id, "name": d.name} for d in depts if scope is None or d.id in scope],
         "is_futran": actor.is_futran,
     }
@@ -127,7 +135,16 @@ def tier_preview(client_id: str, body: PreviewIn, actor: Actor = Depends(current
     org, e = _ctx(db, actor, client_id, Action.VIEW_INVENTORY, list_view=True)
     tools = [t for t in inv.tools_for(db, org.id) if t.id in body.tool_ids]
     tier = inv.propose_tier(body.decision_impact, body.data_categories, tools)
-    return {"tier": tier, "label": inv.TIER_NAMES[tier], "reason": inv.tier_reason(body.decision_impact, body.data_categories, tools)}
+    errs: list[dict] = []
+    level, why = eu_risk.level_for(eu_risk.clean_screening(body.eu_screening, errs))
+    return {"tier": tier, "label": inv.TIER_NAMES[tier], "reason": inv.tier_reason(body.decision_impact, body.data_categories, tools),
+            "eu_risk_level": level, "eu_risk_label": eu_risk.label(level), "eu_risk_reason": why}
+
+
+@router.get("/clients/{client_id}/eu-screening-options")
+def eu_screening_options(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+    _ctx(db, actor, client_id, Action.VIEW_INVENTORY, list_view=True)
+    return eu_risk.options()
 
 
 @router.post("/clients/{client_id}/use-cases")
@@ -182,6 +199,20 @@ def final_tier(uc_id: str, body: TierIn, request: Request, actor: Actor = Depend
     except Forbidden:
         authorize(db, actor, Action.OVERRIDE_FINAL_TIER, engagement_id=uc.engagement_id)
     return use_case_out(db, inv.set_final_tier(db, request.app.state.settings, actor.user, uc, body.tier, body.rationale, body.aedt_determination), detail=True)
+
+
+@router.post("/use-cases/{uc_id}/eu-screening")
+def eu_screening(uc_id: str, body: EuScreeningIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+    """Futran corrects the EU AI Act screening after the client submits; the same people who set the final tier."""
+    uc = db.get(UseCase, uc_id)
+    if uc is None or uc.deleted_at:
+        raise NotFound()
+    assert_not_admin_judgment(actor)
+    try:
+        authorize(db, actor, Action.SET_FINAL_TIER, engagement_id=uc.engagement_id)
+    except Forbidden:
+        authorize(db, actor, Action.OVERRIDE_FINAL_TIER, engagement_id=uc.engagement_id)
+    return use_case_out(db, inv.set_eu_screening(db, actor.user, uc, body.eu_screening, body.rationale), detail=True)
 
 
 # ---- public named-user confirmation (D13)
