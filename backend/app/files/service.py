@@ -1,11 +1,12 @@
 import hashlib
+import logging
 from pathlib import Path
 
 from sqlalchemy.orm import Session
 
 from app.audit_log import service as audit
 from app.core.config import Settings
-from app.core.errors import Invalid
+from app.core.errors import AppError, Invalid
 from app.files.models import FileObject
 from app.files.scan import scan
 from app.files.storage import get_storage, safe_name
@@ -35,6 +36,17 @@ CONTENT_TYPES = {
     ".msg": "application/vnd.ms-outlook",
 }
 ALLOWED_EXTENSIONS = set(CONTENT_TYPES)
+log = logging.getLogger(__name__)
+
+
+class StoredFileMissing(AppError, FileNotFoundError):
+    """The file's record exists but its bytes are gone from storage: 410, not a server error (BUG-01).
+    Also an OSError, so callers that already treat an unreadable file as OSError keep working."""
+
+    status_code = 410
+
+    def __init__(self, detail: str = "The stored file is missing. Ask Futran to upload it again.", errors=None):
+        super().__init__(detail, errors)
 
 
 def content_type_for(filename: str) -> str:
@@ -57,7 +69,7 @@ def upload(
     """Store one file. Rejects files over the size limit, types outside the allow-list and files that fail the scan."""
     limit = settings.max_upload_mb
     if len(data) > limit * 1024 * 1024:
-        raise Invalid(f"Files can be up to {limit} MB. This one is {len(data) / 1024 / 1024:.1f} MB.", [{"field": "file", "message": "File too large."}])
+        raise Invalid(f"This file is over the {limit} MB limit.", [{"field": "file", "message": "File too large."}])  # callers stop reading just past the limit
     name = safe_name(filename)
     if Path(name).suffix.lower() not in ALLOWED_EXTENSIONS:
         raise Invalid("This file type can't be uploaded. Use PDF, Word, Excel, CSV, PowerPoint, text, images or ZIP.", [{"field": "file", "message": "File type not allowed."}])
@@ -79,4 +91,8 @@ def upload(
 
 
 def read(settings: Settings, f: FileObject) -> bytes:
-    return get_storage(settings).get(f.storage_key)
+    try:
+        return get_storage(settings).get(f.storage_key)
+    except FileNotFoundError:
+        log.warning("Stored file missing: file %s (%s), organization %s, key %s", f.id, f.filename, f.organization_id, f.storage_key)
+        raise StoredFileMissing() from None
