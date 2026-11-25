@@ -1,13 +1,13 @@
 ---
 type: change-log
-tags: [futran, audit-platform, eu-ai-act, bug-fixes]
+tags: [futran, audit-platform, eu-ai-act, bug-fixes, testing, performance, security]
 updated: 2026-11-25
 branch: build/v1
 ---
 
 # Futran Audit Platform: changes of 25 Nov 2026
 
-Two pieces of work: the EU AI Act risk level beside the Futran tier, and the fixes for the 14 bugs from the 13 Nov test run. The mail architecture reference for the AWS team is a separate note: [[Futran_Audit_Platform_Mail_Architecture]].
+Three pieces of work: the EU AI Act risk level beside the Futran tier, the fixes for the 14 bugs from the 13 Nov test run, and a second test wave (functional, coverage, permissions, security, accessibility and load) with its fixes. The mail architecture reference for the AWS team is a separate note: [[Futran_Audit_Platform_Mail_Architecture]].
 
 ## 1. EU AI Act risk level beside the tier
 
