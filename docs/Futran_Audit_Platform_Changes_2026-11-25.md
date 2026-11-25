@@ -44,7 +44,7 @@ The Futran tier (1 Baseline, 2 Elevated, 3 High-risk) rates harm from the data, 
 ### Data and upgrade
 - One additive migration (`58f307875d99`): `eu_screening`, `eu_risk_level` and `eu_risk_reason` on `use_cases` and `register_systems`. Existing records show "Not screened" until someone answers.
 - Rehearsed on a copy of the laptop database: the migration applied cleanly to 6 use cases and 10 register systems.
-- The report template gains one row. Unedited templates refresh automatically on start; edited ones keep their text.
+- The report template gains one row and the glossary gains the EU terms. On the laptop these arrive when you run `python -m app.cli seed-reference` after `run.bat` (corrected after the second test wave: they do not refresh on start). The hosted container runs seed-reference itself. Edited templates keep their text.
 
 ### Not changed
 - Risk scoring still takes its EU input from the assessment answers (the high-risk floor of 70 on inherent risk), not from this level. Linking the two is a possible follow-up.
@@ -97,12 +97,68 @@ Deferred, as before this branch or minor:
 - The report's EU level ignores the linked register system's signed-off classification.
 - Add team member can't reach the running engagement while an annual-review draft exists.
 
-## 4. Upgrade on the laptop (when you're ready)
+## 4. Second test wave (25 Nov)
+
+You asked for workstreams A to F in parallel, with the load test at 2,000 to 10,000 people. Each agent worked on its own copy of the data, never the laptop's. [[Futran_Audit_Platform_Test_Log]] holds every case, result and bug.
+
+| Agent | Workstream | Result |
+|---|---|---|
+| [[Sakshi]] (two runs) | A · Run 2 of the 255 cases, Futran and client sides | 253 of 255 passed; the 18 retests of earlier bugs all passed |
+| [[Kapila]] | B · Coverage: new cases for untested routes and the EU work | 76 new cases, 68 passed first time. Untested routes 26 → 15 of 171 |
+| [[Yama]] | C · Permission matrix against all 841 routes | 6 findings; 5 fixed, 1 partly (Y02) |
+| [[Hanuman]] | D · Security | No critical or high findings. Tenant isolation held. 11 medium/low findings; 8 fixed |
+| [[Ganesha]] | E · Accessibility on three browser engines | Critical issues 12 → 0, serious 18 → 1 (a false positive) |
+| [[Vayu]] | F · Load at 2,000, 6,500 and 10,000 people | The data notice timed out at about 6,500 people; 5 of 6 slow paths fixed |
+| [[Ashvins]] (four fixers) | Fixes in separate branches | Merged into `build/v1` |
+| [[Chitragupta]] | Review of the merged fixes | 6 fixed, 4 minor deferred |
+
+58 bugs and observations in all: 50 fixed, 1 not a bug, 5 deferred, 2 open. A fresh install on PostgreSQL 16 was proved end to end (BUG-K07, K08).
+
+### Speed at 10,000 people (test machine, 2 CPUs)
+
+| Action | Before | After |
+|---|---|---|
+| Send the employee data notice | 134 s (timed out) | 1.1 s |
+| Email groups list | 68 s | 0.65 s |
+| People search | 17 s | 0.07 s |
+| Send to all | 20 s | 1.4 s |
+| People list | 8 s | 1 s |
+| Draft report, 100 systems | 13.4 s | 6.6 s |
+
+## 5. Behaviour changes from the second wave
+
+- **Data notice:** it now sends in the background after the request returns. A second send while one is running is refused ("already sending", 409).
+- **Sign-in lock by address:** too many failed sign-ins from one address across different accounts locks that address for a while. Repeated tries at one account count once. To clear a lock: `python -m app.cli clear-login-lock <address>`.
+- **run.bat** starts the server with `--no-proxy-headers`, so a client cannot fake its address to dodge the lock. Behind the AWS load balancer, `TRUST_PROXY_HEADERS=true` (the container default; keep it) makes the lock and rate limits use the address the load balancer adds (see [[Futran_Audit_Platform_Deployment_Architecture]]). Without it every user would share the load balancer's address and one bad actor could lock everyone out.
+- **Upload size:** a request body over the upload limit (50 MB plus 1 MB of slack) is refused with 413 before it is read, including chunked uploads.
+- **Security headers:** every page carries a content security policy, nosniff, X-Frame-Options and Referrer-Policy; HSTS on https. API answers carry `Cache-Control: no-store`. The unused ReDoc page is switched off; the API docs stay at `/api/docs`.
+- **Separation of duties:** a CAICO cannot approve a policy they wrote, and the Chief Auditor cannot approve an intro letter they drafted or an offer they own. Where nobody else holds the role, the one holder may approve as a stand-in, and the audit log says so.
+- **Admin** can no longer give themselves the Chief Auditor role.
+- **Exports** neutralise spreadsheet formulas in client text (litigation CSV and two others).
+- **Client text** can no longer add headings or tables to the report; backslashes are escaped too.
+- **Expired invitations** show as expired, not pending.
+
+### Migrations added in the wave (all additive)
+- `66e4fe67c5ba`: widens the law text column (needed for PostgreSQL).
+- The performance indexes follow it in one line of history. Head is `d6267bab780e`, checked on an empty database and on a copy of the laptop data (integrity ok).
+
+## 6. Still open or deferred
+
+- **Y02:** six actions in the permission matrix that no route checks yet. Pinned by a failing test so it can't be forgotten.
+- **V06:** in outbox (demo) mode the attestation send runs inside the request. Hosted installs use `EMAIL_MODE=smtp`, so this only affects the laptop demo.
+- **H07:** editable templates accept unbounded work; only template editors can do this.
+- **H08:** no in-app password or MFA reset yet. A feature to build.
+- **H09:** the shared-link code request reveals whether an address was a recipient.
+- **Review minors:** two tests (cross-tenant and call-graph) can pass for the wrong reason; an old error message can stay on screen after a reload; two other small notes.
+- **Not yet measured:** mailbox daily caps at volume and memory growth under sustained load. Both belong with the AWS sizing.
+
+## 7. Upgrade on the laptop (when you're ready)
 Not installed yet. The steps, when you say go:
 1. Stop the platform and back up the data folder.
 2. Dry-run the repair script and read the changes file.
 3. Apply the repair.
 4. Run `run.bat`, which applies the migrations, then start the platform.
-5. Optionally, dry-run then apply `rematch-reg-updates`.
+5. Run `python -m app.cli seed-reference` so the report template and glossary pick up the EU rows.
+6. Optionally, dry-run then apply `rematch-reg-updates`.
 
 Your two earlier decisions (correct the signed ABC reports in place or not, and the acknowledged notices) only concern demo records. By default the script holds signed reports back.
