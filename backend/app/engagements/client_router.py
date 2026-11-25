@@ -147,6 +147,15 @@ def invite_status(db: Session, user: User | None) -> str:
     if user.status == "disabled":
         return "Disabled"
     inv = db.scalar(select(Invitation).where(Invitation.user_id == user.id).order_by(Invitation.sent_at.desc()).limit(1))
+    return invite_status_from(user, inv)
+
+
+def invite_status_from(user: User, inv: Invitation | None) -> str:
+    """invite_status() given the user's latest invitation (the People list loads them all at once)."""
+    if user.status == "active":
+        return "Active"
+    if user.status == "disabled":
+        return "Disabled"
     if inv is None:
         return "Not invited yet"
     if inv.status == "pending" and inv.expires_at < utcnow():

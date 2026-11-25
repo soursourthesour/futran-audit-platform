@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.auth.deps import Actor, current_actor
 from app.core.db import get_db
 from app.core.errors import Forbidden, Invalid, NotFound
-from app.engagements.client_router import invite_status
+from app.engagements.client_router import invite_status_from
 from app.engagements.gates import gate_status
 from app.policy.actions import Action
 from app.policy.authorize import authorize, departments_for
@@ -18,7 +18,7 @@ from app.tenancy.people_template import department_workbook
 from app.tenancy.csv_import import parse_department_csv, parse_user_csv
 from app.tenancy.job_levels import job_level_label
 from app.tenancy.models import Department, Organization, RoleAssignment, User
-from app.tenancy.service import roles_of
+from app.tenancy.service import current_roles_by_user
 
 router = APIRouter(prefix="/clients/{client_id}", tags=["client people"])
 
@@ -53,6 +53,18 @@ def _org(db: Session, actor: Actor, client_id: str, action: Action) -> Organizat
     return org
 
 
+def _latest_invitations(db: Session, org_id: str) -> dict:
+    from app.invitations.models import Invitation
+
+    out: dict = {}
+    for inv in db.scalars(select(Invitation).join(User, User.id == Invitation.user_id).where(User.organization_id == org_id, User.deleted_at.is_(None),
+                                                                                          User.status.notin_(("active", "disabled")))):
+        cur = out.get(inv.user_id)
+        if cur is None or inv.sent_at > cur.sent_at:
+            out[inv.user_id] = inv
+    return out
+
+
 @router.get("/people")
 def get_people(client_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _org(db, actor, client_id, Action.VIEW_CLIENT_USERS)
@@ -75,15 +87,20 @@ def get_people(client_id: str, actor: Actor = Depends(current_actor), db: Sessio
     acks = notice.acknowledgements(db, release)
     counts: dict[str, int] = {}
     users = []
-    for u in db.scalars(select(User).where(User.organization_id == org.id, User.deleted_at.is_(None)).order_by(User.name)):
-        roles = [{"id": r.id, "role": r.role, "role_label": ROLE_LABELS.get(r.role, r.role), "department": names.get(r.scope_id) if r.scope_type == "department" else None, "sign_off_role": r.role in people.SIGN_OFF_KEYS} for r in roles_of(db, u.id)]
-        if visible_depts is not None and not any(r.scope_type == "department" and r.scope_id in visible_depts for r in roles_of(db, u.id)):
+    rows = list(db.scalars(select(User).where(User.organization_id == org.id, User.deleted_at.is_(None)).order_by(User.name)))
+    # roles and latest invitations for everyone in two queries, not three per person (load test BUG-V03)
+    by_user = current_roles_by_user(db, org.id)
+    latest_inv = _latest_invitations(db, org.id)
+    for u in rows:
+        mine = by_user.get(u.id, [])
+        roles = [{"id": r.id, "role": r.role, "role_label": ROLE_LABELS.get(r.role, r.role), "department": names.get(r.scope_id) if r.scope_type == "department" else None, "sign_off_role": r.role in people.SIGN_OFF_KEYS} for r in mine]
+        if visible_depts is not None and not any(r.scope_type == "department" and r.scope_id in visible_depts for r in mine):
             continue
-        dept = people.user_department(db, u, names)
+        dept = next((names[r.scope_id] for r in mine if r.scope_type == "department" and r.scope_id in names), None) or (names.get(u.department_id) if u.department_id else None)
         dept_id = next((k for k, v in names.items() if v == dept), None)
         if dept_id:
             counts[dept_id] = counts.get(dept_id, 0) + 1
-        users.append({"id": u.id, "name": u.name, "email": u.email, "job_title": u.job_title, "job_level": u.job_level, "job_level_label": job_level_label(u.job_level), "status": u.status, "invite_status": invite_status(db, u), "roles": roles,
+        users.append({"id": u.id, "name": u.name, "email": u.email, "job_title": u.job_title, "job_level": u.job_level, "job_level_label": job_level_label(u.job_level), "status": u.status, "invite_status": invite_status_from(u, latest_inv.get(u.id)), "roles": roles,
                       "department": dept, "signed_in": bool(u.password_hash), "notice": notice.status_for(acks, release, u) if u.status != "disabled" else {"status": "not_required", "at": None, "version": None}})
     gate = gate_status(db, e) if e is not None and e.stage == 2 else None
     return {
