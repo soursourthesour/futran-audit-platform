@@ -45,7 +45,7 @@ class LawVersion(IdMixin, Base):
     effective_on: Mapped[date | None] = mapped_column(Date)
     compliance_on: Mapped[date | None] = mapped_column(Date)
     repealed_on: Mapped[date | None] = mapped_column(Date)  # status repealed: the law applies until this date (null = already)
-    effective_text: Mapped[str | None] = mapped_column(String(200))  # e.g. "Aug 2024 – Aug 2027" when phased
+    effective_text: Mapped[str | None] = mapped_column(Text)  # e.g. "Aug 2024 – Aug 2027" when phased; phased texts run past 200 characters
     scope_text: Mapped[str | None] = mapped_column(Text)
     applies_to: Mapped[list | None] = mapped_column(JSON)
     enforcer: Mapped[str | None] = mapped_column(String(300))

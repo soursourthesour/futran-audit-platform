@@ -138,9 +138,21 @@ def record_referral(db: Session, actor: User, p: Partner, *, direction: str, org
                  at=utcnow(), recorded_by=actor.id, created_by=actor.id)
     db.add(r)
     db.flush()
+    if opportunity_id and direction == "in":
+        _show_on_opportunity(db, actor, p, opp)
     audit.record(db, actor_id=actor.id, action="partner.referral", obj=r, after={"partner": p.name, "direction": direction, "opportunity_id": opportunity_id},
                  summary=f"Referral {'from' if direction == 'in' else 'to'} {p.name}" + (f": {r.note[:120]}" if r.note else ""))
     return r
+
+
+def _show_on_opportunity(db: Session, actor: User, p: Partner, opp) -> None:
+    """BUG-S03: a referral in names the opportunity's partner (its record, the Partner referral filter and the commission
+    read opportunity.partner_id) unless a partner is already chosen there, and goes on the opportunity's timeline."""
+    from app.sales.service import log
+
+    if not opp.partner_id:
+        opp.partner_id, opp.updated_by = p.id, actor.id
+    log(db, opp, "referral", f"Referral from {p.name} recorded by {actor.name}", actor.id)
 
 
 def partner_of(db: Session, opportunity) -> Partner | None:
@@ -264,7 +276,29 @@ def commission_out(db: Session, c: Commission) -> dict:
     org = db.get(Organization, c.organization_id)
     return {"id": c.id, "partner": p.name if p else None, "partner_id": c.partner_id, "client": org.name if org else None, "opportunity": opp.service if opp else None,
             "opportunity_id": c.opportunity_id, "order_ref": c.order_ref, "base_value": c.base_value, "rate": c.rate, "amount": c.amount, "due_on": c.due_on.isoformat(),
-            "status": c.status, "paid_on": c.paid_on.isoformat() if c.paid_on else None, "void_reason": c.void_reason}
+            "status": c.status, "paid_on": c.paid_on.isoformat() if c.paid_on else None, "void_reason": c.void_reason,
+            "settled_by": _name(db, c.settled_by) if c.status in ("paid", "void") else None}  # BUG-S04: who marked it paid or void
+
+
+def _name(db: Session, user_id: str | None) -> str | None:
+    u = db.get(User, user_id) if user_id else None
+    return u.name if u else None
+
+
+def _picked_on_opportunity(db: Session, ref_opp_ids: set[str]) -> list[dict]:
+    """BUG-S03, the reverse: a partner chosen on the opportunity itself is a referral in, listed with the recorded ones
+    (once: an opportunity that already has a recorded referral in is not listed twice)."""
+    from app.sales.models import Opportunity
+
+    out = []
+    for o in db.scalars(select(Opportunity).where(Opportunity.partner_id.is_not(None)).order_by(Opportunity.created_at.desc()).limit(200)):
+        if o.id in ref_opp_ids:
+            continue
+        p, org = db.get(Partner, o.partner_id), db.get(Organization, o.organization_id)
+        out.append({"id": f"opportunity:{o.id}", "partner": p.name if p else None, "partner_id": o.partner_id, "direction": "in",
+                    "client": org.name if org else None, "opportunity": o.service, "opportunity_id": o.id, "note": "Partner chosen on the opportunity",
+                    "at": o.created_at.isoformat(), "recorded_by": _name(db, o.created_by)})
+    return out
 
 
 def referral_out(db: Session, r: Referral) -> dict:
@@ -274,7 +308,7 @@ def referral_out(db: Session, r: Referral) -> dict:
     org = db.get(Organization, r.organization_id)
     opp = db.get(Opportunity, r.opportunity_id) if r.opportunity_id else None
     who = db.get(User, r.recorded_by) if r.recorded_by else None
-    return {"id": r.id, "partner": p.name if p else None, "partner_id": r.partner_id, "direction": r.direction, "client": org.name if org and org.type == "client" else None,
+    return {"id": r.id, "partner": p.name if p else None, "partner_id": r.partner_id, "direction": r.direction, "client": org.name if org and org.type in ("client", "prospect") else None,
             "opportunity": opp.service if opp else None, "opportunity_id": r.opportunity_id, "note": r.note, "at": r.at.isoformat(), "recorded_by": who.name if who else None}
 
 
@@ -282,6 +316,9 @@ def screen(db: Session, *, money: bool) -> dict:
     ps = list(db.scalars(select(Partner).where(Partner.deleted_at.is_(None)).order_by(Partner.status, Partner.name)))
     refs = list(db.scalars(select(Referral).where(Referral.deleted_at.is_(None)).order_by(Referral.at.desc()).limit(200)))
     comms = list(db.scalars(select(Commission).where(Commission.deleted_at.is_(None)).order_by(Commission.due_on.desc()).limit(200))) if money else None
-    return {"partners": [partner_out(db, p, money=money) for p in ps], "referrals": [referral_out(db, r) for r in refs],
+    listed = [referral_out(db, r) for r in refs]
+    listed += _picked_on_opportunity(db, {r.opportunity_id for r in refs if r.opportunity_id and r.direction == "in"})
+    listed.sort(key=lambda x: x["at"], reverse=True)
+    return {"partners": [partner_out(db, p, money=money) for p in ps], "referrals": listed,
             "commissions": [commission_out(db, c) for c in comms] if comms is not None else None,
             "types": [{"value": k, "label": v} for k, v in TYPE_LABELS.items()], "law_firm_note": LAW_FIRM_NOTE}

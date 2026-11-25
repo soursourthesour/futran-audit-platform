@@ -75,7 +75,7 @@ export type PartnerRow = {
   referred_in: number; referred_out: number; commission_label: string | null; commission_rule: { rate_pct: number } | null; won_value: number | null; commission_due: number | null;
 };
 export type CommissionRow = { id: string; partner: string | null; partner_id: string; client: string | null; opportunity: string | null; opportunity_id: string; order_ref: string | null;
-  base_value: number; rate: number; amount: number; due_on: string; status: string; paid_on: string | null; void_reason: string | null };
+  base_value: number; rate: number; amount: number; due_on: string; status: string; paid_on: string | null; void_reason: string | null; settled_by?: string | null };
 export type ReferralRow = { id: string; partner: string | null; partner_id: string; direction: 'in' | 'out'; client: string | null; opportunity: string | null; opportunity_id: string | null;
   note: string | null; at: string; recorded_by: string | null };
 export type PartnersView = { partners: PartnerRow[]; referrals: ReferralRow[]; commissions: CommissionRow[] | null; types: { value: string; label: string }[]; law_firm_note: string;

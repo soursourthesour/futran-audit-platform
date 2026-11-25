@@ -103,3 +103,20 @@ def test_legal_wording():
     assert "philosophical beliefs" in risk.art5_practices()["biometric_categorisation"]
     o = risk.options()
     assert "profiling" in o["art6_3_label"] and "Art. 6(4)" in o["art6_3_label"]
+
+
+def test_reason_fits_the_400_character_column_when_many_answers_are_ticked():
+    """BUG-K01: every banned practice gave a 795-character reason, and credit + Art. 6(3) + all of Art. 50 gave 440. The
+    columns are String(400): PostgreSQL refused the save. Long lists name the articles instead."""
+    level, why = risk.level_for(_scr(art5=list(risk.art5_practices())))
+    assert level == "prohibited" and len(why) <= risk.MAX_REASON
+    assert why == "Prohibited practices: Art. 5(1)(a), Art. 5(1)(b), Art. 5(1)(c), Art. 5(1)(d), Art. 5(1)(e), Art. 5(1)(f), Art. 5(1)(g), Art. 5(1)(h)."
+    level, why = risk.level_for(_scr(annex_iii_area="credit", art6_3_exception=True, art50=list(risk.art50_situations())))
+    assert level == "limited" and len(why) <= risk.MAX_REASON
+    assert why.startswith("Transparency duties apply: Art. 50(1), Art. 50(2), Art. 50(3), Art. 50(4). Annex III area (")
+
+
+def test_short_lists_keep_the_full_wording():
+    level, why = risk.level_for(_scr(art5=["manipulation", "social_scoring"]))
+    assert why == ("Prohibited practice: Manipulates or deceives people in ways that cause significant harm (Art. 5(1)(a)); "
+                   "Social scoring that leads to unfair or unrelated treatment (Art. 5(1)(c)).")

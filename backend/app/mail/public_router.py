@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.db import get_db
-from app.core.errors import Invalid, NotFound
+from app.core.errors import Conflict, Invalid, NotFound
 from app.core.ratelimit import client_ip, limiter
 from app.mail import library, links, sending
 from app.mail.models import MailRecipient, MailSend, MailTemplate
@@ -44,6 +44,16 @@ def _view(db: Session, r: MailRecipient | None, s: MailSend) -> dict:
     return p["form"](db, r, s) if p else _message(db, r, s)
 
 
+def _complete(db: Session, r: MailRecipient, s: MailSend) -> dict:
+    """'done' is the message links' 'I have read this'. A link with a form (attestation, policy, training) is completed by
+    its answer only; otherwise the person counts as answered and gets no reminder (BUG-K04)."""
+    sending.load_hooks()
+    if sending.LINK_PURPOSES.get(s.campaign_type or "") is not None:
+        raise Conflict("Answer the form on this page to complete it.")
+    links.mark_completed(db, r)
+    return {"done": True}
+
+
 def _submit(db: Session, r: MailRecipient, s: MailSend, payload: dict) -> dict:
     p = sending.LINK_PURPOSES.get(s.campaign_type or "")
     if p is None:
@@ -68,9 +78,8 @@ def personal_submit(token: str, payload: dict, request: Request, db: Session = D
 
 @router.post("/{token}/done")
 def personal_done(token: str, db: Session = Depends(get_db, scope="function")):
-    r, _ = links.personal(db, token)
-    links.mark_completed(db, r)
-    return {"done": True}
+    r, s = links.personal(db, token)
+    return _complete(db, r, s)
 
 
 # ---- shared (BCC) links: work email and a one-time code first
@@ -108,5 +117,4 @@ def shared_submit(token: str, payload: dict, request: Request, db: Session = Dep
 @router.post("/s/{token}/done")
 def shared_done(token: str, body: ProofIn, db: Session = Depends(get_db, scope="function")):
     r = links.recipient_for_proof(db, token, body.proof)
-    links.mark_completed(db, r)
-    return {"done": True}
+    return _complete(db, r, db.get(MailSend, r.send_id))

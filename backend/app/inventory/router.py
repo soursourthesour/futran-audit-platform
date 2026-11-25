@@ -69,6 +69,20 @@ def tool_out(t: AITool, counts: bool = True) -> dict:
     return {"id": t.id, "vendor": t.vendor, "product": t.product, "plan": t.plan, "account_type": t.account_type, "sso": t.sso, "training_on_inputs": t.training_on_inputs, "retention_terms": t.retention_terms, "approval_status": t.approval_status, "source": t.source, "kind": t.kind or "tool", "declared_count": t.declared_count if counts else None}
 
 
+def _tiers_locked(db: Session, uc: UseCase) -> bool:
+    from app.core.errors import Conflict
+    from app.findings.service import assert_open
+
+    e = db.get(Engagement, uc.engagement_id) if uc.engagement_id else None
+    if e is None:
+        return False
+    try:
+        assert_open(db, e)
+    except Conflict:
+        return True
+    return False
+
+
 def use_case_out(db: Session, uc: UseCase, detail: bool = False) -> dict:
     dept = db.get(Department, uc.department_id)
     tools = [t for t in inv.tools_for(db, uc.organization_id) if t.id in (uc.tool_ids or [])]
@@ -81,6 +95,7 @@ def use_case_out(db: Session, uc: UseCase, detail: bool = False) -> dict:
         out |= {
             "purpose": uc.purpose, "data_categories": uc.data_categories, "decision_impact": uc.decision_impact,
             "tier_reason": inv.use_case_reason(db, uc, tools),
+            "tiers_locked": _tiers_locked(db, uc),  # BUG-K06: sign-off 5 locks the final tier and the EU screening correction
             "usage": [{"role_name": u.role_name, "headcount": u.headcount, "frequency": u.frequency} for u in db.scalars(select(UsageRecord).where(UsageRecord.use_case_id == uc.id, UsageRecord.deleted_at.is_(None)))],
             "named_users": [
                 {"id": n.id, "person_name": n.person_name, "email": n.email, "role_name": n.role_name, "oversight_role": n.oversight_role, "has_account": n.user_id is not None,

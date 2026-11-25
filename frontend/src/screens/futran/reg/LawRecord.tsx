@@ -30,19 +30,20 @@ export function LawRecord() {
   if (!q.data) return <div className="page"><Alert tone="danger">{errorMessage(q.error)}</Alert></div>;
   const d = q.data;
   const v = d.version;
+  const library = can(me, 'view_reg_master'); // the Legal Reviewer opens a law record from Obligations to review only (BUG-S05)
   const done = (m: string) => { setEditing(null); setBulk(null); setSuggest(false); setFlash(m); q.refetch(); };
   const dates = [v.signed_on && `Signed ${fmtDate(v.signed_on)}`, v.effective_on && `Effective ${fmtDate(v.effective_on)}`, v.compliance_on && `Compliance from ${fmtDate(v.compliance_on)}`].filter(Boolean).join(' · ');
   return (
     <div className="page">
       <PageHeader title={d.label}
-        crumbs={[{ to: '/reg', label: 'Law library' }, ...(d.parent_geography ? [{ label: d.parent_geography }] : []), { label: d.geography }, { label: d.label }]}
+        crumbs={[library ? { to: '/reg', label: 'Law library' } : { to: '/reg/obligations', label: 'Obligations to review' }, ...(d.parent_geography ? [{ label: d.parent_geography }] : []), { label: d.geography }, { label: d.label }]}
         subtitle={<>
           <Badge tone={statusTone(v.status)}>{v.status_label}</Badge>{v.verify && <> <Badge tone="warn">Verify</Badge></>} {d.short_name !== d.label ? d.short_name : ''}{d.citation && d.citation.length < 120 ? ` · ${d.citation}` : ''}
           <span className="reg-sub" style={{ display: 'block' }}>Version {v.version_no}{v.approved_at ? `, approved ${fmtDate(v.approved_at)}${v.approved_by ? ` by ${v.approved_by}` : ''}` : ''} · Used by {d.used_by_clients} clients · {d.used_by_systems} AI systems</span>
         </>}
         actions={<>
           {d.can_edit && <Link className="btn" to={`/reg/${d.id}/edit`}>Edit record</Link>}
-          {!d.can_edit && <Button onClick={() => setSuggest(true)}>Suggest a change</Button>}
+          {!d.can_edit && d.can_suggest && <Button onClick={() => setSuggest(true)}>Suggest a change</Button>}
           {can(me, 'run_law_refresh') && <Link className="btn" to={`/reg/refresh?law=${d.id}`}>Refresh this law only</Link>}
         </>} />
       {flash && <Alert tone="success">{flash}</Alert>}
@@ -109,7 +110,7 @@ export function LawRecord() {
             </table></TableWrap>
           ) : <EmptyState>No roles mapped yet.</EmptyState>}
           {d.committees.map((c) => <p key={c.committee_type} className="small" style={{ marginTop: 12 }}><strong>{c.title}</strong> · {c.level === 'required' ? 'Required' : 'Recommended'}{c.basis ? ` · ${c.basis}` : ''}{c.condition ? `. ${c.condition}.` : ''}</p>)}
-          <p className="reg-note">Change a role's level from <Link to="/reg/roles">Roles and committees</Link>.</p>
+          {library && <p className="reg-note">Change a role's level from <Link to="/reg/roles">Roles and committees</Link>.</p>}
         </Card>
         <ObligationsPanel lawId={d.id} />
         {can(me, 'view_litigation') && <section id="cases" aria-label="Related cases"><LawCases regulationId={d.id} /></section>}
@@ -125,7 +126,7 @@ export function LawRecord() {
       </div>
       {editing && <RequirementEditor law={d} req={editing === 'new' ? null : editing} onClose={() => setEditing(null)} onDone={done} />}
       {bulk && <RequirementBulk law={d} reqs={bulk} onClose={() => setBulk(null)} onDone={done} />}
-      {suggest && <SuggestChange law={d} onClose={() => setSuggest(false)} onDone={done} />}
+      {suggest && d.can_suggest && <SuggestChange law={d} onClose={() => setSuggest(false)} onDone={done} />}
     </div>
   );
 }

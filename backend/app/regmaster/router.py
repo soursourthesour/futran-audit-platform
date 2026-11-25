@@ -118,6 +118,27 @@ def _origin(actor: Actor) -> str:
     return "admin_edit" if actor.role_names & {"chief_auditor", "admin"} else "auditor_suggestion"
 
 
+def _authorize_law_record(db: Session, actor: Actor) -> None:
+    """The law record is part of the law library. Whoever extracts or approves obligations also reads it, read-only:
+    its Obligations card is the only place to extract them (BUG-S05; the Legal Reviewer holds no other regulatory-master
+    permission, so the library list, roles and edits stay closed to that role)."""
+    for action in (Action.VIEW_REG_MASTER, Action.EXTRACT_OBLIGATIONS, Action.APPROVE_OBLIGATIONS):
+        try:
+            authorize(db, actor, action)
+            return
+        except Forbidden:
+            continue
+    authorize(db, actor, Action.VIEW_REG_MASTER)  # raises with the usual message
+
+
+def _may_propose(db: Session, actor: Actor) -> bool:
+    try:
+        _authorize_propose(db, actor)
+        return True
+    except Forbidden:
+        return False
+
+
 def _authorize_propose(db: Session, actor: Actor) -> None:
     try:
         authorize(db, actor, Action.PROPOSE_REG_CHANGE)
@@ -194,7 +215,7 @@ def _req_out(db, r: Requirement) -> dict:
 
 @router.get("/reg/laws/{law_id}")
 def law_record(law_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
-    authorize(db, actor, Action.VIEW_REG_MASTER)
+    _authorize_law_record(db, actor)
     reg = _reg_or_404(db, law_id)
     v = _version(db, reg)
     j = db.get(Jurisdiction, reg.jurisdiction_id)
@@ -246,7 +267,7 @@ def law_record(law_id: str, actor: Actor = Depends(current_actor), db: Session =
         "committees": [{"committee_type": c.committee_type, "title": c.title, "level": c.level, "basis": c.basis_text, "condition": c.condition_text, "items": c.items or []}
                        for c in db.scalars(select(CommitteeRule).where(CommitteeRule.law_version_id == v.id))],
         "history": history, "pending": pending, "sources": sources, "used_by_clients": used_by, "used_by_systems": systems,
-        "can_edit": bool(actor.role_names & {"chief_auditor", "admin"}), "can_suggest": True, "can_approve": "chief_auditor" in actor.role_names,
+        "can_edit": bool(actor.role_names & {"chief_auditor", "admin"}), "can_suggest": _may_propose(db, actor), "can_approve": "chief_auditor" in actor.role_names,
         "roles": [{"code": r.code, "name": r.name} for r in db.scalars(select(RoleCatalog).order_by(RoleCatalog.number))],
     }
 

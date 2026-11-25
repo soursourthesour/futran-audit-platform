@@ -106,3 +106,31 @@ def test_futran_correction_survives_a_client_resave(client, db, people, inv):
     assert r.status_code == 200 and r.json()["eu_risk_level"] == "high_risk"  # Futran's answers kept
     log = db.scalar(select(AuditLog).where(AuditLog.object_id == uc["id"], AuditLog.action == "inventory.use_case").order_by(AuditLog.at.desc()))
     assert "eu_risk_level" in (log.after or {})
+
+
+def test_every_practice_ticked_saves_a_reason_within_the_column(client, db, inv):
+    """BUG-K01: the use case path stored the reason uncut; on PostgreSQL the save was a server error."""
+    from app.euaiact import risk
+    from app.inventory.models import UseCase
+
+    cid, e, maria, hr, copilot, chatgpt = inv
+    scr = {"art5": list(risk.art5_practices()), "annex_iii_area": None, "art50": []}
+    uc = _uc(client, cid, hr, [copilot["id"]], eu_screening=scr)
+    assert uc["eu_risk_level"] == "prohibited" and len(uc["eu_risk_reason"]) <= 400
+    assert len(db.get(UseCase, uc["id"]).eu_risk_reason) <= 400
+
+
+def test_detail_says_when_the_tiers_are_locked(client, db, people, inv):
+    """BUG-K06: after sign-off 5 the form still offered 'Correct the EU AI Act screening' and 'Set the final tier', and
+    saving was refused. The detail now says the tiers are locked, so the screen can hide both."""
+    from app.signoffs.models import SignOff
+
+    cid, e, maria, hr, copilot, chatgpt = inv
+    uc = _uc(client, cid, hr, [copilot["id"]], eu_screening=NOTES_SCREENING)
+    client.post(f"/api/v1/use-cases/{uc['id']}/submit")
+    login_as(client, db, people["aud"])
+    assert client.get(f"/api/v1/use-cases/{uc['id']}").json()["tiers_locked"] is False
+    db.add(SignOff(organization_id=e.client_id, engagement_id=e.id, number=5, title="Findings", required_approver_roles=["chief_auditor"], status="approved"))
+    db.commit()
+    assert client.get(f"/api/v1/use-cases/{uc['id']}").json()["tiers_locked"] is True
+    assert client.post(f"/api/v1/use-cases/{uc['id']}/eu-screening", json={"eu_screening": HR_SCREENING, "rationale": "x"}).status_code == 409

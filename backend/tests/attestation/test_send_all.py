@@ -149,3 +149,22 @@ def test_link_answers_count_once_per_person_with_the_staff_link(client, db, worl
     set_now(None)
     assert utcnow()
     _ = timedelta
+
+
+def test_done_does_not_complete_a_link_that_needs_an_answer(client, db, world):
+    """BUG-K04: posting to an attestation link's 'done' step marked the person completed with no answer, so reminders
+    skipped them. 'done' is for message links ('I have read this'); a form link completes only with its answer."""
+    cid, e, maria, depts, token = world
+    _staff(db, cid, depts)
+    login_as(client, db, maria)
+    client.post(f"/api/v1/clients/{cid}/attestation/send-all", json={})
+    raw = _link(db, "eve@abc.test")
+    pub = _pub(client)
+    assert pub.post(f"/api/v1/public/m/{raw}/done").status_code == 409
+    assert db.scalar(select(MailRecipient).where(MailRecipient.email == "eve@abc.test")).status != "completed"
+    r = client.post(f"/api/v1/clients/{cid}/attestation/send-all", json={"mode": "bcc"})
+    raw_s = db.scalar(select(OutboxMessage).where(OutboxMessage.mail_send_id == r.json()["send_id"])).body_text.split("/m/s/")[1].split()[0]
+    pub.post(f"/api/v1/public/m/s/{raw_s}/code", json={"email": "finn@abc.test"})
+    code = db.scalars(select(OutboxMessage).where(OutboxMessage.template_key == "one_time_code").order_by(OutboxMessage.created_at.desc())).first().subject.rsplit(" ", 1)[1]
+    proof = pub.post(f"/api/v1/public/m/s/{raw_s}/verify", json={"email": "finn@abc.test", "code": code}).json()["proof"]
+    assert pub.post(f"/api/v1/public/m/s/{raw_s}/done", json={"proof": proof}).status_code == 409

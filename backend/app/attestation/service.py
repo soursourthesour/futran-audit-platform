@@ -107,8 +107,24 @@ def notice_acknowledged(db: Session, e: Engagement) -> bool:
     return doc is not None and doc.completed_at is not None
 
 
+CLOSED_MESSAGE = "The campaign has closed, so the attestation can't be sent. Launch a new campaign first."
+
+
+def discovery_finished(e: Engagement | None) -> bool:
+    """A new campaign starts only during discovery (stages 1 to 3)."""
+    return e is not None and e.stage > 3
+
+
+def closed_message(db: Session, c: AttestationCampaign | None) -> str:
+    """Why a closed campaign's attestation can't be sent, with a next step the client can take (BUG-C01): after discovery
+    a new campaign can't start, so the message must not send them to launch one."""
+    if c is not None and discovery_finished(db.get(Engagement, c.engagement_id)):
+        return "The campaign has closed and discovery has finished, so the attestation can't be sent. Ask your Futran Chief Auditor."
+    return CLOSED_MESSAGE
+
+
 def launch(db: Session, actor: User, e: Engagement, department_ids: list[str], closes_at: datetime, policy_version: str) -> AttestationCampaign:
-    if e.stage > 3:
+    if discovery_finished(e):
         raise Conflict("Discovery has finished, so a new campaign can't start. Ask your Futran Chief Auditor.")
     if not notice_acknowledged(db, e):
         raise Conflict("The Chief AI Compliance Officer must acknowledge the employee data notice before the campaign starts (New York Civil Rights Law §52-c).")
@@ -289,7 +305,7 @@ def _assign(db: Session, settings, c: AttestationCampaign, user: User, actor_id:
 def send_in_app(db: Session, settings, actor: User, c: AttestationCampaign) -> dict:
     """Give every client user who has accepted their invitation an "AI use attestation" line item."""
     if not is_open(c):
-        raise Conflict("The campaign has closed, so the attestation can't be sent. Launch a new campaign first.")
+        raise Conflict(closed_message(db, c))
     users = _active_users(db, c.organization_id)
     new = [u for u in users if _assign(db, settings, c, u, actor.id) is not None]
     first = c.sent_in_app_at is None
