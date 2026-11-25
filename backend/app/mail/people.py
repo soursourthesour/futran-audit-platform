@@ -47,6 +47,17 @@ def add_person_if_new(db: Session, org_id: str, *, email: str, name: str, **fiel
     return upsert_person(db, org_id, email=email, name=name, **fields)
 
 
+def _user_department(db: Session, u: User) -> str | None:
+    """The user's department, or the department their department-scoped role is for (one user; the bulk path in
+    ensure_platform_people reads these in one query)."""
+    if u.department_id:
+        return u.department_id
+    from app.tenancy.models import RoleAssignment
+
+    return db.scalar(select(RoleAssignment.scope_id).where(RoleAssignment.user_id == u.id, RoleAssignment.scope_type == "department",
+                                                           RoleAssignment.deleted_at.is_(None)).order_by(RoleAssignment.created_at).limit(1))
+
+
 # org_id -> fingerprint of the users, role assignments and people the last ensure_platform_people() left behind
 _ENSURED: dict[str, tuple] = {}
 
