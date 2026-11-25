@@ -114,3 +114,18 @@ def test_withdrawn_and_watch_updates_are_not_rematched(client, db, world):
     engine.add_geography(db, org.id, world["j"]["US-NYC"].id, "office", world["chief"].id)
     db.commit()
     assert _alert(db, w["id"], org.id) is None
+
+
+def test_a_new_geography_alone_triggers_a_rematch(db, world, monkeypatch):
+    """No law changes scope (New York State adds nothing to New York City), yet the client is matched again."""
+    from app.regmaster import engine
+    from app.regupdates import service
+
+    org, _ = _meridian(db, world, with_location=False)
+    engine.add_geography(db, org.id, world["j"]["US-NYC"].id, "office", None)
+    calls = []
+    monkeypatch.setattr(service, "rematch_org", lambda db, org_id, actor_id=None: calls.append(org_id) or [])
+    engine.run(db, org.id)
+    assert calls == []  # nothing changed
+    engine.add_geography(db, org.id, world["j"]["US-NY"].id, "office", None)
+    assert calls == [org.id]

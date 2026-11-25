@@ -58,15 +58,14 @@ def add_geography(db: Session, org_id: str, jurisdiction_id: str, basis: str, ac
     if db.get(Jurisdiction, jurisdiction_id) is None:
         raise Invalid(errors=[{"field": "jurisdiction_id", "message": "Unknown geography."}])
     row = db.scalar(select(ClientGeography).where(ClientGeography.organization_id == org_id, ClientGeography.jurisdiction_id == jurisdiction_id, ClientGeography.basis == basis))
+    added = row is None or row.deleted_at is not None
     if row is None:
         row = ClientGeography(organization_id=org_id, jurisdiction_id=jurisdiction_id, basis=basis, source=source, location_id=location_id, created_by=actor_id)
         db.add(row)
     else:
-        if row.deleted_at is not None:
-            db.info.setdefault(GEO_ADDED_KEY, set()).add(org_id)
         row.deleted_at, row.updated_by = None, actor_id
         row.location_id = location_id or row.location_id
-    if row.id is None:
+    if added:
         db.info.setdefault(GEO_ADDED_KEY, set()).add(org_id)  # BUG-08: earlier updates are matched again after the next run
     db.flush()
     if rerun:
