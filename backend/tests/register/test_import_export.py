@@ -152,7 +152,7 @@ def test_evidence_upload_never_reads_past_the_limit(client, db, reg, settings, t
     reg.as_(reg.hr_lead)
     s = new_system(client, department_id=reg.hr.id)
     with record_reads(monkeypatch) as calls:
-        r = client.post(f"/api/v1/register/{s['id']}/evidence", files={"file": ("big.pdf", b"x" * (3 * 1024 * 1024), "application/pdf")})
+        r = client.post(f"/api/v1/register/{s['id']}/evidence", files={"file": ("big.pdf", b"x" * (1536 * 1024), "application/pdf")})  # over the limit, under the body limit (review 11-25 #2)
     assert r.status_code == 422 and "1 MB" in r.json()["detail"]
     assert_bounded(calls, 1024 * 1024)
 

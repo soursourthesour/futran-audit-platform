@@ -275,6 +275,6 @@ def test_agreement_upload_never_reads_past_the_limit(pw, settings, tmp_path, mon
     pw.client.app.state.settings = settings.model_copy(update={"file_store": f"local:{tmp_path}", "max_upload_mb": 1})
     pw.as_(pw.sm)
     with record_reads(monkeypatch) as calls:
-        r = pw.client.post(f"/api/v1/staff/partners/{pw.ats.id}/agreement", files={"file": ("big.pdf", b"x" * (3 * 1024 * 1024), "application/pdf")})
+        r = pw.client.post(f"/api/v1/staff/partners/{pw.ats.id}/agreement", files={"file": ("big.pdf", b"x" * (1536 * 1024), "application/pdf")})  # over the limit, under the body limit (review 11-25 #2)
     assert r.status_code == 422, r.text
     assert_bounded(calls, 1024 * 1024)
