@@ -15,8 +15,8 @@ ORDER_BASE = 9000  # after the template's own sections
 
 
 def ensure_agentic_questions(db: Session) -> int:
-    data = yaml.safe_load((SEEDS / "question_bank_agentic.yaml").read_text())
-    bank = yaml.safe_load((SEEDS / "question_bank.yaml").read_text())
+    data = yaml.safe_load((SEEDS / "question_bank_agentic.yaml").read_text(encoding="utf-8"))
+    bank = yaml.safe_load((SEEDS / "question_bank.yaml").read_text(encoding="utf-8"))
     option_sets = bank["option_sets"]
     sec = data["section"]
     added = 0

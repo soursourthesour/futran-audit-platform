@@ -8,7 +8,7 @@ from app.reference.jurisdictions import SEEDS
 
 def load_question_bank(db: Session) -> TemplateVersion:
     """Seed Template v1.0 + Addendum 5.1a into the question bank. Idempotent."""
-    data = yaml.safe_load((SEEDS / "question_bank.yaml").read_text())
+    data = yaml.safe_load((SEEDS / "question_bank.yaml").read_text(encoding="utf-8"))
     t = data["template"]
     tv = db.scalar(select(TemplateVersion).where(TemplateVersion.name == t["name"], TemplateVersion.version == t["version"]))
     if tv is not None:
@@ -46,7 +46,7 @@ def load_question_bank(db: Session) -> TemplateVersion:
                 light=bool(sec.get("light", False)),
                 order=order,
             ))
-    checks = yaml.safe_load((SEEDS / "checklists.yaml").read_text())
+    checks = yaml.safe_load((SEEDS / "checklists.yaml").read_text(encoding="utf-8"))
     order = 0
     for cl in checks["checklists"]:
         for item in cl["items"]:

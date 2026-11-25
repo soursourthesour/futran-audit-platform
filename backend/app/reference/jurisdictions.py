@@ -58,7 +58,7 @@ def seed_iso(db: Session) -> str:
         db.execute(insert(Jurisdiction), rows)
     for city in BUILTIN_CITIES:
         upsert_city(db, city["parent"], city["name"], code=city["code"], aliases=city["aliases"])
-    eu_members = yaml.safe_load((SEEDS / "eu_members.yaml").read_text())["members"]
+    eu_members = yaml.safe_load((SEEDS / "eu_members.yaml").read_text(encoding="utf-8"))["members"]
     eu_id = by_code["EU"]
     have = set(db.scalars(select(JurisdictionMembership.member_id).where(JurisdictionMembership.group_id == eu_id)))
     for code in eu_members:

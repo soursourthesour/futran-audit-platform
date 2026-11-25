@@ -71,7 +71,7 @@ def _logo(height_cm: float, cls: str) -> str:
 
 def report_html(md: str, title: str, meta: dict) -> str:
     """The HTML the PDF is drawn from (exposed for tests)."""
-    css = (HERE / "styles.css").read_text() + _font_css() + _rating_css()
+    css = (HERE / "styles.css").read_text(encoding="utf-8") + _font_css() + _rating_css()
     ref = escape(str(meta.get("audit_ref", "")))
     body = decorate_tables(render_markdown(md), _rating_class)
     header = (f'<div id="header_content"><table class="running"><tr><td class="running-left">{_logo(0.42, "header-logo")}</td>'

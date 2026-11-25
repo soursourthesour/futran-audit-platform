@@ -380,7 +380,7 @@ def _eu_scoped(db: Session, org_id: str) -> bool:
     from app.reference.models import Jurisdiction
     from app.register.models import RegisterSystem
 
-    eu = set(yaml.safe_load((SEEDS / "eu_members.yaml").read_text())["members"])
+    eu = set(yaml.safe_load((SEEDS / "eu_members.yaml").read_text(encoding="utf-8"))["members"])
     eu_id = db.scalar(select(Jurisdiction.id).where(Jurisdiction.code == "EU"))
     for loc in db.scalars(select(ClientLocation).where(ClientLocation.organization_id == org_id, ClientLocation.deleted_at.is_(None), ClientLocation.in_scope.is_(True))):
         if (loc.country_code or "").upper() in eu or (eu_id and eu_id in (loc.jurisdiction_ids or [])):

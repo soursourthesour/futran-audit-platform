@@ -47,7 +47,7 @@ def matched_features(org: Organization, engagement: Engagement | None = None) ->
 
 
 def _defaults() -> list[dict]:
-    return yaml.safe_load((SEEDS / "futran_defaults.yaml").read_text())["defaults"]
+    return yaml.safe_load((SEEDS / "futran_defaults.yaml").read_text(encoding="utf-8"))["defaults"]
 
 
 def suggest_requirements(db: Session, org: Organization, engagement: Engagement | None = None) -> list[Suggestion]:

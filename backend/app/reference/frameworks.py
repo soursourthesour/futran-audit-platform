@@ -7,7 +7,7 @@ from app.reference.models import Framework, FrameworkControl
 
 
 def load_frameworks(db: Session) -> str:
-    data = yaml.safe_load((SEEDS / "frameworks.yaml").read_text())
+    data = yaml.safe_load((SEEDS / "frameworks.yaml").read_text(encoding="utf-8"))
     added = 0
     for fw in data["frameworks"]:
         f = db.scalar(select(Framework).where(Framework.code == fw["code"]))

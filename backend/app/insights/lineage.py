@@ -33,7 +33,7 @@ CROSSWALK = Path(__file__).with_name("crosswalk.yaml")
 
 @lru_cache(maxsize=1)
 def crosswalk() -> dict[str, dict]:
-    return yaml.safe_load(CROSSWALK.read_text())["sections"]
+    return yaml.safe_load(CROSSWALK.read_text(encoding="utf-8"))["sections"]
 
 
 def _question(db: Session, code: str) -> Question | None:
