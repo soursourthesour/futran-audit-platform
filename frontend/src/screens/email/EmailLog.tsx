@@ -13,8 +13,8 @@ import './email.css';
 type Sends = { sends: SendRow[]; templates: [string, string][]; groups: [string, string][] };
 type Admin = { entries: AdminEntry[]; retention_years: number; categories: { value: string; label: string }[] };
 
-const STATUS_TONE: Record<string, 'success' | 'warn' | 'danger' | 'muted' | 'navy'> = { completed: 'success', opened: 'navy', sent: 'muted', delivered: 'muted', bounced: 'danger', queued: 'warn' };
-const STATUS_LABEL: Record<string, string> = { completed: 'Completed', opened: 'Opened link', sent: 'Sent', delivered: 'Delivered', bounced: 'Bounced', queued: 'Queued' };
+const STATUS_TONE: Record<string, 'success' | 'warn' | 'danger' | 'muted' | 'navy'> = { completed: 'success', opened: 'navy', sent: 'muted', delivered: 'muted', bounced: 'danger', queued: 'warn', cancelled: 'muted' };
+const STATUS_LABEL: Record<string, string> = { completed: 'Completed', opened: 'Opened link', sent: 'Sent', delivered: 'Delivered', bounced: 'Bounced', queued: 'Queued', cancelled: 'Not sent: campaign closed' };
 const dash = (n: number, show: boolean) => (show ? n.toLocaleString() : '—');
 
 /** E5 Email and admin log (/admin/log). Clients see their own; Futran sees its own and its engagements'. */
@@ -58,7 +58,7 @@ export function EmailLog() {
   const groupSend = (s: SendRow) => s.kind === 'group' || s.kind === 'reminder';
 
   const columns: GridColumn<SendRow>[] = [
-    { key: 'sent', header: 'Sent', value: (s) => s.sent_at, render: (s) => <>{fmtDateTime(s.sent_at)}{s.status === 'scheduled' && <div><Badge tone="warn">Scheduled</Badge></div>}{s.status === 'sending' && <div><Badge tone="navy">Sending</Badge></div>}{s.kind === 'reminder' && <div><Badge tone="muted">Reminder</Badge></div>}</> },
+    { key: 'sent', header: 'Sent', value: (s) => s.sent_at, render: (s) => <>{fmtDateTime(s.sent_at)}{s.status === 'scheduled' && <div><Badge tone="warn">Scheduled</Badge></div>}{s.status === 'sending' && <div><Badge tone="navy">Sending</Badge></div>}{s.status === 'cancelled' && <div><Badge tone="muted">Cancelled: campaign closed</Badge></div>}{s.kind === 'reminder' && <div><Badge tone="muted">Reminder</Badge></div>}</> },
     { key: 'template', header: 'Template', value: (s) => s.template },
     { key: 'groups', header: 'Groups', value: (s) => s.groups.join(', '), render: (s) => (s.groups.length ? s.groups.join(', ') : <span className="muted">{s.kind === 'system' ? 'Direct' : '—'}</span>) },
     { key: 'mode', header: 'Delivery', value: (s) => s.mode_label },

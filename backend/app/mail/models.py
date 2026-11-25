@@ -245,7 +245,7 @@ class MailSend(TimestampedTenantMixin, Base):
     context: Mapped[dict | None] = mapped_column(JSON)  # merge values given by the caller
     expansion: Mapped[list | None] = mapped_column(JSON)  # [{label, count, kind}] as shown before sending
     recipient_count: Mapped[int] = mapped_column(Integer, default=0)
-    status: Mapped[str] = mapped_column(String(12), default="queued")  # scheduled | queued | sending | sent
+    status: Mapped[str] = mapped_column(String(12), default="queued")  # scheduled | queued | sending | sent | cancelled (campaign closed)
     shared_token_hash: Mapped[str | None] = mapped_column(String(64), index=True)  # BCC mode: one shared link
     shared_link_expires_at: Mapped[datetime | None] = mapped_column(DateTime)
     parent_send_id: Mapped[str | None] = mapped_column(String(36))  # a reminder's original send
@@ -267,7 +267,7 @@ class MailRecipient(TimestampedTenantMixin, Base):
     link_revoked_at: Mapped[datetime | None] = mapped_column(DateTime)  # a resend replaced this link
     provider_message_id: Mapped[str | None] = mapped_column(String(300))
     provider_thread_id: Mapped[str | None] = mapped_column(String(300))
-    status: Mapped[str] = mapped_column(String(10), default="queued")  # queued | sent | delivered | bounced | opened | completed
+    status: Mapped[str] = mapped_column(String(10), default="queued")  # queued | sent | delivered | bounced | opened | completed | cancelled
     reminders_sent: Mapped[int] = mapped_column(Integer, default=0)
     last_reminded_at: Mapped[datetime | None] = mapped_column(DateTime)
     last_event_at: Mapped[datetime | None] = mapped_column(DateTime)

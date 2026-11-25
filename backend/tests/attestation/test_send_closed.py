@@ -100,3 +100,23 @@ def test_reminders_stop_when_the_campaign_closes(client, db, world, settings):
     db.commit()
     r = client.post(f"/api/v1/mail/log/sends/{send_id}/resend-bounced")
     assert r.status_code == 409 and r.json()["detail"] == CLOSED
+
+
+def test_a_scheduled_send_is_cancelled_when_the_campaign_closes_early(client, db, world):
+    """Review 11-25 #4: the check also runs when the scheduler sends, not only when the send is created."""
+    from app.mail.models import MailRecipient
+    from app.mail.sending import dispatch_due
+
+    cid, e, maria, depts, _ = world
+    _staff(db, cid, depts)
+    login_as(client, db, maria)
+    when = utcnow() + timedelta(hours=1)
+    r = _email_send(client, scheduled_at=when.isoformat())
+    assert r.status_code == 200, r.text
+    _campaign(db, cid).status = "closed"
+    db.commit()
+    assert dispatch_due(db, client.app.state.settings, when + timedelta(minutes=1)) == 0
+    s = db.scalar(select(MailSend).where(MailSend.template_key == "attestation_request").order_by(MailSend.created_at.desc()))
+    assert s.status == "cancelled"
+    statuses = set(db.scalars(select(MailRecipient.status).where(MailRecipient.send_id == s.id)))
+    assert statuses == {"cancelled"}

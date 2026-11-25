@@ -351,6 +351,15 @@ def dispatch(db: Session, settings: Settings, s: MailSend, now: datetime | None 
         if s.scheduled_at and s.scheduled_at > now:
             return 0
         s.status = "queued"
+    # The campaign may have closed since the send was created or scheduled (review 11-25 #4): cancel what is left.
+    reason = campaign_closed(db, None, (s.campaign_type, s.campaign_id) if s.campaign_type and s.campaign_id else None, now)
+    if reason:
+        left = list(db.scalars(select(MailRecipient).where(MailRecipient.send_id == s.id, MailRecipient.status == "queued")))
+        for r in left:
+            r.status, r.next_attempt_at = "cancelled", None
+        s.status = "cancelled"
+        log.info("Email send %s cancelled at dispatch: %s (%d recipients not sent)", s.id, reason, len(left))
+        return 0
     sender = _sender_for(db, settings, s)
     limit = limit if limit is not None else pace_limit(settings, sender)
     thread = _thread(db, s)
