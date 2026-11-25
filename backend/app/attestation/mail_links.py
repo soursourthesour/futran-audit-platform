@@ -27,6 +27,25 @@ def responded(db: Session, campaign_id: str) -> set[str]:
 
 sending.RESPONDED[CAMPAIGN] = responded
 
+CLOSED_MESSAGE = "The campaign has closed, so the attestation can't be sent. Launch a new campaign first."
+
+
+def closed_reason(db: Session, campaign_id: str | None, at) -> str | None:
+    """BUG-12: the attestation request goes out only while its campaign is open, from any screen (sending.CLOSED)."""
+    c = db.get(AttestationCampaign, campaign_id) if campaign_id else None
+    if campaign_id and c is None:
+        return None  # not an attestation campaign row (a caller's own reference); nothing to judge
+    if c is None or c.deleted_at is not None:
+        return "There is no attestation campaign for this engagement, so the attestation can't be sent. Launch a campaign first."
+    if not att.is_open(c):
+        return CLOSED_MESSAGE
+    if at is not None and at >= c.closes_at:
+        return f"The campaign closes on {c.closes_at.day} {c.closes_at:%B %Y}, before this email would go out. Choose an earlier time or launch a new campaign."
+    return None
+
+
+sending.CLOSED[CAMPAIGN] = closed_reason
+
 
 def _options(body: dict) -> dict:
     mode = body.get("mode") or "personal"
@@ -52,7 +71,7 @@ def send_all(db: Session, settings, actor: User, c: AttestationCampaign, body: d
     if not att.is_open(c):
         from app.core.errors import Conflict
 
-        raise Conflict("The campaign has closed, so the attestation can't be sent. Launch a new campaign first.")
+        raise Conflict(CLOSED_MESSAGE)
     o = _options(body)
     g = default_group(db, c.organization_id, "all_employees")
     closes = f"{c.closes_at.day} {c.closes_at:%B %Y}"

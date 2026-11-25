@@ -475,6 +475,8 @@ def send(data: dict, actor: Actor = Depends(current_actor), db: Session = Depend
         except ValueError as exc:
             raise Invalid(errors=[{"field": "scheduled_at", "message": "Choose when to send."}]) from exc
     e = a["ctx"]["engagement"]
+    if a["campaign"] is None and a["template"].purpose in sending.CLOSED:  # BUG-12: e.g. the attestation request with no campaign to answer
+        raise Conflict(sending.campaign_closed(db, a["template"].purpose, None))
     s = sending.send_to_groups(db, settings, actor.user, organization_id=a["ctx"]["org"].id, group_ids=a["group_ids"], template_id=a["template"].id,
                                engagement_id=e.id if e else None, exclude_group_ids=a["exclude_group_ids"], exclude_responded=bool(data.get("exclude_responded")),
                                campaign=a["campaign"], department_ids=data.get("department_ids") or None, offices=data.get("offices") or None,
@@ -618,6 +620,8 @@ def log_resend_bounced(send_id: str, actor: Actor = Depends(current_actor), db: 
     s = _send(db, actor, send_id)
     _act_on_send(db, actor, s)
     bounced = list(db.scalars(select(MailRecipient).where(MailRecipient.send_id == s.id, MailRecipient.status == "bounced")))
+    if bounced:
+        sending.assert_campaign_open(db, s)  # BUG-12: no dead links for a closed campaign
     for r in bounced:
         r.status, r.attempts, r.next_attempt_at, r.error = "queued", 0, None, None
     if bounced:
