@@ -16,7 +16,21 @@ export function TestModeBar({ me }: { me?: Pick<Me, 'test_mode' | 'mfa_required'
   if (!me.mfa_required) parts.push('sign-in codes are switched off');
   if (me.email_mode === 'outbox') parts.push('emails go to the outbox');
   const text = parts.length ? `Test mode — ${parts.join(' and ')}. Do not enter client data.` : 'Test mode. Do not enter client data.';
-  return <div className="test-mode-bar" data-testid="test-mode-bar" role="note">{text}</div>;
+  // Inside a landmark, so screen reader users who move by landmark do not miss it.
+  return <aside aria-label="Test mode"><div className="test-mode-bar" data-testid="test-mode-bar" role="note">{text}</div></aside>;
+}
+
+/** The first Tab stop on every signed-in page: skips the header and its menus. Focus moves to the main region. */
+function SkipLink() {
+  return (
+    <a className="skip-link" href="#main-content" onClick={(e) => {
+      const main = document.getElementById('main-content');
+      if (!main) return;
+      e.preventDefault();
+      main.focus();
+      main.scrollIntoView();
+    }}>Skip to main content</a>
+  );
 }
 
 function UserMenu({ me }: { me: Me }) {
@@ -78,9 +92,10 @@ export function FutranShell() {
   if (!me) return null;
   return (
     <>
+      <SkipLink />
       <TestModeBar me={me} />
       <ShellHeader me={me} groups={FUTRAN_GROUPS} />
-      <main><MailboxGate /><Outlet /></main>
+      <main id="main-content" tabIndex={-1}><MailboxGate /><Outlet /></main>
     </>
   );
 }
@@ -90,9 +105,10 @@ export function ClientShell() {
   if (!me) return null;
   return (
     <>
+      <SkipLink />
       <TestModeBar me={me} />
       <ShellHeader me={me} groups={CLIENT_GROUPS} client />
-      <main><MailboxGate /><Outlet /></main>
+      <main id="main-content" tabIndex={-1}><MailboxGate /><Outlet /></main>
     </>
   );
 }
