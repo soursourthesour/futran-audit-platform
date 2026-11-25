@@ -47,7 +47,7 @@ export function DashboardOverview() {
                 <div style={{ minWidth: 240 }}><TextField label="Search clients" value={q} onChange={(e) => setQ(e.target.value)} /></div>
               </div>
               {data.isLoading ? <Loading /> : !data.data?.rows.length ? <EmptyState>{q || filter !== 'all' ? 'No engagements match.' : 'No engagements yet. Start with New client.'}</EmptyState> : (
-                <TableWrap label="Engagements">
+                <TableWrap label="Engagement list">
                   <table className="table">
                     <thead><tr><th>Client</th><th>Engagement</th><th>Stage</th><th>Chief Auditor</th><th>Target date</th><th>Status</th></tr></thead>
                     <tbody>
