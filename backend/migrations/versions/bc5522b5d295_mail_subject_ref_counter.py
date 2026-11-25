@@ -5,7 +5,7 @@ A counter row for SQLite; on PostgreSQL also a sequence, so concurrent sends nev
 the highest reference already used.
 
 Revision ID: bc5522b5d295
-Revises: 58f307875d99
+Revises: 66e4fe67c5ba
 Create Date: 2026-11-25 16:00:00
 """
 from alembic import op
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 
 revision = 'bc5522b5d295'
-down_revision = '58f307875d99'
+down_revision = '66e4fe67c5ba'
 branch_labels = None
 depends_on = None
 
