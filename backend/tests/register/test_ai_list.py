@@ -214,3 +214,17 @@ def test_a_register_row_the_viewer_cannot_see_is_not_called_unregistered(client,
         assert rows[f"tool:{w['attested'].id}"]["registered"] is None
     # and a not-yet-registered filter would not list them
     assert w["a2"].id not in [r["key"].split(":", 1)[1] for r in rows.values() if r["registered"] is False]
+
+
+def test_add_is_not_offered_when_the_inventory_is_locked(client, db, reg):
+    """BUG-C03: 'Add › Use case' (and 'Tool or agent') were offered after the inventory locked; saving was then refused.
+    The flags now apply the same open check as saving (inventory/service.py assert_inventory_open)."""
+    from app.signoffs.service import CORRECTABLE_UNTIL
+
+    w = _world(db, reg, client)
+    reg.as_(reg.caico)
+    w["e"].stage = CORRECTABLE_UNTIL[4] + 1  # fieldwork complete
+    db.commit()
+    body, _ = _rows(client)
+    assert body["inventory"]["can_add_use_case"] is False and body["inventory"]["can_add_tool"] is False
+    assert body["inventory"]["locked"] is True

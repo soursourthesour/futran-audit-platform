@@ -17,7 +17,7 @@ from app.euaiact import risk as eu_risk
 from app.attestation.service import TYPED_VENDORS
 from app.auth.deps import Actor, current_actor
 from app.core.db import get_db
-from app.core.errors import Forbidden, NotFound
+from app.core.errors import Conflict, Forbidden, NotFound
 from app.engagements.models import Engagement
 from app.inventory import service as inv
 from app.inventory.models import AITool, UseCase
@@ -176,11 +176,16 @@ def ai_systems(actor: Actor = Depends(current_actor), db: Session = Depends(get_
                              if see_register else None, in_register_as={"id": home.id, "name": home.name} if home else None,
                              in_audit=(u.id in in_audit_ucs) if may_prefill else None, use_case=use_case_out(db, u), open=f"/inventory/{u.id}",
                              can={"review_use_case": u.status == "submitted" and _may(db, actor, Action.APPROVE_USE_CASE, engagement_id=e.id, department_id=u.department_id)}))
+        try:  # BUG-C03: the same open check as saving a tool or a use case; adding would only be refused
+            inv.assert_inventory_open(db, e)
+            locked = False
+        except Conflict:
+            locked = True
         inventory = {
             "tiers": {str(t): sum(1 for u in ucs if inv.effective_tier(u) == t) for t in (1, 2, 3)},
-            "eu_levels": inv.eu_counts(ucs),
-            "can_add_tool": _may(db, actor, Action.REGISTER_AI_TOOL, engagement_id=e.id, list_view=True),
-            "can_add_use_case": _may(db, actor, Action.SUBMIT_USE_CASE, engagement_id=e.id, list_view=True),
+            "eu_levels": inv.eu_counts(ucs), "locked": locked,
+            "can_add_tool": not locked and _may(db, actor, Action.REGISTER_AI_TOOL, engagement_id=e.id, list_view=True),
+            "can_add_use_case": not locked and _may(db, actor, Action.SUBMIT_USE_CASE, engagement_id=e.id, list_view=True),
         }
 
     register = None
