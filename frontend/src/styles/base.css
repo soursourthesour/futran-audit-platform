@@ -58,7 +58,8 @@ p { margin: 0; }
 .field { display: flex; flex-direction: column; gap: 6px; }
 .field label, .field .label { font-size: 14px; font-weight: 600; }
 .field .help { font-size: 13px; color: var(--muted); }
-.field .error { font-size: 13px; color: var(--danger); }
+.field .error, fieldset > .error { font-size: 13px; color: var(--danger); }
+fieldset > .error { margin-top: 4px; }
 .input, .select, .textarea { width: 100%; min-height: var(--control-h); border: 1px solid var(--input-line); border-radius: var(--radius-sm); padding: 0 14px; font: inherit; font-size: 15px; background: #fff; color: var(--ink); }
 .textarea { padding: 10px 14px; min-height: 96px; resize: vertical; line-height: 1.5; }
 .input:focus, .select:focus, .textarea:focus { border-color: var(--blue); box-shadow: var(--focus); outline: none; }

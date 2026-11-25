@@ -95,9 +95,8 @@ function Form({ clientId, uc, isFutran, canReview, canTier, euOptions }: { clien
             <div className="stack">
               <TextField label="Use case name *" help={H.name} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} error={fe.name} placeholder="Résumé screening for NYC roles" />
               <SelectField label="Department *" help={H.department} value={f.department_id} onChange={(e) => setF({ ...f, department_id: e.target.value })} options={inv.departments.map((d) => ({ value: d.id, label: d.name }))} error={fe.department_id} />
-              <FieldGroup legend="AI tools used *" help={H.tools}>
+              <FieldGroup legend="AI tools used *" help={H.tools} error={fe.tool_ids}>
                 {inv.tools.length === 0 ? <p className="small muted">No tools yet. Add the tool from the inventory page first.</p> : <div className="grid-2">{inv.tools.map((t) => <Checkbox key={t.id} label={`${t.vendor} ${t.product} (${ACCOUNT_LABELS[t.account_type].toLowerCase()})`} checked={f.tool_ids.includes(t.id)} onChange={() => toggle('tool_ids', t.id)} />)}</div>}
-                {fe.tool_ids && <p className="small" style={{ color: 'var(--danger)', margin: '4px 0 0' }}>{fe.tool_ids}</p>}
               </FieldGroup>
               <TextArea label="Purpose *" help={H.purpose} value={f.purpose} onChange={(e) => setF({ ...f, purpose: e.target.value })} placeholder="The ATS ranks applicants and recruiters review the top 20 before scheduling interviews." />
             </div>
@@ -105,9 +104,8 @@ function Form({ clientId, uc, isFutran, canReview, canTier, euOptions }: { clien
           <Card title="Data and decisions">
             <div className="stack">
               <FieldGroup legend="Data entered into the tool *" help={H.data}><div className="grid-2">{DATA.map((x) => <Checkbox key={x.value} label={x.label} checked={f.data_categories.includes(x.value)} onChange={() => toggle('data_categories', x.value)} />)}</div></FieldGroup>
-              <FieldGroup legend="How does the output affect people? *" help={H.impact}>
+              <FieldGroup legend="How does the output affect people? *" help={H.impact} error={fe.decision_impact}>
                 <div className="stack-sm">{IMPACT.map((x) => <label key={x.value} className="radio-pill" style={{ justifyContent: 'flex-start' }}><input type="radio" name="impact" checked={f.decision_impact === x.value} onChange={() => setF({ ...f, decision_impact: x.value })} />{x.label}</label>)}</div>
-                {fe.decision_impact && <p className="small" style={{ color: 'var(--danger)', margin: '4px 0 0' }}>{fe.decision_impact}</p>}
               </FieldGroup>
             </div>
           </Card>
