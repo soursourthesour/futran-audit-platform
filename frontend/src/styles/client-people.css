@@ -2,6 +2,9 @@
 .dl-links { display: inline-flex; flex-wrap: wrap; gap: 4px 16px; }
 .dl-link { display: inline-flex; align-items: center; gap: 5px; min-height: 32px; font-weight: 600; text-decoration: none; }
 .dl-link:hover { text-decoration: underline; }
+@media (max-width: 600px), (pointer: coarse) {
+  .dl-link { min-height: var(--control-h); min-width: var(--control-h); justify-content: center; }  /* PDF and Word: 44 px touch targets */
+}
 .dl-icon { flex: none; }
 .doc-reader { overflow-y: auto; border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 16px 20px; background: #fcfdfe; }
 .doc-reader:focus-visible { box-shadow: var(--focus); }

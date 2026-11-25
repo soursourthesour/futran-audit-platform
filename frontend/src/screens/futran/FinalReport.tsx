@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
-import { Alert, Badge, Button, Card, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField, fileUrl, fmtDate, fmtDateTime, TableWrap } from '@/components/ui';
+import { Alert, Badge, Button, Card, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField, fmtDate, fmtDateTime, TableWrap } from '@/components/ui';
+import { DownloadLinks } from '@/components/DownloadLinks';
 import { SignPanel, type SignOffView } from '@/components/SignPanel';
 import { SEV_TONE } from '@/screens/futran/FieldworkUseCase';
 
@@ -108,7 +109,7 @@ export function ReportTable({ rows }: { rows: ReportRow[] }) {
             <td><strong>{r.version_label}</strong></td>
             <td><Badge tone={st.tone}>{st.label}</Badge>{r.released_to_client_at && <div className="small muted">Released {fmtDate(r.released_to_client_at)}</div>}</td>
             <td>{fmtDateTime(r.created_at)}</td>
-            <td>{r.pdf_file_id && <a href={fileUrl(r.pdf_file_id)}>PDF</a>}{r.docx_file_id && <> · <a href={fileUrl(r.docx_file_id)}>Word</a></>}
+            <td><DownloadLinks pdf={r.pdf_file_id} docx={r.docx_file_id} title={`report ${r.version_label}`} />
               {r.status === 'final' && r.engagement_id && <div className="small"><a href={`/api/v1/engagements/${r.engagement_id}/board-readout.pdf`}>Board readout pack (PDF)</a></div>}</td>
             <td className="small">{r.declarations.length === 0 ? '—' : r.declarations.map((x) => `${x.label}: ${x.signed_by}`).join('; ')}</td>
           </tr>

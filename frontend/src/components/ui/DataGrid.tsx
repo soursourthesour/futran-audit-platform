@@ -212,7 +212,7 @@ export function DataGrid<T>(props: DataGridProps<T>) {
             <tr>
               {selectable && (
                 <th className="dg-check">
-                  <input type="checkbox" aria-label={`Select all ${label.toLowerCase()} shown`} checked={allVisibleSelected} ref={(el) => { if (el) el.indeterminate = !allVisibleSelected && someVisibleSelected; }} onChange={toggleAll} disabled={!visible.length} />
+                  <label className="dg-check-hit"><input type="checkbox" aria-label={`Select all ${label.toLowerCase()} shown`} checked={allVisibleSelected} ref={(el) => { if (el) el.indeterminate = !allVisibleSelected && someVisibleSelected; }} onChange={toggleAll} disabled={!visible.length} /></label>
                 </th>
               )}
               {columns.map((c) => {
@@ -248,7 +248,7 @@ export function DataGrid<T>(props: DataGridProps<T>) {
                     e.preventDefault();
                     setMenu({ id, x: e.clientX, y: e.clientY, anchor: (e.currentTarget as HTMLElement).querySelector<HTMLElement>('.dg-menu-btn') });
                   } : undefined}>
-                  {selectable && <td className="dg-check"><input type="checkbox" aria-label={`Select ${name(r)}`} checked={isSel} onChange={() => toggleRow(id)} /></td>}
+                  {selectable && <td className="dg-check"><label className="dg-check-hit"><input type="checkbox" aria-label={`Select ${name(r)}`} checked={isSel} onChange={() => toggleRow(id)} /></label></td>}
                   {columns.map((c) => <Cell key={c.key} col={c} row={r} />)}
                   {hasMenu && (
                     <td className="dg-menu-col">

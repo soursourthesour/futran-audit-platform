@@ -11,6 +11,11 @@
 .dg-table td { vertical-align: middle; }
 .dg-table th.dg-check, .dg-table td.dg-check { width: 44px; padding-right: 0; }
 .dg-check input { width: 18px; height: 18px; margin: 0; vertical-align: middle; cursor: pointer; }
+/* The checkbox sits in a label, so the label is the hit area: 44 px on phones and touch screens without moving the row. */
+.dg-check-hit { display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; cursor: pointer; }
+@media (max-width: 600px), (pointer: coarse) {
+  .dg-check-hit { min-width: var(--control-h); min-height: var(--control-h); margin: -13px; }
+}
 .dg-sort { display: inline-flex; align-items: center; gap: 6px; background: none; border: 0; padding: 0; font: inherit; color: inherit; text-transform: inherit; letter-spacing: inherit; cursor: pointer; min-height: 28px; }
 .dg-sort:hover { color: var(--navy); }
 .dg-sort-ind { font-size: 10px; opacity: 0.7; }
