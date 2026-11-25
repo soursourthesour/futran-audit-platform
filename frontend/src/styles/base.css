@@ -195,6 +195,8 @@ table.table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .doc-preview h1 { font-size: 22px; color: var(--navy); }
 .doc-preview h2 { font-size: 17px; color: var(--navy); margin-top: 20px; }
 .doc-preview table { border-collapse: collapse; width: 100%; margin: 8px 0 14px; font-size: 13.5px; }
+/* Focus guards before and after a dialog's content: they take focus for a moment and pass it back inside (BUG-G07). */
+.focus-guard { position: fixed; top: 0; left: 0; width: 1px; height: 1px; overflow: hidden; outline: none; }
 .doc-preview th, .doc-preview td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
 .doc-preview th { background: #eef3fb; }
 .doc-preview .pagebreak { border-top: 1px dashed var(--line); margin: 20px 0; }

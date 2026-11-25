@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useId, useRef, type ButtonHTMLAttributes, type InputHTMLAttributes, type KeyboardEvent, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
+import { forwardRef, useEffect, useId, useRef, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
 import { Link } from 'react-router-dom';
 import { FieldHelp } from './FieldHelp';
 
@@ -175,12 +175,26 @@ function lastFocused(): HTMLElement | null {
   return null;
 }
 
+/* Open dialogs, newest last. Keys go to the newest one only, so a dialog opened from a dialog closes first. */
+const openDialogs: HTMLElement[] = [];
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), iframe, [tabindex]:not([tabindex="-1"])';
+
+function tabStops(box: HTMLElement): HTMLElement[] {
+  return [...box.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((el) => !el.hasAttribute('data-focus-guard') && (el.offsetParent !== null || el === document.activeElement));
+}
+
 /** A modal dialog. Closes on Escape, a click on the backdrop and the close button. Focus moves into it when it opens,
  *  stays inside while it is open and returns to the control that opened it when it closes. When that control is gone
  *  (a menu item, for example), focus returns to the last control still on the page (the menu's button). `large` is
- *  about 760px wide and fills the screen on a phone. */
+ *  about 760px wide and fills the screen on a phone.
+ *
+ *  Keys are read on the document, not on the dialog, and two focus guards sit before and after the content. A key press
+ *  inside an embedded frame (an email preview) never reaches the page, so Tab out of the frame lands on a guard, which
+ *  sends focus back into the dialog, and Escape works again as soon as focus is back on the page (BUG-G07). */
 export function Dialog({ title, onClose, children, wide, large, label }: { title: ReactNode; onClose: () => void; children: ReactNode; wide?: boolean; large?: boolean; label?: string }) {
   const box = useRef<HTMLDivElement>(null);
+  const close = useRef(onClose);
+  close.current = onClose;
   const opener = useRef<HTMLElement | null | undefined>(undefined);
   if (opener.current === undefined && typeof document !== 'undefined') { // read before autoFocus moves it
     const active = document.activeElement as HTMLElement | null;
@@ -188,28 +202,42 @@ export function Dialog({ title, onClose, children, wide, large, label }: { title
   }
   useEffect(() => {
     const back = opener.current;
+    const el = box.current;
+    if (el) openDialogs.push(el);
+    function onKey(e: globalThis.KeyboardEvent) {
+      if (!el || openDialogs[openDialogs.length - 1] !== el || e.defaultPrevented) return;
+      if (e.key === 'Escape') { e.preventDefault(); close.current(); return; }
+      if (e.key !== 'Tab') return;
+      const f = tabStops(el);
+      if (!f.length) return;
+      const first = f[0], last = f[f.length - 1], at = document.activeElement;
+      if (!at || !el.contains(at)) { e.preventDefault(); (e.shiftKey ? last : first).focus(); }
+      else if (e.shiftKey && at === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && at === last) { e.preventDefault(); first.focus(); }
+    }
+    document.addEventListener('keydown', onKey);
     return () => {
+      document.removeEventListener('keydown', onKey);
+      const i = el ? openDialogs.indexOf(el) : -1;
+      if (i >= 0) openDialogs.splice(i, 1);
       const to = focusable(back ?? null) ? back! : lastFocused(); // the dialog's own controls are off the page by now
       to?.focus();
     };
   }, []);
-  function trap(e: KeyboardEvent<HTMLDivElement>) {
-    if (e.key === 'Escape') { onClose(); return; }
-    if (e.key !== 'Tab' || !box.current) return;
-    const f = [...box.current.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), iframe, [tabindex]:not([tabindex="-1"])')].filter((el) => el.offsetParent !== null || el === document.activeElement);
-    if (!f.length) return;
-    const first = f[0], last = f[f.length - 1];
-    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  function guard(end: 'start' | 'end') {
+    const f = box.current ? tabStops(box.current) : [];
+    (end === 'start' ? f[f.length - 1] : f[0])?.focus();
   }
   return (
-    <div className={`dialog-backdrop${large ? ' has-large' : ''}`} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }} onKeyDown={trap}>
+    <div className={`dialog-backdrop${large ? ' has-large' : ''}`} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div ref={box} className={`dialog ${wide ? 'dialog-wide' : ''} ${large ? 'dialog-large' : ''}`} role="dialog" aria-modal="true" aria-label={label ?? (typeof title === 'string' ? title : undefined)}>
+        <span tabIndex={0} data-focus-guard="" className="focus-guard" onFocus={() => guard('start')} />
         <div className="card-header">
           {typeof title === 'string' ? <h2>{title}</h2> : title}
           <button type="button" className="btn btn-ghost btn-sm" onClick={onClose} autoFocus aria-label="Close">Close</button>
         </div>
         <div className="card-body">{children}</div>
+        <span tabIndex={0} data-focus-guard="" className="focus-guard" onFocus={() => guard('end')} />
       </div>
     </div>
   );
