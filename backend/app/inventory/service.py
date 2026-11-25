@@ -62,12 +62,22 @@ def tier_reason(decision_impact: str | None, data_categories: list[str], tools: 
 
 
 def in_nyc(db: Session, org_id: str) -> bool:
-    """Whether the client records New York City among its geographies (wizard step 2 or M5)."""
+    """Whether the client records New York City among its geographies (wizard step 2 or M5). A client set up before the
+    law library has sites but no geography rows until its applicability is built; its in-scope sites stand in until
+    then, as they do when the engine first builds the geographies (BUG-K02)."""
+    from app.engagements.models import ClientLocation
     from app.reference.models import Jurisdiction
     from app.regmaster.models import ClientGeography
 
-    return db.scalar(select(func.count(ClientGeography.id)).join(Jurisdiction, Jurisdiction.id == ClientGeography.jurisdiction_id)
-                     .where(ClientGeography.organization_id == org_id, ClientGeography.deleted_at.is_(None), Jurisdiction.code == "US-NYC")) > 0
+    if db.scalar(select(ClientGeography.id).where(ClientGeography.organization_id == org_id).limit(1)) is not None:
+        return db.scalar(select(func.count(ClientGeography.id)).join(Jurisdiction, Jurisdiction.id == ClientGeography.jurisdiction_id)
+                         .where(ClientGeography.organization_id == org_id, ClientGeography.deleted_at.is_(None), Jurisdiction.code == "US-NYC")) > 0
+    nyc = db.scalar(select(Jurisdiction.id).where(Jurisdiction.code == "US-NYC"))
+    if nyc is None:
+        return False
+    sites = db.scalars(select(ClientLocation.jurisdiction_ids).where(ClientLocation.organization_id == org_id, ClientLocation.deleted_at.is_(None),
+                                                                     ClientLocation.in_scope.is_(True)))
+    return any(nyc in (ids or []) for ids in sites)
 
 
 def use_case_reason(db: Session, uc: UseCase, tools: list[AITool]) -> str:
