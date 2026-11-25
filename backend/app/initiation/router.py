@@ -1,6 +1,6 @@
 from html import escape
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -135,7 +135,8 @@ def get_notice(actor: Actor = Depends(current_actor), db: Session = Depends(get_
     return {
         "can_edit": can_edit,
         "document": {"id": doc.id, "title": doc.title, "html": render_markdown(doc.body_md), "body_md": doc.body_md if can_edit else None, "pdf_file_id": doc.pdf_file_id, "docx_file_id": doc.docx_file_id},
-        "sent": {"version": rel.version, "sent_at": rel.sent_at.isoformat(), "sent_by": sender.name if sender else None, "recipients": rel.recipient_count} if rel else None,
+        "sent": {"version": rel.version, "sent_at": rel.sent_at.isoformat(), "sent_by": sender.name if sender else None, "recipients": rel.recipient_count,
+                 "delivery": notice.delivery(db, rel)} if rel else None,
         "unsent_changes": bool(rel and rel.body_md != doc.body_md),
         "acknowledgements": notice.counts(db, e),
     }
@@ -150,13 +151,21 @@ def put_notice(body: NoticeIn, request: Request, actor: Actor = Depends(current_
     return {"id": doc.id, "edited": doc.edited}
 
 
+class NoticeSendIn(BaseModel):
+    resend: bool = False  # send the version that has already gone out again, as a new version
+
+
 @router.post("/me/notice/send")
-def send_notice(request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+def send_notice(request: Request, background: BackgroundTasks, body: NoticeSendIn | None = None, actor: Actor = Depends(current_actor),
+                db: Session = Depends(get_db, scope="function")):
     from app.initiation import notice
 
     e = _client_e(db, actor)
-    rel = notice.send(db, request.app.state.settings, actor.user, actor.role_names, e)
-    return {"version": rel.version, "recipients": rel.recipient_count, "sent_at": rel.sent_at.isoformat()}
+    rel = notice.send(db, request.app.state.settings, actor.user, actor.role_names, e, resend=bool(body and body.resend))
+    notice.start_delivery(background, request.app, db, rel)
+    n = rel.recipient_count
+    return {"version": rel.version, "recipients": n, "sent_at": rel.sent_at.isoformat(), "status": "sending",
+            "message": f"Sending to {n:,} {'person' if n == 1 else 'people'}"}
 
 
 @router.get("/me/notice/pending")

@@ -386,6 +386,10 @@ def dispatch(db: Session, settings: Settings, s: MailSend, now: datetime | None 
         if s.scheduled_at and s.scheduled_at > now:
             return 0
         s.status = "queued"
+    if s.kind == "system":  # a bulk system email (the employee data notice): no campaign, groups or links
+        from app.mail.service import BULK_TICK, dispatch_bulk
+
+        return dispatch_bulk(db, settings, s, now, limit if limit is not None else BULK_TICK)
     # The campaign may have closed since the send was created or scheduled (review 11-25 #4): cancel what is left.
     reason = campaign_closed(db, None, (s.campaign_type, s.campaign_id) if s.campaign_type and s.campaign_id else None, now)
     if reason:

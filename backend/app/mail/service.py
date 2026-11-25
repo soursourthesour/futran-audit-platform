@@ -105,3 +105,110 @@ def send(
                    summary=f"{ms.template_name} to {', '.join(to)[:300]}" + ("" if res.ok else " (not delivered)"))
     db.flush()
     return msg
+
+
+# ---- one system email to many people, delivered outside the request (load test BUG-V01, gap G1)
+BULK_TICK = 500  # most messages the mail tick sends for one bulk send when it resumes one (after a restart, or retries)
+
+
+def queue_bulk(db: Session, settings: Settings, template_key: str, *, recipients: list[dict], context: dict, organization_id: str, related=None,
+               actor_id: str | None = None) -> MailSend:
+    """Queue one system email to many people: one MailSend (kind "system") with a queued MailRecipient per person, each
+    with their own merge values (`recipients`: [{"email", "name", "context"}]), and one thread reference for replies.
+    Nothing is sent here: `deliver_in_background` sends it after the response, committing after each message, and the
+    mail tick finishes whatever a restart left queued. Returns the MailSend."""
+    from app.core.clock import utcnow
+    from app.mail import adminlog, delivery
+    from app.mail.sending import next_subject_ref
+
+    now = utcnow()
+    sender = delivery.resolve_sender(db, settings, organization_id, prefer="organization" if template_key in CLIENT_ORIGIN else "futran")
+    first = recipients[0] if recipients else {"context": {}}
+    subject = render(template_key, {"base_url": settings.base_url, **context, **(first.get("context") or {})})[0]
+    engagement_id = getattr(related, "engagement_id", None) or (related.id if type(related).__name__ == "Engagement" else None)
+    sent_by_name = None
+    if actor_id:
+        from app.tenancy.models import User
+
+        u = db.get(User, actor_id)
+        sent_by_name = u.name if u else None
+    name = SYSTEM_NAMES.get(template_key, template_key.replace("_", " ").capitalize())
+    ms = MailSend(organization_id=organization_id, engagement_id=engagement_id, kind="system", mode="direct", template_key=template_key, template_name=name,
+                  subject=subject[:300], channel=sender.channel, sender_label=sender.label, sender_connection_id=sender.connection.id if sender.connection else None,
+                  recipient_count=len(recipients), groups=None, sent_by=actor_id, sent_by_name=sent_by_name, context=context,
+                  related_type=type(related).__name__ if related is not None else None, related_id=getattr(related, "id", None),
+                  status="queued", retain_until=adminlog.retain_until(now), created_by=actor_id)
+    db.add(ms)
+    db.flush()
+    if sender.is_provider:  # replies can come back, so the subject carries the thread reference
+        db.add(MailThread(organization_id=organization_id, send_id=ms.id, engagement_id=engagement_id, connection_id=ms.sender_connection_id, subject_ref=next_subject_ref(db)))
+    db.add_all([MailRecipient(organization_id=organization_id, send_id=ms.id, email=r["email"].strip().lower(), name=r.get("name"), context=r.get("context") or None,
+                              status="queued", attempts=0) for r in recipients])
+    adminlog.write(db, organization_id=organization_id, category="send", action="system_send", actor_name=sent_by_name or "System", engagement_id=engagement_id, send_id=ms.id,
+                   summary=f"{name} to {len(recipients):,} {'person' if len(recipients) == 1 else 'people'}")
+    db.flush()
+    return ms
+
+
+def dispatch_bulk(db: Session, settings: Settings, ms: MailSend, now=None, limit: int | None = None, after_each=None) -> int:
+    """Send the due queued recipients of a bulk system send (at most `limit`). Each recipient is claimed before the
+    provider is called, so two runs never send the same message; `after_each` (a commit) runs after every message, so a
+    restart resumes from where delivery stopped. Failures are retried as for group sends. Returns the number sent."""
+    from sqlalchemy import select
+
+    from app.core.clock import utcnow
+    from app.mail import delivery
+    from app.mail.sending import _apply, _claim, _finish
+
+    now = now or utcnow()
+    sender = delivery.resolve_sender(db, settings, ms.organization_id, prefer="organization" if ms.template_key in CLIENT_ORIGIN else "futran")
+    ref = db.scalar(select(MailThread.subject_ref).where(MailThread.send_id == ms.id).limit(1))
+    stmt = select(MailRecipient).where(MailRecipient.send_id == ms.id, MailRecipient.status == "queued",
+                                       (MailRecipient.next_attempt_at.is_(None)) | (MailRecipient.next_attempt_at <= now)).order_by(MailRecipient.name, MailRecipient.email)
+    if limit is not None:
+        stmt = stmt.limit(limit)
+    sent = 0
+    rows = list(db.scalars(stmt))
+    if rows and ms.status == "queued":
+        ms.status = "sending"
+    for r in rows:
+        if not _claim(db, r):
+            continue
+        subject, html, text = render(ms.template_key, {"base_url": settings.base_url, **(ms.context or {}), **(r.context or {})})
+        if ref:
+            subject = f"{subject} [{ref}]"
+        env = delivery.Envelope(to=[r.email], subject=subject, html=html, text=text)
+        msg = delivery.record(db, organization_id=ms.organization_id, env=env, stored=None, template_key=ms.template_key, actor_id=ms.sent_by, mail_send_id=ms.id,
+                              channel=sender.channel)
+        msg.related_type, msg.related_id = ms.related_type, ms.related_id
+        res = delivery.deliver(db, settings, sender, env, msg)
+        _apply(r, res, now)
+        r.attempts = max(r.attempts or 0, 1) if res.ok else r.attempts
+        sent += 1
+        if after_each is not None:
+            after_each()
+    _finish(db, ms, now)
+    return sent
+
+
+def deliver_in_background(app, send_id: str, chunk: int = 500) -> None:
+    """Run after the response (FastAPI background task) with its own session: send every due recipient of the bulk
+    send, committing after each message. If the process stops part way, the mail tick resumes from the next queued
+    recipient; nobody already sent is sent again."""
+    import logging
+
+    db = app.state.sessionmaker()
+    try:
+        while True:
+            ms = db.get(MailSend, send_id)
+            if ms is None or ms.status not in ("queued", "sending"):
+                return
+            n = dispatch_bulk(db, app.state.settings, ms, limit=chunk, after_each=db.commit)
+            db.commit()
+            if not n:
+                return
+    except Exception:  # noqa: BLE001 (logged; the mail tick retries what is still queued)
+        db.rollback()
+        logging.getLogger(__name__).exception("Bulk email %s stopped; the mail tick sends the rest", send_id)
+    finally:
+        db.close()

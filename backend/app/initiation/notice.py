@@ -100,9 +100,39 @@ def _acknowledge(db: Session, user: User, release: NoticeRelease, summary: str) 
     return a
 
 
-def send(db: Session, settings: Settings, actor: User, roles: set[str], e: Engagement) -> NoticeRelease:
-    """Email the current notice to every person on People > Users and complete checklist item 6."""
-    from app.mail.service import send as send_mail
+ACTIVE = ("scheduled", "queued", "sending")
+
+
+def delivery_send(db: Session, rel: NoticeRelease | None):
+    """The queued email send that delivers this release (None for releases sent before delivery moved out of the request)."""
+    from app.mail.models import MailSend
+
+    if rel is None:
+        return None
+    return db.scalar(select(MailSend).where(MailSend.related_type == "NoticeRelease", MailSend.related_id == rel.id, MailSend.kind == "system")
+                     .order_by(MailSend.created_at.desc()).limit(1))
+
+
+def delivery(db: Session, rel: NoticeRelease | None) -> dict | None:
+    """How far the emails of this release have gone: {status, sent, failed, waiting, total}."""
+    from app.mail.models import MailRecipient
+
+    ms = delivery_send(db, rel)
+    if ms is None:
+        return None
+    by = dict(db.execute(select(MailRecipient.status, func.count(MailRecipient.id)).where(MailRecipient.send_id == ms.id).group_by(MailRecipient.status)).all())
+    waiting = by.get("queued", 0) + by.get("sending", 0)
+    return {"status": "sending" if ms.status in ACTIVE else "sent", "sent": sum(v for k, v in by.items() if k not in ("queued", "sending", "bounced", "cancelled")),
+            "failed": by.get("bounced", 0), "waiting": waiting, "total": ms.recipient_count}
+
+
+def send(db: Session, settings: Settings, actor: User, roles: set[str], e: Engagement, resend: bool = False) -> NoticeRelease:
+    """Queue the current notice for every person on People > Users and complete checklist item 6.
+
+    The emails go out after the response (`app.mail.service.deliver_in_background`), so a large company never waits
+    on the request (load test BUG-V01). A second send is refused while a version is still being delivered, and a
+    version that has already gone to everyone is sent again only when `resend` is asked for."""
+    from app.mail.service import queue_bulk
     from app.policy.roles import ROLE_LABELS
 
     _require_caico(roles)
@@ -110,27 +140,45 @@ def send(db: Session, settings: Settings, actor: User, roles: set[str], e: Engag
     doc = notice_document(db, e)
     if doc is None:
         raise NotFound()
+    db.execute(select(Engagement.id).where(Engagement.id == e.id).with_for_update())  # one send at a time per engagement (PostgreSQL)
     prev = latest_release(db, e)
+    if prev is not None:
+        busy = delivery_send(db, prev)
+        if busy is not None and busy.status in ACTIVE:
+            d = delivery(db, prev)
+            raise Conflict(f"Version {prev.version} of the notice is still being sent ({d['sent'] + d['failed']:,} of {d['total']:,} so far). "
+                           "Wait until it has gone to everyone.")
+        if prev.body_md == doc.body_md and not resend:
+            raise Conflict(f"Version {prev.version} of the notice has already been sent to everyone. Edit the notice to send a new version.")
     version = (prev.version + 1) if prev else 1
     people = recipients(db, e.client_id)
     rel = NoticeRelease(organization_id=e.client_id, engagement_id=e.id, document_id=doc.id, version=version, title=doc.title, body_md=doc.body_md, sent_at=utcnow(), sent_by=actor.id, recipient_count=len(people), created_by=actor.id)
     db.add(rel)
     db.flush()
     org = db.get(Organization, e.client_id)
-    notice_html = render_markdown(doc.body_md)
-    for u in people:
-        send_mail(db, settings, "employee_data_notice", to=[u.email], organization_id=e.client_id, related=rel, actor_id=actor.id, context={
-            "name": u.name, "client": org.name, "sender": actor.name, "sender_role": ROLE_LABELS["caico"], "version": version,
-            "has_login": bool(u.password_hash), "link": f"{settings.base_url}/login", "notice_html": notice_html, "notice_text": doc.body_md,
-        })
+    shared = {"client": org.name, "sender": actor.name, "sender_role": ROLE_LABELS["caico"], "version": version, "link": f"{settings.base_url}/login",
+              "notice_html": render_markdown(doc.body_md), "notice_text": doc.body_md}
+    if people:
+        queue_bulk(db, settings, "employee_data_notice", organization_id=e.client_id, related=rel, actor_id=actor.id, context=shared,
+                   recipients=[{"email": u.email, "name": u.name, "context": {"name": u.name, "has_login": bool(u.password_hash)}} for u in people])
     if doc.completed_at is None:
         doc.completed_at, doc.completed_by = utcnow(), actor.id
         audit.record(db, actor_id=actor.id, action="package.item_done", obj=doc, summary=f"{actor.name} completed: {doc.title}")
-    audit.record(db, actor_id=actor.id, action="notice.send", obj=rel, after={"version": version, "recipients": len(people)},
+    audit.record(db, actor_id=actor.id, action="notice.send", obj=rel, after={"version": version, "recipients": len(people), "resend": bool(resend and prev and prev.body_md == doc.body_md)},
                  summary=f"Sent version {version} of the employee AI audit and data notice to {len(people)} {'person' if len(people) == 1 else 'people'}")
     if actor.organization_id == e.client_id:
         _acknowledge(db, actor, rel, f"{actor.name} acknowledged version {version} of the employee data notice by sending it")
     return rel
+
+
+def start_delivery(background, app, db: Session, rel: NoticeRelease) -> None:
+    """Commit the queued release, then deliver its emails after the response."""
+    from app.mail.service import deliver_in_background
+
+    ms = delivery_send(db, rel)
+    db.commit()
+    if ms is not None:
+        background.add_task(deliver_in_background, app, ms.id)
 
 
 def pending_for(db: Session, user: User) -> NoticeRelease | None:

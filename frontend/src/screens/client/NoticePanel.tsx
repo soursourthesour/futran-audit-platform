@@ -9,7 +9,10 @@ import { noticeHelp as H } from '@/help/client';
 export type NoticeView = {
   can_edit: boolean;
   document: { id: string; title: string; html: string; body_md: string | null; pdf_file_id: string | null; docx_file_id: string | null };
-  sent: { version: number; sent_at: string; sent_by: string | null; recipients: number } | null;
+  sent: {
+    version: number; sent_at: string; sent_by: string | null; recipients: number;
+    delivery: { status: 'sending' | 'sent'; sent: number; failed: number; waiting: number; total: number } | null;
+  } | null;
   unsent_changes: boolean;
   acknowledgements: { acknowledged: number; pending: number; version: number } | null;
 };
@@ -42,10 +45,10 @@ export function NoticeDialog({ onClose, onSent }: { onClose: () => void; onSent:
   async function send() {
     setErr(null); setBusy(true);
     try {
-      const r = await api.post<{ version: number; recipients: number }>('/me/notice/send');
+      const r = await api.post<{ version: number; recipients: number; message: string }>('/me/notice/send');
       await qc.invalidateQueries();
       setConfirmSend(false);
-      onSent(`Version ${r.version} of the notice was emailed to ${r.recipients} ${r.recipients === 1 ? 'person' : 'people'}. Each person with a login acknowledges it at their next sign-in.`);
+      onSent(`Version ${r.version} of the notice: ${r.message}. The emails go out in the background. Each person with a login acknowledges it at their next sign-in.`);
     } catch (ex) { setErr(errorMessage(ex)); setConfirmSend(false); } finally { setBusy(false); }
   }
 
@@ -55,6 +58,8 @@ export function NoticeDialog({ onClose, onSent }: { onClose: () => void; onSent:
         <div className="notice-status">
           {n.sent ? <Badge tone="success">Version {n.sent.version} sent {fmtDateTime(n.sent.sent_at)}{n.sent.sent_by ? ` by ${n.sent.sent_by}` : ''}</Badge> : <Badge tone="warn">Not sent to employees yet</Badge>}
           {n.acknowledgements && <span>{n.acknowledgements.acknowledged} acknowledged · {n.acknowledgements.pending} pending</span>}
+          {n.sent?.delivery?.status === 'sending' && <Badge tone="warn">Sending: {n.sent.delivery.sent.toLocaleString()} of {n.sent.delivery.total.toLocaleString()}</Badge>}
+          {!!n.sent?.delivery?.failed && <Badge tone="danger">{n.sent.delivery.failed.toLocaleString()} not delivered</Badge>}
           {n.unsent_changes && <Badge tone="warn">Changed since it was sent</Badge>}
           <span className="spacer" />
           <DownloadLinks pdf={n.document.pdf_file_id} docx={n.document.docx_file_id} title={n.document.title} />
@@ -81,7 +86,8 @@ export function NoticeDialog({ onClose, onSent }: { onClose: () => void; onSent:
             </Alert>
           ) : (
             <div className="row">
-              <Button variant="primary" onClick={() => setConfirmSend(true)} disabled={!!n.sent && !n.unsent_changes} title={n.sent && !n.unsent_changes ? 'This version has already been sent. Edit the notice to send a new version.' : undefined}>
+              <Button variant="primary" onClick={() => setConfirmSend(true)} disabled={(!!n.sent && !n.unsent_changes) || n.sent?.delivery?.status === 'sending'}
+                title={n.sent?.delivery?.status === 'sending' ? 'The current version is still being sent. Wait until it has gone to everyone.' : n.sent && !n.unsent_changes ? 'This version has already been sent. Edit the notice to send a new version.' : undefined}>
                 {n.sent ? 'Send the new version to employees' : 'Send to employees'}
               </Button>
               <Button onClick={() => { setDraft(n.document.body_md ?? ''); setEditing(true); }}>Edit notice</Button>

@@ -279,6 +279,7 @@ class MailRecipient(TimestampedTenantMixin, Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime)
     batch_no: Mapped[int | None] = mapped_column(Integer)  # BCC mode
     out_of_office: Mapped[bool] = mapped_column(Boolean, default=False)
+    context: Mapped[dict | None] = mapped_column(JSON)  # a queued system email's own merge values (service.queue_bulk)
 
 
 class MailOneTimeCode(TimestampedTenantMixin, Base):
