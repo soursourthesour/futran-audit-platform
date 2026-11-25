@@ -61,3 +61,25 @@ def test_futran_corrects_the_screening_after_submission(client, db, people, inv)
     assert log is not None and "High-risk" in log.summary
     login_as(client, db, people["aud2"])  # not on the team
     assert client.post(f"/api/v1/use-cases/{uc['id']}/eu-screening", json={"eu_screening": HR_SCREENING, "rationale": "x"}).status_code == 404
+
+
+def test_tier3_reason_names_ll144_only_for_nyc_hiring(client, db, inv):
+    """BUG-02 wiring: the API passes the use case's text and the client's NYC geography to tier_reason.
+    The initiation wizard in this fixture already records a New York City office."""
+    from app.core.clock import utcnow
+    from app.reference.models import Jurisdiction
+    from app.regmaster.models import ClientGeography
+
+    cid, e, maria, hr, copilot, chatgpt = inv
+    other = _uc(client, cid, hr, [copilot["id"]], name="Invoice approvals", purpose="Approves supplier invoices", decision_impact="consequential")
+    hiring = _uc(client, cid, hr, [copilot["id"]], name="Résumé screening", purpose="Ranks applicants for interviews", decision_impact="consequential")
+    assert "Local Law 144" in hiring["tier_reason"]
+    assert "Local Law 144" not in other["tier_reason"]
+    p = client.post(f"/api/v1/clients/{cid}/use-cases/tier-preview", json={"decision_impact": "consequential", "data_categories": ["none"], "tool_ids": [],
+                                                                           "name": "Interview scheduling", "purpose": "Hiring for the NYC office"}).json()
+    assert "Local Law 144" in p["reason"]
+    nyc = db.scalar(select(Jurisdiction).where(Jurisdiction.code == "US-NYC"))
+    for g in db.scalars(select(ClientGeography).where(ClientGeography.organization_id == cid, ClientGeography.jurisdiction_id == nyc.id)):
+        g.deleted_at = utcnow()
+    db.commit()
+    assert "Local Law 144" not in client.get(f"/api/v1/use-cases/{hiring['id']}").json()["tier_reason"]

@@ -61,6 +61,20 @@ def tier_reason(decision_impact: str | None, data_categories: list[str], tools: 
     return "No personal data, company accounts only, and no effect on decisions about people."
 
 
+def in_nyc(db: Session, org_id: str) -> bool:
+    """Whether the client records New York City among its geographies (wizard step 2 or M5)."""
+    from app.reference.models import Jurisdiction
+    from app.regmaster.models import ClientGeography
+
+    return db.scalar(select(func.count(ClientGeography.id)).join(Jurisdiction, Jurisdiction.id == ClientGeography.jurisdiction_id)
+                     .where(ClientGeography.organization_id == org_id, ClientGeography.deleted_at.is_(None), Jurisdiction.code == "US-NYC")) > 0
+
+
+def use_case_reason(db: Session, uc: UseCase, tools: list[AITool]) -> str:
+    return tier_reason(uc.decision_impact, uc.data_categories, tools, text=f"{uc.name} {uc.purpose or ''}", in_nyc=in_nyc(db, uc.organization_id),
+                       aedt_determination=uc.aedt_determination)
+
+
 def effective_tier(uc: UseCase) -> int:
     return uc.final_tier or uc.proposed_tier or 1
 

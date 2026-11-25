@@ -37,6 +37,8 @@ class PreviewIn(BaseModel):
     data_categories: list[str] = []
     tool_ids: list[str] = []
     eu_screening: dict | None = None
+    name: str = ""
+    purpose: str = ""
 
 
 class EuScreeningIn(BaseModel):
@@ -78,7 +80,7 @@ def use_case_out(db: Session, uc: UseCase, detail: bool = False) -> dict:
     if detail:
         out |= {
             "purpose": uc.purpose, "data_categories": uc.data_categories, "decision_impact": uc.decision_impact,
-            "tier_reason": inv.tier_reason(uc.decision_impact, uc.data_categories, tools),
+            "tier_reason": inv.use_case_reason(db, uc, tools),
             "usage": [{"role_name": u.role_name, "headcount": u.headcount, "frequency": u.frequency} for u in db.scalars(select(UsageRecord).where(UsageRecord.use_case_id == uc.id, UsageRecord.deleted_at.is_(None)))],
             "named_users": [
                 {"id": n.id, "person_name": n.person_name, "email": n.email, "role_name": n.role_name, "oversight_role": n.oversight_role, "has_account": n.user_id is not None,
@@ -137,7 +139,8 @@ def tier_preview(client_id: str, body: PreviewIn, actor: Actor = Depends(current
     tier = inv.propose_tier(body.decision_impact, body.data_categories, tools)
     errs: list[dict] = []
     level, why = eu_risk.level_for(eu_risk.clean_screening(body.eu_screening, errs))
-    return {"tier": tier, "label": inv.TIER_NAMES[tier], "reason": inv.tier_reason(body.decision_impact, body.data_categories, tools),
+    reason = inv.tier_reason(body.decision_impact, body.data_categories, tools, text=f"{body.name} {body.purpose}", in_nyc=inv.in_nyc(db, org.id))
+    return {"tier": tier, "label": inv.TIER_NAMES[tier], "reason": reason,
             "eu_risk_level": level, "eu_risk_label": eu_risk.label(level), "eu_risk_reason": why}
 
 
