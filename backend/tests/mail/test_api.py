@@ -332,3 +332,22 @@ def test_futran_admin_may_set_up_a_clients_starting_groups_and_the_chief_auditor
     _as(client, db, w["chief"])
     assert client.get(f"/api/v1/mail/groups?client_id={w['c'].id}").status_code == 200
     assert client.post(f"/api/v1/mail/groups?client_id={w['c'].id}", json={"name": "X", "source": "manual"}).status_code == 403
+
+
+def test_email_log_filters_before_taking_the_newest_500(client, db, w):
+    """After a bulk system email, the log filtered by template or group still shows the send asked for (BUG-V05)."""
+    from datetime import timedelta
+
+    from app.core.clock import utcnow
+
+    _as(client, db, w["caico"])
+    g = _everyone(client)
+    sid = client.post("/api/v1/mail/send", json={"template_key": "training_ai_literacy", "group_ids": [g["id"]]}).json()["id"]
+    later = utcnow() + timedelta(minutes=1)
+    db.add_all([MailSend(organization_id=w["c"].id, kind="system", mode="direct", template_key="employee_data_notice", template_name="Employee data notice",
+                         status="sent", recipient_count=1, created_at=later + timedelta(seconds=i)) for i in range(510)])
+    db.commit()
+    rows = client.get("/api/v1/mail/log/sends?template=training_ai_literacy").json()["sends"]
+    assert [x["id"] for x in rows] == [sid]
+    assert [x["id"] for x in client.get(f"/api/v1/mail/log/sends?group={g['id']}").json()["sends"]] == [sid]
+    assert len(client.get("/api/v1/mail/log/sends").json()["sends"]) == 500

@@ -557,13 +557,22 @@ def log_sends(client_id: str | None = None, template: str | None = None, group: 
         stmt = stmt.where(MailSend.organization_id.in_(orgs))
     if engs is not None:
         stmt = stmt.where(MailSend.engagement_id.in_(engs))
-    rows = list(db.scalars(stmt.order_by(MailSend.created_at.desc()).limit(500)))
-    if depts is not None:
-        rows = [s for s in rows if set(s.department_scope or []) & depts or s.sent_by == actor.id]
+    # Filter before taking the newest 500, so a bulk system email cannot push the send asked for out of view (BUG-V05)
     if template:
-        rows = [s for s in rows if s.template_key == template]
+        stmt = stmt.where(MailSend.template_key == template)
     if group:
-        rows = [s for s in rows if any(g.get("id") == group for g in s.groups or [])]
+        stmt = stmt.where(MailSend.groups.is_not(None), MailSend.kind != "system")
+    rows: list[MailSend] = []
+    found = db.scalars(stmt.order_by(MailSend.created_at.desc()).execution_options(yield_per=500))
+    for s in found:
+        if depts is not None and not (set(s.department_scope or []) & depts or s.sent_by == actor.id):
+            continue
+        if group and not any(g.get("id") == group for g in s.groups or []):
+            continue
+        rows.append(s)
+        if len(rows) >= 500:
+            break
+    found.close()
     out = [send_out(db, s) for s in rows]
     return {"sends": out, "templates": sorted({(s["template_key"], s["template"]) for s in out if s["template_key"]}, key=lambda x: x[1] or ""),
             "groups": sorted({(g.get("id"), g.get("name")) for s in rows for g in s.groups or [] if g.get("id")}, key=lambda x: x[1] or "")}
