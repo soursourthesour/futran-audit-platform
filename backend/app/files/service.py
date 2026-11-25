@@ -53,6 +53,25 @@ def content_type_for(filename: str) -> str:
     return CONTENT_TYPES.get(Path(filename).suffix.lower(), "application/octet-stream")
 
 
+UPLOAD_CHUNK = 1024 * 1024
+
+
+async def read_upload(file, max_bytes: int) -> bytes:
+    """Read an uploaded file in chunks, stopping one byte past `max_bytes`, so the caller's size check refuses an
+    over-limit file without the whole request being held in memory."""
+    buf = bytearray()
+    while len(buf) <= max_bytes:
+        chunk = await file.read(min(UPLOAD_CHUNK, max_bytes + 1 - len(buf)))
+        if not chunk:
+            break
+        buf += chunk
+    return bytes(buf)
+
+
+def upload_limit_bytes(settings: Settings) -> int:
+    return settings.max_upload_mb * 1024 * 1024
+
+
 def upload(
     db: Session,
     settings: Settings,

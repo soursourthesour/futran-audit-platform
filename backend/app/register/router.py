@@ -381,12 +381,13 @@ def post_bias_test(system_id: str, data: dict, actor: Actor = Depends(current_ac
 # ---- evidence (files attached to a system: vendor documents, consent, appointment letters, test reports)
 @router.post("/register/{system_id}/evidence")
 async def post_evidence(system_id: str, request: Request, file: UploadFile = File(...), actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
-    from app.files.service import upload
+    from app.files.service import read_upload, upload, upload_limit_bytes
 
     s = load(db, actor, system_id)
     if not (may(db, actor, Action.EDIT_REGISTER, s) or may(db, actor, Action.RECORD_SYSTEM_HISTORY, s) or may(db, actor, Action.FILL_SYSTEM_ROLES, s)):
         raise Forbidden()
-    f = upload(db, request.app.state.settings, actor.user, data=await file.read(), filename=file.filename or "file", content_type=file.content_type,
+    settings = request.app.state.settings
+    f = upload(db, settings, actor.user, data=await read_upload(file, upload_limit_bytes(settings)), filename=file.filename or "file", content_type=file.content_type,
                organization_id=s.organization_id, linked_type="register_evidence", linked_id=s.id)
     svc.log_change(db, actor.user, s, "evidence", None, f"Uploaded {f.filename}", None, entity="File", entity_id=f.id, raw=True)
     return {"id": f.id, "filename": f.filename, "uploaded_at": f.created_at.isoformat(), "size": f.size}

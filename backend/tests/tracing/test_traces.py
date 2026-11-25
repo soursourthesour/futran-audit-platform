@@ -150,3 +150,15 @@ def test_csv_text_neutralises_every_formula_start():
 
     out = list(csv.reader(io.StringIO(csv_text(["a", "b", "c", "d", "e", "f"], [["=1", "+1", "-1", "@1", "\t=1", "\r=1"]]))))
     assert out[1] == ["'=1", "'+1", "'-1", "'@1", "'\t=1", "'\r=1"]
+
+
+def test_trace_import_never_reads_past_the_limit(client, db, trc, agent, monkeypatch):
+    """BUG-H04."""
+    from app.tracing import router as tracing_router
+    from tests.files.bounded import assert_bounded, record_reads
+
+    monkeypatch.setattr(tracing_router, "IMPORT_MAX_BYTES", 1024 * 1024)
+    with record_reads(monkeypatch) as calls:
+        r = _upload(client, agent, "big.csv", b"x" * (3 * 1024 * 1024))
+    assert r.status_code == 422
+    assert_bounded(calls, 1024 * 1024)

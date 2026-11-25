@@ -216,3 +216,15 @@ def test_referrals_are_accepted_for_prospects_but_not_futran(pw):
     futran = pw.db.scalar(select(Organization).where(Organization.type == "futran"))
     r = pw.client.post(f"/api/v1/staff/partners/{pw.law.id}/referrals", json={"direction": "out", "organization_id": futran.id})
     assert r.status_code == 422 and r.json()["errors"][0]["field"] == "organization_id"
+
+
+def test_agreement_upload_never_reads_past_the_limit(pw, settings, tmp_path, monkeypatch):
+    """BUG-H04."""
+    from tests.files.bounded import assert_bounded, record_reads
+
+    pw.client.app.state.settings = settings.model_copy(update={"file_store": f"local:{tmp_path}", "max_upload_mb": 1})
+    pw.as_(pw.sm)
+    with record_reads(monkeypatch) as calls:
+        r = pw.client.post(f"/api/v1/staff/partners/{pw.ats.id}/agreement", files={"file": ("big.pdf", b"x" * (3 * 1024 * 1024), "application/pdf")})
+    assert r.status_code == 422, r.text
+    assert_bounded(calls, 1024 * 1024)

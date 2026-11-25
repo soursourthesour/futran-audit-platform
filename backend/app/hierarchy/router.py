@@ -76,8 +76,10 @@ def add_entity(client_id: str, body: EntityIn, actor: Actor = Depends(current_ac
 async def import_entities(client_id: str, apply: bool = False, file: UploadFile = File(...), actor: Actor = Depends(current_actor),
                           db: Session = Depends(get_db, scope="function")):
     """Import end-clients from CSV: a preview first (apply=false), then the same file with apply=true."""
+    from app.files.service import read_upload
+
     org = _client(db, actor, Action.MANAGE_CLIENT_HIERARCHY, client_id)
-    return h.import_end_clients(db, actor.user, org, await file.read(), apply=apply)
+    return h.import_end_clients(db, actor.user, org, await read_upload(file, h.IMPORT_MAX_BYTES), apply=apply)
 
 
 @router.post("/staff/clients/{client_id}/entities/link")

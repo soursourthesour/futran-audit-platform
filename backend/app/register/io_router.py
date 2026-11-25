@@ -50,12 +50,17 @@ def import_template_xlsx(actor: Actor = Depends(current_actor), db: Session = De
                     headers={"Content-Disposition": 'attachment; filename="ai-system-register-template.xlsx"', "Cache-Control": "private, no-store"})
 
 
+IMPORT_MAX_BYTES = 5 * 1024 * 1024
+
+
 @router.post("/register/import")
 async def import_csv(file: UploadFile = File(...), actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = client_org(actor)
     authorize(db, actor, Action.EDIT_REGISTER, org_id=org.id, list_view=True)
-    raw = await file.read()
-    if len(raw) > 5 * 1024 * 1024:
+    from app.files.service import read_upload
+
+    raw = await read_upload(file, IMPORT_MAX_BYTES)
+    if len(raw) > IMPORT_MAX_BYTES:
         raise Invalid(errors=[{"field": "file", "message": "The file is over 5 MB. Split it and import each part."}])
     from app.register.router import may
 
