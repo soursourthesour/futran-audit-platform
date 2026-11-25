@@ -68,10 +68,18 @@ def _load(db: Session, actor: Actor, policy_id: str, action: Action) -> PolicyDo
     return svc.get(db, org.id, policy_id)
 
 
+def _may_approve_own(db: Session, actor: Actor, p: PolicyDocument) -> bool:
+    try:
+        svc._check_not_own_policy(db, actor.user, p)
+        return True
+    except Forbidden:
+        return False
+
+
 def _detail(db: Session, actor: Actor, p: PolicyDocument) -> dict:
     org_id = p.organization_id
     return svc.doc_out(db, p) | {"can": {"edit": _can(db, actor, Action.EDIT_POLICIES, org_id) and p.status == "draft",
-                                         "approve": _can(db, actor, Action.APPROVE_POLICIES, org_id),
+                                         "approve": _can(db, actor, Action.APPROVE_POLICIES, org_id) and _may_approve_own(db, actor, p),
                                          "request_review": _can(db, actor, Action.EDIT_POLICIES, org_id) and not p.futran_review_requested_at}}
 
 
