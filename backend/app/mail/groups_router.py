@@ -64,6 +64,14 @@ def _manage(db: Session, actor: Actor, org: Organization, department_id: str | N
         authorize(db, actor, Action.MANAGE_CLIENT_GROUPS, org_id=org.id, department_id=department_id)
 
 
+def _dept_field(data: dict, message: str) -> str | None:
+    """The department_id of a request body: a string or nothing. Anything else is a validation error, not a crash."""
+    dept = data.get("department_id") or None
+    if dept is not None and not isinstance(dept, str):
+        raise Invalid(errors=[{"field": "department_id", "message": message}])
+    return dept
+
+
 def _dept_scope(actor: Actor, action: Action) -> set[str] | None:
     """None: the whole organisation. A set: a Department Compliance Lead's own departments."""
     return None if actor.is_futran else departments_for(actor, action)
@@ -123,7 +131,7 @@ def list_groups(client_id: str | None = None, owner: str | None = None, actor: A
 @router.post("/groups")
 def new_group(data: dict, client_id: str | None = None, owner: str | None = None, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = _org(db, actor, client_id, owner)
-    dept = data.get("department_id") or None
+    dept = _dept_field(data, "Choose one of your departments.")
     _manage(db, actor, org, dept)
     if dept and dept not in _depts(db, org.id):
         raise Invalid(errors=[{"field": "department_id", "message": "Choose one of your departments."}])
@@ -218,7 +226,7 @@ def add_group_member(group_id: str, data: dict, actor: Actor = Depends(current_a
         email = str(data["email"]).strip().lower()
         if "@" not in email or " " in email:
             raise Invalid(errors=[{"field": "email", "message": "Enter a valid email address."}])
-        dept = data.get("department_id") or None
+        dept = _dept_field(data, "Choose one of the departments you manage.")
         if dept is not None:
             scope = _dept_scope(actor, Action.MANAGE_CLIENT_GROUPS) if org.type == "client" else None
             if dept not in _depts(db, org.id) or (scope is not None and dept not in scope):
