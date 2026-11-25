@@ -61,10 +61,21 @@ LINK_PURPOSES: dict = {}
 # campaign type -> function(db, campaign_id or None, at) returning why the campaign cannot take answers at `at`, or None
 # while it can. A send for a campaign goes out only while the campaign is open (BUG-12).
 CLOSED: dict = {}
+# The modules that fill the three registries above. They import this module, so they are loaded on first use rather
+# than here; that way a job runner or CLI that never loads the routers still applies them (OBS-K1).
+HOOK_MODULES = ("app.attestation.mail_links", "app.policies.mail_links", "app.training.mail_links")
+
+
+def load_hooks() -> None:
+    import importlib
+
+    for name in HOOK_MODULES:
+        importlib.import_module(name)
 
 
 def campaign_closed(db: Session, purpose: str | None, campaign: tuple[str, str] | None, at: datetime | None = None) -> str | None:
     """Why an email for this campaign (or a template with this purpose) must not go out at `at` (default now)."""
+    load_hooks()
     kind = campaign[0] if campaign else purpose
     fn = CLOSED.get(kind) if kind else None
     if fn is None:
@@ -107,6 +118,7 @@ def responded_emails(db: Session, campaign: tuple[str, str] | None) -> set[str]:
     if not campaign:
         return set()
     kind, cid = campaign
+    load_hooks()
     out = set(RESPONDED[kind](db, cid)) if kind in RESPONDED else set()
     done = db.scalars(select(MailRecipient.email).join(MailSend, MailSend.id == MailRecipient.send_id)
                       .where(MailSend.campaign_type == kind, MailSend.campaign_id == cid, MailRecipient.status == "completed"))
