@@ -69,11 +69,21 @@ def _fix_one(m: re.Match) -> str:
         out = raw.decode("utf-8")
     except UnicodeDecodeError:
         return m.group(0)
-    return m.group(0) if 0x80 <= ord(out) < 0xA0 else out  # a C1 control character is never the intended text
+    return out if _plausible(out) else m.group(0)
+
+
+# Characters the platform's text actually uses. A decoded character outside these is a false match on correct text,
+# for example "NESTLÉ’s" (É then ’) would otherwise become "NESTLɒs" (review 11-25 #1).
+PLAUSIBLE = ((0x00A0, 0x017F), (0x2010, 0x2044), (0x20AC, 0x20AC), (0x2122, 0x2122), (0x2190, 0x21FF))
+
+
+def _plausible(ch: str) -> bool:
+    return len(ch) == 1 and any(lo <= ord(ch) <= hi for lo, hi in PLAUSIBLE)
 
 
 def repair_text(s: str) -> str:
-    """Reverse garbled sequences, up to three times for text that was garbled more than once."""
+    """Reverse garbled sequences, up to three passes for text garbled more than once. Each pass accepts only plausible
+    characters, so a later pass cannot re-read text an earlier pass repaired correctly (review 11-25 #2)."""
     if not s or not SUSPECT.search(s):
         return s
     cur = s
@@ -327,14 +337,31 @@ def report(plans: list[ColumnPlan], applied: bool, samples: int = 3) -> int:
     return total
 
 
+def write_changes(plans: list["ColumnPlan"], dest: Path) -> int:
+    """Every before/after pair, in full, so the owner can read all of them before applying (review 11-25 #1)."""
+    import json
+
+    n = 0
+    with dest.open("w", encoding="utf-8") as f:
+        for cp in plans:
+            for key, before, after in cp.changes:
+                b = before if isinstance(before, str) else json.dumps(before, ensure_ascii=False)
+                a = after if isinstance(after, str) else json.dumps(after, ensure_ascii=False)
+                f.write(f"== {cp.key} [{key}]\n--- before\n{b}\n--- after\n{a}\n\n")
+                n += 1
+    return n
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Repair text garbled by BUG-04. Dry run unless --apply.")
     ap.add_argument("database", help="SQLite file path or SQLAlchemy database URL")
     ap.add_argument("--apply", action="store_true", help="write the repairs, in one transaction")
     ap.add_argument("--include-signed", action="store_true", help="also repair released, final and signed reports and signed package documents")
     ap.add_argument("--no-backup", action="store_true", help="with --apply on a SQLite file, do not write a backup copy first")
-    ap.add_argument("--samples", type=int, default=3, help="before/after samples per column in a dry run")
+    ap.add_argument("--samples", type=int, default=3, help="before/after samples per column printed on screen in a dry run")
+    ap.add_argument("--changes-file", help="dry run: write every before/after pair to this file (default: next to a SQLite database)")
     args = ap.parse_args(argv)
+    print("Stop the Futran Audit Platform before --apply: a backup taken while it is writing loses those writes on restore.")
 
     engine = engine_for(args.database)
     if not args.apply:
@@ -342,6 +369,11 @@ def main(argv: list[str] | None = None) -> int:
             plans = plan(conn, args.include_signed)
             report(plans, applied=False, samples=args.samples)
             other = uncovered(conn)
+        dest = Path(args.changes_file) if args.changes_file else (
+            Path(engine.url.database).with_name("mojibake-repair-changes.txt") if engine.url.get_backend_name() == "sqlite" and engine.url.database else None)
+        if dest is not None:
+            write_changes(plans, dest)
+            print(f"\nEvery change is listed in {dest}. Read it before running with --apply.")
         if other:
             print("\nOther columns with garbled text, not changed by this script:")
             for k, n in sorted(other.items()):
@@ -350,6 +382,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if not args.no_backup and (dest := _backup(engine)):
         print(f"Backup written to {dest}")
+    elif not args.no_backup:
+        print("No backup was written: this is not a SQLite file. Take a database backup (for example pg_dump) before applying.")
     with engine.begin() as conn:  # one transaction: all repairs and the audit entry, or nothing
         plans = plan(conn, args.include_signed)
         apply(conn, plans, args.include_signed)

@@ -185,3 +185,16 @@ def test_apply_on_a_sqlite_file_writes_a_backup_first(dbfile):
     assert len(backups) == 1
     con = sqlite3.connect(backups[0])
     assert con.execute("select count(*) from framework_controls where code like '%Â§%'").fetchone()[0] == 8
+
+
+def test_correct_accented_text_is_left_alone():
+    """Review 11-25 #1: an accented letter followed by a curly quote, ellipsis, dash or no-break space is correct text."""
+    for ok in ("NESTLÉ’s", "«\u00a0Société\u00a0»", "café…”", "Ø–10", "résumé", "Zürich — ok", "É”", "ç‚"):
+        assert rm.repair_text(ok) == ok, ok
+
+
+def test_one_pass_only_so_a_repair_is_not_undone():
+    """Review 11-25 #2: a correct first-pass repair must not be repaired again."""
+    good = "«\u00a0Société\u00a0»"
+    assert rm.repair_text(garble(good)) == good
+    assert rm.repair_text("Admin. Code Â§ 20-870") == "Admin. Code § 20-870"
