@@ -6,7 +6,7 @@ for client ones. Futran's shipped templates use the constant owner id "futran".
 """
 from datetime import datetime
 
-from sqlalchemy import DDL, JSON, Boolean, DateTime, ForeignKey, Integer, Sequence, String, Text, UniqueConstraint, event
+from sqlalchemy import DDL, JSON, Boolean, DateTime, ForeignKey, Index, Integer, Sequence, String, Text, UniqueConstraint, event, text
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from app.core.clock import utcnow
@@ -137,6 +137,7 @@ class DirectoryPerson(TimestampedTenantMixin, Base):
     """A person who can receive email: from directory sync, a user with a login, or added by hand to a list."""
 
     __tablename__ = "directory_people"
+    __table_args__ = (Index("ix_directory_people_org_email_ci", "organization_id", text("lower(email)")),)  # people are found by lower-case email
 
     directory_id: Mapped[str | None] = mapped_column(String(200), index=True)
     source: Mapped[str] = mapped_column(String(10), default="manual")  # directory | platform | manual
