@@ -781,6 +781,10 @@ class DecisionIn(BaseModel):
 def decide(opp_id: str, body: DecisionIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     authorize(db, actor, Action.APPROVE_OPPORTUNITY)
     o = _get(db, opp_id)
+    if body.decision == "approve":  # spec §6 rule 2: whoever owns or opened the offer does not approve it
+        from app.policy.sod import assert_not_self_approval
+
+        assert_not_self_approval(actor.id, o.owner_id, o.created_by)
     check_independence(db, o.organization_id, o.service_kind)  # approval never overrides the independence rule
     o.ca_decision = "approved" if body.decision == "approve" else "declined"
     o.ca_approved_by, o.ca_approved_at, o.ca_note = actor.id, utcnow(), body.note or None
