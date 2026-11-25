@@ -10,6 +10,8 @@ from app.auth.deps import Actor
 from app.core.clock import utcnow
 from app.core.errors import Conflict, Forbidden, Invalid
 from app.engagements.models import Engagement
+from app.policy.actions import Action
+from app.policy.authorize import authorize
 from app.policy.roles import ROLE_LABELS
 from app.signoffs.models import SIGN_OFF_TITLES, Signature, SignOff
 from app.tenancy.models import User
@@ -120,6 +122,7 @@ def sign(db: Session, settings, actor: Actor, so: SignOff, typed_name: str, requ
         if so.sequential and any(_holds(actor, so, r) for r in so.required_approver_roles):
             raise Conflict("It is not your turn to sign yet.")
         raise Forbidden("You are not one of the people who sign this.")
+    _authorize_signature(db, actor, so, role)
     if _norm(typed_name) != _norm(actor.user.name):
         raise Invalid("Type your name exactly as it appears on your account.", [{"field": "typed_name", "message": f"Type your full name: {actor.user.name}."}])
     unmet = [m for check in PRECONDITIONS.get(so.number, []) for m in check(db, db.get(Engagement, so.engagement_id), so.scope_ref)]
@@ -148,6 +151,18 @@ def sign(db: Session, settings, actor: Actor, so: SignOff, typed_name: str, requ
     else:
         _notify_next(db, settings, so)
     return sig
+
+
+def _authorize_signature(db: Session, actor: Actor, so: SignOff, role: str) -> None:
+    """The matrix's sign actions govern signing (Y02): a client signer needs SIGN_CLIENT_SIGNOFF, the Chief Auditor
+    signing the final report needs SIGN_FINAL_REPORT. The other Futran signatures (sign-offs 1 and 5) have no sign action
+    in the matrix and stay on VIEW_ENGAGEMENT, checked when the sign-off is loaded."""
+    if role in FUTRAN_SIGNER_ROLES:
+        if so.number == 7:
+            authorize(db, actor, Action.SIGN_FINAL_REPORT, engagement_id=so.engagement_id)
+        return
+    dept = so.scope_ref if role == "dept_compliance_lead" and so.number == 2 else None
+    authorize(db, actor, Action.SIGN_CLIENT_SIGNOFF, engagement_id=so.engagement_id, department_id=dept)
 
 
 def _fallback_self_sign(db: Session, so: SignOff, role: str) -> bool:
