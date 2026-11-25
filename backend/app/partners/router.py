@@ -127,15 +127,15 @@ def void(commission_id: str, body: VoidIn, actor: Actor = Depends(current_actor)
 
 @router.get("/staff/partners/options")
 def options(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
-    """Clients and open opportunities to attach a referral to."""
+    """Clients, prospects (BUG-07) and open opportunities to attach a referral to."""
     from app.sales.models import Opportunity
     from app.tenancy.models import Organization
 
     _auth(db, actor, Action.MANAGE_PARTNERS)
-    orgs = db.scalars(select(Organization).where(Organization.type == "client", Organization.deleted_at.is_(None)).order_by(Organization.name))
+    orgs = db.scalars(select(Organization).where(Organization.type.in_(("client", "prospect")), Organization.deleted_at.is_(None)).order_by(Organization.name))
     opps = db.execute(select(Opportunity, Organization.name).join(Organization, Organization.id == Opportunity.organization_id)
                       .where(Opportunity.stage.not_in(["lost"])).order_by(Opportunity.created_at.desc()).limit(300))
-    return {"clients": [{"id": o.id, "name": o.name} for o in orgs],
+    return {"clients": [{"id": o.id, "name": f"{o.name} (prospect)" if o.type == "prospect" else o.name} for o in orgs],
             "opportunities": [{"id": o.id, "label": f"{name}: {o.service}"} for o, name in opps]}
 
 

@@ -129,8 +129,9 @@ def record_referral(db: Session, actor: User, p: Partner, *, direction: str, org
         organization_id = opp.organization_id
     if organization_id:
         org = db.get(Organization, organization_id)
-        if org is None or org.deleted_at is not None or org.type != "client":
-            raise Invalid(errors=[{"field": "organization_id", "message": "Choose a client."}])
+        # BUG-07: referrals usually arrive before the company is a client, so prospects are accepted; Futran's own organization is not
+        if org is None or org.deleted_at is not None or org.type not in ("client", "prospect"):
+            raise Invalid(errors=[{"field": "organization_id", "message": "Choose a client or prospect."}])
     else:
         organization_id = _futran(db).id
     r = Referral(organization_id=organization_id, partner_id=p.id, direction=direction, opportunity_id=opportunity_id, note=(str(note or "").strip()[:2000] or None),
