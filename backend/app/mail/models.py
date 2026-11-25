@@ -6,7 +6,7 @@ for client ones. Futran's shipped templates use the constant owner id "futran".
 """
 from datetime import datetime
 
-from sqlalchemy import DDL, JSON, Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, event
+from sqlalchemy import DDL, JSON, Boolean, DateTime, ForeignKey, Integer, Sequence, String, Text, UniqueConstraint, event
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from app.core.clock import utcnow
@@ -322,6 +322,22 @@ class MailReply(TimestampedTenantMixin, Base):
     attachment_ids: Mapped[list | None] = mapped_column(JSON)
     kind: Mapped[str] = mapped_column(String(12), default="reply")  # reply | out_of_office | bounce
     linked_entity: Mapped[str | None] = mapped_column(String(80))
+
+
+class MailCounter(Base):
+    """Platform-wide counters. "subject_ref" holds the highest FAP-n reference given out (gap G8): each new thread takes
+    the next number with one conditional UPDATE ... RETURNING instead of reading every thread. On PostgreSQL the
+    reference comes from the sequence mail_subject_ref_seq instead, which never blocks a concurrent send."""
+
+    __tablename__ = "mail_counters"
+
+    name: Mapped[str] = mapped_column(String(40), primary_key=True)
+    value: Mapped[int] = mapped_column(Integer)
+
+
+# PostgreSQL only (other dialects skip it): the thread reference sequence. The migration starts it after the highest
+# reference already used.
+SUBJECT_REF_SEQUENCE = Sequence("mail_subject_ref_seq", start=1000, metadata=Base.metadata)
 
 
 # ---- admin log (§26.7): append-only, kept 7 years

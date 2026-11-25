@@ -34,7 +34,8 @@ import secrets
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
-from sqlalchemy import func, select, update
+from sqlalchemy import func, select, text, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import set_committed_value
 
@@ -43,7 +44,7 @@ from app.core.config import Settings
 from app.core.errors import Invalid, NotFound
 from app.mail import adminlog, delivery, library, tokens
 from app.mail.groups import ensure_default_groups, resolve
-from app.mail.models import DirectoryPerson, MailGroup, MailRecipient, MailSend, MailTemplate, MailThread
+from app.mail.models import DirectoryPerson, MailCounter, MailGroup, MailRecipient, MailSend, MailTemplate, MailThread
 from app.tenancy.models import Department, Organization, User
 
 log = logging.getLogger(__name__)
@@ -165,10 +166,44 @@ def preview_expansion(db: Session, org_id: str, group_ids, **kw) -> Expansion:
     return expand(db, org_id, group_ids, **kw)
 
 
-def next_subject_ref(db: Session) -> str:
+REF_COUNTER = "subject_ref"
+REF_SEQUENCE = "mail_subject_ref_seq"  # PostgreSQL only (created by the migration)
+
+
+def highest_subject_ref(db: Session) -> int:
+    """The highest FAP-n number already used, by a full read of mail_threads. Only used once, to start the counter."""
     refs = db.scalars(select(MailThread.subject_ref))
-    highest = max((int(r.split("-", 1)[1]) for r in refs if r and r.split("-", 1)[1].isdigit()), default=NUMBER_START - 1)
-    return f"{SUBJECT_PREFIX}-{highest + 1}"
+    return max((int(r.split("-", 1)[1]) for r in refs if r and r.split("-", 1)[1].isdigit()), default=NUMBER_START - 1)
+
+
+def _bump(db: Session) -> int | None:
+    return db.execute(update(MailCounter).where(MailCounter.name == REF_COUNTER).values(value=MailCounter.value + 1).returning(MailCounter.value)
+                      .execution_options(synchronize_session=False)).scalar()
+
+
+def next_subject_ref(db: Session) -> str:
+    """The next unique, increasing thread reference (FAP-1042), continuing from the highest given out (gap G8).
+
+    PostgreSQL: nextval() on a sequence, so concurrent sends never collide and never wait for each other. Elsewhere
+    (SQLite, one writer at a time): a counter row taken with UPDATE ... RETURNING inside the caller's transaction, so a
+    rolled-back send gives its number back. The counter starts from the existing threads the first time."""
+    if db.get_bind().dialect.name == "postgresql":
+        n = db.execute(text(f"SELECT nextval('{REF_SEQUENCE}')")).scalar()
+        return f"{SUBJECT_PREFIX}-{n}"
+    from app.core.db import hold_transaction
+
+    hold_transaction(db)
+    n = _bump(db)
+    if n is None:
+        start = highest_subject_ref(db) + 1
+        try:
+            with db.begin_nested():
+                db.add(MailCounter(name=REF_COUNTER, value=start))
+                db.flush()
+            n = start
+        except IntegrityError:  # another transaction started the counter first
+            n = _bump(db)
+    return f"{SUBJECT_PREFIX}-{n}"
 
 
 def _template(db: Session, org_id: str, template_key: str | None, template_id: str | None) -> MailTemplate:
