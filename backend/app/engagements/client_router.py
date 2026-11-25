@@ -194,6 +194,16 @@ def client_page(client_id: str, actor: Actor = Depends(current_actor), db: Sessi
     }
 
 
+@router.post("/clients/{client_id}/team")
+def add_team_member(client_id: str, body: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+    """BUG-05: the Chief Auditor adds a team member to a running engagement."""
+    from app.engagements.team import add_member, team_by_person
+
+    _, e = _load(db, actor, client_id, Action.ASSIGN_AUDITORS)
+    add_member(db, actor.user, e, body.get("user_id"), body.get("role"), body.get("conflict_confirmed") is True)
+    return {"team": [{k: p[k] for k in ("user_id", "name", "roles", "role_label", "conflict_confirmed")} for p in team_by_person(db, e)]}
+
+
 def package_documents_out(db: Session, actor: Actor, e: Engagement, pkg) -> dict:
     """The initiation package documents with what this user may do with each: view always; edit for the Chief Auditor
     while the document is editable (see initiation.service.edit_block)."""

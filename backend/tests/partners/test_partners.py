@@ -10,6 +10,7 @@ from app.audit_log.models import AuditLog
 from app.partners import service as partners
 from app.partners.models import Commission, Partner, Referral
 from app.sales.models import Opportunity
+from app.tenancy.models import Organization
 from tests.factories import login_as, make_org, make_user
 
 
@@ -194,3 +195,24 @@ def test_one_commission_per_opportunity_in_the_database(pw):
     with pytest.raises(IntegrityError):
         pw.db.flush()
     pw.db.rollback()
+
+
+def test_referrals_are_accepted_for_prospects_but_not_futran(pw):
+    """BUG-07: referrals usually arrive before a company is a client."""
+    from app.sales.prospects import create_prospect
+
+    fab = create_prospect(pw.db, name="Fabrikam Freight")
+    opp = Opportunity(organization_id=fab.id, trigger="manual", service="Initial assessment", owner_id=pw.officer.id, stage="qualifying", value=30000)
+    pw.db.add(opp)
+    pw.db.commit()
+    pw.as_(pw.sm)
+    names = [c["name"] for c in pw.client.get("/api/v1/staff/partners/options").json()["clients"]]
+    assert "Fabrikam Freight (prospect)" in names and "Metro Retail Inc." in names
+    r = pw.client.post(f"/api/v1/staff/partners/{pw.ats.id}/referrals", json={"direction": "in", "opportunity_id": opp.id, "note": "Intro from the ATS vendor"})
+    assert r.status_code == 200, r.text
+    r = pw.client.post(f"/api/v1/staff/partners/{pw.law.id}/referrals", json={"direction": "out", "organization_id": fab.id})
+    assert r.status_code == 200, r.text
+    assert {x.organization_id for x in pw.db.scalars(select(Referral).where(Referral.partner_id.in_([pw.ats.id, pw.law.id])))} == {fab.id}
+    futran = pw.db.scalar(select(Organization).where(Organization.type == "futran"))
+    r = pw.client.post(f"/api/v1/staff/partners/{pw.law.id}/referrals", json={"direction": "out", "organization_id": futran.id})
+    assert r.status_code == 422 and r.json()["errors"][0]["field"] == "organization_id"

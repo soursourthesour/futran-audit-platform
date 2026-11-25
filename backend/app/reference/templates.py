@@ -70,20 +70,20 @@ _strict.filters["md_cell"] = md_cell
 
 
 def load_templates(db: Session) -> str:
-    index = yaml.safe_load((TEMPLATE_DIR / "index.yaml").read_text())["templates"]
+    index = yaml.safe_load((TEMPLATE_DIR / "index.yaml").read_text(encoding="utf-8"))["templates"]
     n = refreshed = 0
     for t in index:
         rows = list(db.scalars(select(DocumentTemplate).where(DocumentTemplate.key == t["key"])))
         if rows:
             # a template nobody has edited follows the shipped file; an admin's edit is a new version and is kept
             if len(rows) == 1 and rows[0].created_by is None and rows[0].active:
-                shipped = (TEMPLATE_DIR / f"{t['key']}.md.j2").read_text()
+                shipped = (TEMPLATE_DIR / f"{t['key']}.md.j2").read_text(encoding="utf-8")
                 if rows[0].body != shipped:
                     rows[0].body = shipped
                     refreshed += 1
             continue
         db.add(DocumentTemplate(
-            key=t["key"], name=t["name"], type=t["type"], version=1, body=(TEMPLATE_DIR / f"{t['key']}.md.j2").read_text(),
+            key=t["key"], name=t["name"], type=t["type"], version=1, body=(TEMPLATE_DIR / f"{t['key']}.md.j2").read_text(encoding="utf-8"),
             package_item=t.get("package_item"), requires_action=t.get("requires_action"), format=t.get("format", "md"), active=True,
         ))
         n += 1

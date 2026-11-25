@@ -23,7 +23,7 @@ type Data = { rows: Update[]; counts: { all: number; awaiting_review: number; pu
 type Impact = { organization_id: string; client_name: string; match_reason: string | null; systems: { id: string; reference: string; name: string; risk_tier: number | null; stage: string; department: string | null }[];
   findings: { id: string; ref: string; title: string; severity: string; engagement: string; system_reference: string; remediation_due: string | null; remediation_status: string }[];
   todos: { code: string; text: string }[]; alert_status?: string | null; opportunity_id?: string | null };
-type Msg = { tone: 'success' | 'danger'; text: string } | null;
+type Msg = { tone: 'success' | 'danger' | 'warn'; text: string } | null;
 
 const TONE: Record<string, 'navy' | 'danger' | 'warn' | 'muted' | 'success'> = {
   effective_date: 'navy', new_law: 'navy', amendment: 'navy', enforcement_action: 'danger', enforcement: 'danger', guidance: 'success', court_ruling: 'warn', pending_bill: 'muted',
@@ -128,7 +128,7 @@ export function RegUpdates() {
         </div>
       )}
       {editing && d && <UpdateForm d={d} u={editing === 'new' ? null : editing} onClose={() => setEditing(null)} onDone={(t) => { setEditing(null); setMsg({ tone: 'success', text: t }); refresh(); }} />}
-      {reviewing && <ReviewDialog u={reviewing} onClose={() => setReviewing(null)} onDone={(t) => { setReviewing(null); setMsg({ tone: 'success', text: t }); refresh(); }} />}
+      {reviewing && <ReviewDialog u={reviewing} onClose={() => setReviewing(null)} onDone={(t, tone) => { setReviewing(null); setMsg({ tone: tone ?? 'success', text: t }); refresh(); }} />}
       {lawChange && <LawChangeDialog u={lawChange} onClose={() => setLawChange(null)} onDone={(t) => { setLawChange(null); setMsg({ tone: 'success', text: t }); refresh(); }} />}
       {opp && <OpportunityDialog u={opp.u} org={opp.org} onClose={() => setOpp(null)} onDone={(t) => { setOpp(null); setMsg({ tone: 'success', text: t }); refresh(); }} />}
       {digest && <DigestDialog onClose={() => setDigest(false)} />}
@@ -264,14 +264,20 @@ function UpdateForm({ d, u, onClose, onDone }: { d: Data; u: Update | null; onCl
   );
 }
 
-function ReviewDialog({ u, onClose, onDone }: { u: Update; onClose: () => void; onDone: (t: string) => void }) {
+function ReviewDialog({ u, onClose, onDone }: { u: Update; onClose: () => void; onDone: (t: string, tone?: 'success' | 'warn') => void }) {
   const [note, setNote] = useState('');
   const [confirmed, setConfirmed] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   async function decide(approve: boolean) {
     setBusy(true); setErr(null);
-    try { await api.post(`/reg/updates/${u.id}/review`, { approve, note, clear_verify_note: approve && confirmed }); onDone(approve ? `${u.reference} published and matched to clients.` : `${u.reference} sent back to ${u.author_name ?? 'its author'}.`); }
+    try {
+      const r = await api.post<{ unmatched_clients?: { name: string; reason: string }[] }>(`/reg/updates/${u.id}/review`, { approve, note, clear_verify_note: approve && confirmed });
+      const missed = (approve && r.unmatched_clients) || [];
+      if (!approve) onDone(`${u.reference} sent back to ${u.author_name ?? 'its author'}.`);
+      else if (missed.length) onDone(`${u.reference} published. These clients could not be matched: ${missed.map((c) => `${c.name} (${c.reason.replace(/\.$/, '')})`).join('; ')}.`, 'warn');
+      else onDone(`${u.reference} published and matched to clients.`);
+    }
     catch (e) { setErr(errorMessage(e)); } finally { setBusy(false); }
   }
   return (

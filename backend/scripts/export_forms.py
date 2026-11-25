@@ -345,7 +345,7 @@ def questionnaire(out: Out, db) -> None:
               "The same client questions as a document to read or work through offline, section by section. Questions marked * are required.")
 
     # Futran: every question, auditor guidance, scoring and checklists
-    method = yaml.safe_load((SEEDS / "risk_methodology_v1.yaml").read_text())
+    method = yaml.safe_load((SEEDS / "risk_methodology_v1.yaml").read_text(encoding="utf-8"))
     factors = []
     for key, f in method["factors"].items():
         q = by_code.get(f.get("question") or "")
@@ -1087,7 +1087,7 @@ def copilot(out: Out) -> None:
         md += [f"| {d} | Yes | {', '.join(a)} |" for _f, (d, a) in spec["required"].items()]
         md += [f"| {f.replace('_', ' ').capitalize()} | | {', '.join(a)} |" for f, a in spec["optional"].items()] + [""]
     out.write("Futran", g, s, "Copilot readiness import column guide.md", "\n".join(md), "Every column each Copilot readiness import reads, with the other names it accepts.")
-    controls = yaml.safe_load((SEEDS / "copilot_readiness.yaml").read_text())["controls"]
+    controls = yaml.safe_load((SEEDS / "copilot_readiness.yaml").read_text(encoding="utf-8"))["controls"]
     out.write("Futran", g, s, "Copilot readiness controls checklist.xlsx",
               xlsx([("Controls", ["Phase", "Control", "Status", "Note"], [[CS.PHASE_LABELS[c["phase"]], c["label"], "", ""] for c in controls], [12, 60, 18, 50]),
                     ("Status values", ["Status"], [[v] for v in CS.CONTROL_LABELS.values()], [20])]),

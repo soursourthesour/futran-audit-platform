@@ -7,7 +7,7 @@ from app.reference.models import Framework, FrameworkControl
 
 
 def load_frameworks(db: Session) -> str:
-    data = yaml.safe_load((SEEDS / "frameworks.yaml").read_text())
+    data = yaml.safe_load((SEEDS / "frameworks.yaml").read_text(encoding="utf-8"))
     added = 0
     for fw in data["frameworks"]:
         f = db.scalar(select(Framework).where(Framework.code == fw["code"]))
@@ -17,7 +17,8 @@ def load_frameworks(db: Session) -> str:
             db.flush()
         have = set(db.scalars(select(FrameworkControl.code).where(FrameworkControl.framework_id == f.id)))
         for c in fw["controls"]:
-            if c["code"] not in have:
+            # BUG-04: a code stored garbled ('Â§' for '§') before the encoding fix is the same control; scripts/repair_mojibake.py fixes the text
+            if c["code"] not in have and c["code"].encode("utf-8").decode("cp1252", errors="replace") not in have:
                 db.add(FrameworkControl(framework_id=f.id, code=c["code"], title=c["title"]))
                 added += 1
     db.flush()

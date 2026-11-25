@@ -70,6 +70,16 @@ function Form({ clientId, uc, isFutran, canReview, canTier, euOptions }: { clien
     }
   }
 
+  async function remove() {  // BUG-03: the creator or the CAICO deletes a draft that was never submitted
+    if (!uc || !window.confirm(`Delete the draft "${uc.name}"? This cannot be undone.`)) return;
+    setErr(null); setMsg(null);
+    try {
+      await api.delete(`/use-cases/${uc.id}`);
+      await qc.invalidateQueries();
+      nav('/register?type=use_case');
+    } catch (e) { setErr(errorMessage(e)); }
+  }
+
   const tier = preview?.tier ?? uc?.proposed_tier ?? 1;
   const needNamed = tier >= 2;
   return (
@@ -139,7 +149,8 @@ function Form({ clientId, uc, isFutran, canReview, canTier, euOptions }: { clien
             </div>
           </Card>
           {editable && (
-            <div className="row"><Button variant="primary" onClick={() => save(true)}>Submit to Department Lead</Button><Button onClick={() => save(false)}>Save draft</Button></div>
+            <div className="row"><Button variant="primary" onClick={() => save(true)}>Submit to Department Lead</Button><Button onClick={() => save(false)}>Save draft</Button>
+              {uc?.status === 'draft' && <Button variant="ghost" onClick={remove}>Delete draft</Button>}</div>
           )}
         </fieldset>
         <div className="side stack">

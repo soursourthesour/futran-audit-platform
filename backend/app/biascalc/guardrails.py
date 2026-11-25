@@ -30,7 +30,7 @@ REFUSAL = "I can't help with that request. I can answer questions about open rol
 
 @lru_cache(maxsize=1)
 def prompt_set() -> dict:
-    return yaml.safe_load(PROMPTS.read_text())
+    return yaml.safe_load(PROMPTS.read_text(encoding="utf-8"))
 
 
 def evaluate(prompt: dict, reply: str) -> tuple[bool, str]:

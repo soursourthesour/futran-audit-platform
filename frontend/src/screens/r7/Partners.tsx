@@ -145,7 +145,7 @@ function ReferralDialog({ p, onClose, onDone }: { p: PartnerRow; onClose: () => 
         {err && <Alert tone="danger">{err}</Alert>}
         <SelectField label="Direction" value={direction} onChange={(e) => setDirection(e.target.value)} options={[{ value: 'in', label: `${p.name} referred work to Futran` }, { value: 'out', label: `Futran referred work to ${p.name}` }]} />
         <SelectField label="Opportunity" value={opp} placeholder="None" onChange={(e) => setOpp(e.target.value)} options={opts.data?.opportunities.map((o) => ({ value: o.id, label: o.label })) ?? []} />
-        {!opp && <SelectField label="Client" value={org} placeholder="None" onChange={(e) => setOrg(e.target.value)} options={opts.data?.clients.map((c) => ({ value: c.id, label: c.name })) ?? []} />}
+        {!opp && <SelectField label="Client or prospect" value={org} placeholder="None" onChange={(e) => setOrg(e.target.value)} options={opts.data?.clients.map((c) => ({ value: c.id, label: c.name })) ?? []} />}
         <TextArea label="Note" placeholder={direction === 'out' ? 'For example: legal opinion on LL144 applicability' : ''} value={note} maxLength={2000} onChange={(e) => setNote(e.target.value)} />
         {p.is_law_firm && <p className="small muted" style={{ margin: 0 }}>No fees either way with law firms (bar rules).</p>}
         <div className="row"><Button variant="primary" onClick={save}>Record referral</Button><Button variant="ghost" onClick={onClose}>Cancel</Button></div>

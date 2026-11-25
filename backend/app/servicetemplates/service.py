@@ -44,7 +44,7 @@ def _seeds_dir():
 
 
 def _framework(code: str) -> dict[str, str]:
-    data = yaml.safe_load((_seeds_dir() / "frameworks.yaml").read_text())
+    data = yaml.safe_load((_seeds_dir() / "frameworks.yaml").read_text(encoding="utf-8"))
     fw = next((f for f in data["frameworks"] if f["code"] == code), {"controls": []})
     return {c["code"]: c["title"] for c in fw["controls"]}
 

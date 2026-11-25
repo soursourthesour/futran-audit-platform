@@ -9,7 +9,7 @@ from app.core.clock import utcnow
 from app.core.config import Settings
 from app.mail import adminlog
 from app.mail.models import DirectoryPerson, MailRecipient, MailSend, MailThread
-from app.mail.sending import dispatch, next_subject_ref, responded_emails
+from app.mail.sending import assert_campaign_open, campaign_closed, dispatch, next_subject_ref, responded_emails
 from app.tenancy.models import User
 
 WAITING = ("sent", "delivered", "opened")
@@ -52,6 +52,10 @@ def _claim(db: Session, r: MailRecipient, due_index: int, now: datetime) -> bool
 
 
 def remind(db: Session, settings: Settings, s: MailSend, targets: list[MailRecipient], now: datetime, actor: User | None = None, due_index: int | None = None) -> MailSend | None:
+    if campaign_closed(db, None, (s.campaign_type, s.campaign_id) if s.campaign_type and s.campaign_id else None):
+        if actor is not None:  # BUG-12: a reminder after the campaign closed would carry a dead link
+            assert_campaign_open(db, s)
+        return None  # the scheduler skips it
     if due_index is not None:
         targets = [r for r in targets if _claim(db, r, due_index, now)]
     if not targets:

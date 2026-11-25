@@ -58,6 +58,27 @@ NUMBER_START = 1000
 RESPONDED: dict = {}
 # campaign type -> function(db, settings, recipient, send) called when a personal-link answer is recorded
 LINK_PURPOSES: dict = {}
+# campaign type -> function(db, campaign_id or None, at) returning why the campaign cannot take answers at `at`, or None
+# while it can. A send for a campaign goes out only while the campaign is open (BUG-12).
+CLOSED: dict = {}
+
+
+def campaign_closed(db: Session, purpose: str | None, campaign: tuple[str, str] | None, at: datetime | None = None) -> str | None:
+    """Why an email for this campaign (or a template with this purpose) must not go out at `at` (default now)."""
+    kind = campaign[0] if campaign else purpose
+    fn = CLOSED.get(kind) if kind else None
+    if fn is None:
+        return None
+    return fn(db, campaign[1] if campaign and campaign[0] == kind else None, at or utcnow())
+
+
+def assert_campaign_open(db: Session, s: MailSend, at: datetime | None = None) -> None:
+    """For a reminder or a resend on an existing send: refuse when its campaign has closed."""
+    from app.core.errors import Conflict
+
+    reason = campaign_closed(db, None, (s.campaign_type, s.campaign_id) if s.campaign_type and s.campaign_id else None, at)
+    if reason:
+        raise Conflict(reason)
 
 
 def token_hash(raw: str) -> str:
@@ -175,6 +196,11 @@ def send_to_groups(db: Session, settings: Settings, actor: User | None, *, organ
                    reminder_days=None, link_days: int | None = None, batch_size: int | None = None, scheduled_at: datetime | None = None,
                    context: dict | None = None, subject: str | None = None, body: str | None = None, sender: str = "organization", related=None) -> MailSend:
     t = _template(db, organization_id, template_key, template_id)
+    reason = campaign_closed(db, None, campaign, scheduled_at if scheduled_at and scheduled_at > utcnow() else None) if campaign else None
+    if reason:
+        from app.core.errors import Conflict
+
+        raise Conflict(reason)
     mode = mode or t.default_mode
     if mode not in ("personal", "bcc"):
         raise Invalid(errors=[{"field": "mode", "message": "Choose personal links or BCC."}])

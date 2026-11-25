@@ -73,7 +73,7 @@ def _template_body(db: Session, key: str) -> tuple[str, str]:
     t = db.scalar(select(DocumentTemplate).where(DocumentTemplate.key == key, DocumentTemplate.active.is_(True)))
     if t is not None:
         return t.body, f"v{t.version}"
-    return (TEMPLATE_DIR / f"{key}.md.j2").read_text(), "v1"
+    return (TEMPLATE_DIR / f"{key}.md.j2").read_text(encoding="utf-8"), "v1"
 
 
 def render(db: Session, key: str, context: dict) -> tuple[str, str]:

@@ -264,3 +264,15 @@ def fieldwork(uc_id: str, actor: Actor = Depends(current_actor), db: Session = D
         raise NotFound()
     uc = _uc(db, actor, uc_id, Action.VIEW_INVENTORY)
     return fieldwork_view(db, uc)
+
+
+@router.delete("/use-cases/{uc_id}")
+def delete_use_case(uc_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+    """BUG-03: the creator or the client's CAICO deletes a draft that was never submitted."""
+    uc = _uc(db, actor, uc_id, Action.SUBMIT_USE_CASE)
+    if actor.is_futran:
+        raise Forbidden("Use cases belong to the client: its own people delete their drafts.")
+    if uc.created_by != actor.id and not actor.has_role("caico"):
+        raise Forbidden("Only the person who created this draft or the Chief AI Compliance Officer can delete it.")
+    inv.delete_draft_use_case(db, actor.user, uc)
+    return {"deleted": uc.id}

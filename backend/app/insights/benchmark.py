@@ -39,7 +39,7 @@ def median(values: list[float]) -> float:
 
 @lru_cache(maxsize=1)
 def themes() -> list[dict]:
-    return yaml.safe_load(THEMES.read_text())["themes"]
+    return yaml.safe_load(THEMES.read_text(encoding="utf-8"))["themes"]
 
 
 def theme_of(f: Finding) -> str | None:

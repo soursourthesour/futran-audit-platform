@@ -120,7 +120,7 @@ class ImportPreview:
 
 
 def _feature_rules() -> tuple[list[tuple[re.Pattern, str]], str]:
-    data = yaml.safe_load((SEEDS / "feature_map.yaml").read_text())
+    data = yaml.safe_load((SEEDS / "feature_map.yaml").read_text(encoding="utf-8"))
     return [(re.compile(r["match"], re.I), r["feature"]) for r in data["rules"]], data["default"]
 
 
