@@ -293,9 +293,13 @@ def ensure_applicability(db: Session) -> None:
     """BUG-08: a client set up before the law library has no applicability rows (and often no geographies), so it
     could not be matched. Build them first, as opening the client's applicability page would. A failure for one
     client is logged and leaves that client unmatched; it never stops the publish."""
+    from app.core.db import hold_transaction
     from app.regmaster import engine
     from app.regmaster.models import ClientLawApplicability
 
+    # BUG-K03: open the caller's transaction before the savepoints, or on SQLite the first savepoint becomes the
+    # transaction and its release commits; a dry run or a failed publish could then no longer undo the rows built here.
+    hold_transaction(db)
     have = set(db.scalars(select(ClientLawApplicability.organization_id).distinct()))
     for org in _clients(db):
         if org.id in have:

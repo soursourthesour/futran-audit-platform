@@ -131,3 +131,25 @@ def test_a_new_geography_alone_triggers_a_rematch(db, world, monkeypatch):
     assert calls == []  # nothing changed
     engine.add_geography(db, org.id, world["j"]["US-NY"].id, "office", None)
     assert calls == [org.id]
+
+
+def test_rematch_dry_run_saves_nothing(client, db, world, monkeypatch, capsys):
+    """BUG-K03: the dry run of `rematch-reg-updates` said "nothing saved" but kept the applicability and geographies it
+    built. On SQLite a savepoint opened with no transaction open becomes the transaction, and releasing it commits."""
+    import types
+
+    from sqlalchemy import func
+
+    from app import cli
+
+    org, s = _meridian(db, world)
+    counts = lambda: (db.scalar(select(func.count(ClientLawApplicability.id))), db.scalar(select(func.count(ClientGeography.id))),  # noqa: E731
+                      db.scalar(select(func.count(RegulatoryAlert.id))))
+    db.commit()
+    before = counts()
+    monkeypatch.setattr(cli, "_session", lambda: (None, db))
+    assert cli.cmd_rematch_reg_updates(types.SimpleNamespace(apply=False)) == 0
+    assert "Dry run: nothing saved." in capsys.readouterr().out
+    db.expire_all()
+    assert counts() == before
+    assert db.scalar(select(ClientLawApplicability.id).where(ClientLawApplicability.organization_id == org.id)) is None
