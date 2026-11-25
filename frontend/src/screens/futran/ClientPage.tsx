@@ -3,7 +3,8 @@ import { Link, useLocation, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
 import { can, useMe } from '@/api/auth';
-import { Alert, Badge, Button, Card, EmptyState, Loading, PageHeader, fileUrl, fmtDate, fmtDateTime } from '@/components/ui';
+import { Alert, Badge, Button, Card, Checkbox, Dialog, EmptyState, Loading, PageHeader, SelectField, fileUrl, fmtDate, fmtDateTime } from '@/components/ui';
+import { useTeamOptions } from '@/api/clients';
 import { ClientInsightLinks } from '@/screens/wsk/Links';
 import { DeliveryWorkspaceLinks } from '@/screens/r6b/Links';  // Release 2 R6b
 import { StageTracker } from '@/components/StageTracker';
@@ -45,6 +46,7 @@ export function ClientPage() {
   const [stageOpen, setStageOpen] = useState<number | null>(null);
   const [msg, setMsg] = useState<{ tone: 'success' | 'danger'; text: string } | null>(null);
   const [tab, setTab] = useState<string>('overview');
+  const [adding, setAdding] = useState(false);
   if (q.isLoading) return <div className="page"><Loading /></div>;
   if (q.isError || !q.data) return <div className="page"><Alert tone="danger">{errorMessage(q.error)}</Alert></div>;
   const p = q.data;
@@ -149,6 +151,9 @@ export function ClientPage() {
               <ul className="small" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                 {p.team.map((m, i) => <li key={i} className="row" style={{ justifyContent: 'space-between', padding: '6px 0' }}><span>{m.name}</span><span className="muted">{m.role_label}</span></li>)}
               </ul>
+              {can(me, 'assign_auditors') && (e.status === 'initiated' || e.status === 'in_progress') && (
+                <p className="small" style={{ marginBottom: 0 }}><Button size="sm" onClick={() => setAdding(true)}>Add team member</Button></p>
+              )}
             </Card>
             <Card title="Activity">
               {activity(5)}
@@ -197,6 +202,7 @@ export function ClientPage() {
       )}
       {tab === 'activity' && <Card title="Activity">{activity()}<p className="small" style={{ marginBottom: 0 }}><Link to={`/admin/audit-log?org=${clientId}`}>View full audit log</Link></p></Card>}
       {preview && <DocPreview docId={preview.id} title={preview.title} onClose={() => setPreview(null)} />}
+      {adding && <AddTeamMember clientId={clientId} client={p.client.name} onClose={() => setAdding(false)} onDone={async (t) => { setAdding(false); setMsg({ tone: 'success', text: t }); await qc.invalidateQueries({ queryKey: ['client-page', clientId] }); }} />}
       {editing && <DocEditDialog docId={editing.id} title={editing.title} sent={p.package?.status === 'sent'} onClose={() => setEditing(null)} onSaved={() => { void qc.invalidateQueries({ queryKey: ['client-page', clientId] }); }} />}
       {stageOpen !== null && <StageDetail clientId={clientId} number={stageOpen} onClose={() => setStageOpen(null)} />}
     </div>
@@ -276,4 +282,52 @@ export const WORK_AREAS = [
 function WorkAreas({ clientId, engagementId }: { clientId: string; engagementId?: string }) {
   return <div className="work-areas">{WORK_AREAS.map(([path, label]) => <Link key={path} to={`/clients/${clientId}/${path}`}>{label}</Link>)}
     {engagementId && <Link to={`/e/${engagementId}/discovery/import`}>Discovery import</Link>}</div>;
+}
+
+const ADD_ROLES = [
+  { value: 'qa_reviewer', label: 'QA Reviewer', needs: ['qa_reviewer', 'chief_auditor'] },
+  { value: 'auditor', label: 'Auditor', needs: ['auditor', 'chief_auditor'] },
+  { value: 'engagement_manager', label: 'Engagement Manager', needs: [] as string[] },
+  { value: 'legal_reviewer', label: 'Legal / compliance reviewer', needs: [] as string[] },
+];
+
+/** BUG-05: the Chief Auditor adds a team member to a running engagement, with the conflict-of-interest confirmation. */
+function AddTeamMember({ clientId, client, onClose, onDone }: { clientId: string; client: string; onClose: () => void; onDone: (t: string) => void }) {
+  const people = useTeamOptions();
+  const [role, setRole] = useState('qa_reviewer');
+  const [userId, setUserId] = useState('');
+  const [confirmed, setConfirmed] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [fieldErr, setFieldErr] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState(false);
+  const needs = ADD_ROLES.find((r) => r.value === role)?.needs ?? [];
+  const options = (people.data ?? []).filter((x) => !needs.length || x.roles.some((r) => needs.includes(r))).map((x) => ({ value: x.user_id, label: x.name }));
+  const name = (people.data ?? []).find((x) => x.user_id === userId)?.name;
+  async function save() {
+    setBusy(true); setErr(null); setFieldErr({});
+    try {
+      await api.post(`/clients/${clientId}/team`, { user_id: userId || null, role, conflict_confirmed: confirmed });
+      onDone(`${name} added as ${ADD_ROLES.find((r) => r.value === role)?.label}.`);
+    } catch (ex) {
+      const errors = (ex as { errors?: { field: string; message: string }[] }).errors ?? [];
+      if (errors.length) setFieldErr(Object.fromEntries(errors.map((x) => [x.field, x.message])));
+      else setErr(errorMessage(ex));
+    } finally { setBusy(false); }
+  }
+  return (
+    <Dialog title="Add team member" onClose={onClose}>
+      <div className="stack">
+        {err && <Alert tone="danger">{err}</Alert>}
+        <SelectField label="Role" value={role} onChange={(ev) => { setRole(ev.target.value); setUserId(''); }} options={ADD_ROLES.map(({ value, label }) => ({ value, label }))} error={fieldErr.role} />
+        <SelectField label="Person" value={userId} onChange={(ev) => setUserId(ev.target.value)} placeholder="Choose…" options={options} error={fieldErr.user_id} />
+        <Checkbox label={`${name ?? 'This person'} has confirmed no conflict of interest with ${client}: no recent consulting, implementation or employment relationship.`}
+          checked={confirmed} onChange={(ev) => setConfirmed(ev.target.checked)} />
+        {fieldErr.conflict_confirmed && <p className="small" style={{ color: 'var(--danger)', margin: 0 }}>{fieldErr.conflict_confirmed}</p>}
+        <div className="row" style={{ justifyContent: 'flex-end', gap: 8 }}>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button variant="primary" disabled={busy || !userId || !confirmed} onClick={save}>Add to team</Button>
+        </div>
+      </div>
+    </Dialog>
+  );
 }

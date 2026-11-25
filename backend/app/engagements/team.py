@@ -96,3 +96,48 @@ def check_separate_team(db: Session, client_id: str, user_id: str, *, engagement
         u = db.get(User, user_id)
         raise Conflict(f"{u.name if u else 'This person'} delivers this client's governance work for Futran (Fractional AI Governance Officer or a "
                        "separate delivery team), so they cannot be on its audit team.")
+
+
+RUNNING = ("initiated", "in_progress")
+ADDABLE_ROLES = ("engagement_manager", "auditor", "qa_reviewer", "legal_reviewer")  # the Lead Auditor is set when the engagement is created
+ROLE_NEEDS = {"auditor": {"auditor", "chief_auditor"}, "qa_reviewer": {"qa_reviewer", "chief_auditor"}}  # Futran roles that may fill the team role
+
+
+def add_member(db: Session, actor: User, e: Engagement, user_id: str | None, role: str | None, conflict_confirmed: bool) -> EngagementTeam:
+    """BUG-05: the Chief Auditor adds a person to the team of a running engagement (for example a QA Reviewer), with the
+    wizard's checks: a Futran person who is not only an administrator, holds a fitting role, is not the client's separate
+    delivery team (rule I-3), and has confirmed no conflict of interest. Logged in the audit log."""
+    from app.audit_log import service as audit
+    from app.core.clock import utcnow
+    from app.core.errors import Conflict, Invalid
+    from app.engagements.wizard import _futran_roles, _record_conflict_confirmations
+    from app.tenancy.models import Organization
+
+    if e.status not in RUNNING:
+        raise Conflict("Team members can be added here only while the engagement is running. Use the new-client wizard for a draft.")
+    if role not in ADDABLE_ROLES:
+        raise Invalid(errors=[{"field": "role", "message": "Choose Engagement Manager, Auditor, QA Reviewer or Legal / compliance reviewer."}])
+    user = db.get(User, user_id) if isinstance(user_id, str) else None
+    org = db.get(Organization, user.organization_id) if user else None
+    if user is None or org is None or org.type != "futran" or user.status == "disabled" or user.deleted_at:
+        raise Invalid(errors=[{"field": "user_id", "message": "Choose a Futran team member."}])
+    held = _futran_roles(db, user)
+    if held <= {"admin"}:
+        raise Invalid(errors=[{"field": "user_id", "message": f"{user.name} is an administrator and cannot be on an audit team."}])
+    if role in ROLE_NEEDS and not held & ROLE_NEEDS[role]:
+        raise Invalid(errors=[{"field": "user_id", "message": f"{user.name} does not hold a Futran role that can act as {ROLE_LABELS[role]}."}])
+    on_team = {(t.user_id, t.role) for t, _ in team_rows(db, e)}
+    if role == "qa_reviewer" and (user.id, LEAD_ROLE) in on_team:
+        raise Invalid(errors=[{"field": "user_id", "message": f"{user.name} is the Chief Auditor on this engagement, and the QA Reviewer checks the Chief Auditor's findings. Choose someone else."}])
+    if (user.id, role) in on_team:
+        raise Conflict(f"{user.name} is already {ROLE_LABELS[role]} on this engagement.")
+    check_separate_team(db, e.client_id, user.id, engagement_id=e.id)  # rule I-3, as in the wizard; raises Conflict
+    if not conflict_confirmed:
+        raise Invalid(errors=[{"field": "conflict_confirmed", "message": f"Confirm that {user.name} has no conflict of interest with this client."}])
+    row = EngagementTeam(organization_id=e.client_id, engagement_id=e.id, user_id=user.id, role=role, created_by=actor.id, conflict_confirmed_at=utcnow())
+    db.add(row)
+    db.flush()
+    audit.record(db, actor_id=actor.id, action="team.member_added", obj=e, object_type="EngagementTeam", object_id=row.id, after={"user_id": user.id, "role": role},
+                 summary=f"Added {user.name} as {ROLE_LABELS[role]} on {e.audit_ref}")
+    _record_conflict_confirmations(db, actor, e)
+    return row
