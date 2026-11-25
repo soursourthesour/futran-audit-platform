@@ -77,6 +77,20 @@ def assign_role(
     return ra
 
 
+def current_roles_by_user(db: Session, org_id: str) -> dict[str, list[RoleAssignment]]:
+    """roles_of() for every user of the organisation, in one query: {user_id: [assignment, ...]}."""
+    from app.core.clock import today
+
+    d = today()
+    out: dict[str, list[RoleAssignment]] = {}
+    rows = db.scalars(select(RoleAssignment).join(User, User.id == RoleAssignment.user_id).where(User.organization_id == org_id, RoleAssignment.deleted_at.is_(None))
+                      .order_by(RoleAssignment.created_at, RoleAssignment.id))
+    for r in rows:
+        if (r.start_date is None or r.start_date <= d) and (r.end_date is None or r.end_date >= d):
+            out.setdefault(r.user_id, []).append(r)
+    return out
+
+
 def roles_of(db: Session, user_id: str) -> list[RoleAssignment]:
     """Current role assignments: not deleted, and within start/end dates when set."""
     from app.core.clock import today

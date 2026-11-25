@@ -113,3 +113,24 @@ def test_docx_cover_logo_contents_and_rating_shading():
     assert 'w:fill="B93A0B"' in cell._tc.xml
     hdr = doc.sections[0].header._element.xml
     assert "<pic:pic" in hdr or "Futran Solutions" in hdr
+
+
+def test_large_word_tables_keep_every_cell_and_grow_linearly():
+    """Each table row is written through row.cells: tbl.cell(r, c) rebuilt the cell list on every call, so a table cost
+    O(cells²) (load test BUG-V04: 16.5 s of a 32.6 s report)."""
+    import time
+
+    def table(n):
+        return "# Systems\n\n| Ref | System | Finding | Rating |\n|---|---|---|---|\n" + "\n".join(f"| F-{i:03d} | System {i} | Text {i} | High |" for i in range(n)) + "\n"
+
+    doc = Document(BytesIO(to_docx(table(120), "Systems", META)))
+    t = doc.tables[0]
+    assert len(t.rows) == 121
+    assert [c.text for c in t.rows[0].cells] == ["Ref", "System", "Finding", "Rating"]
+    assert [c.text for c in t.rows[120].cells] == ["F-119", "System 119", "Text 119", "High"]
+    took = {}
+    for n in (100, 400):
+        start = time.perf_counter()
+        to_docx(table(n), "Systems", META)
+        took[n] = time.perf_counter() - start
+    assert took[400] < 8 * took[100], took  # four times the rows: about four times the time (it was about fourteen)

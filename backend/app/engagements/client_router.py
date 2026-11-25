@@ -1,5 +1,5 @@
 """Dashboard (screen 1), client page (screen 9) and the client's initiation checklist (screen 10)."""
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
@@ -147,6 +147,15 @@ def invite_status(db: Session, user: User | None) -> str:
     if user.status == "disabled":
         return "Disabled"
     inv = db.scalar(select(Invitation).where(Invitation.user_id == user.id).order_by(Invitation.sent_at.desc()).limit(1))
+    return invite_status_from(user, inv)
+
+
+def invite_status_from(user: User, inv: Invitation | None) -> str:
+    """invite_status() given the user's latest invitation (the People list loads them all at once)."""
+    if user.status == "active":
+        return "Active"
+    if user.status == "disabled":
+        return "Disabled"
     if inv is None:
         return "Not invited yet"
     if inv.status == "pending" and inv.expires_at < utcnow():
@@ -299,7 +308,7 @@ def my_initiation(actor: Actor = Depends(current_actor), db: Session = Depends(g
 
 
 @router.post("/me/initiation/items/{key}/done")
-def mark_done(key: str, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+def mark_done(key: str, request: Request, background: BackgroundTasks, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     e = _client_engagement(db, actor)
     if key not in SELF_COMPLETE:
         raise Invalid("This item is completed by doing it, not by ticking it off.")
@@ -308,7 +317,12 @@ def mark_done(key: str, request: Request, actor: Actor = Depends(current_actor),
     if key == "notice":  # completing item 6 means sending the notice to staff
         from app.initiation import notice
 
+        prev = notice.latest_release(db, e)
+        doc = notice.notice_document(db, e)
+        if prev is not None and doc is not None and prev.body_md == doc.body_md:  # already sent: nothing more to do
+            return {"key": key, "done": True, "version": prev.version}
         rel = notice.send(db, request.app.state.settings, actor.user, actor.role_names, e)
+        notice.start_delivery(background, request.app, db, rel)
         return {"key": key, "done": True, "version": rel.version}
     n = dict((k, n) for k, n, *_ in CHECKLIST)[key]
     pkg = current_package(db, e)

@@ -140,7 +140,9 @@ def capabilities(db: Session, actor: Actor) -> dict:
 def get_register(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     org = client_org(actor)
     authorize(db, actor, Action.VIEW_REGISTER, org_id=org.id, list_view=True)
-    rows = [system_out(db, s, actor) for s in svc.systems_for(db, org.id, departments_for(actor, Action.VIEW_REGISTER))]
+    systems = svc.systems_for(db, org.id, departments_for(actor, Action.VIEW_REGISTER))
+    with svc.prefetched(db, systems):
+        rows = [system_out(db, s, actor) for s in systems]
     return {"systems": rows, "kpis": kpis(db, [r for r in rows if r["stage"] != "retired"]), "can": capabilities(db, actor), **options(db, actor)}
 
 

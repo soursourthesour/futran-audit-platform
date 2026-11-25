@@ -131,15 +131,60 @@ def next_reference(db: Session, org_id: str) -> str:
     return f"AIS-{n + 1:03d}"
 
 
+PREFETCH_KEY = "register_prefetch"
+
+
+class prefetched:
+    """`with prefetched(db, systems):` loads, for every system at once, the rows a grid reads per system (data, actions,
+    law links, latest bias test), so system_out() needs four queries in all instead of four per system (load test
+    bottleneck 8). Only for read-only list requests; the cache is dropped when the block ends."""
+
+    def __init__(self, db: Session, systems):
+        self.db, self.ids = db, [x.id for x in systems]
+
+    def __enter__(self):
+        db, ids = self.db, self.ids
+        c = {"ids": set(ids), "data": {}, "actions": {}, "laws": {}, "bias": {}}
+        for i in range(0, len(ids), 500):
+            part = ids[i:i + 500]
+            for d in db.scalars(select(RegisterSystemData).where(RegisterSystemData.register_system_id.in_(part), RegisterSystemData.deleted_at.is_(None))):
+                c["data"].setdefault(d.register_system_id, d)
+            for a in db.scalars(select(RegisterSystemAction).where(RegisterSystemAction.register_system_id.in_(part), RegisterSystemAction.deleted_at.is_(None))
+                                .order_by(RegisterSystemAction.created_at, RegisterSystemAction.id)):
+                c["actions"].setdefault(a.register_system_id, []).append(a)
+            for link in db.scalars(select(RegisterSystemLaw).where(RegisterSystemLaw.register_system_id.in_(part), RegisterSystemLaw.deleted_at.is_(None),
+                                                                   RegisterSystemLaw.status != "removed").order_by(RegisterSystemLaw.created_at)):
+                c["laws"].setdefault(link.register_system_id, []).append(link)
+            for b in db.scalars(select(BiasTest).where(BiasTest.register_system_id.in_(part), BiasTest.deleted_at.is_(None))
+                                .order_by(BiasTest.tested_on.desc(), BiasTest.created_at.desc())):
+                c["bias"].setdefault(b.register_system_id, b)
+        db.info[PREFETCH_KEY] = c
+        return c
+
+    def __exit__(self, *_):
+        self.db.info.pop(PREFETCH_KEY, None)
+
+
+def _cached(db: Session, s: RegisterSystem) -> dict | None:
+    c = db.info.get(PREFETCH_KEY)
+    return c if c is not None and s.id in c["ids"] else None
+
+
 def data_row(db: Session, s: RegisterSystem) -> RegisterSystemData | None:
+    if (c := _cached(db, s)) is not None:
+        return c["data"].get(s.id)
     return db.scalar(select(RegisterSystemData).where(RegisterSystemData.register_system_id == s.id, RegisterSystemData.deleted_at.is_(None)))
 
 
 def actions_of(db: Session, s: RegisterSystem) -> list[RegisterSystemAction]:
+    if (c := _cached(db, s)) is not None:
+        return list(c["actions"].get(s.id, []))
     return list(db.scalars(select(RegisterSystemAction).where(RegisterSystemAction.register_system_id == s.id, RegisterSystemAction.deleted_at.is_(None)).order_by(RegisterSystemAction.created_at, RegisterSystemAction.id)))
 
 
 def law_links(db: Session, s: RegisterSystem, *, include_removed: bool = False) -> list[RegisterSystemLaw]:
+    if not include_removed and (c := _cached(db, s)) is not None:
+        return list(c["laws"].get(s.id, []))
     stmt = select(RegisterSystemLaw).where(RegisterSystemLaw.register_system_id == s.id, RegisterSystemLaw.deleted_at.is_(None))
     if not include_removed:
         stmt = stmt.where(RegisterSystemLaw.status != "removed")
@@ -147,6 +192,8 @@ def law_links(db: Session, s: RegisterSystem, *, include_removed: bool = False) 
 
 
 def latest_bias_test(db: Session, s: RegisterSystem) -> BiasTest | None:
+    if (c := _cached(db, s)) is not None:
+        return c["bias"].get(s.id)
     return db.scalar(select(BiasTest).where(BiasTest.register_system_id == s.id, BiasTest.deleted_at.is_(None)).order_by(BiasTest.tested_on.desc(), BiasTest.created_at.desc()).limit(1))
 
 

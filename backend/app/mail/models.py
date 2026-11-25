@@ -6,7 +6,7 @@ for client ones. Futran's shipped templates use the constant owner id "futran".
 """
 from datetime import datetime
 
-from sqlalchemy import DDL, JSON, Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, event
+from sqlalchemy import DDL, JSON, Boolean, DateTime, ForeignKey, Index, Integer, Sequence, String, Text, UniqueConstraint, event, text
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from app.core.clock import utcnow
@@ -137,6 +137,7 @@ class DirectoryPerson(TimestampedTenantMixin, Base):
     """A person who can receive email: from directory sync, a user with a login, or added by hand to a list."""
 
     __tablename__ = "directory_people"
+    __table_args__ = (Index("ix_directory_people_org_email_ci", "organization_id", text("lower(email)")),)  # people are found by lower-case email
 
     directory_id: Mapped[str | None] = mapped_column(String(200), index=True)
     source: Mapped[str] = mapped_column(String(10), default="manual")  # directory | platform | manual
@@ -257,6 +258,8 @@ class MailSend(TimestampedTenantMixin, Base):
 
 class MailRecipient(TimestampedTenantMixin, Base):
     __tablename__ = "mail_recipients"
+    __table_args__ = (Index("ix_mail_recipients_email_ci", text("lower(email)")),  # link revocation and responded lookups
+                      Index("ix_mail_recipients_send_status", "send_id", "status"))  # the dispatcher's due batch and queue count
 
     send_id: Mapped[str] = mapped_column(String(36), ForeignKey("mail_sends.id"), index=True)
     person_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("directory_people.id"), index=True)
@@ -278,6 +281,7 @@ class MailRecipient(TimestampedTenantMixin, Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime)
     batch_no: Mapped[int | None] = mapped_column(Integer)  # BCC mode
     out_of_office: Mapped[bool] = mapped_column(Boolean, default=False)
+    context: Mapped[dict | None] = mapped_column(JSON)  # a queued system email's own merge values (service.queue_bulk)
 
 
 class MailOneTimeCode(TimestampedTenantMixin, Base):
@@ -322,6 +326,22 @@ class MailReply(TimestampedTenantMixin, Base):
     attachment_ids: Mapped[list | None] = mapped_column(JSON)
     kind: Mapped[str] = mapped_column(String(12), default="reply")  # reply | out_of_office | bounce
     linked_entity: Mapped[str | None] = mapped_column(String(80))
+
+
+class MailCounter(Base):
+    """Platform-wide counters. "subject_ref" holds the highest FAP-n reference given out (gap G8): each new thread takes
+    the next number with one conditional UPDATE ... RETURNING instead of reading every thread. On PostgreSQL the
+    reference comes from the sequence mail_subject_ref_seq instead, which never blocks a concurrent send."""
+
+    __tablename__ = "mail_counters"
+
+    name: Mapped[str] = mapped_column(String(40), primary_key=True)
+    value: Mapped[int] = mapped_column(Integer)
+
+
+# PostgreSQL only (other dialects skip it): the thread reference sequence. The migration starts it after the highest
+# reference already used.
+SUBJECT_REF_SEQUENCE = Sequence("mail_subject_ref_seq", start=1000, metadata=Base.metadata)
 
 
 # ---- admin log (§26.7): append-only, kept 7 years

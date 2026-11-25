@@ -14,7 +14,7 @@ from app.core.errors import Conflict, Forbidden, Invalid, NotFound
 from app.documents.csvsafe import to_csv
 from app.engagements.models import Engagement
 from app.mail import adminlog, connections as cx, directory, library, reminders, sending
-from app.mail.groups import active_members, add_member, create_group, ensure_default_groups, remove_member, rule_text
+from app.mail.groups import active_members, add_member, create_group, ensure_default_groups, member_count, remove_member, rule_text
 from app.mail.models import (FUTRAN_OWNER, DirectoryGroup, DirectoryPerson, MailGroup, MailGroupMember, MailRecipient, MailReply, MailSend, MailTemplate, MailThread,
                              OutboxMessage)
 from app.mail.people import add_person_if_new, person_out
@@ -96,10 +96,9 @@ def _group(db: Session, actor: Actor, group_id: str) -> tuple[MailGroup, Organiz
 
 
 def group_out(db: Session, g: MailGroup, depts: dict | None = None, can_edit: bool = False) -> dict:
-    members = active_members(db, g)
     labels = {"manual": "Manual list", "rule": "Rule", "directory": "Directory group"}
     return {"id": g.id, "name": g.name, "purpose": g.purpose, "source": g.source, "source_label": labels[g.source], "rule": g.rule, "rule_text": rule_text(db, g),
-            "directory_group_id": g.directory_group_id, "member_count": len(members), "last_synced_at": g.last_synced_at.isoformat() if g.last_synced_at else None,
+            "directory_group_id": g.directory_group_id, "member_count": member_count(db, g), "last_synced_at": g.last_synced_at.isoformat() if g.last_synced_at else None,
             "used_by": g.used_by, "is_default": g.is_default, "system_key": g.system_key, "owner_role": g.owner_role, "department_id": g.department_id,
             "department": (depts or {}).get(g.department_id), "exclude_on_leave": g.exclude_on_leave, "can_edit": can_edit}
 
@@ -158,7 +157,7 @@ def get_group(group_id: str, actor: Actor = Depends(current_actor), db: Session 
             elif m.nested_group_id:
                 child = db.get(MailGroup, m.nested_group_id)
                 if child is not None and child.deleted_at is None:
-                    members.append({"member_id": m.id, "kind": "group", "id": child.id, "name": child.name, "member_count": len(active_members(db, child))})
+                    members.append({"member_id": m.id, "kind": "group", "id": child.id, "name": child.name, "member_count": member_count(db, child)})
         out["members"] = sorted(members, key=lambda x: (x["kind"] != "group", x["name"].lower()))
     else:
         out["members"] = [{"member_id": None, "kind": "person", **person_out(p, depts)} for p in active_members(db, g)[:1000]]
@@ -428,7 +427,7 @@ def send_options(client_id: str | None = None, actor: Actor = Depends(current_ac
     offices = sorted({o for o in db.scalars(select(DirectoryPerson.office).where(DirectoryPerson.organization_id == org.id, DirectoryPerson.office.is_not(None)).distinct()) if o})
     depts = _depts(db, org.id)
     return {"organization": {"id": org.id, "name": org.name}, "engagement": {"id": e.id, "audit_ref": e.audit_ref, "name": e.name} if e else None,
-            "templates": [library.template_out(t) for t in templates], "groups": [{"id": g.id, "name": g.name, "source": g.source, "member_count": len(active_members(db, g)),
+            "templates": [library.template_out(t) for t in templates], "groups": [{"id": g.id, "name": g.name, "source": g.source, "member_count": member_count(db, g),
                                                                                     "system_key": g.system_key} for g in groups],
             "senders": senders, "departments": [{"id": k, "name": v} for k, v in sorted(depts.items(), key=lambda x: x[1]) if ctx["scope"] is None or k in ctx["scope"]],
             "offices": offices, "defaults": {"link_days": settings.mail_link_days, "batch_size": settings.mail_bcc_batch_size, "reminder_days": [3, 7]},
@@ -566,13 +565,22 @@ def log_sends(client_id: str | None = None, template: str | None = None, group: 
         stmt = stmt.where(MailSend.organization_id.in_(orgs))
     if engs is not None:
         stmt = stmt.where(MailSend.engagement_id.in_(engs))
-    rows = list(db.scalars(stmt.order_by(MailSend.created_at.desc()).limit(500)))
-    if depts is not None:
-        rows = [s for s in rows if set(s.department_scope or []) & depts or s.sent_by == actor.id]
+    # Filter before taking the newest 500, so a bulk system email cannot push the send asked for out of view (BUG-V05)
     if template:
-        rows = [s for s in rows if s.template_key == template]
+        stmt = stmt.where(MailSend.template_key == template)
     if group:
-        rows = [s for s in rows if any(g.get("id") == group for g in s.groups or [])]
+        stmt = stmt.where(MailSend.groups.is_not(None), MailSend.kind != "system")
+    rows: list[MailSend] = []
+    found = db.scalars(stmt.order_by(MailSend.created_at.desc()).execution_options(yield_per=500))
+    for s in found:
+        if depts is not None and not (set(s.department_scope or []) & depts or s.sent_by == actor.id):
+            continue
+        if group and not any(g.get("id") == group for g in s.groups or []):
+            continue
+        rows.append(s)
+        if len(rows) >= 500:
+            break
+    found.close()
     out = [send_out(db, s) for s in rows]
     return {"sends": out, "templates": sorted({(s["template_key"], s["template"]) for s in out if s["template_key"]}, key=lambda x: x[1] or ""),
             "groups": sorted({(g.get("id"), g.get("name")) for s in rows for g in s.groups or [] if g.get("id")}, key=lambda x: x[1] or "")}

@@ -178,9 +178,11 @@ def _table(doc, rows: list[list[tuple[str, object]]], report: bool) -> None:
         col.width = Cm(w)
     header = texts[0]
     scales = [bar_scale(h) for h in header]
-    for ri, r in enumerate(rows):
+    # row.cells once per row: tbl.cell(ri, ci) rebuilds the whole table's cell list on every call, O(cells²) (BUG-V04)
+    for r, row in zip(rows, tbl.rows):
+        row_cells = row.cells
         for ci, (kind, inline) in enumerate(r):
-            cell = tbl.cell(ri, ci)
+            cell = row_cells[ci]
             if ci < len(widths):
                 cell.width = Cm(widths[ci])
             cell_p = cell.paragraphs[0]
