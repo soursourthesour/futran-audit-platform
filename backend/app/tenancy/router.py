@@ -131,6 +131,10 @@ def update_futran_user(user_id: str, body: UserPatch, request: Request, actor: A
         _check_futran_roles(body.roles)
         if u.id == actor.id and "admin" not in body.roles:
             raise Conflict("You cannot remove your own Admin role.")
+        if u.id == actor.id and set(body.roles) != set(before["roles"]):
+            # Spec §6 rule 1: an administrator could otherwise give itself an audit-judgment role. Roles on your own account
+            # are changed by another administrator, so every grant has a second person behind it.
+            raise Conflict("You cannot change the roles on your own account. Another administrator must make this change.")
         for ra in db.scalars(select(RoleAssignment).where(RoleAssignment.user_id == u.id, RoleAssignment.deleted_at.is_(None))):
             if ra.role not in body.roles:
                 from app.core.clock import utcnow
