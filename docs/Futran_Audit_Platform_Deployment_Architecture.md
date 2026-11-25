@@ -1,7 +1,7 @@
 ---
 title: Futran Audit Platform — deployment architecture
 tags: [futran, audit-platform, deployment, architecture]
-updated: 2026-11-17
+updated: 2026-11-25
 status: laptop live; hosting options Render, Azure, AWS, GCP
 ---
 
@@ -90,7 +90,7 @@ The first administrator is created from the host's shell with `python -m app.cli
 | `FILE_STORE` | `local:./data/files` | `local:/app/backend/data/files` on a mounted volume (object store later) |
 | `SECRET_KEY`, `BASE_URL` | local values | strong key, `https://` address |
 | `MFA_REQUIRED` | `false` in test mode | `true` |
-| `EMAIL_MODE` | `outbox` | `smtp` or a connected mailbox |
+| `EMAIL_MODE` | `outbox` | `smtp`, required for any live mail, even when all mail goes through a connected Microsoft 365 or Google mailbox (see [[Futran_Audit_Platform_Mail_Architecture]] §5) |
 | `ANTHROPIC_API_KEY` or an AI provider connection | optional | set for AI features |
 | `VIRUS_SCAN` | `off` | `clamav` (not built yet) |
 | `DISABLE_SCHEDULER` | `false` | `false` on exactly one instance |
@@ -104,4 +104,4 @@ The first administrator is created from the host's shell with `python -m app.cli
 | Virus scanning not connected | `VIRUS_SCAN=clamav` raises an error; uploads are stored unscanned. | Connect ClamAV (sidecar or service) before clients upload evidence. |
 | Secrets store not wired | Secrets live in environment variables. | Inject them from the cloud's store: Key Vault references (Azure), Secrets Manager in the task definition (AWS), Secret Manager references (GCP). |
 | Backups | The laptop relies on manual copies in `backups\`. | Use managed Postgres backups plus storage snapshots; test a restore. |
-| Data repair (BUG-04) | Garbled text stored on the laptop. | Repair before any data moves to a hosted environment. |
+| Data repair (BUG-04) | Garbled text stored on the laptop, mostly in demo clients. | Start the hosted install with a fresh database: Linux reads the seed files as UTF-8, so it starts clean. If laptop data must move, run `backend/scripts/repair_mojibake.py` on it first. Then clear test-mode mail state; see the mail runbook, step 3. |
