@@ -10,10 +10,14 @@ Screening shape: {"art5": [keys] | ["none"], "annex_iii_area": key | "none", "an
 "art50": [keys] | ["none"], "gpai": bool}. An empty list or a missing area means the question is unanswered."""
 from __future__ import annotations
 
+import re
+
 from app.euaiact import rules
 
 NONE = "none"
 NOT_SCREENED = "Not screened against the EU AI Act yet."
+MAX_REASON = 400  # use_cases.eu_risk_reason and register_systems.eu_risk_reason are String(400)
+_REF = re.compile(r"\(((?:Art|Annex)\.?\s[^()]*(?:\([^()]*\))*)\)\s*$")  # "… (Art. 5(1)(a))" → "Art. 5(1)(a)"
 
 
 def _d() -> dict:
@@ -57,12 +61,30 @@ def complete(s: dict | None) -> bool:
     return bool(s) and bool(s.get("art5")) and bool(s.get("annex_iii_area")) and bool(s.get("art50"))
 
 
+def fit(text: str, limit: int = MAX_REASON) -> str:
+    """Cut at a word boundary, never mid-word, when a text would overflow its column."""
+    if len(text) <= limit:
+        return text
+    return text[: limit - 1].rsplit(" ", 1)[0].rstrip(" ;,:") + "…"
+
+
+def _named(one: str, many: str, keys: list[str], names: dict[str, str], tail: str = "") -> str:
+    """The full wording while it fits the column; with many answers ticked, the article references instead (BUG-K01)."""
+    full = one + "; ".join(names.get(k, k) for k in keys) + "." + tail
+    if len(full) <= MAX_REASON:
+        return full
+    refs = []
+    for k in keys:
+        m = _REF.search(names.get(k, k))
+        refs.append(m.group(1) if m else names.get(k, k))
+    return fit((many if len(keys) > 1 else one) + ", ".join(refs) + "." + tail)
+
+
 def level_for(s: dict | None) -> tuple[str | None, str]:
     """(level, reason) from a screening; (None, NOT_SCREENED) until all three questions are answered."""
     practices = _picked((s or {}).get("art5"))
     if practices:  # shown even when the other answers are blank (review 11-25 #6)
-        names = art5_practices()
-        return "prohibited", "Prohibited practice: " + "; ".join(names.get(p, p) for p in practices) + "."
+        return "prohibited", _named("Prohibited practice: ", "Prohibited practices: ", practices, art5_practices())
     if not complete(s):
         return None, NOT_SCREENED
     area = s.get("annex_iii_area")
@@ -71,13 +93,12 @@ def level_for(s: dict | None) -> tuple[str | None, str]:
     if s.get("annex_i"):
         return "high_risk", "Product-safety component or product under Annex I." + also
     if area_label and not s.get("art6_3_exception"):
-        return "high_risk", f"Used in an Annex III area: {area_label}." + also
+        return "high_risk", fit(f"Used in an Annex III area: {area_label}." + also)
     note = f" Annex III area ({area_label}), but a documented Art. 6(3) assessment shows no significant risk." if area_label else ""
     situations = _picked(s.get("art50"))
     if situations:
-        names = art50_situations()
-        return "limited", "Transparency duties apply: " + "; ".join(names.get(x, x) for x in situations) + "." + note
-    return "minimal", "No prohibited practice, no high-risk use and no Art. 50 transparency situation." + note
+        return "limited", _named("Transparency duties apply: ", "Transparency duties apply: ", situations, art50_situations(), note)
+    return "minimal", fit("No prohibited practice, no high-risk use and no Art. 50 transparency situation." + note)
 
 
 def level_from_classification(classification: str | None) -> str | None:

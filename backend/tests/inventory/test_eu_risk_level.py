@@ -106,3 +106,15 @@ def test_futran_correction_survives_a_client_resave(client, db, people, inv):
     assert r.status_code == 200 and r.json()["eu_risk_level"] == "high_risk"  # Futran's answers kept
     log = db.scalar(select(AuditLog).where(AuditLog.object_id == uc["id"], AuditLog.action == "inventory.use_case").order_by(AuditLog.at.desc()))
     assert "eu_risk_level" in (log.after or {})
+
+
+def test_every_practice_ticked_saves_a_reason_within_the_column(client, db, inv):
+    """BUG-K01: the use case path stored the reason uncut; on PostgreSQL the save was a server error."""
+    from app.euaiact import risk
+    from app.inventory.models import UseCase
+
+    cid, e, maria, hr, copilot, chatgpt = inv
+    scr = {"art5": list(risk.art5_practices()), "annex_iii_area": None, "art50": []}
+    uc = _uc(client, cid, hr, [copilot["id"]], eu_screening=scr)
+    assert uc["eu_risk_level"] == "prohibited" and len(uc["eu_risk_reason"]) <= 400
+    assert len(db.get(UseCase, uc["id"]).eu_risk_reason) <= 400
