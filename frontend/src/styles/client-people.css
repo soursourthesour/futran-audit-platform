@@ -20,6 +20,10 @@
 .people-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .inline-add { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .inline-add .input { flex: 1 1 220px; min-width: 0; }
+/* The help button sits beside the summary, not inside it: a button inside a summary is a nested control (BUG-G05). */
+.roles-note-row { display: flex; align-items: flex-start; gap: 8px; }
+.roles-note-row > .roles-note { flex: 0 1 auto; min-width: 0; }
+.roles-note-row > .field-help { margin-top: 10px; }
 .roles-note summary { cursor: pointer; font-weight: 600; color: var(--navy); min-height: 44px; display: flex; align-items: center; }
 .notice-status { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; font-size: 14px; }
 .notice-status .badge { white-space: normal; }

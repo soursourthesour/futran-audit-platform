@@ -229,7 +229,7 @@ function PlacePicker({ value, onChange, error }: { value: string[]; onChange: (v
   const shown = all.filter((j) => !value.includes(j.id) && j.name.toLowerCase().includes(q.trim().toLowerCase())).slice(0, 40);
   return (
     <FieldGroup legend="Users located in *" help={H.jurisdictions}>
-      <div className="ru-picker" aria-label="Chosen places">
+      <div className="ru-picker" role="group" aria-label="Chosen places">
         {value.map((id) => <span key={id} className="chip">{names.get(id) ?? '…'}<button type="button" aria-label={`Remove ${names.get(id) ?? 'place'}`} onClick={() => onChange(value.filter((v) => v !== id))}>×</button></span>)}
       </div>
       <TextField label="Find a place" help={H.jurisdictions} value={q} onChange={(e) => setQ(e.target.value)} placeholder="For example New York" />

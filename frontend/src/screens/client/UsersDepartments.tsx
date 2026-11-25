@@ -461,10 +461,13 @@ function UsersTab({ p, cid, setMsg, refresh, pick, meId, isClient }: TabProps & 
           </div>
           <p className="small muted" style={{ margin: 0 }}>To name someone, add them as a user with that AI compliance role, or choose AI compliance role in the menu on their row. Each in-scope department also needs a Department Compliance Lead. Assigning or removing a sign-off role notifies Futran and is recorded in the audit log.</p>
           {rolesNote && (
-            <details className="roles-note">
-              <summary>What each role does <FieldHelp label="What each role does">{H.rolesNote}</FieldHelp></summary>
-              <DocReader docId={rolesNote.id} label="Roles note" maxHeight="50vh" />
-            </details>
+            <div className="roles-note-row">
+              <details className="roles-note">
+                <summary>What each role does</summary>
+                <DocReader docId={rolesNote.id} label="Roles note" maxHeight="50vh" />
+              </details>
+              <FieldHelp label="What each role does">{H.rolesNote}</FieldHelp>
+            </div>
           )}
         </div>
       </Card>

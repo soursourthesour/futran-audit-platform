@@ -23,7 +23,7 @@ export function LawSearch({ label, help, onPick, exclude = [] }: { label: string
   return (
     <div className="field reg-lawsearch">
       <div className="field-label"><label htmlFor={id}>{label}</label>{help && <FieldHelp label={label}>{help}</FieldHelp>}</div>
-      <input id={id} className="input" type="search" placeholder="Search the law library" value={q} onChange={(e) => setQ(e.target.value)} aria-controls={`${id}-list`} />
+      <input id={id} className="input" type="search" placeholder="Search the law library" value={q} onChange={(e) => setQ(e.target.value)} aria-controls={results.length > 0 ? `${id}-list` : undefined} />
       {results.length > 0 && (
         <ul id={`${id}-list`} className="reg-lawlist" aria-label="Matching laws">
           {results.map((l) => (

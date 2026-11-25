@@ -148,7 +148,7 @@ export function NewClientWizard() {
         />
         <nav aria-label="Steps" className="pills" style={{ marginBottom: 16 }}>
           {STEPS.map((s, i) => (
-            <Link key={s.key} to={`/clients/${clientId}/setup/${s.key}`} className="pill" aria-current={s.key === step ? 'step' : undefined} aria-selected={s.key === step} style={{ display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }} onClick={(e) => { e.preventDefault(); void go(`/clients/${clientId}/setup/${s.key}`); }}>
+            <Link key={s.key} to={`/clients/${clientId}/setup/${s.key}`} className="pill" aria-current={s.key === step ? 'step' : undefined} style={{ display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }} onClick={(e) => { e.preventDefault(); void go(`/clients/${clientId}/setup/${s.key}`); }}>
               {i + 1} · {s.key === 'submit' && !editable ? 'Initiation package' : s.label}{i < idx ? ' ✓' : ''}
             </Link>
           ))}
