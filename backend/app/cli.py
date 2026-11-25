@@ -128,6 +128,17 @@ def cmd_rematch_reg_updates(args) -> int:
     return 0
 
 
+def cmd_clear_login_lock(args) -> int:
+    """An office locked out by the sign-in limit (20 accounts failing from one address in 15 minutes)."""
+    from app.auth.service import clear_login_lock
+
+    _, db = _session()
+    n = clear_login_lock(db, args.address)
+    db.commit()
+    print(f"Cleared {n} recent unsuccessful sign-in{'s' if n != 1 else ''} from {args.address}.")
+    return 0
+
+
 def _require_test_mode(settings) -> None:
     if not settings.test_mode:
         print("Refused: demo and test data can only be loaded while the platform is in test mode.", file=sys.stderr)
@@ -246,6 +257,9 @@ def main(argv: list[str] | None = None) -> int:
     rm = sub.add_parser("rematch-reg-updates")
     rm.add_argument("--apply", action="store_true", help="save the new alerts and reassessment triggers")
     rm.set_defaults(func=cmd_rematch_reg_updates)
+    cl = sub.add_parser("clear-login-lock")
+    cl.add_argument("address", help="the network address shown as locked")
+    cl.set_defaults(func=cmd_clear_login_lock)
     args = p.parse_args(argv)
     return args.func(args)
 

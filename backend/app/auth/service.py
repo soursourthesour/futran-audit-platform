@@ -13,7 +13,7 @@ from app.tenancy.models import User
 from app.core.ratelimit import client_ip_or_none
 
 LOCKOUT_FAILURES = 10
-IP_LOCKOUT_FAILURES = 20  # failures from one address across every account in the window (password spraying)
+IP_LOCKOUT_FAILURES = 20  # distinct accounts failing from one address in the window (password spraying)
 LOCKOUT_WINDOW = timedelta(minutes=15)
 MFA_FAILURES = 5
 BAD_LOGIN = "Email or password is incorrect."
@@ -44,11 +44,20 @@ def recent_login_failures(db: Session, email: str, ip: str | None) -> int:
 
 
 def recent_ip_failures(db: Session, ip: str | None) -> int:
-    """Failures from one address across every email: the signal for password spraying."""
+    """Distinct accounts that failed from one address: the signal for password spraying. Counting accounts, not
+    attempts, keeps a few people mistyping behind one office address from locking the whole office out (review 11-25)."""
     if not ip:
         return 0
     since = utcnow() - LOCKOUT_WINDOW
-    return db.scalar(select(func.count()).select_from(LoginAttempt).where(LoginAttempt.ip == ip, LoginAttempt.at >= since)) or 0
+    return db.scalar(select(func.count(func.distinct(LoginAttempt.email))).where(LoginAttempt.ip == ip, LoginAttempt.at >= since)) or 0
+
+
+def clear_login_lock(db: Session, ip: str) -> int:
+    """Remove one address's recent sign-in failures, ending its lock. For `python -m app.cli clear-login-lock`."""
+    from sqlalchemy import delete
+
+    since = utcnow() - LOCKOUT_WINDOW
+    return db.execute(delete(LoginAttempt).where(LoginAttempt.ip == ip, LoginAttempt.at >= since)).rowcount or 0
 
 
 def authenticate(db: Session, email: str, password: str, request=None) -> User:

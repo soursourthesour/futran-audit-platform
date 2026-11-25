@@ -63,3 +63,26 @@ def test_launchers_stop_uvicorn_rewriting_the_client_address():
         lines = [ln for ln in (REPO / name).read_text().splitlines() if "uvicorn --factory" in ln or "uvicorn  --factory" in ln]
         assert lines, name
         assert all("--no-proxy-headers" in ln for ln in lines), name
+
+
+def test_a_few_people_mistyping_do_not_lock_out_their_office(client, db):
+    """Review 11-25 #1: the address limit counts distinct accounts, so repeated typos by a handful of people behind one
+    office address never reach it; only spraying many accounts does."""
+    _setup(db)
+    for _ in range(4):
+        for i in range(5):  # 5 people, 4 typos each: 20 failures, 5 accounts
+            assert client.post("/api/v1/auth/login", json={"email": f"person{i}@abc.com", "password": "typo"}).status_code == 401
+    r = client.post("/api/v1/auth/login", json={"email": "priya@abc.com", "password": PW})
+    assert r.status_code == 200, r.text
+
+
+def test_an_administrator_can_clear_an_address_lock(client, db):
+    """Review 11-25 #1: a command clears one address's recent failures."""
+    from app.auth.service import clear_login_lock
+
+    _setup(db)
+    _spray(client, IP_LOCKOUT_FAILURES)
+    assert client.post("/api/v1/auth/login", json={"email": "priya@abc.com", "password": PW}).status_code == 429
+    assert clear_login_lock(db, "testclient") == IP_LOCKOUT_FAILURES
+    db.commit()
+    assert client.post("/api/v1/auth/login", json={"email": "priya@abc.com", "password": PW}).status_code == 200
