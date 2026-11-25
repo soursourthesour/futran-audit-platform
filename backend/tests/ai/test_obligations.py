@@ -73,3 +73,20 @@ def test_approve_edit_reject_and_show_on_the_law_record(client, db, seeded, law)
     login_as(client, db, seeded["aud"])
     assert [x["citation"] for x in client.get(f"{API}/reg/laws/{reg.id}/obligations").json()["approved"]] == ["§20-871(b)(1)"]
     assert client.get(f"{API}/reg/laws/{reg.id}/obligations").json()["pending"] == []  # auditors see approved obligations only
+
+
+def test_legal_reviewer_opens_the_law_record_from_the_queue(client, db, seeded, law):
+    """BUG-S05: the Legal Reviewer holds EXTRACT_OBLIGATIONS, but the only extract button is on the law record, and the law
+    record needed VIEW_REG_MASTER. The record now opens read-only for whoever works obligations; the rest of the law
+    library stays closed to the role (matrix: no other regulatory-master permission)."""
+    reg, legal, fake = law
+    login_as(client, db, legal)
+    r = client.get(f"{API}/reg/laws/{reg.id}")
+    assert r.status_code == 200, r.text
+    d = r.json()
+    assert d["can_edit"] is False and d["can_suggest"] is False and d["can_approve"] is False
+    assert client.get(f"{API}/reg/laws/{reg.id}/obligations").json()["can_extract"] is True
+    assert client.get(f"{API}/reg/laws").status_code == 403
+    assert client.post(f"{API}/reg/laws/{reg.id}/proposals", json={"changes": [{"field_path": "law.main_duty", "new_value": "x"}], "summary": "x"}).status_code == 403
+    login_as(client, db, seeded["aud"])
+    assert client.get(f"{API}/reg/laws/{reg.id}").json()["can_suggest"] is True
