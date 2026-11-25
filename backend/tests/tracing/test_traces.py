@@ -139,3 +139,14 @@ def test_locked_system_takes_no_traces(client, db, trc, now):
     base = f"/api/v1/register/{trc.notes.id}/tracing"
     assert client.post(f"{base}/traces", json={"at": "2028-03-01T11:00", "action": "x", "decision": "allowed"}).status_code == 409
     assert _upload(client, base, "t.csv", CSV.encode()).status_code == 409
+
+
+def test_csv_text_neutralises_every_formula_start():
+    """BUG-H03 sweep: the trace export used its own check, which missed a leading tab or carriage return."""
+    from app.tracing.traces import csv_text
+
+    import csv
+    import io
+
+    out = list(csv.reader(io.StringIO(csv_text(["a", "b", "c", "d", "e", "f"], [["=1", "+1", "-1", "@1", "\t=1", "\r=1"]]))))
+    assert out[1] == ["'=1", "'+1", "'-1", "'@1", "'\t=1", "'\r=1"]
