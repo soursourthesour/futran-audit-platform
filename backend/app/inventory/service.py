@@ -387,3 +387,30 @@ def confirm(db: Session, token: str, payload: dict, request=None) -> NamedUserLi
                                                                      "policy_acknowledged": n.policy_acknowledged, "oversight_role_confirmed": n.oversight_role_confirmed, "unable_reason": link.unable_reason})
     audit.record(db, actor_id=None, actor_name=n.person_name, action="inventory.named_user_confirm", obj=n, request=request, after={"training_complete": n.training_complete, "policy_acknowledged": n.policy_acknowledged, "oversight_role_confirmed": n.oversight_role_confirmed}, summary=f"{n.person_name} answered the use-case confirmation")
     return link
+
+
+# ---------------------------------------------------------------- BUG-03: delete a draft that was never submitted
+def delete_draft_use_case(db: Session, actor: User, uc: UseCase) -> None:
+    """Remove a stray draft so it no longer blocks the sign-offs. Only a draft that was never submitted, and not one the
+    Futran team has already mapped to an AI system or cited in a finding. The row is kept, marked deleted, and logged."""
+    from app.findings.models import Finding
+    from app.systems.models import AISystem
+
+    assert_inventory_open(db, db.get(Engagement, uc.engagement_id))
+    if uc.status != "draft" or uc.submitted_at is not None:
+        raise Conflict("Only a draft that was never submitted can be deleted. A submitted use case stays in the inventory.")
+    systems = [s for s in db.scalars(select(AISystem).where(AISystem.engagement_id == uc.engagement_id, AISystem.deleted_at.is_(None))) if uc.id in (s.use_case_ids or [])]
+    findings = [f for f in db.scalars(select(Finding).where(Finding.engagement_id == uc.engagement_id, Finding.deleted_at.is_(None))) if uc.id in (f.use_case_ids or [])]
+    if systems or findings:
+        refs = ", ".join([f"{s.reference_id} {s.name}" for s in systems] + [f"finding {f.ref}" for f in findings])
+        raise Conflict(f"The Futran team already uses this draft ({refs}), so it cannot be deleted. Ask them to remove it first.")
+    now = utcnow()
+    for r in db.scalars(select(UsageRecord).where(UsageRecord.use_case_id == uc.id, UsageRecord.deleted_at.is_(None))):
+        r.deleted_at = now
+    for n in named_users(db, uc):
+        n.deleted_at = now
+        _revoke_links(db, n)
+    uc.deleted_at, uc.updated_by = now, actor.id
+    db.flush()
+    audit.record(db, actor_id=actor.id, action="inventory.delete", obj=uc, before={"name": uc.name, "status": uc.status, "proposed_tier": uc.proposed_tier, "created_by": uc.created_by},
+                 summary=f"Deleted draft use case {uc.name}")
