@@ -98,7 +98,18 @@ export function ScopingCall() {
 
   if (q.isLoading) return <Loading />;
   if (!d) return <div className="sc-page"><Alert tone="danger">{errorMessage(q.error)}</Alert></div>;
-  if (!d.questionnaire) return <div className="sc-page">{err ? <Alert tone="danger">{err}</Alert> : <Loading label="Starting the questionnaire…" />}</div>;
+  // Only the sales team starts the questionnaire; anyone else is told so instead of waiting for good (BUG-G09).
+  if (!d.questionnaire) return (
+    <div className="sc-page">
+      {err ? <Alert tone="danger">{err}</Alert> : d.can_work ? <Loading label="Starting the questionnaire…" /> : (
+        <>
+          <h1>Scoping call · {d.opportunity.company}</h1>
+          <Alert tone="info">The scoping call for this opportunity has not started. The sales team starts it from the opportunity.</Alert>
+          <p><Link to={`/sales/opportunities/${id}`}>Back to the opportunity</Link></p>
+        </>
+      )}
+    </div>
+  );
   const qn = d.questionnaire;
   const locked = qn.locked || !d.can_work;
 
