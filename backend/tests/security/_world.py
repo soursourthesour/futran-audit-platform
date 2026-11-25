@@ -21,8 +21,8 @@ def make_settings(file_dir: str) -> Settings:
                     disable_scheduler=True, seed_on_start=False, file_store=f"local:{file_dir}")
 
 
-def make_engine():
-    eng = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+def make_engine(url: str = "sqlite://"):
+    eng = create_engine(url, connect_args={"check_same_thread": False}, poolclass=StaticPool)
 
     @event.listens_for(eng, "connect")
     def _fk_on(dbapi_conn, _):
@@ -36,13 +36,23 @@ def make_engine():
 
 
 class World:
-    def __init__(self, file_dir: str, demo: bool = True):
+    def __init__(self, file_dir: str, demo: bool = True, url: str = "sqlite://"):
+        from fastapi.exceptions import RequestValidationError
+
         from app.main import create_app
 
         self.settings = make_settings(file_dir)
-        self.engine = make_engine()
+        self.engine = make_engine(url)
         self.db = sessionmaker(bind=self.engine, expire_on_commit=False)()
         self.app = create_app(self.settings, engine=self.engine)
+        original = self.app.exception_handlers[RequestValidationError]
+
+        async def _marked(request, exc):  # lets a test tell schema validation (handler never ran) from the app's own 422
+            response = await original(request, exc)
+            response.headers["x-schema-validation"] = "1"
+            return response
+
+        self.app.exception_handlers[RequestValidationError] = _marked
         self.client = TestClient(self.app)
         self.client.__enter__()
         self.ids: dict = {}
