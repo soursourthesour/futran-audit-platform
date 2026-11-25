@@ -38,6 +38,7 @@ class Action(StrEnum):
     VERIFY_REMEDIATION = "verify_remediation"
     CLOSE_REMEDIATION = "close_remediation"
     VIEW_AUDIT_LOG = "view_audit_log"
+    VIEW_OUTBOX = "view_outbox"  # the test-mode mail outbox, every tenant's messages (Y01)
     VIEW_INVENTORY = "view_inventory"
     # v0.2 and schematic
     PREFILL_SYSTEM = "prefill_system"
