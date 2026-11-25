@@ -99,7 +99,7 @@
 .sc-card h2 { font-size: 17px; margin: 0 0 10px; }
 .sc-inline { display: inline; }
 .sc-card summary { cursor: pointer; }
-.sc-table-wrap { overflow-x: auto; max-width: 100%; }
+.sc-table-wrap { position: relative; overflow-x: auto; max-width: 100%; }  /* positioned: clips sr-only text (BUG-G10) */
 .sc-table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .sc-table th, .sc-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
 .sc-table th { font-weight: 600; color: var(--muted); font-size: 13px; background: var(--bg); }
