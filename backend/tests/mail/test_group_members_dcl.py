@@ -54,3 +54,17 @@ def test_csv_import_does_not_rename_existing_people(client, db):
     db.expire_all()
     assert db.get(DirectoryPerson, cfo.id).name == "Carl CFO"
     assert db.query(DirectoryPerson).filter_by(email="fresh@abc.com").one().name == "Fresh Face"
+
+
+def test_adding_by_email_uses_the_account_name_when_the_person_has_one(client, db):
+    """BUG-C04: a person added by email took their email prefix ("lee.park") as their name, even with an account."""
+    org, hr, fin, lead, cfo, gid = _world(client, db)
+    lee = make_user(db, org, roles=["contributor"], name="Lee Park", email="lee.park@abc.com")
+    db.commit()
+    r = client.post(f"{API}/mail/groups/{gid}/members", json={"email": "Lee.Park@abc.com", "department_id": hr.id})
+    assert r.status_code == 200, r.text
+    p = db.query(DirectoryPerson).filter_by(organization_id=org.id, email="lee.park@abc.com").one()
+    assert p.name == "Lee Park" and p.user_id == lee.id
+    # without an account the prefix still stands in
+    assert client.post(f"{API}/mail/groups/{gid}/members", json={"email": "kim.novak@abc.com", "department_id": hr.id}).status_code == 200
+    assert db.query(DirectoryPerson).filter_by(email="kim.novak@abc.com").one().name == "kim.novak"

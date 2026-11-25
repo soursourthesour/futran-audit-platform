@@ -40,6 +40,10 @@ def add_person_if_new(db: Session, org_id: str, *, email: str, name: str, **fiel
     p = find_person(db, org_id, email)
     if p is not None:
         return p
+    u = db.scalar(select(User).where(User.organization_id == org_id, func.lower(User.email) == email.strip().lower(), User.deleted_at.is_(None)).limit(1))
+    if u is not None:  # BUG-C04: someone with an account keeps the name on their account, not their email prefix
+        name = u.name or name
+        fields = {**fields, "user_id": u.id, **({"department_id": d} if (d := _user_department(db, u)) else {})}
     return upsert_person(db, org_id, email=email, name=name, **fields)
 
 
