@@ -54,7 +54,7 @@ Today the platform runs only on the laptop. Four hosting options are open. All o
 
 | | Render | Azure | AWS | GCP |
 |---|---|---|---|---|
-| Container service | Docker web service | App Service (container) | ECS on Fargate (ECS Express Mode for the simple path) | Cloud Run |
+| Container service | Docker web service | App Service (container) | ECS on Fargate: a standard service with desired count 1 (see the AWS note) | Cloud Run |
 | Database | Render PostgreSQL | Azure Database for PostgreSQL | RDS for PostgreSQL | Cloud SQL for PostgreSQL |
 | Files, working today (`local:` store) | Persistent disk at `/app/backend/data` | Azure Files mount | EFS volume mounted into the task | Filestore (NFS) volume mount |
 | Files, once an object-store adapter is built | — | Blob Storage | S3 | Cloud Storage |
@@ -68,6 +68,7 @@ Today the platform runs only on the laptop. Four hosting options are open. All o
 **Notes on the two new options**
 
 - **AWS.** Use ECS on Fargate, not App Runner: AWS closed App Runner to new customers on 30 April 2026 and points to ECS Express Mode instead. App Runner also had no persistent storage. On Fargate, mount EFS at `/app/backend/data` so the current file store works unchanged.
+  - **Run exactly one task, including during deployments (corrected 25 Nov 2026).** A default ECS rolling deployment starts the new task before stopping the old one (maximum 200%). ECS Express Mode uses canary deployments and can auto-scale to 20 tasks. Either way, two schedulers would work the same outbox. Use a standard ECS service with desired count 1, `maximumPercent` 100, `minimumHealthyPercent` 0 and no auto scaling. Expect a short outage on each deployment. See [[Futran_Audit_Platform_Mail_Architecture]] §7.
 - **GCP.** Cloud Run fits, with three settings: exactly one instance (min 1, max 1), CPU always allocated so the in-process scheduler keeps running between requests, and a Filestore NFS volume for files. A Cloud Storage FUSE mount also works, but it is not a full file system, so Filestore is the safer choice until a Cloud Storage adapter exists. The plainest alternative is one Compute Engine VM running the container with a persistent disk.
 - **Lift between them.** Moving between any two options is the same job: create Postgres, restore the data, copy the files folder, set the environment variables, deploy the image. No code changes, as long as the file store stays on a mounted volume.
 
@@ -98,7 +99,7 @@ The first administrator is created from the host's shell with `python -m app.cli
 
 | Gap | Why it matters | What to do |
 |---|---|---|
-| Single instance only | The scheduler runs inside the app with no lock, rate limits are held in memory, and files sit on local disk. A second instance would send duplicate reminders and see different files. | Run one instance on every host. To scale out later: move jobs to a single scheduled job, rate limits to the database, and files to an object store. |
+| Single instance only | The scheduler runs inside the app. Group-send rows and daily runs are claimed before sending, but delivery is still at-least-once, rate limits are held in memory, and files sit on local disk. A second instance would send duplicate reminders and see different files. | Run one instance on every host. To scale out later: move jobs to a single scheduled job, rate limits to the database, and files to an object store. |
 | No object-store adapter | `FILE_STORE` accepts only `local:` today, so every host needs a mounted volume. | Add one adapter behind the existing storage interface for the chosen cloud: Blob, S3 or Cloud Storage. |
 | Virus scanning not connected | `VIRUS_SCAN=clamav` raises an error; uploads are stored unscanned. | Connect ClamAV (sidecar or service) before clients upload evidence. |
 | Secrets store not wired | Secrets live in environment variables. | Inject them from the cloud's store: Key Vault references (Azure), Secrets Manager in the task definition (AWS), Secret Manager references (GCP). |
