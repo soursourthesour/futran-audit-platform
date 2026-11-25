@@ -110,9 +110,4 @@ SIGNED_IN: dict[str, str] = {
 ALLOWLIST: dict[str, str] = {**PUBLIC, **SIGNED_IN}
 
 # Routes that neither reach `authorize` nor belong on the allowlist. Each is a finding with a strict xfail.
-FINDINGS: dict[str, str] = {
-    "GET /api/v1/admin/outbox": (
-        "FINDING Y01: the mail outbox is gated by a hand-written role check (admin or chief_auditor), not authorize and "
-        "the matrix. It returns every tenant's outgoing mail, personal link tokens included."
-    ),
-}
+FINDINGS: dict[str, str] = {}  # Y01 (the mail outbox) was fixed on 25 Nov: it now calls authorize with VIEW_OUTBOX

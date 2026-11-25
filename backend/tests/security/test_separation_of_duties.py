@@ -202,6 +202,12 @@ def _case_policy(w):
     maria = user(w, "maria.lopez@abccorp.example")
     p = first(w, PolicyDocument, PolicyDocument.organization_id == maria.organization_id, PolicyDocument.status == "awaiting_approval")
     p.created_by = p.updated_by = p.submitted_by = maria.id
+    # a second CAICO exists, so Maria is no stand-in and must not approve her own policy (Y03, fixed 25 Nov)
+    from tests.factories import make_user
+
+    from app.tenancy.models import Organization
+
+    make_user(w.db, w.db.get(Organization, maria.organization_id), roles=["caico"], name="Second CAICO", email="caico2@abccorp.example")
     w.db.commit()
     return maria, "POST", f"/api/v1/policies/{p.id}/approve", {}
 
@@ -213,7 +219,8 @@ def _case_intro_letter(w):
     chief = user(w, "chief@futran.demo")
     mer = org_id(w, "Meridian GmbH")
     letter = first(w, IntroLetter, IntroLetter.organization_id == mer, IntroLetter.status == "draft")
-    assert letter.created_by == chief.id
+    letter.created_by = chief.id  # the demo now drafts as Admin (Y04 fix); this case makes the chief the drafter
+    w.db.commit()
     return chief, "POST", f"/api/v1/clients/{mer}/letters/{letter.id}/approve", {}
 
 
@@ -235,12 +242,9 @@ SELF_APPROVAL = [
     pytest.param(_case_go_live, Action.APPROVE_GO_LIVE, id="register go-live"),
     pytest.param(_case_system_addition, Action.APPROVE_SYSTEM_ADDITION, id="system addition"),
     pytest.param(_case_engagement, Action.APPROVE_ENGAGEMENT, id="engagement approve"),
-    pytest.param(_case_policy, Action.APPROVE_POLICIES, id="policy approve",
-                 marks=pytest.mark.xfail(strict=True, reason="FINDING Y03: a CAICO approves and publishes a policy they wrote and submitted")),
-    pytest.param(_case_intro_letter, Action.APPROVE_INTRO_LETTER, id="intro letter approve",
-                 marks=pytest.mark.xfail(strict=True, reason="FINDING Y04: the Chief Auditor approves an intro letter they drafted")),
-    pytest.param(_case_opportunity, Action.APPROVE_OPPORTUNITY, id="opportunity approve",
-                 marks=pytest.mark.xfail(strict=True, reason="FINDING Y05: the Chief Auditor approves an offer they own")),
+    pytest.param(_case_policy, Action.APPROVE_POLICIES, id="policy approve"),  # Y03, fixed 25 Nov
+    pytest.param(_case_intro_letter, Action.APPROVE_INTRO_LETTER, id="intro letter approve"),  # Y04, fixed 25 Nov
+    pytest.param(_case_opportunity, Action.APPROVE_OPPORTUNITY, id="opportunity approve"),  # Y05, fixed 25 Nov
 ]
 
 

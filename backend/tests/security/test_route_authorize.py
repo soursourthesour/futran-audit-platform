@@ -60,7 +60,7 @@ def test_call_graph_sees_known_checks():
     assert g.reaches("app.laws.router.patch_law")  # direct
     assert g.reaches("app.findings.router.patch")  # through _finding()
     assert not g.reaches("app.notifications.router.mine")
-    assert not g.reaches("app.mail.router.list_outbox")
+    assert g.reaches("app.mail.router.list_outbox")  # direct since the Y01 fix
 
 
 def test_summary():

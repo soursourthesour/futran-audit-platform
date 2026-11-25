@@ -178,11 +178,7 @@ def _pick(xt, model_name: str):
     return value
 
 
-XFAIL = {
-    ("GET /api/v1/mail/clients/{client_id}/status", "unassigned auditor"): (
-        "FINDING Y06: any Futran user with CREATE_CLIENT_ENGAGEMENT reads the mail connection of any client whose latest "
-        "engagement is a draft (ABC's annual review), without being on it"),
-}
+XFAIL: dict = {}  # Y06 (client mail status for an unassigned auditor) was fixed on 25 Nov
 
 
 def _cases():
