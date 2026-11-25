@@ -258,6 +258,8 @@ class MailSend(TimestampedTenantMixin, Base):
 
 class MailRecipient(TimestampedTenantMixin, Base):
     __tablename__ = "mail_recipients"
+    __table_args__ = (Index("ix_mail_recipients_email_ci", text("lower(email)")),  # link revocation and responded lookups
+                      Index("ix_mail_recipients_send_status", "send_id", "status"))  # the dispatcher's due batch and queue count
 
     send_id: Mapped[str] = mapped_column(String(36), ForeignKey("mail_sends.id"), index=True)
     person_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("directory_people.id"), index=True)

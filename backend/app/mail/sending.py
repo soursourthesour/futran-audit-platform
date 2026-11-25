@@ -403,8 +403,7 @@ def dispatch(db: Session, settings: Settings, s: MailSend, now: datetime | None 
     limit = limit if limit is not None else pace_limit(settings, sender)
     thread = _thread(db, s)
     ref = thread.subject_ref if thread else None
-    due = [r for r in db.scalars(select(MailRecipient).where(MailRecipient.send_id == s.id, MailRecipient.status == "queued").order_by(MailRecipient.batch_no, MailRecipient.name))
-           if r.next_attempt_at is None or r.next_attempt_at <= now]
+    due = _due(db, s, now, limit)
     sent = 0
     if s.mode == "bcc":
         sent = _dispatch_bcc(db, settings, s, sender, due, now, ref, limit)
@@ -427,6 +426,19 @@ def dispatch(db: Session, settings: Settings, s: MailSend, now: datetime | None 
             sent += 1
     _finish(db, s, now)
     return sent
+
+
+def _due(db: Session, s: MailSend, now: datetime, limit: int | None) -> list[MailRecipient]:
+    """The queued recipients due now, in sending order, and only as many as this run can send (load test: every tick
+    used to load the whole queue to send 30). BCC mode: every due recipient of the first `limit` batches."""
+    where = [MailRecipient.send_id == s.id, MailRecipient.status == "queued", MailRecipient.next_attempt_at.is_(None) | (MailRecipient.next_attempt_at <= now)]
+    stmt = select(MailRecipient).where(*where).order_by(MailRecipient.batch_no, MailRecipient.name, MailRecipient.id)
+    if limit is None:
+        return list(db.scalars(stmt))
+    if s.mode == "bcc":
+        batches = list(db.scalars(select(MailRecipient.batch_no).where(*where).group_by(MailRecipient.batch_no).order_by(MailRecipient.batch_no).limit(limit)))
+        return list(db.scalars(stmt.where(MailRecipient.batch_no.in_(batches)))) if batches else []
+    return list(db.scalars(stmt.limit(limit)))
 
 
 def _shared_token(settings: Settings, s: MailSend) -> str:
