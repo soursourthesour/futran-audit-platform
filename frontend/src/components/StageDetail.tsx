@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
-import { Alert, Badge, Dialog, EmptyState, Loading, fmtDateTime } from '@/components/ui';
+import { Alert, Badge, Dialog, EmptyState, Loading, fmtDateTime, TableWrap } from '@/components/ui';
 import '@/styles/staff-forms.css';
 
 type Signer = { role: string; role_label: string; signed_by: string | null; signed_at: string | null };
@@ -52,7 +52,7 @@ export function StageDetail({ clientId, number, onClose }: { clientId: string; n
                   {s.expected_sign_offs.map((x) => <li key={x.number}>Sign-off {x.number}: {x.title}. Signed by the {x.signers.join(' and the ')}. Not sent yet.</li>)}
                 </ul>
               ) : (
-                <div className="table-wrap">
+                <TableWrap label="Sign-offs">
                   <table className="table">
                     <thead><tr><th>Sign-off</th><th>Status</th><th>Prepared by</th><th className="wrap">Signatures</th><th className="wrap">Notes</th></tr></thead>
                     <tbody>
@@ -71,7 +71,7 @@ export function StageDetail({ clientId, number, onClose }: { clientId: string; n
                       ))}
                     </tbody>
                   </table>
-                </div>
+                </TableWrap>
               )}
             </section>
           )}
@@ -80,12 +80,12 @@ export function StageDetail({ clientId, number, onClose }: { clientId: string; n
             <section className="stage-section">
               <h3>Key events</h3>
               {s.events.length === 0 ? <EmptyState>Nothing recorded yet.</EmptyState> : (
-                <div className="table-wrap">
+                <TableWrap label="Key events">
                   <table className="table">
                     <thead><tr><th>When</th><th>By</th><th className="wrap">What happened</th></tr></thead>
                     <tbody>{s.events.map((ev, i) => <tr key={i}><td>{fmtDateTime(ev.at)}</td><td>{ev.actor}</td><td className="wrap">{ev.summary ?? ev.action}</td></tr>)}</tbody>
                   </table>
-                </div>
+                </TableWrap>
               )}
             </section>
           )}

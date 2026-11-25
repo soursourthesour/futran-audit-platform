@@ -141,15 +141,17 @@ export function FieldHelp({ label, children }: { label: ReactNode; children: Rea
   );
 }
 
-/** A fieldset whose legend carries a help icon. The group is named by the legend text alone. */
-export function FieldGroup({ legend, help, className, legendClassName, style, children }: { legend: ReactNode; help?: ReactNode; className?: string; legendClassName?: string; style?: CSSProperties; children: ReactNode }) {
+/** A fieldset whose legend carries a help icon. The group is named by the legend text alone. With `error`, the group is
+ *  marked invalid and described by the message, as a single field is. */
+export function FieldGroup({ legend, help, error, className, legendClassName, style, children }: { legend: ReactNode; help?: ReactNode; error?: string; className?: string; legendClassName?: string; style?: CSSProperties; children: ReactNode }) {
   const id = useId();
   return (
-    <fieldset className={className} style={style} aria-labelledby={`${id}-legend`}>
+    <fieldset className={className} style={style} aria-labelledby={`${id}-legend`} aria-invalid={error ? true : undefined} aria-describedby={error ? `${id}-err` : undefined}>
       <legend className={legendClassName}>
         <span className="label-row"><span id={`${id}-legend`}>{legend}</span>{help && <FieldHelp label={legend}>{help}</FieldHelp>}</span>
       </legend>
       {children}
+      {error && <div className="error" id={`${id}-err`}>{error}</div>}
     </fieldset>
   );
 }

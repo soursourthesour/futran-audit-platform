@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
 import { hasRole, useMe } from '@/api/auth';
-import { Alert, Badge, ButtonLink, Card, EmptyState, Loading, PageHeader, TextField } from '@/components/ui';
+import { Alert, Badge, ButtonLink, Card, EmptyState, Loading, PageHeader, TextField, TableWrap } from '@/components/ui';
 
 type Row = {
   id: string; name: string; industry: string | null; internal: boolean; headquarters: string; sites: number; people: number;
@@ -25,7 +25,7 @@ export function ClientsList() {
         <div className="stack">
           <div style={{ maxWidth: 320 }}><TextField label="Search clients" value={q} onChange={(e) => setQ(e.target.value)} /></div>
           {query.isLoading ? <Loading /> : query.isError ? <Alert tone="danger">{errorMessage(query.error)}</Alert> : !query.data?.clients.length ? <EmptyState>{q ? 'No clients match.' : 'No clients yet. Start with New client.'}</EmptyState> : (
-            <div className="table-wrap">
+            <TableWrap label="Clients">
               <table className="table">
                 <thead><tr><th>Client</th><th>Industry</th><th>Headquarters</th><th>Sites</th><th>People</th><th>Current engagement</th><th>Stage</th><th>Status</th></tr></thead>
                 <tbody>
@@ -43,7 +43,7 @@ export function ClientsList() {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </TableWrap>
           )}
         </div>
       </Card>

@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
 import { type FutranMail, type Template, goToConsent } from '@/api/mail';
-import { Alert, Button, Card, Checkbox, Dialog, Loading, PageHeader, SelectField, TextArea, TextField, fmtDateTime } from '@/components/ui';
+import { Alert, Button, Card, Checkbox, Dialog, Loading, PageHeader, SelectField, TextArea, TextField, fmtDateTime, TableWrap } from '@/components/ui';
 import { emailHelp as H } from '@/help/email';
 import { Dns, ProviderCard, RegisterHelp } from './common';
 import { GroupsManager } from './Groups';
@@ -124,7 +124,7 @@ function FutranTemplates({ canEdit }: { canEdit: boolean }) {
   return (
     <Card title="Email templates">
       {q.isLoading ? <Loading /> : (
-        <div className="table-wrap" style={{ position: 'relative' }}>
+        <TableWrap label="Email templates" style={{ position: 'relative' }}>
           <table className="table">
             <thead><tr><th>Template</th><th>Default delivery</th><th>Version</th><th><span className="sr-only">Actions</span></th></tr></thead>
             <tbody>
@@ -134,7 +134,7 @@ function FutranTemplates({ canEdit }: { canEdit: boolean }) {
               ))}
             </tbody>
           </table>
-        </div>
+        </TableWrap>
       )}
       {edit && <TemplateDialog t={edit} onClose={() => setEdit(null)} onSaved={async () => { setEdit(null); await qc.invalidateQueries({ queryKey: ['mail-templates'] }); }} />}
     </Card>
@@ -176,7 +176,7 @@ export function ClientTemplates({ canEdit }: { canEdit: boolean }) {
         <p className="small muted" style={{ margin: 0 }}>Futran ships these templates. Make your own copy to change the wording; every change is kept as a new version and earlier emails keep the version they used.</p>
         {err && <Alert tone="danger">{err}</Alert>}
         {q.isLoading ? <Loading /> : (
-          <div className="table-wrap" style={{ position: 'relative' }}>
+          <TableWrap label="Email templates" style={{ position: 'relative' }}>
             <table className="table">
               <thead><tr><th>Template</th><th>Whose</th><th>Version</th><th><span className="sr-only">Actions</span></th></tr></thead>
               <tbody>
@@ -186,7 +186,7 @@ export function ClientTemplates({ canEdit }: { canEdit: boolean }) {
                 ))}
               </tbody>
             </table>
-          </div>
+          </TableWrap>
         )}
       </div>
       {edit && <TemplateDialog t={edit} onClose={() => setEdit(null)} onSaved={async () => { setEdit(null); await qc.invalidateQueries({ queryKey: ['mail-templates'] }); }} />}

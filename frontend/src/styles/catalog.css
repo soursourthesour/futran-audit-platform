@@ -16,7 +16,7 @@
 .save-bar > strong, .bulk-bar > strong { align-self: center; }
 .bulk-bar { background: var(--info-bg); border: 1px solid var(--info-line); }
 
-.catalog-grid-wrap, .est-table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.catalog-grid-wrap, .est-table-wrap { position: relative; overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
 .catalog-grid, .est-table { border-collapse: collapse; width: 100%; font-size: 14px; }
 .catalog-grid th, .est-table th { text-align: left; font-weight: 600; color: #3f4a5c; background: #f0f3f8; padding: 8px; border-bottom: 1px solid var(--line); white-space: nowrap; font-size: 13px; }
 .catalog-grid td, .est-table td { padding: 6px 8px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
@@ -60,7 +60,7 @@ select.cell-input { width: auto; }
 
 .table.compact th { padding: 8px 10px; }
 .table.compact td { padding: 8px 10px; }
-.table-scroll { overflow-x: auto; }
+.table-scroll { position: relative; overflow-x: auto; }
 .clip { min-width: 140px; max-width: 320px; white-space: pre-wrap; word-break: break-word; }
 .cols-2 { columns: 2 260px; padding-left: 18px; }
 .suggestion { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }

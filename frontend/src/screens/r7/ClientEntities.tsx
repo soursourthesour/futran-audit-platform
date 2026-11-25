@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
-import { Alert, Badge, Button, Card, Checkbox, Dialog, EmptyState, Loading, PageHeader, SelectField, TextField, fmtDate } from '@/components/ui';
+import { Alert, Badge, Button, Card, Checkbox, Dialog, EmptyState, Loading, PageHeader, SelectField, TextField, fmtDate, TableWrap } from '@/components/ui';
 import { RELATIONSHIPS, hierarchyApi, type EntityNode, type EntityTree, type ImportResult, type Rollup } from '@/api/r7';
 import '@/styles/r7.css';
 
@@ -211,10 +211,10 @@ function ImportDialog({ clientId, onClose, onDone }: { clientId: string; onClose
           <>
             {preview.errors.length > 0 && <Alert tone="warn">{preview.errors.map((e) => `Row ${e.row}: ${e.message}`).join(' ')}</Alert>}
             {preview.rows.length === 0 ? <EmptyState>No rows to import.</EmptyState> : (
-              <div className="table-wrap"><table className="table">
+              <TableWrap label="Rows in the file"><table className="table">
                 <thead><tr><th>Row</th><th>Name</th><th>Relationship</th><th>LL144</th><th>Status</th></tr></thead>
                 <tbody>{preview.rows.map((r) => <tr key={r.row}><td>{r.row}</td><td>{r.name}</td><td>{RELATIONSHIPS.find((x) => x.value === r.relationship)?.label}</td><td>{r.ll144_in_scope ? 'In scope' : 'No'}</td><td>{r.status === 'new' ? 'New' : 'Already in the group'}</td></tr>)}</tbody>
-              </table></div>
+              </table></TableWrap>
             )}
             <div className="row"><Button variant="primary" disabled={!fresh} onClick={apply}>Import {fresh} {fresh === 1 ? 'entity' : 'entities'}</Button><Button variant="ghost" onClick={onClose}>Cancel</Button></div>
           </>

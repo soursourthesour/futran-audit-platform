@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
-import { Alert, Badge, Button, Card, Checkbox, Dialog, EmptyState, FieldGroup, Loading, PageHeader, SelectField, TextArea, TextField, fmtDate } from '@/components/ui';
+import { Alert, Badge, Button, Card, Checkbox, Dialog, EmptyState, FieldGroup, Loading, PageHeader, SelectField, TextArea, TextField, fmtDate, TableWrap } from '@/components/ui';
 import { systemHelp as S, vendorHelp as V } from '@/help/fieldwork';
 
 type Person = { id: string; name: string } | null;
@@ -81,7 +81,7 @@ export function SystemsRegister() {
       {d.pending_requests.length > 0 && <PendingRequests clientId={clientId} d={d} onDone={setFlash} />}
       <Card title="Systems">
         {d.systems.length === 0 ? <EmptyState>No systems yet. Add one for each Tier 3 use case, and for the Tier 2 use cases you select.</EmptyState> : (
-          <div className="table-wrap"><table className="table">
+          <TableWrap label="Systems"><table className="table">
             <thead><tr><th>System</th><th>Built by</th><th>Depth</th><th>Complete</th><th>Inherent</th><th>Maturity</th><th>Residual · rating</th><th>Knock-outs</th></tr></thead>
             <tbody>{d.systems.map((s) => (
               <tr key={s.id}>
@@ -99,13 +99,13 @@ export function SystemsRegister() {
                 <td className="small">{s.knockouts.length ? s.knockouts.join(', ') : '—'}</td>
               </tr>
             ))}</tbody>
-          </table></div>
+          </table></TableWrap>
         )}
       </Card>
       <div style={{ height: 24 }} />
       <Card title="AI vendor register (§9.1)" actions={d.can_manage ? <Button size="sm" onClick={() => setVendor('new')}>Add vendor</Button> : undefined}>
         {d.vendors.length === 0 ? <EmptyState>No vendors yet.</EmptyState> : (
-          <div className="table-wrap"><table className="table">
+          <TableWrap label="AI vendor register"><table className="table">
             <thead><tr><th>Vendor</th><th>Capability</th><th>Personal data</th><th>BAA / DPA signed</th><th>Last risk review</th><th>Risk</th></tr></thead>
             <tbody>{d.vendors.map((v) => (
               <tr key={v.id}>
@@ -115,7 +115,7 @@ export function SystemsRegister() {
                 <td>{v.risk_level ? <Badge tone={v.risk_level === 'H' ? 'danger' : v.risk_level === 'M' ? 'warn' : 'muted'}>{{ H: 'High', M: 'Medium', L: 'Low' }[v.risk_level]}</Badge> : '—'}</td>
               </tr>
             ))}</tbody>
-          </table></div>
+          </table></TableWrap>
         )}
       </Card>
       {adding && <AddSystem clientId={clientId} d={d} preselected={adding} onClose={() => setAdding(null)} onDone={(m) => { setAdding(null); setFlash(m); }} />}

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError, errorMessage } from '@/api/client';
 import { money, PRICE_LABEL, SELL_LABEL, type Package } from '@/api/catalog';
-import { Alert, Badge, Button, Card, Loading, TextArea, TextField } from '@/components/ui';
+import { Alert, Badge, Button, Card, Loading, TableWrap, TextArea, TextField } from '@/components/ui';
 import { CatalogShell, useGrid } from './CatalogShell';
 
 type Draft = { name: string; description: string; lines: { code: string; qty: number }[] };
@@ -47,7 +47,7 @@ export function Packages() {
                   <div className="stack-sm">
                     <TextField label="Name" value={draft!.name} onChange={(e) => setDraft({ ...draft!, name: e.target.value })} />
                     <TextArea label="Description" rows={2} value={draft!.description} onChange={(e) => setDraft({ ...draft!, description: e.target.value })} />
-                    <table className="table compact" aria-label={`Lines in ${p.name}`}>
+                    <TableWrap><table className="table compact" aria-label={`Lines in ${p.name}`}>
                       <thead><tr><th>Code</th><th>Item</th><th>Qty</th><th><span className="sr-only">Remove</span></th></tr></thead>
                       <tbody>
                         {draft!.lines.map((l, i) => (
@@ -59,7 +59,7 @@ export function Packages() {
                           </tr>
                         ))}
                       </tbody>
-                    </table>
+                    </table></TableWrap>
                     <div className="row">
                       <label className="field-inline">Add item<select value={add} onChange={(e) => setAdd(e.target.value)} aria-label="Item to add to the package">
                         <option value="">Choose…</option>
@@ -74,7 +74,7 @@ export function Packages() {
                   <div className="stack-sm">
                     {p.description && <p className="muted">{p.description}</p>}
                     {p.lines.length === 0 ? <p className="muted small">No lines.</p> : (
-                      <table className="table compact" aria-label={`Lines in ${p.name}`}>
+                      <TableWrap><table className="table compact" aria-label={`Lines in ${p.name}`}>
                         <thead><tr><th>Code</th><th>Item</th><th>Qty</th><th>List</th><th>Status</th></tr></thead>
                         <tbody>{p.lines.map((l) => (
                           <tr key={l.code}>
@@ -82,7 +82,7 @@ export function Packages() {
                             <td>{l.problem ? <Badge tone="danger">{l.problem}</Badge> : <span className="small">{PRICE_LABEL[l.price_status ?? ''] ?? ''} · {SELL_LABEL[l.sellable_status ?? ''] ?? ''}</span>}</td>
                           </tr>
                         ))}</tbody>
-                      </table>
+                      </table></TableWrap>
                     )}
                     {p.lines.length > 0 && <p className="small">Year-1 value at list: <strong>{money(total)}</strong></p>}
                     {p.updated_by && <p className="small muted">Last changed by {p.updated_by}.</p>}

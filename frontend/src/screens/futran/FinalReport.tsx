@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
-import { Alert, Badge, Button, Card, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField, fileUrl, fmtDate, fmtDateTime } from '@/components/ui';
+import { Alert, Badge, Button, Card, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField, fmtDate, fmtDateTime, TableWrap } from '@/components/ui';
+import { DownloadLinks } from '@/components/DownloadLinks';
 import { SignPanel, type SignOffView } from '@/components/SignPanel';
 import { SEV_TONE } from '@/screens/futran/FieldworkUseCase';
 
@@ -99,7 +100,7 @@ export function FinalReport() {
 
 export function ReportTable({ rows }: { rows: ReportRow[] }) {
   return (
-    <div className="table-wrap"><table className="table">
+    <TableWrap label="Report versions"><table className="table">
       <thead><tr><th>Version</th><th>Status</th><th>Created</th><th>Files</th><th>Declarations</th></tr></thead>
       <tbody>{rows.map((r) => {
         const st = REPORT_STATUS[r.status] ?? REPORT_STATUS.draft;
@@ -108,13 +109,13 @@ export function ReportTable({ rows }: { rows: ReportRow[] }) {
             <td><strong>{r.version_label}</strong></td>
             <td><Badge tone={st.tone}>{st.label}</Badge>{r.released_to_client_at && <div className="small muted">Released {fmtDate(r.released_to_client_at)}</div>}</td>
             <td>{fmtDateTime(r.created_at)}</td>
-            <td>{r.pdf_file_id && <a href={fileUrl(r.pdf_file_id)}>PDF</a>}{r.docx_file_id && <> · <a href={fileUrl(r.docx_file_id)}>Word</a></>}
+            <td><DownloadLinks pdf={r.pdf_file_id} docx={r.docx_file_id} title={`report ${r.version_label}`} />
               {r.status === 'final' && r.engagement_id && <div className="small"><a href={`/api/v1/engagements/${r.engagement_id}/board-readout.pdf`}>Board readout pack (PDF)</a></div>}</td>
             <td className="small">{r.declarations.length === 0 ? '—' : r.declarations.map((x) => `${x.label}: ${x.signed_by}`).join('; ')}</td>
           </tr>
         );
       })}</tbody>
-    </table></div>
+    </table></TableWrap>
   );
 }
 
@@ -156,7 +157,7 @@ function RoadmapCard({ clientId, d, approved, run }: { clientId: string; d: Data
     <Card title="Remediation roadmap" actions={d.can_edit && !adding && <Button size="sm" onClick={() => setAdding(true)}>Add item</Button>}>
       <div className="stack">
         {d.roadmap.length === 0 ? <EmptyState>No roadmap items yet.</EmptyState> : (
-          <div className="table-wrap"><table className="table">
+          <TableWrap label="Remediation roadmap"><table className="table">
             <thead><tr><th>Ref</th><th>Recommended action</th><th>Owner</th><th>Priority</th><th>Target date</th><th>How Futran can help</th>{d.can_edit && <th />}</tr></thead>
             <tbody>{d.roadmap.map((r) => (
               <tr key={r.id}>
@@ -165,7 +166,7 @@ function RoadmapCard({ clientId, d, approved, run }: { clientId: string; d: Data
                 {d.can_edit && <td><Button size="sm" variant="ghost" onClick={() => run(() => api.delete(`/roadmap-items/${r.id}`), `${r.ref} removed.`)}>Remove</Button></td>}
               </tr>
             ))}</tbody>
-          </table></div>
+          </table></TableWrap>
         )}
         {adding && (
           <div className="stack-sm">
@@ -228,7 +229,7 @@ function PublicSummaryCard({ clientId, d, run }: { clientId: string; d: Data; ru
               <TextField label="Unknown category (count)" inputMode="numeric" value={v.unknown_category_count ?? ''} onChange={(e) => setV({ ...v, unknown_category_count: e.target.value === '' ? null : Number(e.target.value) })} />
             </div>
             <TextArea label="Data used" value={v.data_source ?? ''} onChange={(e) => setV({ ...v, data_source: e.target.value })} />
-            <div className="table-wrap"><table className="table">
+            <TableWrap label="Impact ratios"><table className="table">
               <thead><tr><th>Category</th><th>Group</th><th>Selection rate</th><th>Impact ratio</th><th /></tr></thead>
               <tbody>{ratios.map((r, i) => (
                 <tr key={i}>
@@ -236,7 +237,7 @@ function PublicSummaryCard({ clientId, d, run }: { clientId: string; d: Data; ru
                   <td><Button size="sm" variant="ghost" onClick={() => setRatios(ratios.filter((_, j) => j !== i))}>Remove</Button></td>
                 </tr>
               ))}</tbody>
-            </table></div>
+            </table></TableWrap>
             <div className="row" style={{ gap: 8 }}>
               <Button size="sm" onClick={() => setRatios([...ratios, { category: '', group: '', selection_rate: '', impact_ratio: '' }])}>Add impact ratio</Button>
               <Button variant="primary" onClick={save}>Save public summary</Button>

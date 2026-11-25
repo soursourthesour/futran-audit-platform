@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
-import { Alert, Badge, Button, ButtonLink, Card, Dialog, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField } from '@/components/ui';
+import { Alert, Badge, Button, ButtonLink, Card, Dialog, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField, TableWrap } from '@/components/ui';
 import { toolHelp as H } from '@/help/client';
 import { euBadge, type EuLevel } from '@/components/EuScreening';
 
@@ -41,7 +41,7 @@ function InventoryView({ clientId }: { clientId: string }) {
         <div className="main">
           <Card title={`Use cases · ${d.use_cases.length}`} actions={<span className="small muted">Tier 3: {d.tiers['3'] ?? 0} · Tier 2: {d.tiers['2'] ?? 0} · Tier 1: {d.tiers['1'] ?? 0}{d.eu_levels && <> · EU high-risk: {d.eu_levels.high_risk ?? 0}{(d.eu_levels.prohibited ?? 0) > 0 && <>, prohibited: {d.eu_levels.prohibited}</>}, not screened: {d.eu_levels.not_screened ?? 0}</>}</span>}>
             {d.use_cases.length === 0 ? <EmptyState>No use cases yet.{!d.is_futran && ' Add one for each way your team uses an AI tool.'}</EmptyState> : (
-              <div className="table-wrap"><table className="table">
+              <TableWrap label="Use cases"><table className="table">
                 <thead><tr><th>Use case</th><th>Department</th><th>Tool · account</th><th>Proposed</th><th>Final</th><th>EU AI Act</th><th>Status</th></tr></thead>
                 <tbody>{d.use_cases.map((u) => (
                   <tr key={u.id}>
@@ -51,7 +51,7 @@ function InventoryView({ clientId }: { clientId: string }) {
                     <td><Badge tone={STATUS_LABELS[u.status]?.tone ?? 'muted'}>{STATUS_LABELS[u.status]?.label ?? u.status}</Badge></td>
                   </tr>
                 ))}</tbody>
-              </table></div>
+              </table></TableWrap>
             )}
           </Card>
         </div>

@@ -1,7 +1,7 @@
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/api/client';
-import { Badge, Button, ButtonLink, Card, Loading, PageHeader, fmtDate } from '@/components/ui';
+import { Badge, Button, ButtonLink, Card, Loading, PageHeader, fmtDate, TableWrap } from '@/components/ui';
 import { type SalesHome as Home, STAGE_TONE, oppLink, usd } from '@/api/sales';
 import { salesHelp as H } from '@/help/sales';
 import '@/styles/sales.css';
@@ -56,7 +56,7 @@ export function SalesHome() {
           <div className="sales-home-grid">
             <Card title="My next steps">
               {h.next_steps.length === 0 && h.tasks.length === 0 ? <p className="small muted">No next steps set.</p> : (
-                <div className="table-wrap"><table className="table"><thead><tr><th>Due</th><th>Opportunity</th><th>Next step</th><th>Stage</th></tr></thead>
+                <TableWrap label="My next steps"><table className="table"><thead><tr><th>Due</th><th>Opportunity</th><th>Next step</th><th>Stage</th></tr></thead>
                   <tbody>
                     {h.next_steps.map((s) => (
                       <tr key={s.id}><td className="nowrap">{due(s.next_step_due)}</td><td><Link to={oppLink(s.id)}>{s.company}</Link></td><td>{s.next_step}</td><td><Badge tone={STAGE_TONE[s.stage]}>{s.stage_label}</Badge></td></tr>
@@ -64,7 +64,7 @@ export function SalesHome() {
                     {h.tasks.map((t) => (
                       <tr key={t.id}><td className="nowrap">{due(t.due_on)}</td><td><Link to={oppLink(t.opportunity_id)}>{t.company}</Link></td><td>Task: {t.summary}</td><td /></tr>
                     ))}
-                  </tbody></table></div>
+                  </tbody></table></TableWrap>
               )}
             </Card>
             <div className="stack">

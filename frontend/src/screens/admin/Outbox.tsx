@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/api/client';
-import { Badge, Button, Dialog, EmptyState, Loading, fmtDateTime } from '@/components/ui';
+import { Badge, Button, Dialog, EmptyState, Loading, fmtDateTime, TableWrap } from '@/components/ui';
 import '@/styles/staff-forms.css';
 
 type Msg = { id: string; to: string[]; cc: string[] | null; subject: string; body_html: string; template_key: string; status: string; error: string | null; created_at: string };
@@ -33,7 +33,7 @@ export function OutboxPanel() {
   return (
     <>
       {q.isLoading ? <Loading /> : !q.data?.length ? <EmptyState>No emails yet.</EmptyState> : (
-        <div className="table-wrap">
+        <TableWrap>
           <table className="table" aria-label="Outbox">
             <thead><tr><th style={{ whiteSpace: 'nowrap' }}>When</th><th>To</th><th>Subject</th><th>Status</th></tr></thead>
             <tbody>
@@ -47,7 +47,7 @@ export function OutboxPanel() {
               ))}
             </tbody>
           </table>
-        </div>
+        </TableWrap>
       )}
       {selected && <MessageDialog m={selected} onClose={() => setOpen(null)} />}
     </>

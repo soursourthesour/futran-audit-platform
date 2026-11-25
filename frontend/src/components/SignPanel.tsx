@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
-import { Alert, Badge, Button, Checkbox, Loading, TextField, fileUrl, fmtDateTime } from '@/components/ui';
+import { Alert, Badge, Button, Checkbox, Loading, TextField, fmtDateTime } from '@/components/ui';
+import { DownloadLinks } from '@/components/DownloadLinks';
 import { signHelp as H } from '@/help/client';
 
 export type SignOffView = {
@@ -60,8 +61,7 @@ export function SignPanel({ signOffId, onSigned, agreeText, hideTitle, hideDocum
       {so.statement && <blockquote className="statement" style={{ whiteSpace: 'pre-wrap' }}>{so.statement}</blockquote>}
       {so.document && !hideDocument && (
         <p className="small">
-          Read the document before signing: {so.document.pdf_file_id && <a href={fileUrl(so.document.pdf_file_id)}>PDF</a>}
-          {so.document.docx_file_id && <> · <a href={fileUrl(so.document.docx_file_id)}>Word</a></>}
+          Read the document before signing: <DownloadLinks pdf={so.document.pdf_file_id} docx={so.document.docx_file_id} title={so.title} />
         </p>
       )}
       <ul className="small" style={{ margin: 0, paddingLeft: 18 }}>

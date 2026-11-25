@@ -5,7 +5,7 @@ import { api, errorMessage } from '@/api/client';
 import { can, hasRole, useMe } from '@/api/auth';
 import { useLawJurisdictions } from '@/api/laws';
 import { fmtValue, type ChangeItem, type Queue, type Run, type RunSettings } from '@/api/monitoring';
-import { Alert, Badge, Button, Card, Checkbox, Dialog, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField, WithHelp, fmtDateTime } from '@/components/ui';
+import { Alert, Badge, Button, Card, Checkbox, Dialog, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField, WithHelp, fmtDateTime, TableWrap } from '@/components/ui';
 import { DataGrid, type GridColumn, type GridRowAction } from '@/components/ui/DataGrid';
 import { refreshHelp as H } from '@/help/monitoring';
 import { canReviewLaws } from '@/screens/futran/reg/LawLibrary';
@@ -400,12 +400,12 @@ function RunDialog({ id, onClose }: { id: string; onClose: () => void }) {
           {q.data.legacy ? (
             <>
               <Alert>An earlier law update run. Its proposals are kept for the record.</Alert>
-              <div className="table-wrap"><table className="table"><thead><tr><th>Change</th><th>Jurisdiction</th><th>Proposal</th><th>Status</th></tr></thead>
-                <tbody>{(q.data.proposals ?? []).map((p) => <tr key={p.id}><td>{p.change_type}</td><td>{p.jurisdiction}</td><td style={{ whiteSpace: 'normal' }}>{p.rationale}</td><td>{p.status}</td></tr>)}</tbody></table></div>
+              <TableWrap label="Proposed changes"><table className="table"><thead><tr><th>Change</th><th>Jurisdiction</th><th>Proposal</th><th>Status</th></tr></thead>
+                <tbody>{(q.data.proposals ?? []).map((p) => <tr key={p.id}><td>{p.change_type}</td><td>{p.jurisdiction}</td><td style={{ whiteSpace: 'normal' }}>{p.rationale}</td><td>{p.status}</td></tr>)}</tbody></table></TableWrap>
             </>
           ) : (
-            <div className="table-wrap"><table className="table"><thead><tr><th>Geography</th><th>Sources</th><th>Reply</th><th>New</th><th>Merged</th><th>Skipped</th><th>Cost</th></tr></thead>
-              <tbody>{(q.data.responses ?? []).map((r, i) => <tr key={i}><td>{r.jurisdiction}</td><td>{r.sources}</td><td>{r.outcome === 'rejected' ? <Badge tone="danger">Rejected: not schema JSON</Badge> : 'Accepted'}</td><td>{r.accepted}</td><td>{r.merged}</td><td>{r.skipped}</td><td>${r.cost_usd.toFixed(2)}</td></tr>)}</tbody></table></div>
+            <TableWrap label="Results by geography"><table className="table"><thead><tr><th>Geography</th><th>Sources</th><th>Reply</th><th>New</th><th>Merged</th><th>Skipped</th><th>Cost</th></tr></thead>
+              <tbody>{(q.data.responses ?? []).map((r, i) => <tr key={i}><td>{r.jurisdiction}</td><td>{r.sources}</td><td>{r.outcome === 'rejected' ? <Badge tone="danger">Rejected: not schema JSON</Badge> : 'Accepted'}</td><td>{r.accepted}</td><td>{r.merged}</td><td>{r.skipped}</td><td>${r.cost_usd.toFixed(2)}</td></tr>)}</tbody></table></TableWrap>
           )}
           {q.data.warnings.length > 0 && <ul className="small">{q.data.warnings.map((w, i) => <li key={i}>{w}</li>)}</ul>}
         </div>

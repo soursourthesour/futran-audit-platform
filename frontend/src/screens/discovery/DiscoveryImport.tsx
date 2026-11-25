@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
 import { importBase, useImportPage, type Analysis, type ExportTypeRow, type ImportPage, type ImportRow, type ImportTool } from '@/api/discoveryImport';
-import { Alert, Badge, Button, Card, Dialog, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField, fileUrl, fmtDateTime } from '@/components/ui';
+import { Alert, Badge, Button, Card, Dialog, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField, fileUrl, fmtDateTime, TableWrap } from '@/components/ui';
 import './discovery.css';
 
 const STEPS = ['Export type', 'Upload', 'Map columns', 'Review tools'];
@@ -191,7 +191,7 @@ function ReviewStep({ et, a, busy, onBack, onImport }: { et: ExportTypeRow; a: A
         {a.unmatched.length > 0 && <> · {a.unmatched.length} unmatched row{a.unmatched.length === 1 ? '' : 's'} that look like AI tools</>}
         {a.summary_only && a.unmatched_count > 0 && <> · {a.unmatched_count.toLocaleString()} other row{a.unmatched_count === 1 ? '' : 's'} not kept or shown</>}</p>
       {!a.attestation_exists && <Alert tone="warn">No attestation has been run for this client yet, so every tool counts as undeclared.</Alert>}
-      <div className="table-wrap"><table className="table" aria-label="Tools this file will add">
+      <TableWrap><table className="table" aria-label="Tools this file will add">
         <thead><tr><th>Tool found</th><th>Vendor</th><th>Department</th><th className="num">Users</th><th>Detail</th><th>Declared in attestation?</th></tr></thead>
         <tbody>
           {a.tools.map((t) => <tr key={`${t.vendor_key}|${t.department}`}><td><strong>{t.product}</strong><div className="small muted">{t.category}</div></td><td>{t.vendor}</td><td>{t.department}</td><td className="num">{t.user_count}</td><td className="small">{t.detail ?? '—'}</td>
@@ -199,12 +199,12 @@ function ReviewStep({ et, a, busy, onBack, onImport }: { et: ExportTypeRow; a: A
           {a.unmatched.map((u) => <tr key={`u|${u.name}|${u.department}`}><td><Badge tone="muted">Unmatched</Badge> “{u.name}”</td><td>Unknown</td><td>{u.department ?? '—'}</td><td className="num">{u.user_count}</td><td className="small">Match it after the import</td><td>—</td></tr>)}
           {a.tools.length === 0 && a.unmatched.length === 0 && <tr><td colSpan={6} className="muted">No AI tools in this file. Check the column mapping.</td></tr>}
         </tbody>
-      </table></div>
+      </table></TableWrap>
       <details><summary className="small">{a.summary_only ? `First ${a.preview.length} matched rows as read` : `First ${a.preview.length} rows as read`}</summary>
-        <div className="table-wrap"><table className="table" aria-label="Rows as read">
+        <TableWrap><table className="table" aria-label="Rows as read">
           <thead><tr>{et.fields.map((f) => <th key={f.key}>{f.label}</th>)}<th>Matched to</th></tr></thead>
           <tbody>{a.preview.map((r, i) => <tr key={i}>{et.fields.map((f) => <td key={f.key} className="small">{r.cells[f.key] || '—'}</td>)}<td className="small">{r.match ?? <span className="muted">No match</span>}</td></tr>)}</tbody>
-        </table></div>
+        </table></TableWrap>
       </details>
       <p className="small muted" style={{ margin: 0 }}>{a.summary_only ? 'Only a summary of the AI rows is kept as evidence (no names, no other spending or browsing); ' : 'The file is kept as an evidence item; '}
         the SHA-256 of the file as uploaded is {a.sha256.slice(0, 16)}…</p>
@@ -220,7 +220,7 @@ function ToolsTable({ d, busy, onConfirm, onDismiss, onMatch }: { d: ImportPage;
       <div className="card-header"><h2 id="dimp-tools-h">Discovered tools from imports · {d.tools.length}</h2></div>
       <div className="card-body">
         {d.tools.length === 0 && unmatched.length === 0 ? <EmptyState>No tools imported yet.</EmptyState> : (
-          <div className="table-wrap"><table className="table" aria-label="Discovered tools from imports">
+          <TableWrap><table className="table" aria-label="Discovered tools from imports">
             <thead><tr><th>Tool found</th><th>Vendor</th><th>Signal</th><th>Department</th><th className="num">Users</th><th>Declared in attestation?</th><th>Action</th></tr></thead>
             <tbody>
               {d.tools.map((t) => (
@@ -237,7 +237,7 @@ function ToolsTable({ d, busy, onConfirm, onDismiss, onMatch }: { d: ImportPage;
                   <td>{d.can_decide ? <Button size="sm" onClick={() => onMatch(imp, i)}>Match vendor</Button> : '—'}</td></tr>
               ))}
             </tbody>
-          </table></div>
+          </table></TableWrap>
         )}
       </div>
     </section>
@@ -249,14 +249,14 @@ function ImportsLog({ imports }: { imports: ImportRow[] }) {
   return (
     <section className="card" aria-labelledby="dimp-log-h">
       <div className="card-header"><h2 id="dimp-log-h">Import log and evidence</h2></div>
-      <div className="card-body"><div className="table-wrap"><table className="table" aria-label="Import log">
+      <div className="card-body"><TableWrap><table className="table" aria-label="Import log">
         <thead><tr><th>When</th><th>Export</th><th>File</th><th>Rows matched</th><th>SHA-256</th><th>Evidence</th><th>By</th></tr></thead>
         <tbody>{imports.map((i) => (
           <tr key={i.id}><td className="small">{fmtDateTime(i.imported_at)}</td><td>{i.export_label}</td><td className="small">{i.filename}</td><td>{i.rows_matched} of {i.rows_read}</td>
             <td><code className="small dimp-hash" title={i.sha256}>{i.sha256.slice(0, 16)}…</code></td>
             <td className="small">{i.evidence_file_id ? <a href={fileUrl(i.evidence_file_id)}>{i.summary_only ? 'AI rows summary' : 'File'}</a> : '—'}</td><td className="small">{i.imported_by ?? '—'}</td></tr>
         ))}</tbody>
-      </table></div></div>
+      </table></TableWrap></div>
     </section>
   );
 }

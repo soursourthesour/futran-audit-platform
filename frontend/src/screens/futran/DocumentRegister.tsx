@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
-import { Alert, Badge, Button, Card, Dialog, EmptyState, FieldHelp, Loading, PageHeader, SelectField, TextField, fileUrl, fmtDate } from '@/components/ui';
+import { Alert, Badge, Button, Card, Dialog, EmptyState, FieldHelp, Loading, PageHeader, SelectField, TextField, fileUrl, fmtDate, TableWrap } from '@/components/ui';
 import { CommentsToggle } from '@/components/Comments';
 import { documentHelp } from '@/help/client';
 
@@ -68,12 +68,12 @@ export function DocumentRegister() {
               <div style={{ minWidth: 220 }}><SelectField label="Category" value={cat} placeholder="All categories" onChange={(e) => setCat(e.target.value)} options={cats.map(([n, t]) => ({ value: String(n), label: `${n} ${t}` }))} /></div>
               <div style={{ minWidth: 220 }}><SelectField label="System" value={sys} placeholder="All systems" onChange={(e) => setSys(e.target.value)} options={d.systems.map((s) => ({ value: s.id, label: `${s.reference_id} ${s.name}` }))} /></div>
             </div>
-            <div className="table-wrap"><table className="table">
+            <TableWrap label="Requested documents"><table className="table">
               <thead><tr><th>Document</th><th>System</th><th>Received</th><th>Status</th><th>Chases</th><th>Finding</th><th /></tr></thead>
               <tbody>{cats.filter(([n]) => rows.some((r) => r.category === n)).map(([n, t]) => (
                 <Category key={n} title={`Category ${n} · ${t}`} rows={rows.filter((r) => r.category === n)} onChase={chaseOne} />
               ))}</tbody>
-            </table></div>
+            </table></TableWrap>
           </>
         )}
       </Card>

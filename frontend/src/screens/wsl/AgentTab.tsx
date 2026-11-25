@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
 import type { AgentPanel, AgentRegistration, AgentTool, TrendMonth } from '@/api/wsl';
-import { Alert, Badge, Button, Card, Checkbox, EmptyState, Loading, SelectField, TextArea, TextField, fmtDate, fmtDateTime } from '@/components/ui';
+import { Alert, Badge, Button, Card, Checkbox, EmptyState, Loading, SelectField, TextArea, TextField, fmtDate, fmtDateTime, TableWrap } from '@/components/ui';
 import { agentHelp as H } from '@/help/wsl';
 import '@/styles/wsl.css';
 
@@ -67,10 +67,10 @@ export function Trend({ months }: { months: TrendMonth[] }) {
 function RegistrationView({ r }: { r: AgentRegistration }) {
   return (
     <div className="stack">
-      <div className="table-wrap"><table className="wsl-tools">
+      <TableWrap label="Agent tools"><table className="wsl-tools">
         <thead><tr><th>Tool</th><th>What it does</th><th>Access</th><th>Approval</th></tr></thead>
         <tbody>{r.tools.map((t) => <tr key={t.name}><td><code>{t.name}</code></td><td>{t.description ?? '—'}</td><td>{ACCESS.find((a) => a.value === t.access)?.label}</td><td>{t.needs_approval ? <Badge tone="navy">A person approves</Badge> : <span className="muted">None</span>}</td></tr>)}</tbody>
-      </table></div>
+      </table></TableWrap>
       <dl className="kv-stacked">
         <dt>Autonomy</dt><dd>{r.autonomy_label}</dd>
         <dt>Permissions</dt><dd>{r.permissions.length ? <ul style={{ margin: 0, paddingLeft: 18 }}>{r.permissions.map((p) => <li key={p}>{p}</li>)}</ul> : '—'}</dd>

@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
 import type { Bias, HistoryEntry, Statement } from '@/api/register';
-import { Alert, Badge, Card, EmptyState, Loading, fmtDate, fmtDateTime, fileUrl } from '@/components/ui';
+import { Alert, Badge, Card, EmptyState, Loading, fmtDate, fmtDateTime, fileUrl, TableWrap } from '@/components/ui';
 
 type BiasTest = { id: string; tested_on: string; next_due: string | null; tester_type: string; tester_name: string | null; method: string | null; groups_tested: string | null; result: string; result_text: string | null; unknown_share: number | null; null_compliance: boolean };
 export type RegisterRecordData = {
@@ -38,25 +38,25 @@ export function RegisterRecord({ systemId }: { systemId: string }) {
       </Card>
       <Card title={`Bias tests (${d.bias_tests.length})`}>
         {d.bias_tests.length === 0 ? <EmptyState>No bias test recorded.</EmptyState> : (
-          <div className="table-wrap"><table className="table">
+          <TableWrap label="Bias tests"><table className="table">
             <thead><tr><th>Date</th><th>Tested by</th><th>Method</th><th>Result</th><th>Unknown share</th><th>Next due</th></tr></thead>
             <tbody>{d.bias_tests.map((b) => (
               <tr key={b.id}><td>{date(b.tested_on)}</td><td>{TESTER[b.tester_type] ?? b.tester_type}{b.tester_name && <div className="small muted">{b.tester_name}</div>}</td><td className="small">{b.method ?? '—'}{b.groups_tested && <div className="muted">{b.groups_tested}</div>}</td>
                 <td><Badge tone={b.result === 'passed' ? 'success' : b.result === 'flagged' ? 'danger' : 'muted'}>{RESULT[b.result] ?? b.result}</Badge>{b.result_text && <div className="small">{b.result_text}</div>}</td>
                 <td>{b.unknown_share != null ? `${b.unknown_share}%` : '—'}{b.null_compliance && <div className="small" style={{ color: 'var(--danger)' }}>Possible null compliance</div>}</td><td>{date(b.next_due)}</td></tr>
             ))}</tbody>
-          </table></div>
+          </table></TableWrap>
         )}
       </Card>
       <Card title={`History log (${d.history.length})`}>
         {d.history.length === 0 ? <EmptyState>No history entries.</EmptyState> : (
-          <div className="table-wrap"><table className="table">
+          <TableWrap label="History log"><table className="table">
             <thead><tr><th>Date</th><th>Type</th><th>What happened</th><th>Result</th><th>Evidence</th><th>Recorded by</th></tr></thead>
             <tbody>{d.history.map((e) => (
               <tr key={e.id}><td>{date(e.occurred_on)}</td><td>{e.type_label}{e.severity_label && <div className="small muted">{e.severity_label}</div>}</td><td>{e.summary}</td><td className="small">{e.result ?? '—'}</td>
                 <td className="small">{e.evidence.length ? e.evidence.map((f) => <div key={f.id}><a href={fileUrl(f.id)}>{f.filename}</a></div>) : '—'}</td><td className="small">{e.recorded_by}</td></tr>
             ))}</tbody>
-          </table></div>
+          </table></TableWrap>
         )}
       </Card>
     </div>

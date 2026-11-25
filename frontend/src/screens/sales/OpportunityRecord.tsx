@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
-import { Alert, Badge, Button, ButtonLink, Card, Dialog, Loading, PageHeader, SelectField, TextArea, TextField, fmtDate, fmtDateTime } from '@/components/ui';
+import { Alert, Badge, Button, ButtonLink, Card, Dialog, Loading, PageHeader, SelectField, TextArea, TextField, fmtDate, fmtDateTime, TableWrap } from '@/components/ui';
 import { type ActivityRow, type Contact, type OppDetail, type OppList, PIPELINE, usd } from '@/api/sales';
 import { salesHelp as H } from '@/help/sales';
 import '@/styles/sales.css';
@@ -257,12 +257,12 @@ function Contacts({ o, roles, onDone }: { o: OppDetail; roles: { value: string; 
   return (
     <Card title="Contacts" actions={o.can_work && <Button size="sm" onClick={() => setEdit('new')}>Add contact</Button>}>
       {o.contacts.length === 0 ? <p className="small muted">No contacts yet.</p> : (
-        <div className="table-wrap"><table className="table"><thead><tr><th>Name</th><th>Title</th><th>Email</th><th>Phone</th><th>Role in deal</th><th /></tr></thead>
+        <TableWrap label="Contacts"><table className="table"><thead><tr><th>Name</th><th>Title</th><th>Email</th><th>Phone</th><th>Role in deal</th><th /></tr></thead>
           <tbody>{o.contacts.map((c) => (
             <tr key={c.id}><td>{c.name}</td><td>{c.title ?? '—'}</td><td>{c.email ?? '—'}</td><td>{c.phone ?? '—'}</td><td>{c.contact_role_label ?? '—'}</td>
               <td>{o.can_work && <span className="row"><button type="button" className="linklike" onClick={() => setEdit(c)}>Edit</button>
                 <button type="button" className="linklike" onClick={() => api.delete(`/opportunities/${o.id}/contacts/${c.id}`).then(onDone)}>Remove</button></span>}</td></tr>
-          ))}</tbody></table></div>
+          ))}</tbody></table></TableWrap>
       )}
       {edit && <ContactDialog o={o} c={edit === 'new' ? null : edit} roles={roles} onClose={() => setEdit(null)} onDone={async () => { setEdit(null); await onDone(); }} />}
     </Card>

@@ -84,7 +84,8 @@ export function Estimator() {
     if (!n || !r) return [];
     return r.items.filter((i) => `${i.code} ${i.name} ${i.deliverables ?? ''}`.toLowerCase().includes(n)).slice(0, 8);
   }, [search, r]);
-  if (!r) return <div className="page"><Loading /></div>;
+  // A refused or failed load says so instead of loading for good (BUG-G08).
+  if (!r) return <div className="page">{ref.isError ? <><PageHeader title="Estimator" /><Alert tone="danger">{errorMessage(ref.error)}</Alert></> : <Loading />}</div>;
 
   const priced = new Map((ev?.lines ?? []).map((l) => [l.code, l]));
   const totals = ev?.totals ?? EMPTY_TOTALS;

@@ -4,7 +4,7 @@ import { api } from '@/api/client';
 import { useCountries, useSubdivisions, useSuggestions, type Location, type Requirement, type Suggestion } from '@/api/clients';
 import type { Law } from '@/api/laws';
 import { LawPicker } from '@/components/LawPicker';
-import { Badge, Button, Card, Checkbox, EmptyState, FieldHelp, Loading } from '@/components/ui';
+import { Badge, Button, Card, Checkbox, EmptyState, FieldHelp, Loading, TableWrap } from '@/components/ui';
 import { AddressField } from '@/components/ui/AddressField';
 import { locationHelp as H } from '@/help/onboarding';
 import { useStepForm, useWizardCtx } from './Wizard';
@@ -89,7 +89,7 @@ export function StepLocations() {
           </div>
           {errors['locations.locations'] && <p className="small" style={{ color: 'var(--danger)' }}>{errors['locations.locations']}</p>}
           {locs.locations.length === 0 ? <EmptyState>No sites yet. Add the headquarters first.</EmptyState> : (
-            <div className="table-wrap">
+            <TableWrap label="Sites">
               <table className="table">
                 <thead><tr><th><Th label="Site" help={H.site} /></th><th><Th label="Country" help={H.country} /></th><th><Th label="State or region" help={H.region} /></th><th><Th label="City" help={H.city} /></th><th>Laws from</th><th><Th label="In scope" help={H.inScope} /></th><th /></tr></thead>
                 <tbody>
@@ -98,7 +98,7 @@ export function StepLocations() {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </TableWrap>
           )}
         </div>
       </Card>
@@ -112,7 +112,7 @@ export function StepLocations() {
             </div>
           )}
           {sugg.isLoading ? <Loading /> : rows.length === 0 ? <EmptyState>Add a site to see the laws that apply.</EmptyState> : (
-            <div className="table-wrap">
+            <TableWrap label="Laws and frameworks in scope">
               <table className="table">
                 <thead><tr><th><Th label="Include" help={H.include} /></th><th>Law</th><th>Geography · feature</th><th>Why suggested</th></tr></thead>
                 <tbody>
@@ -126,7 +126,7 @@ export function StepLocations() {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </TableWrap>
           )}
         </div>
       </Card>

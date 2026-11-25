@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { errorMessage } from '@/api/client';
-import { Alert, Badge, Button, Card, Dialog, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField, fileUrl, fmtDate } from '@/components/ui';
+import { Alert, Badge, Button, Card, Dialog, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField, fileUrl, fmtDate, TableWrap } from '@/components/ui';
 import { money, partnersApi, type PartnerIn, type PartnerRow, type PartnersView } from '@/api/r7';
 import '@/styles/r7.css';
 
@@ -29,7 +29,7 @@ export function Partners() {
       {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
       <Card title="Partners">
         {v.partners.length === 0 ? <EmptyState>No partners yet.</EmptyState> : (
-          <div className="table-wrap"><table className="table stack-table">
+          <TableWrap label="Partners"><table className="table stack-table">
             <thead><tr><th>Partner</th><th>Type</th><th>Agreement</th>{v.can.see_money && <th>Commission rule</th>}<th>Referred in</th><th>Referred out</th>{v.can.see_money && <><th>Won value</th><th>Commission due</th></>}<th><span className="sr-only">Actions</span></th></tr></thead>
             <tbody>{v.partners.map((p) => (
               <tr key={p.id}>
@@ -43,14 +43,14 @@ export function Partners() {
                 <td>{v.can.manage && <div className="row" style={{ gap: 6 }}><Button size="sm" onClick={() => setEditing(p)}>Edit</Button><Button size="sm" onClick={() => setReferring(p)}>Record referral</Button></div>}</td>
               </tr>
             ))}</tbody>
-          </table></div>
+          </table></TableWrap>
         )}
         {!v.can.see_money && <p className="r7-note">Law firms: {v.law_firm_note.replace(/^None: /, '')}.</p>}
       </Card>
       {v.commissions && (
         <Card title="Commissions">
           {v.commissions.length === 0 ? <EmptyState>No commissions yet. They are created when a referred opportunity is won.</EmptyState> : (
-            <div className="table-wrap"><table className="table stack-table">
+            <TableWrap label="Commissions"><table className="table stack-table">
               <thead><tr><th>Partner</th><th>Opportunity</th><th>Order</th><th>First-year value</th><th>Rate</th><th>Amount</th><th>Due</th><th>Status</th><th><span className="sr-only">Actions</span></th></tr></thead>
               <tbody>{v.commissions.map((c) => (
                 <tr key={c.id}>
@@ -60,14 +60,14 @@ export function Partners() {
                   <td>{c.status === 'due' && v.can.settle && <div className="row" style={{ gap: 6 }}><Button size="sm" onClick={() => settle(c.id)}>Mark paid</Button><Button size="sm" variant="ghost" onClick={() => setVoiding(c.id)}>Void</Button></div>}</td>
                 </tr>
               ))}</tbody>
-            </table></div>
+            </table></TableWrap>
           )}
           <p className="r7-note">Commissions are created on win from the accepted proposal and appear on the monthly billing export. Law firms never receive one: {v.law_firm_note.replace(/^None: /, '').toLowerCase()}.</p>
         </Card>
       )}
       <Card title="Referrals">
         {v.referrals.length === 0 ? <EmptyState>No referrals recorded yet.</EmptyState> : (
-          <div className="table-wrap"><table className="table stack-table">
+          <TableWrap label="Referrals"><table className="table stack-table">
             <thead><tr><th>Date</th><th>Direction</th><th>Partner</th><th>Client or opportunity</th><th>Note</th></tr></thead>
             <tbody>{v.referrals.map((r) => (
               <tr key={r.id}>
@@ -75,7 +75,7 @@ export function Partners() {
                 <td>{r.client ?? '—'}{r.opportunity && <div className="small muted">{r.opportunity}</div>}</td><td className="small">{r.note ?? ''}<div className="muted">{r.recorded_by}</div></td>
               </tr>
             ))}</tbody>
-          </table></div>
+          </table></TableWrap>
         )}
       </Card>
       {editing && <PartnerDialog v={v} p={editing === 'new' ? null : editing} onClose={() => setEditing(null)} onDone={(nv, t) => { setEditing(null); set(nv, t); }} />}

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
 import { hasRole, useMe } from '@/api/auth';
-import { Alert, Badge, Button, Card, Checkbox, Dialog, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField, fmtDate, fmtDateTime } from '@/components/ui';
+import { Alert, Badge, Button, Card, Checkbox, Dialog, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField, fmtDate, fmtDateTime, TableWrap } from '@/components/ui';
 import { DataGrid, type GridColumn, type GridRowAction } from '@/components/ui/DataGrid';
 import { clientAlertHelp as H } from '@/help/monitoring';
 import '@/styles/monitoring.css';
@@ -153,8 +153,8 @@ function HistoryDialog({ r, onClose }: { r: Rule; onClose: () => void }) {
   return (
     <Dialog title={`Send history: ${r.when_label}`} onClose={onClose} large>
       {!q.data ? <Loading /> : !q.data.length ? <EmptyState>Nothing sent under this rule yet.</EmptyState> : (
-        <div className="table-wrap"><table className="table"><thead><tr><th>Client</th><th>Alert</th><th>Status</th><th>Sent</th><th>Approved by</th></tr></thead>
-          <tbody>{q.data.map((s) => <tr key={s.id}><td>{s.client_name}</td><td style={{ whiteSpace: 'normal' }}>{s.subject}</td><td>{s.status}</td><td>{s.sent_at ? fmtDateTime(s.sent_at) : '—'}</td><td>{s.approved_by_name ?? (s.sent_at ? 'Automatic' : '—')}</td></tr>)}</tbody></table></div>
+        <TableWrap label="Send history"><table className="table"><thead><tr><th>Client</th><th>Alert</th><th>Status</th><th>Sent</th><th>Approved by</th></tr></thead>
+          <tbody>{q.data.map((s) => <tr key={s.id}><td>{s.client_name}</td><td style={{ whiteSpace: 'normal' }}>{s.subject}</td><td>{s.status}</td><td>{s.sent_at ? fmtDateTime(s.sent_at) : '—'}</td><td>{s.approved_by_name ?? (s.sent_at ? 'Automatic' : '—')}</td></tr>)}</tbody></table></TableWrap>
       )}
     </Dialog>
   );

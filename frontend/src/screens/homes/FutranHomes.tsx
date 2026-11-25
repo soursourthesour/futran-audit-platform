@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
 import { can, useMe } from '@/api/auth';
 import type { AdminHomeData, MyWorkData, QaData, QaFinding, QaOverride } from '@/api/homes';
-import { Alert, Badge, Button, ButtonLink, Card, EmptyState, Loading, PageHeader, Progress, TextArea, fmtDate, fmtDateTime } from '@/components/ui';
+import { Alert, Badge, Button, ButtonLink, Card, EmptyState, Loading, PageHeader, Progress, TextArea, fmtDate, fmtDateTime, TableWrap } from '@/components/ui';
 import { qaHelp } from '@/help/homes';
 import { RATING_LABEL, RoleNote, SEVERITY_TONE, Tile, cap } from './common';
 import { DashboardOverview, engagementLink, type DashboardData } from '@/screens/futran/Dashboard';
@@ -171,7 +171,7 @@ export function QAQueue() {
         <div className="split">
           <div className="main">
             <Card>
-              <div className="table-wrap"><table className="table qa-table stacked-table" aria-label="Waiting for review">
+              <TableWrap><table className="table qa-table stacked-table" aria-label="Waiting for review">
                 <thead><tr><th>Item</th><th>Client</th><th>Author</th><th>Type</th><th>Waiting</th></tr></thead>
                 <tbody>{items.map((x) => {
                   const k = itemKey(x);
@@ -187,7 +187,7 @@ export function QAQueue() {
                     </tr>
                   );
                 })}</tbody>
-              </table></div>
+              </table></TableWrap>
             </Card>
           </div>
           {cur && (

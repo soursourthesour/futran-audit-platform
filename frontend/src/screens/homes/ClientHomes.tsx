@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api, errorMessage } from '@/api/client';
 import type { ClientAdminData, DepartmentData, DeptSection, DpoData, MyTasksData, SponsorData } from '@/api/homes';
-import { Alert, Badge, ButtonLink, Card, EmptyState, Loading, PageHeader, fmtDate, fmtDateTime } from '@/components/ui';
+import { Alert, Badge, ButtonLink, Card, EmptyState, Loading, PageHeader, fmtDate, fmtDateTime, TableWrap } from '@/components/ui';
 import { RATING_LABEL, RoleNote, SEVERITY_TONE, SignOffBadge, Tile, cap, signOffStatus } from './common';
 import { ReassessmentCard } from '@/screens/regupdates/Reassessment';
 import { useMe } from '@/api/auth';
@@ -169,7 +169,7 @@ export function DPOHome() {
         </div>
         <Card title="Tier 2 and Tier 3 use cases">
           {d.use_cases.length === 0 ? <EmptyState>No Tier 2 or Tier 3 use cases have been submitted.</EmptyState> : (
-            <div className="table-wrap"><table className="table stacked-table">
+            <TableWrap label="Tier 2 and Tier 3 use cases"><table className="table stacked-table">
               <thead><tr><th>Use case</th><th>Tier</th><th>Data</th><th>Account</th><th>Status</th></tr></thead>
               <tbody>{d.use_cases.map((u) => (
                 <tr key={u.id}>
@@ -180,7 +180,7 @@ export function DPOHome() {
                   <td data-label="Status">{u.status_label}</td>
                 </tr>
               ))}</tbody>
-            </table></div>
+            </table></TableWrap>
           )}
         </Card>
         <div className="home-grid" style={{ marginTop: 16 }}>

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
 import type { Assignment, RolePerson } from '@/api/register';
-import { Alert, Badge, Button, Dialog, Loading, PageHeader, SelectField, TextField, fmtDate } from '@/components/ui';
+import { Alert, Badge, Button, Dialog, Loading, PageHeader, SelectField, TextField, fmtDate, TableWrap } from '@/components/ui';
 import { DataGrid } from '@/components/ui/DataGrid';
 import { committeeHelp as H } from '@/help/register';
 import { RoleEditor, StatusBadge, personLabel } from './RolesTab';
@@ -58,10 +58,10 @@ export function CompanyRoles() {
       <section className="card">
         <div className="card-header"><h2>Roles missing, by department</h2></div>
         <div className="card-body stack-sm">
-          <div className="table-wrap"><table className="table">
+          <TableWrap label="Roles missing, by department"><table className="table">
             <thead><tr><th>Department</th><th>Systems</th><th>No such person</th><th>Pending</th><th>Blocked</th></tr></thead>
             <tbody>{p.by_department.map((d) => <tr key={d.department}><td>{d.department}</td><td>{d.systems}</td><td>{d.no_such_person}</td><td>{d.pending}</td><td>{d.blocked}</td></tr>)}</tbody>
-          </table></div>
+          </table></TableWrap>
           <p className="small muted" style={{ margin: 0 }}>Company-wide roles count once for each system they block.</p>
         </div>
       </section>
