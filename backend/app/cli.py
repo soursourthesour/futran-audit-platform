@@ -6,6 +6,7 @@ Commands:
   seed-reference                      load reference data (idempotent)
   reset-demo                          recreate the database with reference data and demo tenants (test mode only)
   seed-e2e                            minimal users for automated browser tests (test mode only)
+  rematch-reg-updates [--apply]       match open regulatory updates to clients they missed (BUG-08); a dry run without --apply
 """
 import argparse
 import sys
@@ -103,6 +104,27 @@ def cmd_seed_reference(args) -> int:
         result = loader(db)
         print(f"{name}: {result}")
     db.commit()
+    return 0
+
+
+def cmd_rematch_reg_updates(args) -> int:
+    """Clients set up before the law library missed regulatory updates published before their applicability existed."""
+    from app.regupdates.service import ensure_applicability, rematch_all
+    from app.tenancy.models import Organization
+
+    _, db = _session()
+    ensure_applicability(db)
+    added = rematch_all(db)
+    for org_id, n in sorted(added.items(), key=lambda kv: db.get(Organization, kv[0]).name):
+        print(f"{db.get(Organization, org_id).name}: {n} {'update' if n == 1 else 'updates'} matched")
+    if not added:
+        print("Every client already has its alerts; nothing to add.")
+    if args.apply:
+        db.commit()
+        print("Saved.")
+    else:
+        db.rollback()
+        print("Dry run: nothing saved. Run again with --apply to save.")
     return 0
 
 
@@ -221,6 +243,9 @@ def main(argv: list[str] | None = None) -> int:
     se.add_argument("--late", action="store_true", help="ABC Corp at stage 6 and Meridian at stage 3, for the review-to-close journey")
     se.set_defaults(func=cmd_seed_e2e)
     sub.add_parser("reset-demo").set_defaults(func=cmd_reset_demo)
+    rm = sub.add_parser("rematch-reg-updates")
+    rm.add_argument("--apply", action="store_true", help="save the new alerts and reassessment triggers")
+    rm.set_defaults(func=cmd_rematch_reg_updates)
     args = p.parse_args(argv)
     return args.func(args)
 

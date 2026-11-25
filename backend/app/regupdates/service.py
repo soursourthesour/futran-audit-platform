@@ -3,6 +3,7 @@ the deadline calendar, client alerts through A1, advisory opportunities through 
 the weekly digest."""
 from __future__ import annotations
 
+import logging
 from datetime import date, datetime, timedelta
 
 from sqlalchemy import select
@@ -25,6 +26,7 @@ PC_TYPES = {"new_law": "new_law", "amendment": "amendment", "effective_date": "e
 LIBRARY_LABELS = {"new_rule": "New rule", "amendment": "Amendment", "effective_date": "Effective date", "guidance": "Guidance", "new_law": "New law",
                   "repeal": "Repeal", "role_mapping": "Role change", "enforcement": "Enforcement"}
 IN_USE = ("in_development", "ready_for_go_live", "live")
+log = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------- entry and review
@@ -180,8 +182,11 @@ def review(db: Session, settings, actor: User, u: RegulatoryUpdate, approve: boo
     u.status, u.published_at = "published", utcnow()
     alerts = match(db, u)
     triggers = raise_triggers(db, u, alerts, actor.id)
+    unmatched = unmatchable_clients(db) if not u.watch else []
+    u.unmatched_clients = unmatched  # not stored: the publish response tells the reviewer
     audit.record(db, actor_id=actor.id, action="regupdate.publish", obj=u, organization_id=actor.organization_id,
-                 after={"clients": len(alerts), "triggers": len(triggers), "note": note}, summary=f"Published {u.reference}: {u.title}"[:300])
+                 after={"clients": len(alerts), "triggers": len(triggers), "note": note, "unmatched_clients": [c["id"] for c in unmatched]},
+                 summary=f"Published {u.reference}: {u.title}"[:300])
     return u
 
 
@@ -280,13 +285,51 @@ def match_org(db: Session, u: RegulatoryUpdate, org_id: str) -> tuple[list[str],
     return affected, "; ".join(parts)[:600] or "Matches the client's AI use"
 
 
+def _clients(db: Session) -> list[Organization]:
+    return list(db.scalars(select(Organization).where(Organization.type == "client", Organization.deleted_at.is_(None)).order_by(Organization.name)))
+
+
+def ensure_applicability(db: Session) -> None:
+    """BUG-08: a client set up before the law library has no applicability rows (and often no geographies), so it
+    could not be matched. Build them first, as opening the client's applicability page would. A failure for one
+    client is logged and leaves that client unmatched; it never stops the publish."""
+    from app.regmaster import engine
+    from app.regmaster.models import ClientLawApplicability
+
+    have = set(db.scalars(select(ClientLawApplicability.organization_id).distinct()))
+    for org in _clients(db):
+        if org.id in have:
+            continue
+        try:
+            with db.begin_nested():
+                engine.run(db, org.id, rematch=False)  # match() runs next; no separate re-match
+        except Exception:
+            log.exception("Applicability could not be built for organisation %s before matching", org.id)
+
+
+def unmatchable_clients(db: Session) -> list[dict]:
+    """Clients the matcher cannot place: no geographies or no applicability rows. Shown to the publisher."""
+    from app.regmaster.models import ClientGeography, ClientLawApplicability
+
+    geo = set(db.scalars(select(ClientGeography.organization_id).where(ClientGeography.deleted_at.is_(None)).distinct()))
+    app_ = set(db.scalars(select(ClientLawApplicability.organization_id).where(ClientLawApplicability.deleted_at.is_(None)).distinct()))
+    out = []
+    for org in _clients(db):
+        if org.id not in geo:
+            out.append({"id": org.id, "name": org.name, "reason": "No geographies: add where the client operates on its applicability page."})
+        elif org.id not in app_:
+            out.append({"id": org.id, "name": org.name, "reason": "No law applicability records: open the client's applicability page to build them."})
+    return out
+
+
 def match(db: Session, u: RegulatoryUpdate) -> list[RegulatoryAlert]:
     """One RegulatoryAlert per client the published update concerns. Watch items are never matched."""
     if u.watch or u.status != "published":
         return []
+    ensure_applicability(db)
     have = {a.organization_id: a for a in db.scalars(select(RegulatoryAlert).where(RegulatoryAlert.update_id == u.id))}
     out = []
-    for org in db.scalars(select(Organization).where(Organization.type == "client", Organization.deleted_at.is_(None)).order_by(Organization.name)):
+    for org in _clients(db):
         hit = match_org(db, u, org.id)
         if hit is None:
             continue
@@ -315,6 +358,43 @@ def raise_triggers(db: Session, u: RegulatoryUpdate, alerts: list[RegulatoryAler
                               detail=f"{u.reference} {CHANGE_LABELS[u.change_type]}: {u.title}", actor_id=actor_id)
             if t is not None:
                 out.append(t)
+    return out
+
+
+def rematch_org(db: Session, org_id: str, actor_id: str | None = None) -> list[RegulatoryAlert]:
+    """BUG-08: open updates (published, not watch items) are matched again for one client whose applicability or
+    geographies changed after they were published. Only missing alerts are added; an existing alert is left as it is.
+    Reassessment triggers follow, as at publish."""
+    org = db.get(Organization, org_id)
+    if org is None or org.type != "client" or org.deleted_at is not None:
+        return []
+    seen = set(db.scalars(select(RegulatoryAlert.update_id).where(RegulatoryAlert.organization_id == org_id)))
+    out = []
+    for u in db.scalars(select(RegulatoryUpdate).where(RegulatoryUpdate.status == "published", RegulatoryUpdate.watch.is_(False)).order_by(RegulatoryUpdate.published_at)):
+        if u.id in seen:
+            continue
+        hit = match_org(db, u, org_id)
+        if hit is None:
+            continue
+        a = RegulatoryAlert(organization_id=org_id, update_id=u.id, affected_system_ids=hit[0], match_reason=hit[1])
+        db.add(a)
+        db.flush()
+        raise_triggers(db, u, [a], actor_id)
+        out.append((u, a))
+    if out:
+        audit.record(db, actor_id=actor_id, action="regupdate.rematch", organization_id=org_id, object_type="Organization", object_id=org_id,
+                     after={"updates": [u.reference for u, _ in out]},
+                     summary=f"Matched {len(out)} earlier regulatory {'update' if len(out) == 1 else 'updates'} to {org.name}: {', '.join(u.reference for u, _ in out)}"[:500])
+    return [a for _, a in out]
+
+
+def rematch_all(db: Session, actor_id: str | None = None) -> dict[str, int]:
+    """Every client against every open update: for data from before BUG-08 was fixed. Returns {client id: alerts added}."""
+    out = {}
+    for org in _clients(db):
+        n = len(rematch_org(db, org.id, actor_id))
+        if n:
+            out[org.id] = n
     return out
 
 

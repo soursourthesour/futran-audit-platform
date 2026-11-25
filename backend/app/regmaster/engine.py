@@ -27,6 +27,7 @@ from app.regmaster.models import STAGES, ClientGeography, ClientLawApplicability
 
 log = logging.getLogger(__name__)
 BASES = ("office", "employees", "candidates", "customers", "data")
+GEO_ADDED_KEY = "regmaster_geography_added_orgs"
 EMPLOYMENT = re.compile(r"hir|recruit|candidat|applicant|employ|promot|talent|interview|resume|résumé|workforce|\bhr\b|human resources", re.I)
 
 
@@ -61,8 +62,12 @@ def add_geography(db: Session, org_id: str, jurisdiction_id: str, basis: str, ac
         row = ClientGeography(organization_id=org_id, jurisdiction_id=jurisdiction_id, basis=basis, source=source, location_id=location_id, created_by=actor_id)
         db.add(row)
     else:
+        if row.deleted_at is not None:
+            db.info.setdefault(GEO_ADDED_KEY, set()).add(org_id)
         row.deleted_at, row.updated_by = None, actor_id
         row.location_id = location_id or row.location_id
+    if row.id is None:
+        db.info.setdefault(GEO_ADDED_KEY, set()).add(org_id)  # BUG-08: earlier updates are matched again after the next run
     db.flush()
     if rerun:
         run(db, org_id, actor_id)
@@ -204,7 +209,9 @@ def candidate_laws(db: Session, org_id: str) -> list[tuple[Regulation, LawVersio
     return list(out.values())
 
 
-def run(db: Session, org_id: str, actor_id: str | None = None) -> list[ClientLawApplicability]:
+def run(db: Session, org_id: str, actor_id: str | None = None, rematch: bool = True) -> list[ClientLawApplicability]:
+    """rematch: when a law comes into scope or a geography was added, match the client against earlier regulatory
+    updates (BUG-08). The publish path turns it off because it matches straight after."""
     from app.laws.publish import current_version_of
 
     from app.regmaster.seed import ensure_versions
@@ -224,6 +231,7 @@ def run(db: Session, org_id: str, actor_id: str | None = None) -> list[ClientLaw
             confirmed[cur.id] = cr
     # every row, removed ones too: a law that comes back into view reuses its row (one row per client and law)
     existing = {r.regulation_id: r for r in db.scalars(select(ClientLawApplicability).where(ClientLawApplicability.organization_id == org_id))}
+    was_in_scope = {k for k, r in existing.items() if r.in_scope and r.deleted_at is None}
     now = utcnow()
     seen: set[str] = set()
     out = []
@@ -258,6 +266,12 @@ def run(db: Session, org_id: str, actor_id: str | None = None) -> list[ClientLaw
         if reg_id not in seen and not row.override and row.deleted_at is None:
             row.deleted_at = now
     db.flush()
+    geo_added = org_id in db.info.get(GEO_ADDED_KEY, set())
+    db.info.get(GEO_ADDED_KEY, set()).discard(org_id)
+    if rematch and (geo_added or any(r.in_scope and r.regulation_id not in was_in_scope for r in out)):
+        from app.regupdates.service import rematch_org
+
+        rematch_org(db, org_id, actor_id)
     return out
 
 
