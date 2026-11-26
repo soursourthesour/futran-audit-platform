@@ -20,8 +20,32 @@ def settings() -> Settings:
     )
 
 
+PG_URL = __import__("os").environ.get("FAP_TEST_DATABASE_URL")  # opt in: run the suite on PostgreSQL (the AWS target)
+_pg_engine = None
+
+
+def _pg():
+    """One PostgreSQL engine for the session: the schema is created once and every table is emptied before each test."""
+    global _pg_engine
+    from app.core.models import Base
+    import app.models_registry  # noqa: F401
+
+    if _pg_engine is None:
+        _pg_engine = create_engine(PG_URL)
+        with _pg_engine.begin() as c:  # start from an empty schema (drop_all cannot drop the unnamed circular foreign keys)
+            c.exec_driver_sql("DROP SCHEMA public CASCADE; CREATE SCHEMA public")
+        Base.metadata.create_all(_pg_engine)
+    names = ", ".join(f'"{t.name}"' for t in Base.metadata.sorted_tables)
+    with _pg_engine.begin() as c:
+        c.exec_driver_sql(f"TRUNCATE {names} RESTART IDENTITY CASCADE")
+    return _pg_engine
+
+
 @pytest.fixture
 def engine():
+    if PG_URL:
+        yield _pg()
+        return
     eng = create_engine(
         "sqlite://",
         connect_args={"check_same_thread": False},
