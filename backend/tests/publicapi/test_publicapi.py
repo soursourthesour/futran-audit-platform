@@ -183,6 +183,25 @@ def test_use_case_intake_creates_a_draft_for_human_review(client, db, w, abc):
     assert client.post(f"{PUB}/usecases", headers=bearer(t), json=body).status_code == 409
 
 
+def test_use_case_intake_cannot_name_users(client, db, w, abc):
+    """Y02 review: named users are recorded in the platform under RECORD_NAMED_USERS, never through an API token
+    (whose owner, a Client Admin, does not hold that permission)."""
+    from app.inventory.models import AITool, NamedUser
+
+    _, t = abc
+    tool = AITool(organization_id=w.org.id, vendor="OpenAI", product="ChatGPT", account_type="enterprise")
+    db.add(tool)
+    w.e.stage = 2
+    db.commit()
+    before = db.query(NamedUser).count()
+    body = {"name": "Screening", "department_id": w.hr.id, "tool_ids": [tool.id], "decision_impact": "none", "data_categories": ["none"], "purpose": "x",
+            "named_users": [{"person_name": "Mallory Planted", "email": "mallory@abc.test", "role_name": "Recruiter"}]}
+    r = client.post(f"{PUB}/usecases", headers=bearer(t), json=body)
+    assert r.status_code == 422 and "named_users" in r.text
+    db.expire_all()
+    assert db.query(NamedUser).count() == before
+
+
 def test_attestation_status_and_updates(client, w, abc):
     _, t = abc
     r = client.get(f"{PUB}/attestation/status", headers=bearer(t))
