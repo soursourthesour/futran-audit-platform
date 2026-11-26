@@ -24,7 +24,7 @@ from sqlalchemy.orm import Session
 from app.core.db import get_db
 from app.core.errors import Invalid, install_error_handlers
 from app.core.ratelimit import TooManyRequests, client_ip, limiter
-from app.library import content
+from app.library import content, guard
 from app.library import keys as K
 from app.library.models import WebsiteApiKey
 
@@ -33,7 +33,8 @@ CACHE_CONTROL = "public, max-age=300, stale-while-revalidate=600"
 VARY = "Origin, X-API-Key, Authorization"
 CACHE_SECONDS = 60  # a cached body is rebuilt at least this often, even if no fingerprint column moved
 CACHE_ENTRIES = 500
-BAD_KEYS_PER_MINUTE = 30  # per network address
+BAD_KEYS_PER_MINUTE = 30  # per network address: requests with a missing or wrong key, and CORS preflights
+ORIGINS_SECONDS = 60  # how long preflights use the cached set of allowed origins
 EXPOSE = "ETag, X-Library-Last-Refreshed, Retry-After, X-RateLimit-Limit, X-RateLimit-Remaining"
 ALLOW_HEADERS = "X-API-Key, Authorization, If-None-Match, Content-Type"
 NEVER = "never"
@@ -107,13 +108,14 @@ def _matches(header: str | None, etag: str) -> bool:
 
 def _serve(request: Request, db: Session, name: str, params: dict, build, kind: str) -> Response:
     store: OrderedDict = request.app.state.__dict__.setdefault("_library_cache", OrderedDict())
-    fp = content.fingerprint(db)
+    fp = (content.fingerprint(db), guard.names_fingerprint(db))  # a new client name must reach cached bodies too
     ck = (name, tuple(sorted((k, str(v)) for k, v in params.items() if v is not None)))
     now = time.monotonic()
     with _CACHE_LOCK:
         hit = store.get(ck)
     if hit is None or hit["fp"] != fp or now - hit["at"] > CACHE_SECONDS:
-        body = json.dumps(jsonable_encoder(build()), ensure_ascii=False, separators=(",", ":")).encode()
+        data = guard.scrub(jsonable_encoder(build()), guard.pattern(request.app.state, db), f"{name} {params.get('id', '')}".strip())
+        body = json.dumps(data, ensure_ascii=False, separators=(",", ":")).encode()
         if kind == "both":
             refreshed = max((t for t in (content.last_refreshed(db, "law"), content.last_refreshed(db, "litigation")) if t), default=None)
         else:
@@ -149,7 +151,7 @@ class LibraryCors:
         headers = {k.decode("latin-1").lower(): v.decode("latin-1") for k, v in scope.get("headers", [])}
         origin = headers.get("origin")
         if scope["method"] == "OPTIONS" and origin and "access-control-request-method" in headers:
-            await self._preflight(origin, headers["access-control-request-method"], send)
+            await self._preflight(scope, origin, headers["access-control-request-method"], send)
             return
 
         async def send_with_cors(message):
@@ -164,21 +166,36 @@ class LibraryCors:
 
         await self.app(scope, receive, send_with_cors)
 
-    async def _preflight(self, origin: str, method: str, send) -> None:
+    async def _preflight(self, scope, origin: str, method: str, send) -> None:
+        request = Request(scope)
+        try:  # a preflight carries no key: it counts against the same per-address allowance as a missing or wrong key
+            limiter(request, "library_bad_key", BAD_KEYS_PER_MINUTE).check(client_ip(request))
+        except TooManyRequests:
+            body = json.dumps({"detail": "Too many requests from this address. Wait a minute and try again.", "errors": []}).encode()
+            await _send(send, 429, [(b"content-type", b"application/json"), (b"retry-after", b"60"), (b"vary", VARY.encode())], body)
+            return
         norm = K.normalize_origin(origin)
-        ok = False
-        if norm and method.upper() == "GET":
-            db = self.state.sessionmaker()
-            try:
-                ok = K.allowed_anywhere(db, norm)
-            finally:
-                db.close()
+        ok = bool(norm) and method.upper() == "GET" and norm in allowed_origins(self.state)
         if ok:
             await _send(send, 204, [(b"access-control-allow-origin", origin.encode("latin-1")), (b"access-control-allow-methods", b"GET, OPTIONS"),
                                     (b"access-control-allow-headers", ALLOW_HEADERS.encode()), (b"access-control-max-age", b"600"), (b"vary", VARY.encode())])
             return
         body = json.dumps({"detail": "This origin is not allowed to call the library API.", "errors": []}).encode()
         await _send(send, 403, [(b"content-type", b"application/json"), (b"vary", VARY.encode())], body)
+
+
+def allowed_origins(state) -> set[str]:
+    """Every origin an active key lists, kept for ORIGINS_SECONDS (dropped at once when a key is created or revoked)."""
+    now = time.monotonic()
+    hit = state.__dict__.get(K.ORIGIN_CACHE)
+    if hit is None or now - hit[0] > ORIGINS_SECONDS:
+        db = state.sessionmaker()
+        try:
+            hit = (now, K.active_origins(db))
+        finally:
+            db.close()
+        state.__dict__[K.ORIGIN_CACHE] = hit
+    return hit[1]
 
 
 async def _send(send, status: int, headers: list, body: bytes = b"") -> None:
