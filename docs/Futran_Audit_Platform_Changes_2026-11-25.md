@@ -112,7 +112,7 @@ You asked for workstreams A to F in parallel, with the load test at 2,000 to 10,
 | [[Ashvins]] (four fixers) | Fixes in separate branches | Merged into `build/v1` |
 | [[Chitragupta]] | Review of the merged fixes | 6 fixed, 4 minor deferred |
 
-58 bugs and observations in all: 50 fixed, 1 not a bug, 5 deferred, 2 open. A fresh install on PostgreSQL 16 was proved end to end (BUG-K07, K08).
+58 bugs and observations in all: 52 fixed (after the evening fixes), 1 not a bug, 1 accepted (V06), 3 deferred, 1 open (Y02, fix ready). A fresh install on PostgreSQL 16 was proved end to end (BUG-K07, K08).
 
 ### Speed at 10,000 people (test machine, 2 CPUs)
 
