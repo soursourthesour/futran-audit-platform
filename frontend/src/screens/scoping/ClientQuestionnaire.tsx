@@ -14,14 +14,18 @@ type View = {
   answers: Record<string, { value: unknown; confidence: Draft['confidence'] }>; footer: string; privacy: string;
 };
 
-function Shell({ children, company }: { children: React.ReactNode; company?: string }) {
+/** `titled`: the page title "Scoping questions for …" is the page's h1 (OBS-08); the other states have their own h1. */
+function Shell({ children, company, titled }: { children: React.ReactNode; company?: string; titled?: boolean }) {
   return (
     <div className="cq">
       <header className="cq-head">
         <span className="cq-brand"><img className="brand-logo" src={logoWhite} alt="Futran Solutions" /></span>
-        {company && <span className="cq-for">Scoping questions for {company}</span>}
+        {company && !titled && <span className="cq-for">Scoping questions for {company}</span>}
       </header>
-      <main className="cq-main">{children}</main>
+      <main className="cq-main">
+        {company && titled && <h1 className="cq-h1">Scoping questions for {company}</h1>}
+        {children}
+      </main>
     </div>
   );
 }
@@ -87,7 +91,7 @@ export function ClientQuestionnaire() {
   }
 
   return (
-    <Shell company={v.company}>
+    <Shell company={v.company} titled>
       <div className="cq-progress">
         <span>Step {step + 1} of {secs.length} · {s.label}</span><span>{pct}% done</span>
         <div className="progress" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Answered so far"><span style={{ width: `${pct}%` }} /></div>
