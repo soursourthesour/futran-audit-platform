@@ -274,6 +274,6 @@ def _unenforced_actions() -> list[str]:
     return [a.name for a in Action if not re.search(rf"\b(?:Action|A)\.{a.name}\b", src) and not re.search(rf"[\"']{a.value}[\"']", src)]
 
 
-@pytest.mark.xfail(strict=True, reason="FINDING Y02: 8 matrix actions are granted but no route checks them; e.g. sign-offs are signed on VIEW_ENGAGEMENT plus has_role, so SIGN_CLIENT_SIGNOFF and SIGN_FINAL_REPORT govern nothing")
 def test_every_matrix_action_is_enforced_somewhere():
+    """Y02 (fixed 25 Nov): every action the matrix grants is checked by some route, so no matrix line governs nothing."""
     assert _unenforced_actions() == []
