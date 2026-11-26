@@ -285,7 +285,7 @@ class MailRecipient(TimestampedTenantMixin, Base):
 
 
 class MailOneTimeCode(TimestampedTenantMixin, Base):
-    """A 6-digit code for a shared (BCC) link: proves the person reads the work email they typed (§26.5)."""
+    """An 8-digit code (6 digits before 25 Nov) for a shared (BCC) link: proves the person reads the work email they typed (§26.5)."""
 
     __tablename__ = "mail_one_time_codes"
 

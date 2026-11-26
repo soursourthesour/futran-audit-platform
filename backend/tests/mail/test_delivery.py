@@ -109,14 +109,14 @@ def _bcc(db, settings, org, caico):
 
 def test_shared_link_needs_a_one_time_code_sent_to_a_recipient_email(db, settings, org, caico):
     s, raw = _bcc(db, settings, org, caico)
-    with pytest.raises(Invalid):
-        links.request_code(db, settings, raw, "stranger@abc.com")
+    assert links.request_code(db, settings, raw, "stranger@abc.com") is None  # same answer, no code (review 11-25 H09)
+    assert db.query(OutboxMessage).filter(OutboxMessage.template_key == "one_time_code").count() == 0
     code = links.request_code(db, settings, raw, "P1@abc.com")
-    assert len(code) == 6 and code.isdigit()
+    assert len(code) == 8 and code.isdigit()
     mail = db.query(OutboxMessage).filter(OutboxMessage.template_key == "one_time_code").one()
     assert mail.to == ["p1@abc.com"] and code in mail.body_text
     with pytest.raises(Invalid):
-        links.verify_code(db, raw, "p1@abc.com", "000000" if code != "000000" else "111111")
+        links.verify_code(db, raw, "p1@abc.com", "00000000" if code != "00000000" else "11111111")
     proof = links.verify_code(db, raw, "p1@abc.com", code)
     rec = links.recipient_for_proof(db, raw, proof)
     assert rec.email == "p1@abc.com"
@@ -130,7 +130,7 @@ def test_one_time_code_expires_after_10_minutes_and_locks_after_5_wrong_tries(db
         links.verify_code(db, raw, "p0@abc.com", code)
     set_now(None)
     code = links.request_code(db, settings, raw, "p2@abc.com")
-    wrong = "000000" if code != "000000" else "111111"
+    wrong = "00000000" if code != "00000000" else "11111111"
     for _ in range(5):
         with pytest.raises(Invalid):
             links.verify_code(db, raw, "p2@abc.com", wrong)
@@ -145,6 +145,46 @@ def test_code_requests_are_rate_limited_per_email(db, settings, org, caico):
     with pytest.raises(AppError) as e:
         links.request_code(db, settings, raw, "p1@abc.com")
     assert e.value.status_code == 429
+
+
+def test_a_stranger_gets_the_same_limit_as_a_recipient(db, settings, org, caico):
+    """H09: the fourth request in ten minutes is refused for any address, so the limit can't tell recipients apart."""
+    s, raw = _bcc(db, settings, org, caico)
+    for _ in range(3):
+        links.request_code(db, settings, raw, "nobody@abc.com")
+    with pytest.raises(AppError) as e:
+        links.request_code(db, settings, raw, "nobody@abc.com")
+    assert e.value.status_code == 429
+
+
+def test_wrong_codes_are_capped_per_link_across_all_recipients(db, settings, org, caico):
+    """H09: per-address tries multiplied by recipients; the link itself now stops after LINK_WRONG_PER_HOUR."""
+    people = _people(db, org, 12)
+    g = _list(db, caico, org, "Many", people)
+    s = send_to_groups(db, settings, caico, organization_id=org.id, group_ids=[g.id], template_key="ll144_notice", mode="bcc")
+    raw = db.query(OutboxMessage).filter_by(mail_send_id=s.id).one().body_text.split("/m/s/")[1].split()[0]
+    wrong_total = 0
+    for i in range(12):
+        email = f"p{i}@abc.com"
+        code = links.request_code(db, settings, raw, email)
+        wrong = "00000000" if code != "00000000" else "11111111"
+        for _ in range(links.CODE_TRIES):
+            if wrong_total >= links.LINK_WRONG_PER_HOUR:
+                break
+            with pytest.raises(Invalid):
+                links.verify_code(db, raw, email, wrong)
+            wrong_total += 1
+    assert wrong_total == links.LINK_WRONG_PER_HOUR
+    fresh = people[-1].email.lower()
+    with pytest.raises(AppError) as e:
+        links.verify_code(db, raw, fresh, "12345678")
+    assert e.value.status_code == 429
+    set_now(utcnow() + timedelta(minutes=71))
+    try:
+        c = links.request_code(db, settings, raw, fresh)
+        assert links.verify_code(db, raw, fresh, c)  # the link works again after the hour
+    finally:
+        set_now(None)
 
 
 def _connect_fake(db, settings, org):

@@ -51,5 +51,5 @@ export const emailHelp = {
   logPeriod: 'How far back to look.',
   logCategory: 'Show one kind of change.',
   linkEmail: 'The work email this message was sent to. A code is sent to it to confirm it is yours.',
-  code: 'The 6-digit code in the email we just sent. It expires after 10 minutes.',
+  code: 'The 8-digit code in the email we sent. It expires after 10 minutes. No email? Check the address is the one this message was sent to.',
 };

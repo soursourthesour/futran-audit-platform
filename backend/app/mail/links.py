@@ -4,7 +4,9 @@ Personal link: a random 256-bit token, stored only as its SHA-256 hash, bound to
 send), expiring (default 14 days). Sending again to the same person for the same campaign replaces the old link.
 
 Shared (BCC) link: one per send. Before answering, the person types their work email; it must be one of that send's
-recipients, and a 6-digit code (10 minutes, 5 tries, 3 codes per 10 minutes per address) is sent to it.
+recipients, and an 8-digit code (10 minutes, 5 tries, 3 codes per 10 minutes per address) is sent to it. Any address
+gets the same answer, so the page doesn't reveal who was sent the message, and the link as a whole stops taking codes
+after LINK_WRONG_PER_HOUR wrong ones (review 11-25 H09).
 """
 import hashlib
 import hmac
@@ -24,7 +26,13 @@ from app.mail.sending import token_hash
 CODE_MINUTES = 10
 CODE_TRIES = 5
 CODES_PER_WINDOW = 3
+CODE_DIGITS = 8
+LINK_WRONG_PER_HOUR = 50  # wrong codes on one shared link, across every recipient, before it pauses for an hour
 PROOF_MINUTES = 60
+
+# (send id, address) -> times a code was asked for an address that was not sent the message. In memory, like the
+# other rate limits (the platform runs as one process), so a stranger meets the same limit as a recipient.
+_STRANGERS: dict[tuple[str, str], list] = {}
 
 
 class Gone(AppError):
@@ -92,25 +100,36 @@ def _code_hash(send_id: str, email: str, code: str) -> str:
     return hashlib.sha256(f"{send_id}:{email}:{code}".encode()).hexdigest()
 
 
-def _recipient(db: Session, s: MailSend, email: str) -> MailRecipient:
-    r = db.scalar(select(MailRecipient).where(MailRecipient.send_id == s.id, func.lower(MailRecipient.email) == email).limit(1))
-    if r is None:
-        raise Invalid(errors=[{"field": "email", "message": "This email address was not sent this message. Use the work email it was sent to."}])
-    return r
+def _recipient(db: Session, s: MailSend, email: str) -> MailRecipient | None:
+    return db.scalar(select(MailRecipient).where(MailRecipient.send_id == s.id, func.lower(MailRecipient.email) == email).limit(1))
 
 
-def request_code(db: Session, settings: Settings, raw: str, email: str) -> str:
+def _too_many(count: int) -> None:
+    if count >= CODES_PER_WINDOW:
+        raise TooManyRequests("Too many codes asked for. Wait ten minutes and try again.")
+
+
+def request_code(db: Session, settings: Settings, raw: str, email: str) -> str | None:
+    """Send a code if the address was sent this message. The caller answers the same way either way; None means no
+    code was sent."""
     s = shared_send(db, raw)
     email = (email or "").strip().lower()
     if "@" not in email:
         raise Invalid(errors=[{"field": "email", "message": "Enter your work email."}])
-    r = _recipient(db, s, email)
     now = utcnow()
+    r = _recipient(db, s, email)
+    if r is None:
+        since = now - timedelta(minutes=CODE_MINUTES)
+        for k in [k for k, v in _STRANGERS.items() if not v or v[-1] <= since]:
+            _STRANGERS.pop(k, None)
+        times = [t for t in _STRANGERS.get((s.id, email), []) if t > since]
+        _too_many(len(times))
+        _STRANGERS[(s.id, email)] = [*times, now]
+        return None
     recent = db.scalar(select(func.count(MailOneTimeCode.id)).where(MailOneTimeCode.send_id == s.id, MailOneTimeCode.email == email,
                                                                      MailOneTimeCode.created_at > now - timedelta(minutes=CODE_MINUTES)))
-    if recent >= CODES_PER_WINDOW:
-        raise TooManyRequests("Too many codes asked for. Wait ten minutes and try again.")
-    code = f"{secrets.randbelow(10**6):06d}"
+    _too_many(recent)
+    code = f"{secrets.randbelow(10**CODE_DIGITS):0{CODE_DIGITS}d}"
     db.add(MailOneTimeCode(organization_id=s.organization_id, send_id=s.id, recipient_id=r.id, email=email, code_hash=_code_hash(s.id, email, code),
                            expires_at=now + timedelta(minutes=CODE_MINUTES), attempts=0, created_at=now))
     from app.mail.service import send as send_mail
@@ -131,6 +150,10 @@ def verify_code(db: Session, raw: str, email: str, code: str) -> str:
     now = utcnow()
     row = db.scalar(select(MailOneTimeCode).where(MailOneTimeCode.send_id == s.id, MailOneTimeCode.email == email, MailOneTimeCode.used_at.is_(None))
                     .order_by(MailOneTimeCode.created_at.desc()).limit(1))
+    wrong_recently = db.scalar(select(func.coalesce(func.sum(MailOneTimeCode.attempts), 0)).where(
+        MailOneTimeCode.send_id == s.id, MailOneTimeCode.created_at > now - timedelta(minutes=60 + CODE_MINUTES)))
+    if wrong_recently >= LINK_WRONG_PER_HOUR:
+        raise TooManyRequests("This link has had too many wrong codes. Try again in an hour, or use a personal link if you have one.")
     bad = Invalid(errors=[{"field": "code", "message": "That code is not right, or it has expired. Check the latest email or ask for a new code."}])
     if row is None or row.expires_at <= now:
         raise bad

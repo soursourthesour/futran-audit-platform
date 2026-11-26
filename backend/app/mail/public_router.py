@@ -93,7 +93,7 @@ def shared_view(token: str, db: Session = Depends(get_db, scope="function")):
 def shared_code(token: str, body: EmailIn, request: Request, db: Session = Depends(get_db, scope="function")):
     limiter(request, "mail_code", 10).check(client_ip(request))
     links.request_code(db, request.app.state.settings, token, body.email)
-    return {"sent": True}
+    return {"sent": True}  # the same answer whether or not the address was sent the message (review 11-25 H09)
 
 
 @router.post("/s/{token}/verify")

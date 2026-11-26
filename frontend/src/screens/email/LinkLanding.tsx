@@ -88,13 +88,14 @@ function ConfirmEmail({ base, onProof }: { base: string; onProof: (p: string) =>
     <Card>
       <div className="stack">
         <h1 style={{ fontSize: 22, margin: 0 }}>Confirm your work email</h1>
-        <p className="small" style={{ margin: 0 }}>This link was sent to a group, so we check it is you before you answer. We send a 6-digit code to your work email.</p>
+        <p className="small" style={{ margin: 0 }}>This link was sent to a group, so we check it is you before you answer. If the address you enter was sent this message, we email it a code.</p>
         {err && !Object.keys(fe).length && <Alert tone="danger">{err}</Alert>}
         <TextField label="Work email" help={H.linkEmail} type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} error={fe.email} disabled={sent} />
         {!sent ? <Button variant="primary" block disabled={busy || !email.includes('@')} onClick={() => go(async () => { await api.post(`${base}/code`, { email }); setSent(true); })}>Send me a code</Button> : (
           <>
-            <TextField label="Code" help={H.code} inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} error={fe.code} />
-            <Button variant="primary" block disabled={busy || code.length !== 6} onClick={() => go(async () => { const r = await api.post<{ proof: string }>(`${base}/verify`, { email, code }); onProof(r.proof); })}>Continue</Button>
+            <p className="small" role="status" style={{ margin: 0 }}>If {email.trim()} was sent this message, a code is on its way. It can take a minute to arrive.</p>
+            <TextField label="Code" help={H.code} inputMode="numeric" autoComplete="one-time-code" maxLength={8} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} error={fe.code} />
+            <Button variant="primary" block disabled={busy || code.length < 6} onClick={() => go(async () => { const r = await api.post<{ proof: string }>(`${base}/verify`, { email, code }); onProof(r.proof); })}>Continue</Button>
             <Button variant="ghost" block disabled={busy} onClick={() => go(async () => { await api.post(`${base}/code`, { email }); setCode(''); })}>Send a new code</Button>
           </>
         )}

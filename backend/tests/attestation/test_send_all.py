@@ -127,7 +127,7 @@ def test_shared_link_answer_needs_the_one_time_code(client, db, world):
     assert pub.post(f"/api/v1/public/m/s/{raw}/attestation", json={**_answer(depts["HR"], name="Eve Long"), "proof": "nope"}).status_code == 422
     assert pub.post(f"/api/v1/public/m/s/{raw}/code", json={"email": "eve@abc.test"}).status_code == 200
     code = db.scalar(select(OutboxMessage).where(OutboxMessage.template_key == "one_time_code")).subject.rsplit(" ", 1)[1]
-    assert pub.post(f"/api/v1/public/m/s/{raw}/verify", json={"email": "eve@abc.test", "code": "999999" if code != "999999" else "000000"}).status_code == 422
+    assert pub.post(f"/api/v1/public/m/s/{raw}/verify", json={"email": "eve@abc.test", "code": "99999999" if code != "99999999" else "00000000"}).status_code == 422
     v = pub.post(f"/api/v1/public/m/s/{raw}/verify", json={"email": "eve@abc.test", "code": code})
     assert v.status_code == 200
     ok = pub.post(f"/api/v1/public/m/s/{raw}/attestation", json={**_answer(depts["HR"], name="Eve Long"), "proof": v.json()["proof"]})
