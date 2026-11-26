@@ -19,9 +19,9 @@ from app.reference.models import Jurisdiction
 from app.refresh.claude import client_for
 from app.refresh.models import CHECKS, RefreshProposalMeta, RefreshRun
 from app.refresh.pipeline import get_run_setting, host_of, jurisdictions_for, start_run
-from app.refresh.review import ACTIONS, assign_reviewer, decide, kind_of, meta_for, second_review
+from app.refresh.review import ACTIONS, assign_reviewer, decide, kind_of, second_review
 from app.refresh.service import GROUP_LABELS, OPEN_STATUSES, run_summary
-from app.regmaster.models import ChangeImpact, ClientGeography, LawVersion, ProposedChange, Source
+from app.regmaster.models import ChangeImpact, LawVersion, ProposedChange, Source
 from app.tenancy.models import Organization, User
 
 router = APIRouter(tags=["refresh"])

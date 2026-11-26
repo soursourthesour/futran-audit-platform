@@ -28,8 +28,3 @@ def assert_not_admin_judgment(actor: Actor) -> None:
     if actor.is_futran and "admin" in actor.role_names and not (actor.role_names & judgment_roles):
         raise Forbidden("Administrators manage the platform and cannot make audit judgments.")
 
-
-def assert_client_cannot_edit_finding(actor: Actor) -> None:
-    """Rule 5: clients can respond to findings but never edit finding text."""
-    if not actor.is_futran:
-        raise Forbidden("Clients can respond to findings but cannot change finding text.")

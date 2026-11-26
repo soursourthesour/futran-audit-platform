@@ -53,20 +53,6 @@ export const caseHelp = {
   owner: 'Which Sales Officer or Sales Manager owns the new opportunities.',
 };
 
-export const oppHelp = {
-  summary: "What was said or agreed, in a sentence or two, and the next step with a date. The note stays on the opportunity's history.",
-  client: 'The client the opportunity is about.',
-  service: 'What Futran would offer, in a few words.',
-  kind: 'Remediation of a finding raised in a current engagement cannot be offered to that client.',
-  why: 'Why now: the rule, date, case or request behind it.',
-  value: 'Estimated value in US dollars.',
-  owner: 'Sales Officer, Sales Manager or Chief Auditor who owns it.',
-  stage: 'New, contacted, proposal, won or lost.',
-  nextStep: 'The next thing to do, with a date if there is one.',
-  activity: 'A call, email, meeting, note or outcome. Kept on the opportunity.',
-  approval: 'For a current audit client, the Chief Auditor approves any offer before it is sent.',
-};
-
 export const clientAlertHelp = {
   groups: 'The client groups that receive the alert (E3). AIComplianceTeam is kept by the client; when it is empty the alert goes to the Chief AI Compliance Officer.',
   approval: 'Whether each send waits for the Chief Auditor, the Sales owner, or goes out automatically.',

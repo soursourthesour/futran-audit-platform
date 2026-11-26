@@ -157,10 +157,6 @@ def departments_for(actor: Actor, action: Action) -> set[str] | None:
     return out
 
 
-def actor_department_ids(actor: Actor) -> set[str]:
-    return {r.scope_id for r in actor.roles if r.scope_type == "department" and r.scope_id}
-
-
 def get_scoped(db: Session, actor: Actor, model, obj_id: str):
     """Load a tenant-owned row by ID, as 404 when it is outside what the actor can see."""
     obj = db.get(model, obj_id)

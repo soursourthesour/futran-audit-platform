@@ -15,7 +15,7 @@ from app.inventory.models import AITool, NamedUserLink, UsageRecord, UseCase
 from app.policy.actions import Action
 from app.policy.authorize import authorize, departments_for
 from app.policy.sod import assert_not_admin_judgment
-from app.tenancy.models import Department, Organization, User
+from app.tenancy.models import Department, Organization
 from app.tenancy.people import current_engagement
 
 router = APIRouter(tags=["inventory"])

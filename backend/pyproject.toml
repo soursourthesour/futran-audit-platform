@@ -8,7 +8,6 @@ dependencies = [
   "uvicorn[standard]>=0.30",
   "pydantic>=2.7,<3",
   "pydantic-settings>=2.3",
-  "email-validator>=2.1",
   "sqlalchemy>=2.0.30,<2.1",
   "alembic>=1.13",
   "psycopg[binary]>=3.1",
@@ -27,11 +26,13 @@ dependencies = [
   "anthropic>=0.40",
   "itsdangerous>=2.2",
   "segno>=1.6",
+  "pypdf>=4",  # reads uploaded PDFs (app/ai/text.py); also arrives with xhtml2pdf
+  "Pillow>=10",  # heat map images (app/insights/render.py); also arrives with xhtml2pdf
   "httpx>=0.27",  # the demo loader drives the API in-process (FastAPI TestClient)
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "httpx>=0.27", "freezegun>=1.5", "pypdf>=4"]
+dev = ["pytest>=8"]
 
 [build-system]
 requires = ["setuptools>=69"]

@@ -20,7 +20,7 @@ from app.core.db import get_db
 from app.core.errors import Conflict, Forbidden, NotFound
 from app.engagements.models import Engagement
 from app.inventory import service as inv
-from app.inventory.models import AITool, UseCase
+from app.inventory.models import UseCase
 from app.policy.actions import Action
 from app.policy.authorize import authorize, departments_for
 from app.register import service as svc

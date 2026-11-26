@@ -81,7 +81,6 @@ def depth_for(tier: int, intake: dict) -> tuple[str, list[str], str]:
 
 
 def match_laws(db: Session, jurisdiction_ids: list[str], intake: dict) -> list[dict]:
-    from app.laws.models import Regulation
     from app.laws.publish import current_regulations
     from app.reference.models import Jurisdiction
     from app.regmaster.engine import _decide, expand

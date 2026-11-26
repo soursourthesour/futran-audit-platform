@@ -14,7 +14,6 @@ from app.policy.actions import Action
 from app.policy.authorize import authorize, departments_for
 from app.questionnaire import service as qs
 from app.questionnaire.models import Response
-from app.systems.models import AISystem
 from app.systems.service import get_system
 from app.tenancy.models import Organization, User
 from app.tenancy.people import current_engagement

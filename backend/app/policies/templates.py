@@ -266,6 +266,3 @@ def clean_blocks(raw) -> tuple[list[dict], list[dict]]:
         errs.append({"field": "blocks", "message": "The policy has no text."})
     return out, errs
 
-
-def plain_text(blocks: list[dict]) -> str:
-    return "\n".join(b["text"] if b["type"] != "list" else "\n".join(b["items"]) for b in blocks)

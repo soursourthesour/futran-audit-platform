@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
 import { SIGNOFF_TONE, type EuDetail, type EuListing, type EuObligation } from '@/api/r6b';
@@ -260,8 +260,4 @@ function SignOffCard({ d, base, run }: { d: EuDetail; base: string; run: Run }) 
       </div>
     </Card>
   );
-}
-
-export function EuAiActLink({ to }: { to: string }) {
-  return <Link to={to}>EU AI Act conformity</Link>;
 }

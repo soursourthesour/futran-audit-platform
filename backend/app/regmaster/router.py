@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.audit_log import service as audit
 from app.auth.deps import Actor, current_actor
-from app.core.clock import today, utcnow
+from app.core.clock import today
 from app.core.db import get_db
 from app.core.errors import Conflict, Forbidden, Invalid, NotFound
 from app.laws.models import Regulation

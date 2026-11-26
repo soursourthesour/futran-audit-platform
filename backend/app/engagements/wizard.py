@@ -14,7 +14,6 @@ from sqlalchemy.orm import Session
 from app.core.clock import utcnow
 from app.engagements.models import ClientContact, ClientLocation, ClientRequirement, Engagement, EngagementTeam
 from app.engagements.service import TYPES, add_location
-from app.laws.models import Regulation
 from app.policy.roles import FUTRAN_ROLES
 from app.reference.jurisdictions import resolve_jurisdictions
 from app.reference.models import Jurisdiction
@@ -127,10 +126,6 @@ def email(v):
     if s and not EMAIL.match(s):
         raise Bad("Enter a valid email address.")
     return s.lower() if s else None
-
-
-def a_bool(v):
-    return bool(v)
 
 
 E164 = re.compile(r"^\+[1-9]\d{6,14}$")

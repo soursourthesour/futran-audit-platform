@@ -42,10 +42,6 @@ def response_for(db: Session, f: Finding) -> ManagementResponse | None:
     return db.scalar(select(ManagementResponse).where(ManagementResponse.finding_id == f.id, ManagementResponse.deleted_at.is_(None)))
 
 
-def responses_for(db: Session, e: Engagement) -> list[ManagementResponse]:
-    return list(db.scalars(select(ManagementResponse).where(ManagementResponse.engagement_id == e.id, ManagementResponse.deleted_at.is_(None))))
-
-
 def assert_responding(db: Session, e: Engagement) -> None:
     from app.signoffs.service import current
 

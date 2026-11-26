@@ -429,7 +429,3 @@ function CsvImport({ onClose, onDone }: { onClose: () => void; onDone: (m: strin
     </Dialog>
   );
 }
-
-export function Section({ title, children, aside }: { title: ReactNode; children: ReactNode; aside?: ReactNode }) {
-  return <section className="card"><div className="card-header"><h2>{title}</h2>{aside}</div><div className="card-body stack">{children}</div></section>;
-}

@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.audit_log import service as audit
 from app.core.clock import utcnow
 from app.engagements.models import Engagement
-from app.inventory.models import AITool, InventorySnapshot, NamedUser, SnapshotAddendum, UseCase
+from app.inventory.models import InventorySnapshot, NamedUser, SnapshotAddendum, UseCase
 from app.tenancy.models import Department
 
 __all__ = ["InventorySnapshot", "SnapshotAddendum", "lock_snapshot", "current_snapshot", "add_snapshot_addendum", "snapshot_payload"]

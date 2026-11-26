@@ -14,7 +14,7 @@ from app.findings.models import Finding
 from app.policy.actions import Action
 from app.policy.authorize import authorize
 from app.questionnaire import service as qs
-from app.questionnaire.models import ChecklistItem, ChecklistResult, Question, Response
+from app.questionnaire.models import ChecklistResult, Question, Response
 from app.systems.models import AISystem
 from app.tenancy.models import User
 
@@ -291,6 +291,3 @@ def accept(db: Session, actor: Actor, i: AIInteraction, body: dict) -> AIInterac
         return ai.decide(db, user, i, "accepted")
     raise Conflict("This suggestion cannot be accepted here.")
 
-
-def item_for(db: Session, i: AIInteraction) -> ChecklistItem | None:
-    return db.get(ChecklistItem, i.target_id) if i.target_type == "checklist_item" else None

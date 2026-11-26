@@ -55,11 +55,6 @@ export function EuScreeningFields({ options, value, onChange, disabled, errors =
   );
 }
 
-/** Whether all three questions have an answer (the server applies the same rule). */
-export function screeningComplete(s: EuScreening | null | undefined) {
-  return !!s && s.art5.length > 0 && !!s.annex_iii_area && s.art50.length > 0;
-}
-
 export function EuLevelSummary({ level, label, reason }: { level: EuLevel | null | undefined; label?: string | null; reason?: string | null }) {
   return (
     <div className="stack-sm">

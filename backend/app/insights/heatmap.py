@@ -16,7 +16,6 @@ from app.engagements.models import Engagement
 from app.findings.models import Finding
 from app.scoring import engine, scale
 from app.scoring import service as scoring
-from app.systems.models import AISystem
 from app.tenancy.models import Department
 
 ROWS = ("4–5", "3", "2", "1")  # top to bottom

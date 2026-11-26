@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.audit_log import service as audit
 from app.core.clock import utcnow
-from app.core.errors import Conflict, Forbidden, Invalid, NotFound
+from app.core.errors import Conflict, Forbidden, Invalid
 from app.impact.assess import FEATURE_LABELS, project_features
 from app.regupdates.models import CHANGE_TYPES, FEATURES, RegulatoryAlert, RegulatoryUpdate, UpdateDigestRun, UpdateDigestSetting
 from app.tenancy.models import Organization, User

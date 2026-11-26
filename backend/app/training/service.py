@@ -14,7 +14,7 @@ from __future__ import annotations
 import hashlib
 import json
 import secrets
-from datetime import date, datetime
+from datetime import date
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -24,7 +24,7 @@ from app.core.clock import today, utcnow
 from app.core.errors import Conflict, Invalid, NotFound
 from app.mail import sending
 from app.mail.groups import create_group, default_group
-from app.mail.models import DirectoryPerson, MailGroup, MailSend
+from app.mail.models import MailGroup, MailSend
 from app.policy.roles import CLIENT_ROLES, role_label
 from app.tenancy.models import Department, Organization, User
 from app.training import modules as M

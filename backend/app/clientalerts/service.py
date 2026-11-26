@@ -13,7 +13,7 @@ from app.laws.models import Regulation
 from app.litigation.models import Case, CaseClientMatch
 from app.register.models import RegisterSystem, RegisterSystemLaw
 from app.regmaster.models import ChangeImpact, ClientLawApplicability, LawVersion, ProposedChange, Requirement
-from app.tenancy.models import Organization, User
+from app.tenancy.models import User
 from app.tenancy.service import roles_of
 
 DEFAULT_RULES = [

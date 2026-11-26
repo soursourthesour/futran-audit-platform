@@ -3,7 +3,6 @@
 Per register system with an open reassessment trigger: attention while it is under 30 days old, failed after. A live
 system last assessed more than 12 months ago with no trigger yet (the daily schedule has not run) is failed too.
 """
-from datetime import timedelta
 
 from sqlalchemy import select
 
