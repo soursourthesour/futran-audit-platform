@@ -36,7 +36,10 @@ def out(db: Session, request: Request, actor: Actor) -> dict:
         "model": row.model if row else None,
         "endpoint": row.endpoint if row else None,
         "deployment": row.deployment if row else None,
-        "key_hint": row.key_hint if row else None,
+        "key_hint": (row.key_hint or None) if row else None,
+        "auth_mode": row.auth_mode if row else None,
+        "aws_region": row.aws_region if row else None,
+        "aws_workspace_id": row.aws_workspace_id if row else None,
         "key_unreadable": bool(row and not connection.key_readable(s, row)),
         "updated_at": row.updated_at.isoformat() if row else None,
         "last_test": {"at": row.last_tested_at.isoformat(), "ok": row.last_test_ok, "message": row.last_test_message} if row and row.last_tested_at else None,
@@ -60,6 +63,9 @@ class ConnectionIn(BaseModel):
     api_key: str | None = None
     endpoint: str | None = None
     deployment: str | None = None
+    auth_mode: str | None = None  # Claude Platform on AWS: api_key or aws_role
+    aws_region: str | None = None
+    aws_workspace_id: str | None = None
 
 
 @router.put("/admin/ai-connection")

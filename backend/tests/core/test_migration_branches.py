@@ -29,8 +29,10 @@ def _load(rev: str):
 def test_one_head_that_joins_the_hand_off_branch_and_the_main_line():
     s = _script()
     assert len(s.get_heads()) == 1
-    head = s.get_revision(s.get_heads()[0])
-    assert set(head.down_revision) == {"d6267bab780e", "b7d2e4f6a8c1"}
+    join = s.get_revision("e3c1a9f0b742")
+    assert set(join.down_revision) == {"d6267bab780e", "b7d2e4f6a8c1"}
+    # later migrations build on the join, so the one head descends from it
+    assert "e3c1a9f0b742" in {r.revision for r in s.walk_revisions(base="base", head=s.get_heads()[0])}
     assert s.get_revision("b7d2e4f6a8c1").down_revision == "9a1f3c5e7b20"
     assert s.get_revision("9a1f3c5e7b20").down_revision == "717087b4a6c3"
 
