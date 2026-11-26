@@ -502,3 +502,38 @@ def test_the_browser_test_stand_in_answers_for_an_aws_role_connection(client, db
     save(client, auth_mode="aws_role", api_key=None)
     r = client.post(f"{API}/admin/ai-connection/test")
     assert r.json()["ok"] is True, r.text
+
+
+# ---- review (26 Nov): the gateway address is exactly the regional Claude Platform on AWS gateway, on the default port
+@pytest.mark.parametrize("url", [
+    "https://aws-external-anthropic.s3.amazonaws.com",  # a bucket name anyone can register
+    "https://aws-external-anthropic.s3-website-us-east-1.amazonaws.com",
+    "https://aws-external-anthropic.evil.com.api.aws",
+    "https://aws-external-anthropic.us-east-1.api.aws:8443",
+    "https://x.aws-external-anthropic.us-east-1.api.aws",
+])
+def test_only_the_regional_gateway_is_accepted(url):
+    from app.ai.providers import anthropic_aws as aws
+
+    assert not aws.gateway_url_ok(url)
+
+
+@pytest.mark.parametrize("url", ["https://aws-external-anthropic.us-east-1.api.aws", "https://aws-external-anthropic.eu-central-2.api.aws/",
+                                 "https://aws-external-anthropic.us-east-1.api.aws:443"])
+def test_the_regional_gateway_is_accepted(url):
+    from app.ai.providers import anthropic_aws as aws
+
+    assert aws.gateway_url_ok(url)
+
+
+def test_a_400_names_the_error_type_without_the_body():
+    import anthropic
+    import httpx
+
+    from app.ai.providers import anthropic_aws as aws
+
+    req = httpx.Request("POST", "https://aws-external-anthropic.us-east-1.api.aws/v1/messages")
+    resp = httpx.Response(400, request=req, json={"type": "error", "error": {"type": "invalid_request_error", "message": "secret detail arn:aws:iam::123"}})
+    e = anthropic.BadRequestError("bad", response=resp, body=resp.json())
+    msg = aws.failure_message(e, "aws-external-anthropic.us-east-1.api.aws")
+    assert "invalid_request_error" in msg and "arn:aws" not in msg and "web search" in msg

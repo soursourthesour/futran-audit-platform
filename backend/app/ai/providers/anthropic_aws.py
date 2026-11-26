@@ -33,8 +33,8 @@ GATEWAY = "https://aws-external-anthropic.{region}.api.aws"
 REGION_RE = re.compile(r"^[a-z]{2}(-[a-z]+)+-\d{1,2}$")
 # workspace IDs are "wrkspc_" and an alphanumeric identifier (docs.aws.amazon.com/claude-platform/latest/userguide/setup.html)
 WORKSPACE_RE = re.compile(r"^wrkspc_[A-Za-z0-9_-]{1,100}$")
-GATEWAY_LABEL = "aws-external-anthropic"
-GATEWAY_SUFFIXES = (".api.aws", ".amazonaws.com")
+# exactly the regional gateway: aws-external-anthropic.<region>.api.aws (review 26 Nov: no S3 or other AWS-domain hosts, no port)
+GATEWAY_HOST_RE = re.compile(r"^aws-external-anthropic\.[a-z]{2}(-[a-z]+)+-\d{1,2}(-fips)?\.api\.aws$")
 
 NEEDS_SDK = "Claude Platform on AWS needs the anthropic package version 2.8 or later. Update it on the server (pip install -U anthropic)."
 NEEDS_BOTO3 = ("Signing with the server's AWS role needs the boto3 package on the server (pip install \"anthropic[aws]\"). "
@@ -48,9 +48,20 @@ def gateway_url(region: str) -> str:
 
 
 def gateway_host_ok(host: str) -> bool:
-    """A gateway address the API key may be sent to: an AWS domain whose name contains the aws-external-anthropic label."""
-    host = (host or "").lower()
-    return host.endswith(GATEWAY_SUFFIXES) and GATEWAY_LABEL in host.split(".")
+    """A gateway host the API key may be sent to: the regional Claude Platform on AWS gateway and nothing else."""
+    return bool(GATEWAY_HOST_RE.match((host or "").lower()))
+
+
+def gateway_url_ok(url: str) -> bool:
+    """An https address of the regional gateway on the default port (443 written out is allowed)."""
+    from urllib.parse import urlparse
+
+    try:
+        p = urlparse((url or "").strip())
+        port = p.port
+    except ValueError:
+        return False
+    return p.scheme == "https" and port in (None, 443) and not p.username and not p.password and gateway_host_ok(p.hostname or "")
 
 
 def sdk_class():
@@ -87,7 +98,13 @@ def failure_message(e: BaseException, host: str) -> str:
             return f"{LABEL} reported too many requests or no remaining quota. Try again later or check the account's limits."
         if status >= 500:
             return f"{LABEL} is unavailable at the moment. Try again later."
-        return f"{LABEL} rejected the request (HTTP {status}). Check the model name and the workspace ID."
+        kind = ""
+        body = getattr(e, "body", None)
+        if isinstance(body, dict) and isinstance(body.get("error"), dict):
+            t = str(body["error"].get("type") or "")
+            kind = f", {t}" if re.fullmatch(r"[a-z_]{1,40}", t) else ""  # a fixed error code, never the message text
+        return (f"{LABEL} rejected the request (HTTP {status}{kind}). Check the model name and the workspace ID, and that web search "
+                "is turned on for the organisation in the Claude Platform on AWS console (the law and court-case refresh needs it).")
     if isinstance(e, anthropic.AnthropicError):
         return f"{LABEL} is not set up correctly on the server. Check the region and the workspace ID."
     return f"{LABEL} could not be reached ({type(e).__name__})."

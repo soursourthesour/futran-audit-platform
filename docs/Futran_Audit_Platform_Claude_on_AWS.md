@@ -15,11 +15,13 @@ The law library refresh, the AI court-case (litigation) refresh and Draft with A
 |---|---|---|
 | Who runs it | Anthropic, reached through an AWS gateway | AWS |
 | API | Anthropic's own Claude API (Messages API), same request format and model IDs (`claude-sonnet-5-5`, `claude-opus-5-5`) | Bedrock's API and Bedrock model IDs |
-| Web search tool (`web_search_20250305`) | Available | Not available |
+| Web search tool (`web_search_20250305`) | Available (AWS launch announcement; confirm with one live refresh) | Not available |
 | Billing | AWS Marketplace, on the AWS bill | AWS bill |
 | Sign-in | AWS IAM (SigV4) or an API key generated in the AWS Console | AWS IAM |
 
 Refresh depends on Anthropic's web search tool: the first call of each geography searches the allowlisted sources, the second turns the research into checked JSON. Bedrock does not offer that tool, so a refresh cannot run there. Claude Platform on AWS has the first-party feature set, including tool use, structured outputs and prompt caching (AWS documentation, [Feature support](https://docs.aws.amazon.com/claude-platform/latest/userguide/feature-support.html), read 26 November 2026).
+
+AWS's launch announcement lists web search and web fetch among the features available through Claude Platform on AWS ([Introducing Claude Platform on AWS](https://aws.amazon.com/blogs/machine-learning/introducing-claude-platform-on-aws-anthropics-native-platform-through-your-aws-account/)); the feature-support page does not list web search as unavailable. Two checks before go-live: make sure web search is turned on for the organisation in the Claude Platform on AWS console (on Anthropic's own API an organisation admin can switch it off), and run one geography's refresh. If the tool is refused, the refresh reports "rejected the request (HTTP 400, invalid_request_error)" and suggests this check.
 
 Two points from the same AWS page to weigh before using it for client work:
 
