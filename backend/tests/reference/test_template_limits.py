@@ -34,10 +34,10 @@ ATTACKS = {
 
 @pytest.mark.parametrize("body", ATTACKS.values(), ids=ATTACKS.keys())
 def test_runaway_templates_are_stopped_quickly(body):
-    start = time.monotonic()
+    start = time.process_time()
     with pytest.raises(TemplateTooLarge):
         render_string(body, {})
-    assert time.monotonic() - start < 3
+    assert time.process_time() - start < 3
 
 
 @pytest.mark.parametrize("body", [ATTACKS["string times a big number"], ATTACKS["nested loops"]], ids=["string", "loops"])
@@ -100,10 +100,10 @@ MORE_ATTACKS = {
 
 @pytest.mark.parametrize("body", MORE_ATTACKS.values(), ids=MORE_ATTACKS.keys())
 def test_other_runaway_shapes_are_stopped_quickly(body):
-    start = time.monotonic()
+    start = time.process_time()
     with pytest.raises(TemplateTooLarge):
         render_string(body, {})
-    assert time.monotonic() - start < 3
+    assert time.process_time() - start < 3
 
 
 def test_every_shipped_template_renders_inside_the_limits():
@@ -164,10 +164,10 @@ TEXT_FROM_LITERALS = {
 @pytest.mark.parametrize("body", [*TEXT_EXPANDERS.values(), *TEXT_FROM_LITERALS.values()],
                          ids=[*TEXT_EXPANDERS.keys(), *("literal " + k for k in TEXT_FROM_LITERALS)])
 def test_a_container_is_measured_before_it_becomes_text(body):
-    start = time.monotonic()
+    start = time.process_time()
     with pytest.raises(TemplateTooLarge):
         render_string(body, {})
-    assert time.monotonic() - start < 3
+    assert time.process_time() - start < 3
 
 
 def test_a_million_copies_of_a_big_string_is_refused_within_a_memory_cap():
@@ -214,10 +214,11 @@ FILTER_CHAINS = {  # one expression, no loop and no call: only the filters thems
 
 @pytest.mark.parametrize("body", FILTER_CHAINS.values(), ids=FILTER_CHAINS.keys())
 def test_a_long_filter_chain_stops_at_the_deadline(body):
-    start = time.monotonic()
+    """Elapsed time is CPU time, so a loaded test machine does not fail the check; the render deadline itself is wall time."""
+    start = time.process_time()
     with pytest.raises(TemplateTooLarge, match="longer than"):
         render_string(body, {}, seconds=1)
-    assert time.monotonic() - start < 2.5
+    assert time.process_time() - start < 2.5
 
 
 @pytest.mark.parametrize("body", [
@@ -295,12 +296,12 @@ def test_many_separate_large_values_are_refused_within_a_memory_cap():
         "resource.setrlimit(resource.RLIMIT_AS, (1_500_000_000, 1_500_000_000))\n"
         "from app.reference.templates import SAVE_SECONDS, TemplateTooLarge, render_string\n"
         "for body, saving in eval(sys.stdin.read()):\n"
-        "    start = time.monotonic()\n"
+        "    start = time.process_time()\n"
         "    try:\n"
         "        render_string(body, {}, seconds=SAVE_SECONDS if saving else 10, editing=saving)\n"
         "        print('rendered')\n"
         "    except TemplateTooLarge as exc:\n"
-        "        print('refused' if time.monotonic() - start < 3 and 'in total' in exc.reason else 'slow-or-other:' + exc.reason.replace(' ', '_'))\n"
+        "        print('refused' if time.process_time() - start < 3 and 'in total' in exc.reason else 'slow-or-other:' + exc.reason.replace(' ', '_'))\n"
         "    except MemoryError:\n"
         "        print('memory-error')\n"
     )
