@@ -31,8 +31,8 @@ export const usePlan = (clientId: string) => useQuery({ queryKey: ['plan', clien
 export type ChangeOrderLine = { code: string; description: string | null; qty: number; unit_price?: number; list_price?: number; value?: number };
 export type ChangeOrder = {
   id: string; ref: string; engagement_id: string; kind: string | null; kind_label: string | null; reason: string; lines: ChangeOrderLine[]; status: string; status_label: string;
-  raised_by: string | null; raised_at: string; em_approved_by: string | null; needs_price_approval: boolean; futran_approved_by: string | null; client_approved_by: string | null;
-  approved_at: string | null; decided_note: string | null; scope_change_ref: string | null; applied: boolean; value?: number; engagement_name?: string; audit_ref?: string | null;
+  raised_by: string | null; raised_at: string; em_approved_by?: string | null; needs_price_approval?: boolean; futran_approved_by?: string | null; client_approved_by: string | null;
+  approved_at: string | null; decided_note: string | null; scope_change_ref?: string | null; applied: boolean; value?: number; engagement_name?: string; audit_ref?: string | null;
 };
 export type Milestone = { label: string; trigger: string; trigger_label: string; pct: number; amount: number; reached_on: string | null; status: string };
 export type CommercialPage = {

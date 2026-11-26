@@ -328,3 +328,30 @@ def test_an_unconfirmed_hand_off_blocks_only_its_own_drafts_not_the_audit_in_pro
         raise AssertionError("the separate team joined the audit")
     except Conflict:
         pass
+
+
+# OBS-04 -----------------------------------------------------------------------------------------------------------
+INTERNAL_CO_KEYS = ("needs_price_approval", "em_approved_by", "futran_approved_by", "scope_change_ref")
+
+
+def test_the_client_never_receives_futran_internal_change_order_fields(cw, fake_catalog):
+    """OBS-04: the client's change orders carry no approval rule, no Futran approver's name and no Futran note."""
+    _ordered(cw)
+    pa = make_user(cw.db, cw.futran, roles=["pricing_approver"], name="Pat Pricing", email="pat@futran.test")
+    cw.db.commit()
+    co = _raise(cw, "A-03", 1, unit_price=500)  # below Low: the Pricing Approver decides first
+    cw.as_(pa)
+    assert cw.client.post(f"/api/v1/change-orders/{co['id']}/price-decision", json={"approve": True, "note": "Margin agreed internally"}).status_code == 200
+    cw.as_(cw.caico)
+    lst = cw.client.get("/api/v1/change-orders").json()
+    mine = next(x for x in lst if x["id"] == co["id"])
+    assert mine["status"] == "awaiting_client"
+    for key in INTERNAL_CO_KEYS:
+        assert key not in mine, key
+    assert "Pat Pricing" not in str(lst) and "Margin agreed internally" not in str(lst)
+    r = cw.client.post(f"/api/v1/change-orders/{co['id']}/decide", json={"approve": True, "note": "Approved by the board"})
+    assert r.status_code == 200 and not any(k in r.json() for k in INTERNAL_CO_KEYS)
+    assert r.json()["decided_note"] == "Approved by the board"  # the client's own note is theirs to see
+    cw.as_(cw.em)  # staff responses are unchanged
+    staff = next(x for x in cw.client.get(f"/api/v1/e/{cw.engagement.id}/change-orders").json() if x["id"] == co["id"])
+    assert staff["needs_price_approval"] is True and staff["futran_approved_by"] == "Pat Pricing"
