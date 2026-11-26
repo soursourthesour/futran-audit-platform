@@ -24,3 +24,12 @@ def test_real_changes_still_change_the_hash():
     a = {"systems": [{"ref": "AIS-1", "name": "Screener", "eu_level": "High-risk"}], "findings_by_severity": []}
     b = {"systems": [{"ref": "AIS-1", "name": "Screener v2", "eu_level": "High-risk"}], "findings_by_severity": []}
     assert rs._hash(a) != rs._hash(b)
+
+
+def test_the_reworded_roadmap_headings_do_not_change_the_hash():
+    """The roadmap headings read "High priority (4)" before the 26 Nov port of the hand-off's BUG-06 class fix."""
+    item = {"ref": "R-1", "priority_key": "high"}
+    before = {"roadmap_groups": [{"label": "High priority (4)", "items": [item]}, {"label": "Low priority (2)", "items": []}]}
+    after = {"roadmap_groups": [{"label": rs.roadmap_label("high"), "items": [item]}, {"label": rs.roadmap_label("low"), "items": []}]}
+    assert rs.roadmap_label("high") != "High priority (4)"
+    assert rs._hash(after) == _legacy_hash(before)

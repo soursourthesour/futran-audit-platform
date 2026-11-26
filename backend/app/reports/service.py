@@ -308,16 +308,25 @@ def _content_data(db: Session, e: Engagement) -> dict:
         "laws": laws,
         "scoring": explained,
     }
-    data["roadmap_groups"] = [{"label": f"{scale.label(k)} priority ({scale.level(k)})", "items": [r for r in data["roadmap"] if r["priority_key"] == k]}
+    data["roadmap_groups"] = [{"label": roadmap_label(k), "items": [r for r in data["roadmap"] if r["priority_key"] == k]}
                               for k in scale.RATING_KEYS if any(r["priority_key"] == k for r in data["roadmap"])]
     for hook in CONTEXT_HOOKS:
         hook(db, e, data)
     return data
 
 
+def roadmap_label(key: str) -> str:
+    """'High priority (level 4)': like the severity headings, never a bare number that reads as a count of actions (the
+    20 Nov hand-off build's fix of the same kind as BUG-06)."""
+    return f"{scale.label(key)} priority (level {scale.level(key)})"
+
+
+_HASH_ROADMAP_LABEL = {roadmap_label(k): f"{scale.label(k)} priority ({scale.level(k)})" for k in scale.RATING_KEYS}
+
+
 # The hash a signed v0.2 was sealed with. Presentation-only additions are hashed in their pre-25-Nov shape, so the
 # upgrade does not make a signed v0.2 look changed (review 11-25 #3): the EU AI Act level in the system table, and the
-# severity headings, which read "High findings (4)" before BUG-06.
+# severity headings, which read "High findings (4)" before BUG-06, and the roadmap headings, "High priority (4)" before 26 Nov.
 _HASH_GROUP_LABEL = {r.key: (f"{r.label} findings ({r.level})" if r.key != "observation" else f"Observations ({r.level})") for r in scale.RISK_LEVELS}
 _KEY_BY_LABEL = {v: k for k, v in GROUP_LABEL.items()}
 
@@ -329,6 +338,8 @@ def _hash(data: dict) -> str:
     if isinstance(d.get("findings_by_severity"), list):
         d["findings_by_severity"] = [g | {"label": _HASH_GROUP_LABEL.get(_KEY_BY_LABEL.get(g.get("label")), g.get("label"))} if isinstance(g, dict) else g
                                      for g in d["findings_by_severity"]]
+    if isinstance(d.get("roadmap_groups"), list):
+        d["roadmap_groups"] = [g | {"label": _HASH_ROADMAP_LABEL.get(g.get("label"), g.get("label"))} if isinstance(g, dict) else g for g in d["roadmap_groups"]]
     return hashlib.sha256(json.dumps(d, sort_keys=True, default=str).encode()).hexdigest()
 
 

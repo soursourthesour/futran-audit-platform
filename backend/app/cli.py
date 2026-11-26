@@ -7,6 +7,9 @@ Commands:
   reset-demo                          recreate the database with reference data and demo tenants (test mode only)
   seed-e2e                            minimal users for automated browser tests (test mode only)
   rematch-reg-updates [--apply]       match open regulatory updates to clients they missed (BUG-08); a dry run without --apply
+                                      (also `rematch-updates`, the name in the 20 Nov hand-off README)
+  repair-text [--apply]               scripts/repair_mojibake.py on this platform's database (the 20 Nov hand-off name); a dry
+                                      run without --apply; on a database other than SQLite --apply needs --i-have-a-backup
 """
 import argparse
 import sys
@@ -128,6 +131,29 @@ def cmd_rematch_reg_updates(args) -> int:
     return 0
 
 
+def _repair_script_main(argv: list[str]) -> int:
+    import importlib.util
+    from pathlib import Path
+
+    path = Path(__file__).resolve().parents[1] / "scripts" / "repair_mojibake.py"
+    spec = importlib.util.spec_from_file_location("repair_mojibake", path)
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = mod  # its dataclasses look their module up here
+    spec.loader.exec_module(mod)
+    return mod.main(argv)
+
+
+def cmd_repair_text(args) -> int:
+    """BUG-04: the 20 Nov hand-off README's `repair-text`. It runs scripts/repair_mojibake.py on the configured database.
+    That script backs up a SQLite file itself; any other database must be backed up by the operator first."""
+    url = get_settings().database_url
+    if args.apply and not url.startswith("sqlite") and not args.i_have_a_backup:
+        print("Refused: this is not a SQLite database, so no backup is taken automatically. Back it up yourself (for example "
+              "with pg_dump), then run again with --apply --i-have-a-backup.", file=sys.stderr)
+        return 2
+    return _repair_script_main([url, *(["--apply"] if args.apply else [])])
+
+
 def cmd_clear_login_lock(args) -> int:
     """An office locked out by the sign-in limit (20 accounts failing from one address in 15 minutes)."""
     from app.auth.service import clear_login_lock
@@ -237,6 +263,9 @@ def cmd_reset_demo(args) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    for stream in (sys.stdout, sys.stderr):  # a redirected Windows console is cp1252 and cannot print '→' or '₹' (20 Nov hand-off)
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(errors="backslashreplace")
     p = argparse.ArgumentParser(prog="python -m app.cli")
     sub = p.add_subparsers(dest="command", required=True)
     a = sub.add_parser("create-admin")
@@ -254,9 +283,13 @@ def main(argv: list[str] | None = None) -> int:
     se.add_argument("--late", action="store_true", help="ABC Corp at stage 6 and Meridian at stage 3, for the review-to-close journey")
     se.set_defaults(func=cmd_seed_e2e)
     sub.add_parser("reset-demo").set_defaults(func=cmd_reset_demo)
-    rm = sub.add_parser("rematch-reg-updates")
+    rm = sub.add_parser("rematch-reg-updates", aliases=["rematch-updates"])
     rm.add_argument("--apply", action="store_true", help="save the new alerts and reassessment triggers")
     rm.set_defaults(func=cmd_rematch_reg_updates)
+    rt = sub.add_parser("repair-text", help="repair text stored garbled by BUG-04 (scripts/repair_mojibake.py); a dry run unless --apply")
+    rt.add_argument("--apply", action="store_true", help="write the repairs (a SQLite file is backed up first)")
+    rt.add_argument("--i-have-a-backup", action="store_true", help="allow --apply on a database other than SQLite")
+    rt.set_defaults(func=cmd_repair_text)
     cl = sub.add_parser("clear-login-lock")
     cl.add_argument("address", help="the network address shown as locked")
     cl.set_defaults(func=cmd_clear_login_lock)

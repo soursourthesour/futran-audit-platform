@@ -31,7 +31,7 @@ class Finding(TimestampedTenantMixin, Base):
     approved_at: Mapped[datetime | None] = mapped_column(DateTime)
     null_compliance_flag: Mapped[bool] = mapped_column(Boolean, default=False)
     not_yet_in_place: Mapped[bool] = mapped_column(Boolean, default=False)
-    origin: Mapped[str] = mapped_column(String(14), default="manual")  # manual | auto_response | document_request
+    origin: Mapped[str] = mapped_column(String(20), default="manual")  # manual | auto_response | document_request
     confirmed_at: Mapped[datetime | None] = mapped_column(DateTime)  # an auditor accepted an auto draft
     confirmed_by: Mapped[str | None] = mapped_column(String(36))
     review_role: Mapped[str | None] = mapped_column(String(14))  # chief_auditor | qa_reviewer (when the author is the Chief Auditor)

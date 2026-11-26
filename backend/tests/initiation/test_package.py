@@ -9,11 +9,10 @@ from app.files.models import FileObject
 from app.files.service import read
 from app.initiation.models import InitiationPackage, PackageDocument
 from app.invitations.models import Invitation
-from app.mail.models import OutboxMessage
 from app.signoffs.models import SignOff
 from app.tenancy.models import Organization, User
 from app.tenancy.service import roles_of
-from tests.factories import login_as
+from tests.factories import login_as, mails_to
 from tests.initiation.conftest import APPROVAL
 
 
@@ -85,7 +84,7 @@ def test_approve_and_send_invites_caico_and_client_admin(client, db, people, sub
     assert {r.role for r in roles_of(db, maria.id)} == {"caico"} and {r.role for r in roles_of(db, sam.id)} == {"client_admin"}
     assert maria.organization_id == cid and maria.status == "invited"
     assert db.query(Invitation).filter(Invitation.user_id.in_([maria.id, sam.id])).count() == 2
-    mail = db.query(OutboxMessage).filter(OutboxMessage.to == ["maria@abc.test"]).one()
+    (mail,) = mails_to(db, "maria@abc.test", only=True)
     assert "We look forward to working with you." in mail.body_text and "/invite/" in mail.body_text
     assert db.query(ClientContact).filter_by(engagement_id=e.id, contact_role="caico").one().user_id == maria.id
     pkg = db.query(InitiationPackage).one()
@@ -103,7 +102,7 @@ def test_same_person_caico_admin_single_invite(client, db, people, submitted):
     maria = db.query(User).filter_by(email="maria@abc.test").one()
     assert {r.role for r in roles_of(db, maria.id)} == {"caico", "client_admin"}
     assert db.query(Invitation).filter_by(user_id=maria.id).count() == 1
-    assert db.query(OutboxMessage).filter(OutboxMessage.to == ["maria@abc.test"]).count() == 1
+    assert len(mails_to(db, "maria@abc.test", only=True)) == 1
 
 
 def test_preparer_cannot_approve_package(client, db, people, submitted):
@@ -164,7 +163,7 @@ def test_client_page_shows_whats_left_and_resend(client, db, people, submitted):
     assert any("NYC Local Law 144" in law["label"] for law in page["laws"])
     r = client.post(f"/api/v1/clients/{cid}/contacts/caico/resend")
     assert r.status_code == 200
-    assert db.query(OutboxMessage).filter(OutboxMessage.to == ["maria@abc.test"]).count() == 2
+    assert len(mails_to(db, "maria@abc.test", only=True)) == 2
     login_as(client, db, people["aud2"])
     assert client.get(f"/api/v1/clients/{cid}").status_code == 404
 

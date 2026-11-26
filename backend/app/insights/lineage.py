@@ -90,7 +90,7 @@ def _result(db: Session, e: Engagement, s: AISystem | None, item: ChecklistItem)
 def in_scope_regulations(db: Session, e: Engagement) -> list[Regulation]:
     ids = list(db.scalars(select(ClientRequirement.regulation_id).where(ClientRequirement.engagement_id == e.id, ClientRequirement.in_scope.is_(True),
                                                                          ClientRequirement.deleted_at.is_(None), ClientRequirement.regulation_id.is_not(None))))
-    return list(db.scalars(select(Regulation).where(Regulation.id.in_(ids)))) if ids else []
+    return list(db.scalars(select(Regulation).where(Regulation.id.in_(ids)).order_by(Regulation.short_name, Regulation.id))) if ids else []
 
 
 def requirements_for(db: Session, codes: list[str], regs: list[Regulation] | None) -> list[tuple[Regulation, Requirement]]:
@@ -113,7 +113,7 @@ def _obligations(db: Session, reg: Regulation, question_codes: list[str], requir
         from app.ai.models import Obligation
     except ImportError:
         return []
-    rows = db.scalars(select(Obligation).where(Obligation.regulation_id == reg.id, Obligation.status == "approved", Obligation.deleted_at.is_(None)))
+    rows = db.scalars(select(Obligation).where(Obligation.regulation_id == reg.id, Obligation.status == "approved", Obligation.deleted_at.is_(None)).order_by(Obligation.created_at, Obligation.id))
     return [o for o in rows if set(o.question_ids or []) & set(question_codes) or set(o.requirement_ids or []) & set(requirement_ids)]
 
 
@@ -174,7 +174,8 @@ def finding_lineage(db: Session, f: Finding) -> dict:
     refs = list(dict.fromkeys([*(f.control_refs or []), *(c for sec in sections for c in cw[sec].get("controls", []))]))
     req_codes = list(dict.fromkeys(c for sec in sections for c in cw[sec].get("requirements", [])))
     requests = []
-    for dr in db.scalars(select(DocumentRequest).where(DocumentRequest.engagement_id == e.id, DocumentRequest.finding_id == f.id, DocumentRequest.deleted_at.is_(None))):
+    for dr in db.scalars(select(DocumentRequest).where(DocumentRequest.engagement_id == e.id, DocumentRequest.finding_id == f.id, DocumentRequest.deleted_at.is_(None))
+                            .order_by(DocumentRequest.created_at, DocumentRequest.id)):
         from app.docrequests.models import DocumentChase
         from app.reference.models import DocumentCatalogItem
 
@@ -184,7 +185,7 @@ def finding_lineage(db: Session, f: Finding) -> dict:
         evidence += [(fid, "Document request") for fid in dr.evidence_ids or []]
     files = _files(db, evidence)
     remediation = []
-    for item in db.scalars(select(RemediationItem).where(RemediationItem.finding_id == f.id, RemediationItem.deleted_at.is_(None))):
+    for item in db.scalars(select(RemediationItem).where(RemediationItem.finding_id == f.id, RemediationItem.deleted_at.is_(None)).order_by(RemediationItem.created_at, RemediationItem.id)):
         owner = db.get(User, item.owner_user_id) if item.owner_user_id else None
         remediation.append({"id": item.id, "action": item.action, "owner": owner.name if owner else item.owner_name, "due_date": item.due_date.isoformat() if item.due_date else None,
                             "status": item.status})

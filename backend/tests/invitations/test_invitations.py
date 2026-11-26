@@ -7,8 +7,7 @@ from app.core import clock
 from app.core.errors import Conflict
 from app.invitations.models import Invitation
 from app.invitations.service import accept_invitation, invite_user
-from app.mail.models import OutboxMessage
-from tests.factories import make_org, make_user
+from tests.factories import mails_to, make_org, make_user
 
 
 @pytest.fixture(autouse=True)
@@ -28,7 +27,7 @@ def _setup(db):
 
 
 def _token_from_last_email(db, to):
-    msg = db.query(OutboxMessage).filter(OutboxMessage.to.contains(to)).order_by(OutboxMessage.created_at.desc()).first()
+    msg = mails_to(db, to)[-1]
     m = re.search(r"/invite/([A-Za-z0-9_\-]+)", msg.body_text)
     return m.group(1)
 

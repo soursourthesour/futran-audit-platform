@@ -2,9 +2,8 @@ import csv
 import io
 
 from app.audit_log import service as audit
-from app.mail.models import OutboxMessage
 from app.tenancy.models import User
-from tests.factories import login_as, make_org, make_user
+from tests.factories import login_as, mails_to, make_org, make_user
 
 
 def _futran(db):
@@ -23,7 +22,7 @@ def test_admin_creates_futran_user_and_invites(client, db):
     body = r.json()
     assert body["email"] == "quinn@futran.test" and body["status"] == "invited" and body["roles"] == ["qa_reviewer"]
     db.expire_all()
-    assert db.query(OutboxMessage).filter(OutboxMessage.to.contains("quinn@futran.test")).count() == 1
+    assert len(mails_to(db, "quinn@futran.test")) == 1
     users = client.get("/api/v1/admin/users").json()
     assert {u["email"] for u in users} >= {"admin@futran.test", "quinn@futran.test"}
 
@@ -63,7 +62,7 @@ def test_resend_invitation(client, db):
     r = client.post(f"/api/v1/invitations/{uid}/resend")
     assert r.status_code == 200
     db.expire_all()
-    assert db.query(OutboxMessage).filter(OutboxMessage.to.contains("quinn@futran.test")).count() == 2
+    assert len(mails_to(db, "quinn@futran.test")) == 2
 
 
 def test_audit_log_csv_export_columns(client, db):

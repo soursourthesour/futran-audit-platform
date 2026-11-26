@@ -108,6 +108,7 @@ def test_reminders_day_3_and_7_carry_a_fresh_link_and_stop_after_submit(db, worl
     assert sending.run_reminders(db, settings, start + timedelta(days=3, hours=1)) == 1
     assert sending.run_reminders(db, settings, start + timedelta(days=4)) == 0  # day 3 is sent once
     assert row.reminders_sent == [3]
+    db.commit()  # the scheduler commits each run; the request below is another connection on PostgreSQL
     assert client.get(f"/api/v1/public/q/{token}").status_code == 404  # replaced by the reminder's link
     row.submitted_at, row.status = utcnow(), "submitted"
     db.commit()

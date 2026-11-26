@@ -115,10 +115,10 @@ def test_rollout_waves_gate_on_sites_and_controls(cp):
 def test_controls_with_evidence_and_the_register_entry(cp):
     cp.as_(cp.auditor)
     upload(cp, "licence_usage", LICENCES)
-    r = cp.client.post(f"{cp.url}/controls/usage_policy/evidence", files={"file": ("policy.pdf", b"policy v1", "application/pdf")})
+    r = cp.client.post(f"{cp.url}/controls/usage_policy/evidence", files={"file": ("policy.pdf", b"%PDF-1.4 policy v1", "application/pdf")})
     assert r.status_code == 200
     ctl = next(c for c in r.json()["controls"] if c["key"] == "usage_policy")
-    assert ctl["evidence"][0]["sha256"] == hashlib.sha256(b"policy v1").hexdigest()
+    assert ctl["evidence"][0]["sha256"] == hashlib.sha256(b"%PDF-1.4 policy v1").hexdigest()
     assert cp.client.put(f"{cp.url}/controls/usage_policy", json={"status": "done"}).json()["summary"]["controls_ready"] == 1
     assert cp.client.put(f"{cp.url}/controls/usage_policy", json={"status": "maybe"}).status_code == 422
     # create the Copilot entry in the client's register

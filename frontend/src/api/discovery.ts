@@ -39,7 +39,7 @@ export type MonitorStatus = 'healthy' | 'attention' | 'failed' | 'not_started';
 
 export type MonitorResultRow = {
   id: string; check_code: string; check: string; severity: 'high' | 'medium' | 'low'; status: MonitorStatus; object_id: string | null; object_label: string; detail: string;
-  action: string | null; action_label: string | null; action_link: string | null; action_kind: 'server' | 'link' | null; action_taken: string | null; action_taken_at: string | null; alert_sent: boolean; run_at: string;
+  action: string | null; action_label: string | null; action_link: string | null; action_kind: 'server' | 'link' | null; action_taken: string | null; action_taken_at: string | null; action_taken_by?: string | null; alert_sent: boolean; run_at: string;
 };
 
 export type MonitoringPage = {

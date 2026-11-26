@@ -126,7 +126,7 @@ def test_obligations_with_evidence_annex_iv_and_fria(eu):
     _classify(eu)
     r = eu.client.put(_sys(eu, eu.credit, "/obligations/art10"), json={"status": "partly_met", "note": "Bias test 2025"})
     assert r.status_code == 200
-    data = b"risk procedure v2"
+    data = b"%PDF-1.4 risk procedure v2"  # a real PDF header: contents are checked against the extension (OBS-05)
     r = eu.client.post(_sys(eu, eu.credit, "/obligations/art9/evidence"), files={"file": ("risk-procedure.pdf", data, "application/pdf")})
     assert r.status_code == 200, r.text
     ob = next(o for o in r.json()["obligations"] if o["key"] == "art9")

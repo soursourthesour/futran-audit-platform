@@ -152,6 +152,7 @@ def change_orders_for(db: Session, e: Engagement) -> list[ChangeOrder]:
 
 
 CLIENT_LINE_KEYS = ("code", "description", "qty", "unit_price", "value")
+CLIENT_HIDDEN_KEYS = ("needs_price_approval", "em_approved_by", "futran_approved_by", "scope_change_ref")
 
 
 def change_order_out(db: Session, co: ChangeOrder, *, with_prices: bool, for_client: bool = False) -> dict:
@@ -169,6 +170,11 @@ def change_order_out(db: Session, co: ChangeOrder, *, with_prices: bool, for_cli
            "applied": co.applied_at is not None}
     if with_prices:
         out["value"] = money(sum(ln.get("value") or 0 for ln in co.lines or []))
+    if for_client:  # OBS-04: Futran's approval rule, its approvers and its internal references stay inside Futran
+        for key in CLIENT_HIDDEN_KEYS:
+            out.pop(key, None)
+        if co.client_approved_by is None:
+            out["decided_note"] = None  # until the client decides, the note is Futran's pricing decision note
     return out
 
 

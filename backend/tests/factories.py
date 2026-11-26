@@ -56,3 +56,29 @@ def approve_client_review(db, e):
     for so in rows:
         so.status = "approved"
     db.commit()
+
+
+# ---- JSON columns compared in Python, so the same test runs on SQLite and PostgreSQL (PostgreSQL has no `=` or `LIKE`
+# for the json type)
+def mails_to(db, address: str, *, template_key: str | None = None, only: bool = False) -> list:
+    """Outbox messages addressed to `address` (with only=True: to that address alone), oldest first."""
+    from sqlalchemy import select
+
+    from app.mail.models import OutboxMessage
+
+    q = select(OutboxMessage).order_by(OutboxMessage.created_at, OutboxMessage.id)
+    if template_key is not None:
+        q = q.where(OutboxMessage.template_key == template_key)
+    return [m for m in db.scalars(q) if (m.to == [address] if only else address in (m.to or []))]
+
+
+def findings_from_questions(db, question_ids: list[str], *, include_deleted: bool = True) -> list:
+    """Findings whose source_question_ids are exactly `question_ids`."""
+    from sqlalchemy import select
+
+    from app.findings.models import Finding
+
+    q = select(Finding).order_by(Finding.created_at, Finding.id)
+    if not include_deleted:
+        q = q.where(Finding.deleted_at.is_(None))
+    return [f for f in db.scalars(q) if f.source_question_ids == question_ids]

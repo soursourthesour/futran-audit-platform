@@ -140,7 +140,7 @@ def test_client_admin_cannot_edit_audit_content(client, db, people, live, settin
     client.post(f"/api/v1/clients/{cid}/users", json={"first_name": "Sam", "last_name": "Admin", "email": "sam@abc.test", "job_title": "IT", "department": "", "role": "client_admin"})
     sam = db.scalar(select(User).where(User.email == "sam@abc.test"))
     sam.status = "active"
-    ev = upload(db, settings, maria, data=b"report", filename="bias.pdf", content_type="application/pdf", organization_id=cid, engagement_id=e.id, linked_type="evidence", linked_id="x")
+    ev = upload(db, settings, maria, data=b"%PDF-1.4 report", filename="bias.pdf", content_type="application/pdf", organization_id=cid, engagement_id=e.id, linked_type="evidence", linked_id="x")
     db.commit()
     so = db.scalar(select(SignOff).where(SignOff.engagement_id == e.id))
     login_as(client, db, sam)

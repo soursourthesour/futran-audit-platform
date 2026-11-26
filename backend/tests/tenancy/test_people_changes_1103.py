@@ -58,10 +58,12 @@ def test_department_changes_are_audit_logged_like_role_changes(client, db, peopl
     # single edit and the bulk change both go through the same edit: one row per person, from and to by name
     assert client.patch(f"/api/v1/clients/{cid}/users/{tom}", json={"department": "Legal"}).status_code == 200
     assert client.patch(f"/api/v1/clients/{cid}/users/{tom}", json={"department": "Legal"}).status_code == 200  # no change, no row
-    moves = db.scalars(select(AuditLog).where(AuditLog.action == "user.department_change", AuditLog.object_id == tom)).all()
-    assert [(a.before, a.after) for a in moves][-1] == ({"department": "Finance"}, {"department": "Legal"})
-    assert len([a for a in moves if a.before["department"] == "Finance"]) == 1
-    assert moves[-1].actor_name == "Maria Lopez" and moves[-1].summary == "Moved Tom Reyes from Finance to Legal"
+    moves = db.scalars(select(AuditLog).where(AuditLog.action == "user.department_change", AuditLog.object_id == tom).order_by(AuditLog.at)).all()
+    # the move itself, found by content: rows written in the same instant have no order of their own on PostgreSQL
+    moved = [a for a in moves if a.before["department"] == "Finance"]
+    assert len(moved) == 1 and (moved[0].before, moved[0].after) == ({"department": "Finance"}, {"department": "Legal"})
+    assert moves[-1].after == {"department": "Legal"}  # nothing after the move: the repeated edit wrote no row
+    assert moved[0].actor_name == "Maria Lopez" and moved[0].summary == "Moved Tom Reyes from Finance to Legal"
     assert _row(client, cid, tom)["department"] == "Legal"
 
 

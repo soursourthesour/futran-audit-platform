@@ -64,3 +64,19 @@ def test_client_checklist(client, db, sent):
     chk = client.get("/api/v1/me/initiation").json()
     assert {i["key"]: i["done"] for i in chk["items"]}["sign"] is True and chk["done"] == 2
     assert chk["chief_auditor"] == "Cara Chief"
+
+
+def test_signing_with_the_letter_missing_from_storage_gives_a_clear_message(client, db, sent, settings):
+    """BUG-01: on a copy that lacked the stored letter PDF, signing sign-off 1 was a server error."""
+    from app.files.models import FileObject
+    from app.files.storage import get_storage
+    from app.initiation.models import PackageDocument
+
+    cid, e, maria, so = sent
+    doc = db.get(PackageDocument, so.document_version_id)
+    assert doc is not None and doc.pdf_file_id, "sign-off 1 signs the stored letter PDF"
+    get_storage(client.app.state.settings).delete(db.get(FileObject, doc.pdf_file_id).storage_key)
+    login_as(client, db, maria)
+    r = client.post(f"/api/v1/signoffs/{so.id}/sign", json={"typed_name": "Maria Lopez"})
+    assert r.status_code < 500 and r.json()["detail"] == "The stored file is missing. Ask Futran to upload it again."
+    assert db.query(Signature).filter_by(sign_off_id=so.id).count() == 0

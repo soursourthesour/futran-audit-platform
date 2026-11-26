@@ -19,7 +19,7 @@ def test_the_size_message_does_not_give_a_measured_size(db, settings, world):
 
 
 def _upload_then_lose(db, settings, world):
-    f = upload(db, settings, world["caico_a"], data=b"letter", filename="letter.pdf", content_type="application/pdf", organization_id=world["a"].id,
+    f = upload(db, settings, world["caico_a"], data=b"%PDF-1.4 letter", filename="letter.pdf", content_type="application/pdf", organization_id=world["a"].id,
                engagement_id=world["e"].id, linked_type="evidence", linked_id="g1")
     db.commit()
     Path(settings.file_store.partition(":")[2], f.storage_key).unlink()

@@ -49,6 +49,28 @@ class StoredFileMissing(AppError, FileNotFoundError):
         super().__init__(detail, errors)
 
 
+# OBS-05 (from the 20 Nov hand-off build): what each allowed type's contents start with. A name alone is not trusted:
+# an .exe renamed report.pdf is refused.
+ZIP = (b"PK\x03\x04", b"PK\x05\x06")  # a zip file, or an empty one: docx, xlsx, pptx, odt, ods and zip are zip containers
+OLE = (b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1",)  # the older Office formats and Outlook messages
+SIGNATURES: dict[str, tuple[bytes, ...]] = {
+    ".docx": ZIP, ".xlsx": ZIP, ".pptx": ZIP, ".odt": ZIP, ".ods": ZIP, ".zip": ZIP,
+    ".doc": OLE + ZIP, ".xls": OLE + ZIP, ".msg": OLE,  # an older-format name on a newer-format file still opens
+    ".rtf": (b"{\\rtf",), ".png": (b"\x89PNG\r\n\x1a\n",), ".jpg": (b"\xff\xd8\xff",), ".jpeg": (b"\xff\xd8\xff",), ".gif": (b"GIF87a", b"GIF89a"),
+}
+TEXT_TYPES = {".csv", ".txt", ".md", ".json", ".eml"}  # plain text: no NUL bytes
+
+
+def contents_match(ext: str, data: bytes) -> bool:
+    """True when the bytes look like the type the extension claims (magic bytes; text has no NUL bytes)."""
+    if ext == ".pdf":
+        return b"%PDF-" in data[:1024]  # PDF readers accept a short preamble before the header
+    if ext in TEXT_TYPES:
+        return data.startswith((b"\xff\xfe", b"\xfe\xff")) or b"\x00" not in data  # UTF-16 text starts with its byte order mark
+    sigs = SIGNATURES.get(ext)
+    return sigs is None or data.startswith(sigs)
+
+
 def content_type_for(filename: str) -> str:
     return CONTENT_TYPES.get(Path(filename).suffix.lower(), "application/octet-stream")
 
@@ -92,6 +114,9 @@ def upload(
     name = safe_name(filename)
     if Path(name).suffix.lower() not in ALLOWED_EXTENSIONS:
         raise Invalid("This file type can't be uploaded. Use PDF, Word, Excel, CSV, PowerPoint, text, images or ZIP.", [{"field": "file", "message": "File type not allowed."}])
+    ext = Path(name).suffix.lower()
+    if not contents_match(ext, data):
+        raise Invalid(f"This file's contents don't match its {ext} extension.", [{"field": "file", "message": "The contents don't match the file type."}])
     status = scan(data, settings)
     if status == "infected":
         audit.record(db, actor_id=actor.id if actor else None, action="file.rejected_virus", object_type="File", object_id=None, organization_id=organization_id, summary=f"Rejected {name}: failed the virus scan")

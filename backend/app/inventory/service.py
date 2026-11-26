@@ -1,5 +1,6 @@
 """AI inventory: tools, use cases, risk tiering (spec §11) and named-user confirmation links (schematic D13)."""
 import hashlib
+import re
 import secrets
 from datetime import timedelta
 
@@ -15,6 +16,7 @@ from app.euaiact import risk as eu_risk
 from app.inventory.models import AITool, NamedUser, NamedUserLink, UsageRecord, UseCase
 from app.tenancy.models import Department, Organization, User
 from app.tenancy.service import find_user_by_email
+from app.core.names import tool_name
 
 ACCOUNT_TYPES = ("enterprise", "team", "personal_paid", "personal_free", "unknown")
 RISKY_ACCOUNTS = {"personal_free", "personal_paid", "unknown"}
@@ -42,16 +44,26 @@ def propose_tier(decision_impact: str | None, data_categories: list[str], tools:
     return 1
 
 
+# Phrases that make a use case about employment decisions (hiring, staff performance), from the 20 Nov hand-off build
+# (BUG-02 fix rounds 1 and 2). Phrase level on purpose: the applicability engine's word stems also match "24 hr fraud
+# monitoring", "third-party", "policy termination", "credit applicant" or "candidate songs".
+EMPLOYMENT_DECISIONS = re.compile(r"\bhiring\b|\brecruit|\bjob (applicant|applicat|candidate)|\bapplicant (screening|tracking)|r[ée]sum[ée]s? (screen|pars|rank|review)|"
+                                  r"\bcvs? screening|\bemployee performance|\bworkforce\b|\bhuman resources\b|\bemployment decision|"
+                                  r"\bcandidates? (screening|ranking|scoring|assessment|evaluation|matching|selection|shortlist)|"
+                                  r"\binterview(s|ing)? (scoring|analysis|assessment|evaluation|screening)|\bvideo interview|\btalent acquisition|"
+                                  r"\bhire (prediction|predict|decision|screening|ranking|recommendation)|"
+                                  r"\b(screening|ranking|scoring|shortlisting) (job )?applicants|\b(employee|staff) promotion", re.I)
+
+
 def tier_reason(decision_impact: str | None, data_categories: list[str], tools: list[AITool], *,
                 text: str = "", in_nyc: bool = False, aedt_determination: str | None = None) -> str:
     """Why the proposed tier applies. Local Law 144 is named only for employment decisions in New York City (BUG-02):
-    the use case is determined an AEDT, or it runs in New York City (`in_nyc`) and its name or purpose (`text`) is about
-    hiring or promotion. The employment test is the applicability engine's."""
+    the use case is determined an AEDT, or it runs in New York City (`in_nyc`) and its name, purpose or department
+    (`text`) is about employment decisions (EMPLOYMENT_DECISIONS). A use case Futran determined is not an AEDT never
+    names it."""
     if decision_impact == "consequential":
-        from app.regmaster.engine import EMPLOYMENT
-
         reason = "The output substantially assists or makes decisions about people."
-        if aedt_determination == "in_scope" or (in_nyc and EMPLOYMENT.search(text or "")):
+        if aedt_determination == "in_scope" or (aedt_determination != "out_of_scope" and in_nyc and EMPLOYMENT_DECISIONS.search(text or "")):
             reason += " Employment use in New York City may be an AEDT under Local Law 144."
         return reason
     if SENSITIVE_DATA & set(data_categories or []):
@@ -80,9 +92,15 @@ def in_nyc(db: Session, org_id: str) -> bool:
     return any(nyc in (ids or []) for ids in sites)
 
 
+def reason_text(db: Session, name: str | None, purpose: str | None, department_id: str | None) -> str:
+    """What the Local Law 144 test reads: the use case's name, purpose and department name."""
+    dept = db.get(Department, department_id) if department_id else None
+    return " ".join(t for t in (name, purpose, dept.name if dept else None) if t)
+
+
 def use_case_reason(db: Session, uc: UseCase, tools: list[AITool]) -> str:
-    return tier_reason(uc.decision_impact, uc.data_categories, tools, text=f"{uc.name} {uc.purpose or ''}", in_nyc=in_nyc(db, uc.organization_id),
-                       aedt_determination=uc.aedt_determination)
+    return tier_reason(uc.decision_impact, uc.data_categories, tools, text=reason_text(db, uc.name, uc.purpose, uc.department_id),
+                       in_nyc=in_nyc(db, uc.organization_id), aedt_determination=uc.aedt_determination)
 
 
 def effective_tier(uc: UseCase) -> int:
@@ -175,7 +193,7 @@ def save_tool(db: Session, actor: User, org: Organization, data: dict, tool: AIT
         raise Invalid(errors=errs)
     dup = _find_tool(db, org.id, vendor, product, acct)
     if dup is not None and (tool is None or dup.id != tool.id):
-        raise Conflict(f"{vendor} {product} on that account type is already in the inventory.")
+        raise Conflict(f"{tool_name(vendor, product)} on that account type is already in the inventory.")
     if tool is None:
         tool = AITool(organization_id=org.id, source="manual", created_by=actor.id)
         db.add(tool)
@@ -191,7 +209,7 @@ def save_tool(db: Session, actor: User, org: Organization, data: dict, tool: AIT
     if can_approve and data.get("approval_status") in ("unreviewed", "approved", "not_approved"):
         tool.approval_status = data["approval_status"]
     db.flush()
-    audit.record(db, actor_id=actor.id, action="inventory.tool", obj=tool, summary=f"Saved AI tool {vendor} {product} ({acct.replace('_', ' ')})")
+    audit.record(db, actor_id=actor.id, action="inventory.tool", obj=tool, summary=f"Saved AI tool {tool_name(vendor, product)} ({acct.replace('_', ' ')})")
     return tool
 
 
@@ -451,7 +469,7 @@ def public_confirm_view(db: Session, link: NamedUserLink) -> dict:
     tool = _tools(db, uc)
     return {
         "client_name": org.name, "first_name": n.person_name.split()[0], "use_case": uc.name,
-        "tool": ", ".join(f"{t.vendor} {t.product}" for t in tool), "oversight_role": n.oversight_role, "policy_text": POLICY_TEXT,
+        "tool": ", ".join(tool_name(t.vendor, t.product) for t in tool), "oversight_role": n.oversight_role, "policy_text": POLICY_TEXT,
         "completed": link.completed_at is not None,
     }
 
@@ -485,7 +503,9 @@ def confirm(db: Session, token: str, payload: dict, request=None) -> NamedUserLi
 # ---------------------------------------------------------------- BUG-03: delete a draft that was never submitted
 def delete_draft_use_case(db: Session, actor: User, uc: UseCase) -> None:
     """Remove a stray draft so it no longer blocks the sign-offs. Only a draft that was never submitted, and not one the
-    Futran team has already mapped to an AI system or cited in a finding. The row is kept, marked deleted, and logged."""
+    Futran team has already mapped to an AI system, cited in a finding or named in an evidence request (the last from the
+    20 Nov hand-off build). The row is kept, marked deleted, and logged."""
+    from app.docrequests.models import EvidenceRequest
     from app.findings.models import Finding
     from app.systems.models import AISystem
 
@@ -494,8 +514,9 @@ def delete_draft_use_case(db: Session, actor: User, uc: UseCase) -> None:
         raise Conflict("Only a draft that was never submitted can be deleted. A submitted use case stays in the inventory.")
     systems = [s for s in db.scalars(select(AISystem).where(AISystem.engagement_id == uc.engagement_id, AISystem.deleted_at.is_(None))) if uc.id in (s.use_case_ids or [])]
     findings = [f for f in db.scalars(select(Finding).where(Finding.engagement_id == uc.engagement_id, Finding.deleted_at.is_(None))) if uc.id in (f.use_case_ids or [])]
-    if systems or findings:
-        refs = ", ".join([f"{s.reference_id} {s.name}" for s in systems] + [f"finding {f.ref}" for f in findings])
+    requests = list(db.scalars(select(EvidenceRequest.ref).where(EvidenceRequest.use_case_id == uc.id, EvidenceRequest.deleted_at.is_(None)).order_by(EvidenceRequest.ref)))
+    if systems or findings or requests:
+        refs = ", ".join([f"{s.reference_id} {s.name}" for s in systems] + [f"finding {f.ref}" for f in findings] + [f"evidence request {r}" for r in requests])
         raise Conflict(f"The Futran team already uses this draft ({refs}), so it cannot be deleted. Ask them to remove it first.")
     now = utcnow()
     for r in db.scalars(select(UsageRecord).where(UsageRecord.use_case_id == uc.id, UsageRecord.deleted_at.is_(None))):

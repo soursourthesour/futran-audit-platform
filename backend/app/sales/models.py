@@ -58,9 +58,9 @@ class Opportunity(IdMixin, Base):
     why_now: Mapped[str | None] = mapped_column(String(300))
     value: Mapped[int | None] = mapped_column(Integer)  # whole US dollars
     owner_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("users.id"))
-    # String(10) on purpose: "negotiation" has 11 characters, which SQLite stores as is; widening the column would rebuild a
-    # table other tables reference, which fails on existing data.
-    stage: Mapped[str] = mapped_column(String(10), default="new", index=True)
+    # "negotiation" is 11 characters. The migrations widen the column on PostgreSQL only (b7d2e4f6a8c1): SQLite ignores the
+    # length, and widening it there would rebuild a table other tables reference.
+    stage: Mapped[str] = mapped_column(String(20), default="new", index=True)
     next_step: Mapped[str | None] = mapped_column(String(300))
     system_ids: Mapped[list] = mapped_column(JSON, default=list)  # register systems the trigger touches
     system_types: Mapped[list] = mapped_column(JSON, default=list)  # what Sales sees instead of the systems themselves

@@ -49,10 +49,10 @@ function Form({ clientId, uc, isFutran, canReview, canTier, euOptions }: { clien
 
   useEffect(() => {
     const t = window.setTimeout(() => {
-      api.post<Preview>(`/clients/${clientId}/use-cases/tier-preview`, { decision_impact: f.decision_impact || null, data_categories: f.data_categories, tool_ids: f.tool_ids, eu_screening: screening, name: f.name, purpose: f.purpose }).then(setPreview).catch(() => undefined);
+      api.post<Preview>(`/clients/${clientId}/use-cases/tier-preview`, { decision_impact: f.decision_impact || null, data_categories: f.data_categories, tool_ids: f.tool_ids, eu_screening: screening, name: f.name, purpose: f.purpose, department_id: f.department_id || null, use_case_id: uc?.id ?? null }).then(setPreview).catch(() => undefined);
     }, 250);
     return () => window.clearTimeout(t);
-  }, [clientId, f.decision_impact, f.data_categories, f.tool_ids, screening, f.name, f.purpose]);
+  }, [clientId, f.decision_impact, f.data_categories, f.tool_ids, screening, f.name, f.purpose, f.department_id, uc?.id]);
 
   const fe = Object.fromEntries(errs.map((e) => [e.field, e.message]));
   const toggle = (k: 'tool_ids' | 'data_categories', v: string) => setF({ ...f, [k]: f[k].includes(v) ? f[k].filter((x) => x !== v) : [...f[k], v] });

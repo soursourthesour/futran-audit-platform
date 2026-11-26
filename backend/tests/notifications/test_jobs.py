@@ -12,7 +12,7 @@ from app.notifications import jobs
 from app.notifications.events import EVENTS
 from app.notifications.models import Notification
 from app.tenancy.models import User
-from tests.factories import login_as
+from tests.factories import login_as, mails_to
 from tests.initiation.conftest import live, people, submitted  # noqa: F401
 
 
@@ -71,11 +71,11 @@ def test_weekly_digest_groups_by_owner(client, db, live, settings, people):
     assert jobs.run_weekly_digest(db, settings, monday + timedelta(days=1)) == 0  # Tuesday: nothing
     n = jobs.run_weekly_digest(db, settings, monday)
     assert n >= 2  # the CAICO and the assigned auditors
-    mail = db.scalar(select(OutboxMessage).where(OutboxMessage.template_key == "overdue_digest", OutboxMessage.to == ["maria@abc.test"]))
+    mail = mails_to(db, "maria@abc.test", template_key="overdue_digest", only=True)[0]
     body = mail.body_text
     assert body.index("Priya Shah") < body.index("Constitute bias committee") < body.index("Raj Iyer") < body.index("Appoint security owner")
     assert "Not due yet" not in body
-    assert db.scalar(select(OutboxMessage).where(OutboxMessage.template_key == "overdue_digest", OutboxMessage.to == [people["aud"].email])) is not None
+    assert mails_to(db, people["aud"].email, template_key="overdue_digest", only=True)
 
 
 def test_sign_off_awaiting_sends_email_and_bell_lists_it(client, db, live, settings, people):
@@ -84,7 +84,7 @@ def test_sign_off_awaiting_sends_email_and_bell_lists_it(client, db, live, setti
     cid, e, maria = live
     notify(db, [maria], "sign_off_awaiting", "Sign-off 3 is waiting for you", "Inventory review", "/inventory", engagement=e, settings=settings)
     db.commit()
-    assert db.scalar(select(OutboxMessage).where(OutboxMessage.template_key == "notification", OutboxMessage.to == ["maria@abc.test"])) is not None
+    assert mails_to(db, "maria@abc.test", template_key="notification", only=True)
     login_as(client, db, maria)
     r = client.get("/api/v1/me/notifications").json()
     assert r["unread"] >= 1 and r["items"][0]["title"] == "Sign-off 3 is waiting for you"

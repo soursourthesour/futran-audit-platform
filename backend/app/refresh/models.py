@@ -30,7 +30,7 @@ class RefreshRun(IdMixin, Base):
     scope_mode: Mapped[str] = mapped_column(String(20), default="chosen")  # all | client_geographies | chosen
     jurisdiction_ids: Mapped[list] = mapped_column(JSON, default=list)
     checks: Mapped[list] = mapped_column(JSON, default=list)
-    source_set: Mapped[str] = mapped_column(String(12), default="official")  # official | with_secondary
+    source_set: Mapped[str] = mapped_column(String(20), default="official")  # official | with_secondary
     sources_read: Mapped[int] = mapped_column(Integer, default=0)
     records_compared: Mapped[int] = mapped_column(Integer, default=0)
     model_id: Mapped[str | None] = mapped_column(String(80))
@@ -61,7 +61,7 @@ class RefreshSetting(IdMixin, Base):
     scope_mode: Mapped[str] = mapped_column(String(20), default="all")
     jurisdiction_ids: Mapped[list] = mapped_column(JSON, default=list)
     checks: Mapped[list] = mapped_column(JSON, default=list)
-    source_set: Mapped[str] = mapped_column(String(12), default="official")
+    source_set: Mapped[str] = mapped_column(String(20), default="official")  # official | with_secondary
     cost_cap_usd: Mapped[float] = mapped_column(Float, default=5.0)
     last_scheduled_at: Mapped[datetime | None] = mapped_column(DateTime)
     updated_by: Mapped[str | None] = mapped_column(String(36))

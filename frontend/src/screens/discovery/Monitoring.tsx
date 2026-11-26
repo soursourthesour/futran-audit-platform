@@ -87,7 +87,7 @@ export function Monitoring() {
                       <div className="dsc-need-text">
                         <strong>{r.check}</strong>
                         <span className="small">{r.object_label}{r.detail ? ` · ${r.detail}` : ''}</span>
-                        {r.action_taken && <span className="small muted">{r.action_label} started {fmtDate(r.action_taken_at)}</span>}
+                        {r.action_taken && <span className="small muted">{r.action_label} started {fmtDate(r.action_taken_at)}{r.action_taken_by ? ` by ${r.action_taken_by}` : ''}</span>}
                       </div>
                       <div className="dsc-need-act">
                         {r.action_kind === 'server' && d.can_act && !r.action_taken && <Button size="sm" disabled={busy !== null} onClick={() => act(r)}>{r.action_label}</Button>}

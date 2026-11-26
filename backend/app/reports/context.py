@@ -160,7 +160,7 @@ def scope_facts(db: Session, e: Engagement, systems: list) -> dict:
     from app.questionnaire.models import Response
     from app.tenancy.models import Department
 
-    ucs = list(db.scalars(select(UseCase).where(UseCase.engagement_id == e.id, UseCase.deleted_at.is_(None), UseCase.status == "dept_approved")))
+    ucs = list(db.scalars(select(UseCase).where(UseCase.engagement_id == e.id, UseCase.deleted_at.is_(None), UseCase.status == "dept_approved").order_by(UseCase.created_at, UseCase.id)))
     dept_ids = list(dict.fromkeys([s.department_id for s in systems if s.department_id] + [u.department_id for u in ucs if u.department_id]))
     depts = [d.name for d in (db.get(Department, i) for i in dept_ids) if d is not None]
     count = lambda stmt: db.scalar(stmt) or 0  # noqa: E731
@@ -219,7 +219,8 @@ class FindingReferences:
         self.questions = _questions(db)
         self.sections = section_titles(db, self.questions)
         self.systems = {s.id: s for s in systems}
-        self.docs = [(d, db.get(DocumentCatalogItem, d.catalog_item_id)) for d in db.scalars(select(DocumentRequest).where(DocumentRequest.engagement_id == e.id, DocumentRequest.deleted_at.is_(None)))]
+        self.docs = [(d, db.get(DocumentCatalogItem, d.catalog_item_id)) for d in db.scalars(select(DocumentRequest).where(DocumentRequest.engagement_id == e.id, DocumentRequest.deleted_at.is_(None))
+                                                                                                  .order_by(DocumentRequest.created_at, DocumentRequest.id))]  # a stable order: PostgreSQL returns rows in any order without one
         self.ers = list(db.scalars(select(EvidenceRequest).where(EvidenceRequest.engagement_id == e.id, EvidenceRequest.deleted_at.is_(None)).order_by(EvidenceRequest.ref)))
         by_q = {q.id: q.code for q in self.questions.values()}
         self.answers: dict[tuple[str, str | None], object] = {}
