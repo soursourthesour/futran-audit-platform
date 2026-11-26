@@ -289,10 +289,10 @@ def _clients(db: Session) -> list[Organization]:
     return list(db.scalars(select(Organization).where(Organization.type == "client", Organization.deleted_at.is_(None)).order_by(Organization.name)))
 
 
-def ensure_applicability(db: Session) -> None:
+def ensure_applicability(db: Session) -> list[str]:
     """BUG-08: a client set up before the law library has no applicability rows (and often no geographies), so it
     could not be matched. Build them first, as opening the client's applicability page would. A failure for one
-    client is logged and leaves that client unmatched; it never stops the publish."""
+    client is logged and leaves that client unmatched; it never stops the publish. Returns the clients built here."""
     from app.core.db import hold_transaction
     from app.regmaster import engine
     from app.regmaster.models import ClientLawApplicability
@@ -301,14 +301,18 @@ def ensure_applicability(db: Session) -> None:
     # transaction and its release commits; a dry run or a failed publish could then no longer undo the rows built here.
     hold_transaction(db)
     have = set(db.scalars(select(ClientLawApplicability.organization_id).distinct()))
+    built = []
     for org in _clients(db):
         if org.id in have:
             continue
         try:
             with db.begin_nested():
-                engine.run(db, org.id, rematch=False)  # match() runs next; no separate re-match
+                engine.run(db, org.id, rematch=False)  # the caller matches next; match() re-matches earlier updates itself
         except Exception:
             log.exception("Applicability could not be built for organisation %s before matching", org.id)
+            continue
+        built.append(org.id)
+    return built
 
 
 def unmatchable_clients(db: Session) -> list[dict]:
@@ -330,7 +334,10 @@ def match(db: Session, u: RegulatoryUpdate) -> list[RegulatoryAlert]:
     """One RegulatoryAlert per client the published update concerns. Watch items are never matched."""
     if u.watch or u.status != "published":
         return []
-    ensure_applicability(db)
+    # From the 20 Nov hand-off build (BUG-08 fix round 1, C-1): a client whose applicability is built by this publish
+    # also gets the updates published before it, not only this one
+    for org_id in ensure_applicability(db):
+        rematch_org(db, org_id, exclude_update_id=u.id)
     have = {a.organization_id: a for a in db.scalars(select(RegulatoryAlert).where(RegulatoryAlert.update_id == u.id))}
     out = []
     for org in _clients(db):
@@ -365,7 +372,7 @@ def raise_triggers(db: Session, u: RegulatoryUpdate, alerts: list[RegulatoryAler
     return out
 
 
-def rematch_org(db: Session, org_id: str, actor_id: str | None = None) -> list[RegulatoryAlert]:
+def rematch_org(db: Session, org_id: str, actor_id: str | None = None, exclude_update_id: str | None = None) -> list[RegulatoryAlert]:
     """BUG-08: open updates (published, not watch items) are matched again for one client whose applicability or
     geographies changed after they were published. Only missing alerts are added; an existing alert is left as it is.
     No reassessment triggers: those reopen verified audit answers, so a person raises one from the alert if needed."""
@@ -375,7 +382,7 @@ def rematch_org(db: Session, org_id: str, actor_id: str | None = None) -> list[R
     seen = set(db.scalars(select(RegulatoryAlert.update_id).where(RegulatoryAlert.organization_id == org_id)))
     out = []
     for u in db.scalars(select(RegulatoryUpdate).where(RegulatoryUpdate.status == "published", RegulatoryUpdate.watch.is_(False)).order_by(RegulatoryUpdate.published_at)):
-        if u.id in seen:
+        if u.id in seen or u.id == exclude_update_id:
             continue
         hit = match_org(db, u, org_id)
         if hit is None:

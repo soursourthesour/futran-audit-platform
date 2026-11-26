@@ -153,3 +153,18 @@ def test_rematch_dry_run_saves_nothing(client, db, world, monkeypatch, capsys):
     db.expire_all()
     assert counts() == before
     assert db.scalar(select(ClientLawApplicability.id).where(ClientLawApplicability.organization_id == org.id)) is None
+
+
+def test_an_earlier_update_is_matched_when_a_later_publish_builds_the_applicability(client, db, world):
+    """From the 20 Nov hand-off build (BUG-08 fix round 1, C-1): publish A; a client is set up and nobody opens its
+    applicability page; publishing B builds the applicability, and A must reach the client too, not only B."""
+    a = publish(client, db, world, nyc_enforcement(world))
+    org, s = _meridian(db, world)
+    assert _alert(db, a["id"], org.id) is None
+    b = publish(client, db, world, nyc_enforcement(world, title="Second update"))
+    db.expire_all()
+    assert _alert(db, b["id"], org.id) is not None
+    assert _alert(db, a["id"], org.id) is not None, "the earlier published update was never matched"
+    assert db.scalar(select(ReassessmentTrigger.id).where(ReassessmentTrigger.register_system_id == s.id, ReassessmentTrigger.source_ref == f"update:{a['id']}")) is None
+    n = len(list(db.scalars(select(RegulatoryAlert).where(RegulatoryAlert.organization_id == org.id))))
+    assert n == 2
