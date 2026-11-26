@@ -116,10 +116,6 @@ export const CLIENT_GROUPS: NavGroup[] = [
   ] },
 ];
 
-/** Every entry in one flat list, in menu order. */
-export const FUTRAN_NAV: NavEntry[] = FUTRAN_GROUPS.flatMap((g) => g.entries);
-export const CLIENT_NAV: NavEntry[] = CLIENT_GROUPS.flatMap((g) => g.entries);
-
 /** The groups this person can use, each holding only the entries they can use; empty groups are dropped. */
 export function groupsFor(me: Me, groups: NavGroup[]): NavGroup[] {
   return groups.map((g) => ({ ...g, entries: navFor(me, g.entries) })).filter((g) => g.entries.length > 0);

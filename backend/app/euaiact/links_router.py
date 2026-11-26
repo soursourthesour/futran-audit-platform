@@ -24,12 +24,6 @@ except ImportError:  # pragma: no cover - depends on the other workstream
     _TYPES = None
 
 
-def known_types() -> set[str] | None:
-    if _TYPES is None:
-        return None
-    return set(_TYPES) if not isinstance(_TYPES, dict) else set(_TYPES.keys())
-
-
 @router.get("/e/{engagement_id}/workspaces")
 def workspaces(engagement_id: str, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     if not actor.is_futran:

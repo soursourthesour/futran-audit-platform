@@ -213,7 +213,3 @@ def reject(db: Session, actor: User, o: Obligation, reason) -> Obligation:
     audit.record(db, actor_id=actor.id, action="obligation.reject", obj=o, after={"reason": reason}, summary=f"Rejected a proposed obligation: {reason[:120]}")
     return o
 
-
-def approved_for(db: Session, regulation_id: str) -> list[Obligation]:
-    """Approved obligations of a law, for the law record and for lineage (WS-K)."""
-    return list(db.scalars(select(Obligation).where(Obligation.regulation_id == regulation_id, Obligation.status == "approved", Obligation.deleted_at.is_(None)).order_by(Obligation.created_at)))

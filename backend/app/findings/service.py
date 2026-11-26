@@ -8,7 +8,7 @@ from app.core.errors import Conflict, Forbidden, Invalid
 from app.engagements.models import Engagement
 from app.findings.models import SEVERITIES, Finding
 from app.inventory.models import UseCase
-from app.scoring.scale import RESPONSE_DAYS as DEFAULT_DUE_DAYS  # response time by severity: one scale for the platform
+from app.scoring.scale import RESPONSE_DAYS as DEFAULT_DUE_DAYS  # noqa: F401 (one response-time scale for the platform; tests import it from here)
 from app.systems.models import AISystem
 from app.tenancy.models import User
 

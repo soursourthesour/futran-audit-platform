@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
 import { RISK_TONE, type CopilotNotStarted, type CopilotSite, type CopilotView, type CopilotWave } from '@/api/r6b';
@@ -336,8 +336,4 @@ function WaveDialog({ v, wave, onClose, onSave, onDelete }: { v: CopilotView; wa
       </div>
     </Dialog>
   );
-}
-
-export function CopilotLink({ engagementId }: { engagementId: string }) {
-  return <Link to={`/e/${engagementId}/copilot`}>Copilot readiness</Link>;
 }

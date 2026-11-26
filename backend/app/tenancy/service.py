@@ -1,7 +1,7 @@
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.core.errors import Conflict, NotFound
+from app.core.errors import Conflict
 from app.core.ids import new_id
 from app.tenancy.models import Department, Organization, RoleAssignment, User
 
@@ -98,13 +98,6 @@ def roles_of(db: Session, user_id: str) -> list[RoleAssignment]:
     d = today()
     rows = db.scalars(select(RoleAssignment).where(RoleAssignment.user_id == user_id, RoleAssignment.deleted_at.is_(None)))
     return [r for r in rows if (r.start_date is None or r.start_date <= d) and (r.end_date is None or r.end_date >= d)]
-
-
-def get_org(db: Session, org_id: str) -> Organization:
-    org = db.get(Organization, org_id)
-    if not org or org.deleted_at:
-        raise NotFound()
-    return org
 
 
 def create_department(db: Session, org: Organization, *, name: str, actor_id: str | None = None, **fields) -> Department:

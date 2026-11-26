@@ -26,7 +26,6 @@ import re
 import httpx
 
 from app.connectors import vendors
-from app.connectors.adapters import ConnectorError
 from app.connectors.adapters.http import MAX_PAGES, client, request
 from app.connectors.signals import Signal
 
@@ -101,9 +100,3 @@ class OktaAdapter:
         # The client's Okta admin removes the API service integration to revoke it; the platform deletes what it stored.
         return None
 
-
-def ensure_domain(value: str | None) -> str:
-    d = clean_domain(value)
-    if d is None:
-        raise ConnectorError("Enter your Okta domain, for example yourcompany.okta.com.")
-    return d

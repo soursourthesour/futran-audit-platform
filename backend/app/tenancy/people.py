@@ -14,7 +14,7 @@ from app.invitations.service import invite_user
 from app.notifications.service import futran_team, notify
 from app.policy.roles import CLIENT_ROLES, ROLE_LABELS, SIGN_OFF_ROLES
 from app.tenancy.csv_import import DEPARTMENT_ROLES, EMAIL, USER_HEADER
-from app.tenancy.job_levels import job_level_label, parse_job_level
+from app.tenancy.job_levels import parse_job_level
 from app.tenancy.models import Department, Organization, RoleAssignment, User
 from app.tenancy.service import assign_role, create_department, create_user, find_user_by_email, roles_of
 

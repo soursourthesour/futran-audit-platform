@@ -27,7 +27,7 @@ def overage_rate(db: Session, bank: HoursBank) -> float:
 
 
 # ---------------------------------------------------------------- weekly timesheet
-from datetime import datetime, timedelta  # noqa: E402
+from datetime import timedelta  # noqa: E402
 
 from app.audit_log import service as audit  # noqa: E402
 from app.commercial.common import futran_org, money, users_with_roles  # noqa: E402

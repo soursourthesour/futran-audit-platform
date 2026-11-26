@@ -189,14 +189,6 @@ def run_weekly_digest(db: Session, settings: Settings, now) -> int:
     return sent
 
 
-def run_email(db: Session, settings: Settings, now) -> int:
-    """Email (spec §26): paced sends, replies, directory sync and reminders. The scheduler runs it every minute
-    (start_scheduler); it is not part of the daily run."""
-    from app.mail.jobs import run_mail_tick
-
-    return sum(run_mail_tick(db, settings, _dt(now)).values())
-
-
 # ---- the daily run
 # Email (every minute) and incident deadlines (every 15 minutes) run on their own ticks in start_scheduler, never here
 # as well: two runs that overlap could send the same message twice.

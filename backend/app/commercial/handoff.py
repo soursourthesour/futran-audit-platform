@@ -425,15 +425,6 @@ def separate_team_user_ids(db: Session, client_id: str) -> set[str]:
     return out
 
 
-def unconfirmed_handoff(db: Session, client_id: str) -> Handoff | None:
-    """A hand-off for this client with policy drafting, AgentWarden, Agent Assure or Fractional Officer lines whose separate
-    delivery team the Chief Auditor has not yet confirmed."""
-    for h in db.scalars(select(Handoff).where(Handoff.organization_id == client_id, Handoff.deleted_at.is_(None), Handoff.independence_confirmed_by.is_(None))):
-        if h.needs_separate_team:
-            return h
-    return None
-
-
 def _unconfirmed_for(db: Session, client_id: str, engagement_id: str) -> Handoff | None:
     """The unconfirmed hand-off with separate-team lines that created this engagement draft, if any."""
     for h in db.scalars(select(Handoff).where(Handoff.organization_id == client_id, Handoff.deleted_at.is_(None), Handoff.independence_confirmed_by.is_(None))):

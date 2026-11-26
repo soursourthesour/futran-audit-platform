@@ -2,7 +2,7 @@
 
 Ratings are lower-case keys: low < medium < high < critical.
 """
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from decimal import ROUND_HALF_UP, Decimal
 
 from app.questionnaire.rules import EngagementFacts, SystemContext, is_applicable
@@ -72,12 +72,6 @@ class Knockout:
     code: str
     force: str
     label: str
-
-
-@dataclass
-class DomainInputs:
-    pct_confirmed: dict[str, float | None] = field(default_factory=dict)  # None: no applicable checklist item
-    open_high_or_critical: dict[str, int] = field(default_factory=dict)
 
 
 # ---- inherent risk (§19.2)

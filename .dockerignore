@@ -11,3 +11,5 @@ e2e
 .env
 *.zip
 **/.env
+backend/tests
+backend/scripts

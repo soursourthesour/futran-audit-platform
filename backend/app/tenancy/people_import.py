@@ -15,7 +15,7 @@ from app.core.errors import AppError, Invalid
 from app.policy.roles import ROLE_LABELS
 from app.tenancy import people as ppl
 from app.tenancy.csv_import import (
-    DEPARTMENT_ROLES, CsvResult, FileRefused, Table, is_department_table, is_user_table, issue, key, parse_departments, parse_users, read_file,
+    DEPARTMENT_ROLES, CsvResult, FileRefused, is_department_table, is_user_table, issue, key, parse_departments, parse_users, read_file,
 )
 from app.tenancy.job_levels import job_level_label
 from app.tenancy.models import Department, Organization, User

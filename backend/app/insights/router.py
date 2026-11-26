@@ -1,5 +1,5 @@
 """Screens 35 (heat map and lineage) and 34 (benchmarking and practice insights)."""
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import Response as HttpResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
