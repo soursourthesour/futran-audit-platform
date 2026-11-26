@@ -408,7 +408,18 @@ def dispatch(db: Session, settings: Settings, s: MailSend, now: datetime | None 
         left = list(db.scalars(select(MailRecipient).where(MailRecipient.send_id == s.id, MailRecipient.status == "queued")))
         for r in left:
             r.status, r.next_attempt_at = "cancelled", None
-        s.status = "cancelled"
+        db.flush()
+        # From the 20 Nov hand-off build: part of a paced send may have gone before the campaign closed, and what went
+        # stays "sent"; the skip is written to the email and admin log once, with how many people it did not reach.
+        went = db.scalar(select(func.count(MailRecipient.id)).where(MailRecipient.send_id == s.id, MailRecipient.status != "cancelled"))
+        s.status = "sent" if went else "cancelled"
+        if went:
+            s.sent_at = s.sent_at or now
+        if left:
+            adminlog.write(db, organization_id=s.organization_id, category="send", action="send_skipped", engagement_id=s.engagement_id, send_id=s.id,
+                           details={"recipients": len(left), "reason": reason},
+                           summary=f"{s.template_name or 'An email'} was not sent to {len(left):,} {'person' if len(left) == 1 else 'people'}: "
+                                   f"the attestation campaign has closed")
         log.info("Email send %s cancelled at dispatch: %s (%d recipients not sent)", s.id, reason, len(left))
         return 0
     sender = _sender_for(db, settings, s)

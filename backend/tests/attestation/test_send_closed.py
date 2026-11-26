@@ -138,3 +138,82 @@ def test_after_discovery_the_closed_message_does_not_point_to_a_new_campaign(cli
     assert client.post(f"/api/v1/clients/{cid}/attestation/send-all", json={}).json()["detail"] == msg
     launch = client.post(f"/api/v1/clients/{cid}/attestation/campaigns", json={"department_ids": c.department_ids, "closes_at": (utcnow() + timedelta(days=7)).isoformat()})
     assert launch.status_code == 409 and "Chief Auditor" in launch.json()["detail"]  # the advice matches what launching says
+
+
+# ---- From the 20 Nov hand-off build (BUG-12 fix round 1): the preview refuses too, and every skip is in the admin log
+def test_the_preview_refuses_the_attestation_for_a_closed_campaign(client, db, world):
+    cid, e, maria, depts, _ = world
+    _staff(db, cid, depts)
+    login_as(client, db, maria)
+    _campaign(db, cid).status = "closed"
+    db.commit()
+    opts = client.get("/api/v1/mail/send/options").json()
+    group = next(g for g in opts["groups"] if g["system_key"] == "all_employees")
+    r = client.post("/api/v1/mail/send/preview", json={"template_key": "attestation_request", "group_ids": [group["id"]]})
+    assert r.status_code == 409 and r.json()["detail"] == CLOSED
+
+
+def _skips(db, send_id, action):
+    from app.mail.models import AdminLogEntry
+
+    return list(db.scalars(select(AdminLogEntry).where(AdminLogEntry.send_id == send_id, AdminLogEntry.action == action)))
+
+
+def test_a_scheduled_send_skipped_at_dispatch_is_logged_once(client, db, world):
+    from app.mail.sending import dispatch_due
+
+    cid, e, maria, depts, _ = world
+    _staff(db, cid, depts)
+    login_as(client, db, maria)
+    when = utcnow() + timedelta(hours=1)
+    sid = _email_send(client, scheduled_at=when.isoformat()).json()["id"]
+    _campaign(db, cid).status = "closed"
+    db.commit()
+    dispatch_due(db, client.app.state.settings, when + timedelta(minutes=1))
+    dispatch_due(db, client.app.state.settings, when + timedelta(minutes=2))
+    db.commit()
+    logs = _skips(db, sid, "send_skipped")
+    assert len(logs) == 1 and "campaign has closed" in logs[0].summary
+
+
+def test_a_send_partly_delivered_before_the_campaign_closed_stays_sent(client, db, world):
+    """Paced sends go out in batches: what already went is not reported as cancelled."""
+    from app.mail.models import MailRecipient
+    from app.mail.sending import dispatch
+
+    cid, e, maria, depts, _ = world
+    _staff(db, cid, depts)
+    login_as(client, db, maria)
+    s = db.get(MailSend, client.post(f"/api/v1/clients/{cid}/attestation/send-all", json={}).json()["send_id"])
+    rows = list(db.scalars(select(MailRecipient).where(MailRecipient.send_id == s.id)))
+    assert len(rows) >= 2
+    for r in rows[1:]:
+        r.status, r.next_attempt_at = "queued", None
+    rows[0].status = "sent"
+    s.status = "sending"
+    _campaign(db, cid).status = "closed"
+    db.commit()
+    dispatch(db, client.app.state.settings, s)
+    db.commit()
+    assert s.status == "sent"
+    assert {r.status for r in rows[1:]} == {"cancelled"} and rows[0].status == "sent"
+
+
+def test_automatic_reminders_skipped_after_the_campaign_closed_are_logged_once_per_planned_day(client, db, world):
+    from app.mail.reminders import run_reminders
+
+    cid, e, maria, depts, _ = world
+    _staff(db, cid, depts)
+    login_as(client, db, maria)
+    s = db.get(MailSend, client.post(f"/api/v1/clients/{cid}/attestation/send-all", json={"reminder_days": [3, 7]}).json()["send_id"])
+    _campaign(db, cid).status = "closed"
+    db.commit()
+    settings = client.app.state.settings
+    assert run_reminders(db, settings, s.sent_at + timedelta(days=4)) == 0
+    assert run_reminders(db, settings, s.sent_at + timedelta(days=4, hours=1)) == 0
+    db.commit()
+    logs = _skips(db, s.id, "reminder_skipped")
+    assert len(logs) == 1 and "campaign has closed" in logs[0].summary
+    assert run_reminders(db, settings, s.sent_at + timedelta(days=8)) == 0
+    db.commit()
+    assert len(_skips(db, s.id, "reminder_skipped")) == 2

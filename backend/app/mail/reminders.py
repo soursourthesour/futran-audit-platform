@@ -87,6 +87,20 @@ def remind(db: Session, settings: Settings, s: MailSend, targets: list[MailRecip
     return rem
 
 
+def _log_skipped_reminder(db: Session, s: MailSend, due: int) -> None:
+    """From the 20 Nov hand-off build: the admin log says which planned reminder was not sent, and to how many people."""
+    from app.mail.models import AdminLogEntry
+
+    done = {(e.details or {}).get("due") for e in db.scalars(select(AdminLogEntry).where(AdminLogEntry.send_id == s.id, AdminLogEntry.action == "reminder_skipped"))}
+    if due in done:
+        return
+    waiting = len(non_responders(db, s, due_index=due))
+    adminlog.write(db, organization_id=s.organization_id, category="send", action="reminder_skipped", engagement_id=s.engagement_id, send_id=s.id,
+                   details={"due": due, "recipients": waiting},
+                   summary=f"Planned reminder {due} for {s.template_name or 'an email'} was not sent to {waiting:,} "
+                           f"{'person' if waiting == 1 else 'people'}: the attestation campaign has closed")
+
+
 def run_reminders(db: Session, settings: Settings, now: datetime | None = None) -> int:
     """Scheduler: for every send with a reminder plan, remind non-responders once per planned day that has passed."""
     now = now or utcnow()
@@ -94,6 +108,9 @@ def run_reminders(db: Session, settings: Settings, now: datetime | None = None) 
     for s in list(db.scalars(select(MailSend).where(MailSend.kind == "group", MailSend.reminder_plan.is_not(None), MailSend.sent_at.is_not(None)))):
         due = sum(1 for d in s.reminder_plan or [] if s.sent_at + timedelta(days=int(d)) <= now)
         if due == 0:
+            continue
+        if campaign_closed(db, None, (s.campaign_type, s.campaign_id) if s.campaign_type and s.campaign_id else None, now):
+            _log_skipped_reminder(db, s, due)  # BUG-12: no reminder with a dead link; each planned day is logged once
             continue
         rem = remind(db, settings, s, non_responders(db, s, due_index=due), now, due_index=due)
         if rem is not None:

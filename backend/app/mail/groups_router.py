@@ -454,6 +454,12 @@ def _sample(db: Session, a: dict, data: dict, person: DirectoryPerson | None, se
 @router.post("/send/preview")
 def send_preview(data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function"), settings=Depends(get_settings_dep)):
     a = _expand_args(db, actor, data)
+    # From the 20 Nov hand-off build (BUG-12): the preview refuses what Send would refuse, so nobody prepares an email to a
+    # closed campaign
+    if a["template"].purpose in sending.CLOSED:
+        reason = sending.campaign_closed(db, a["template"].purpose, a["campaign"])
+        if reason:
+            raise Conflict(reason)
     ex = _expansion(db, a, data)
     from app.mail.delivery import resolve_sender
 
