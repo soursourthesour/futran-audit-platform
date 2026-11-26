@@ -33,10 +33,10 @@ Both libraries are kept current by the platform's scheduled refresh (laws and li
 A Futran Admin creates the key in the platform: **Administration > Website API keys > New website key**.
 
 - **Name**: which website or environment uses it, for example "Futran website (production)".
-- **Allowed origins**: leave empty for a key used from the website's server (recommended). List origins, such as `https://www.futransolutions.com`, only for a key that must be called from the browser. An origin is `https://host[:port]`; `http://` is accepted for `localhost` and `127.0.0.1` only. No paths or wildcards.
+- **Allowed origins**: leave empty for a key used from the website's server (recommended). List origins, such as `https://www.futransolutions.com`, only for a key that must be called from the browser. An origin is `https://host[:port]`; `http://` is accepted for `localhost` and `127.0.0.1` only. No paths or wildcards. Origins are saved in lower case, without a default port (`:443`, or `:80` for http), and with international host names in their ASCII form (`https://bücher.example` is saved as `https://xn--bcher-kva.example`); a request's `Origin` header is compared the same way.
 - **Calls a minute**: the key's rate limit, 1 to 1,200. Default 120.
 
-The key is shown once. The platform keeps only a SHA-256 hash of it and the first 12 characters (for example `fwl_Q2hvY2tz`) so keys can be told apart. Copy it into the website team's password manager or secrets store. If it is lost or exposed, revoke it on the same screen and create a new one; a revoked key gets 401 at once. Creating and revoking keys is recorded in the audit log. Website keys are not tied to any client organization and cannot reach anything but this API.
+The key is shown once. The platform keeps only a SHA-256 hash of it and the first 12 characters (for example `fwl_Q2hvY2tz`) so keys can be told apart. Copy it into the website team's password manager or secrets store. If it is lost or exposed, revoke it on the same screen and create a new one; the platform answers a revoked key with 401 at once. Copies already cached outside the platform (the website's own cache, a browser, or CloudFront) can still be served for up to their cache lifetime: 5 minutes, plus up to 10 while they are revalidated in the background, or the CloudFront maximum TTL. Purge CloudFront if a revoked key must stop seeing data at once. Creating and revoking keys is recorded in the audit log. Website keys are not tied to any client organization and cannot reach anything but this API.
 
 ### Sending the key
 
@@ -507,6 +507,7 @@ For 422, `errors` lists the fields: `[{ "field": "limit", "message": "Input shou
 | 422 | A parameter is out of range, unknown, or not one of the listed values | Some fields need attention. (or the specific message) |
 | 429 | The key's rate limit is used up | Too many requests for this website API key. Wait and try again. |
 | 429 | More than 30 requests a minute from one address with a missing or wrong key | Too many requests without a valid website API key. Wait a minute and try again. |
+| 429 | A CORS preflight from an address that has used up that allowance | Too many requests from this address. Wait a minute and try again. |
 
 Error responses are never cached (`Cache-Control: no-store`).
 
@@ -519,9 +520,9 @@ X-RateLimit-Limit: 120
 X-RateLimit-Remaining: 87
 ```
 
-Over the limit, the API answers 429 with `Retry-After` (seconds until a request is allowed again). Requests answered 304 count toward the limit. Requests with a missing or wrong key are limited to 30 a minute per network address.
+Over the limit, the API answers 429 with `Retry-After` (seconds until a request is allowed again). Requests answered 304 count toward the limit. Requests with a missing or wrong key, and CORS preflights, share an allowance of 30 a minute per network address.
 
-The limit is counted in each server process. With the platform on more than one server task, each counts separately, so the effective ceiling is the limit times the number of tasks; the AWS WAF rule below gives one shared ceiling.
+The limits are counted in each server process, and the response cache, the client-name list and the preflight origin set are kept in each process too. With the platform on more than one server task, each counts separately, so the effective ceiling is the limit times the number of tasks; the AWS WAF rule below gives one shared ceiling. Revoking a key or adding a client takes effect at once in every task, because each request checks the database; only the preflight origin set can lag by up to 60 seconds in the tasks that did not handle the change.
 
 ## Caching and ETags
 
@@ -567,6 +568,8 @@ Browser calls are allowed only from the origins listed on the key.
 - A preflight (`OPTIONS` with `Origin` and `Access-Control-Request-Method: GET`) is answered 204 for an origin that some active key lists, with `Access-Control-Allow-Origin: <origin>`, `Access-Control-Allow-Methods: GET, OPTIONS`, `Access-Control-Allow-Headers: X-API-Key, Authorization, If-None-Match, Content-Type` and `Access-Control-Max-Age: 600`. Any other origin gets 403.
 - The real request is checked against its own key: from a listed origin it carries `Access-Control-Allow-Origin` and `Access-Control-Expose-Headers: ETag, X-Library-Last-Refreshed, Retry-After, X-RateLimit-Limit, X-RateLimit-Remaining`; from any other origin it is refused with 403.
 - A key with no origins refuses every request that carries an `Origin` header, so it works from servers only.
+- Preflights count against the same per-address allowance as requests with a missing or wrong key (30 a minute); over it, a preflight gets 429 with `Retry-After: 60`. Browsers cache a successful preflight for 10 minutes, so a visitor needs very few.
+- The set of allowed origins used for preflights is kept for up to 60 seconds, and dropped at once when a key is created or revoked in the platform.
 - Credentials (cookies) are never allowed. A 401 (missing or wrong key) carries no CORS headers, so the browser reports it as a network error.
 
 The `Origin` header can be set to anything by a program outside a browser, so origin checks stop other websites from using a browser key in their visitors' browsers; they do not make a key that has been published safe. Treat every key as a secret.
@@ -621,6 +624,17 @@ Version history lists versions up to the current approved one.
 | Opportunities, client briefings, follows and assignments | Sales and staff workflow; no endpoint of this API reads them. |
 
 Cases proposed by the litigation refresh are not in the tracker until a person approves them, so they are not served; nor are proposed updates to a case.
+
+### Client names in free text
+
+The fields above are left out by name. Free text is checked as well, because anyone who edits a record, or approves a refresh proposal, could type a client's name into it (for example a version's change summary "Updated after Example Corp's review", a case's stage note, a timeline label or a source address).
+
+Before a response is served, every display string in it is checked against the names of the platform's client and prospect organizations: name, legal name and trading name, in any status (draft, active, archived, prospect), excluding Futran's own and internal organizations. A match is a whole-word match in any case; a space in the name also matches a hyphen, underscore, dot, plus sign or `%20`, so a name in a web address is caught. Each match is replaced with `[client]`. For example, `"Updated after Example Corp's review"` is served as `"Updated after [client]'s review"`, and `https://news.example.com/example-corp-ai` as `https://news.example.com/[client]-ai`.
+
+- Machine values are not checked or changed: ids, codes, and enum values such as `stage`, `status`, `type`, `region` and `applies_to`. Their display labels are checked.
+- The platform logs a warning naming the endpoint, record id and field (never the matched text) so the Futran team can correct the record. Nothing about it appears in API responses.
+- A name shorter than 3 characters is not checked. A client whose name is also an everyday word or a place (for example "Discovery") will have that word replaced wherever it appears in display text, including a filter label or a case area from `/meta`. Rename the organization's display name in the platform, or accept the placeholder, if that happens.
+- The name list is kept for up to a minute and rebuilt at once when a client or prospect is added or changed; cached responses are rebuilt with it.
 
 A test (`backend/tests/library/test_confidentiality.py`) seeds a client matched to a case, client applicability, an opportunity with an owner and value, a staff follow, a law reviewer, pending proposals and an unapproved obligation, calls every endpoint, and fails if any client name or id, register system, vendor, user id, email or name, opportunity field, pending proposal or internal note appears in any response.
 
