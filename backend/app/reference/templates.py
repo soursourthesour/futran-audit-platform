@@ -6,6 +6,7 @@ import math
 import re
 import string
 import time
+from collections.abc import ItemsView, Iterator, KeysView, ValuesView
 
 import yaml
 from jinja2 import StrictUndefined, TemplateSyntaxError, Undefined
@@ -31,7 +32,7 @@ TEMPLATE_DIR = SEEDS / "templates"
 # or processes, so it works the same on the Windows laptop).
 MAX_SEQ = 1_000_000  # characters or items one expression may build
 MAX_STEPS = 200_000  # loop iterations plus calls in one render
-MAX_OUTPUT = 5_000_000  # characters of output in one render, counted at every output, buffered blocks included
+MAX_OUTPUT = 25_000_000  # characters of output in one render, counted at every output, buffered blocks included
 MAX_BODY = 500_000  # characters in one template body, checked on save
 MAX_DIGITS = 100  # digits in an integer that * or ** may produce
 MAX_TABSIZE = 100
@@ -44,11 +45,16 @@ _SIZED = (str, bytes, list, tuple, dict, set, frozenset)
 
 
 class TemplateTooLarge(Invalid):
-    """A template that would make one render do unbounded work."""
+    """A template that would make one render do unbounded work. The wording depends on who sees it: the admin saving
+    the template can simplify it; whoever generates a document from it can only ask an administrator."""
 
-    def __init__(self, reason: str):
-        message = f"This template does too much work to render: {reason}. Simplify it."
-        super().__init__(message, [{"field": "body", "message": message}])
+    def __init__(self, reason: str, editing: bool = False):
+        self.reason = reason
+        if editing:
+            message = f"This template does too much work to render: {reason}. Simplify it."
+            super().__init__(message, [{"field": "body", "message": message}])
+        else:
+            super().__init__(f"The document template does too much work to render ({reason}). An administrator can check the template.")
 
 
 class _Budget:
@@ -69,13 +75,32 @@ def _tick() -> None:
         return
     b.steps += 1
     if b.steps > MAX_STEPS:
-        raise TemplateTooLarge(f"it runs more than {MAX_STEPS:,} loop steps and calls")
+        raise TemplateTooLarge(f"its loops and calls repeat more than {MAX_STEPS:,} times")
     if time.monotonic() > b.deadline:
-        raise TemplateTooLarge(f"it takes longer than {b.seconds:g} seconds")
+        raise TemplateTooLarge(f"it takes longer than the time limit of {b.seconds:g} s")
+
+
+def _check_deadline() -> None:
+    """The clock alone, for work that is not counted as a step: filters and tests (the shipped report runs about
+    125,000 tests in selectattr for 500 findings, so counting them would refuse a real report)."""
+    b = _budget.get()
+    if b is not None and time.monotonic() > b.deadline:
+        raise TemplateTooLarge(f"it takes longer than the time limit of {b.seconds:g} s")
+
+
+def _watched(iterator):
+    """A lazy filter result (map, select, selectattr, unique, batch and the like): chained, these do their work as the
+    last one is consumed, after every filter call has returned, so the items check the clock as they pass."""
+    n = 0
+    for item in iterator:
+        n += 1
+        if not n & 255:
+            _check_deadline()
+        yield item
 
 
 def _too_long():
-    return TemplateTooLarge(f"it builds a value of more than {MAX_SEQ:,} characters or items")
+    return TemplateTooLarge(f"one value grows past {MAX_SEQ:,} characters or items")
 
 
 def _check_size(value):
@@ -90,31 +115,64 @@ def _is_int(v) -> bool:
 
 def _check_width(width, limit: int = MAX_SEQ) -> None:
     if _is_int(width) and width > limit:
-        raise TemplateTooLarge(f"a width or size of {width:,} is over the limit of {limit:,}")
+        raise TemplateTooLarge(f"a width or count of {width:,} is over the limit of {limit:,}")
 
 
-def _text_len(v, seen: dict) -> int:
-    """An upper bound on len(str(v)), cheap for the common cases."""
-    if isinstance(v, (str, bytes)):
-        return len(v)
-    if v is None or isinstance(v, (bool, float)):
-        return 32
-    if isinstance(v, int):
-        return v.bit_length() // 3 + 2
-    key = id(v)
-    if key not in seen:
-        seen[key] = len(str(v))
-    return seen[key]
+_VIEWS = (list, tuple, set, frozenset, KeysView, ValuesView, ItemsView)
+
+
+def _text_size(value, limit: int = MAX_SEQ) -> int:
+    """Roughly len(str(value)) without building the text: containers are walked (a list of a million references to one
+    long string is cheap to hold and huge as text) and the walk stops as soon as the total passes `limit`, so measuring
+    costs at most about `limit` steps. Returns a number above `limit` when the text would be too long."""
+    if isinstance(value, (str, bytes)):
+        return len(value)
+    total = 0
+    stack = [value]
+    while stack:
+        v = stack.pop()
+        if isinstance(v, (str, bytes)):
+            total += len(v) + 3  # quotes and separator
+        elif v is None or isinstance(v, (bool, float)):
+            total += 8
+        elif isinstance(v, int):
+            total += v.bit_length() // 3 + 4
+        elif isinstance(v, (dict, Namespace)):
+            attrs = object.__getattribute__(v, "_Namespace__attrs") if isinstance(v, Namespace) else v
+            total += 4 + 4 * len(attrs)
+            if total <= limit:
+                stack.extend(attrs.keys())
+                stack.extend(attrs.values())
+        elif isinstance(v, _VIEWS):
+            total += 4 + 2 * len(v)
+            if total <= limit:
+                stack.extend(v)
+        else:
+            total += 32  # other objects (loop, macro, range, undefined) print a short form
+        if total > limit:
+            return total
+    return total
+
+
+def _check_text(value):
+    """Refuse a value whose text would pass the size limit; returns the value untouched."""
+    if not isinstance(value, str) and _text_size(value) > MAX_SEQ:
+        raise _too_long()
+    return value
 
 
 def _check_spread(fmt: str, fields: int, values) -> None:
     """A format string repeats its arguments once per field: refuse when that would build an oversize string."""
     if not fields:
         return
-    seen: dict = {}
-    widest = max((_text_len(v, seen) for v in values), default=0)
-    if len(fmt) + fields * widest > MAX_SEQ:
-        raise _too_long()
+    room = (MAX_SEQ - len(fmt)) // fields
+    seen: set[int] = set()
+    for v in values:
+        if id(v) in seen:
+            continue
+        seen.add(id(v))
+        if _text_size(v, room) > room:
+            raise _too_long()
 
 
 _PERCENT = re.compile(r"%%|%(?:\([^)]*\))?[-#0 +]*(\*|\d+)?(?:\.(\*|\d*))?")
@@ -168,13 +226,13 @@ def _check_join(sep, items, attribute=None, environment=None) -> None:
     if attribute is not None and environment is not None:
         getter = make_attrgetter(environment, attribute)
         items = [getter(x) for x in items]
-    seen: dict = {}
-    sep_len = len(sep) if isinstance(sep, (str, bytes)) else _text_len(sep, seen)
-    total = sep_len * max(len(items) - 1, 0)
+    total = _text_size(sep) * max(len(items) - 1, 0)
     for x in items:
-        total += _text_len(x, seen)
         if total > MAX_SEQ:
-            raise _too_long()
+            break
+        total += _text_size(x, MAX_SEQ - total)
+    if total > MAX_SEQ:
+        raise _too_long()
 
 
 def _check_str_method(s, name: str, args: tuple, kwargs: dict) -> tuple:
@@ -267,8 +325,10 @@ class _BudgetedCodeGenerator(CodeGenerator):
     def _output_child_pre(self, node, frame, finalize):
         self.write("environment.budget_out(")
         super()._output_child_pre(node, frame, finalize)
+        self.write("environment.budget_text(")
 
     def _output_child_post(self, node, frame, finalize):
+        self.write(")")
         super()._output_child_post(node, frame, finalize)
         self.write(")")
 
@@ -288,10 +348,21 @@ class _CountedIter:
         return len(self._inner)  # TypeError when the inner has no length, which LoopContext handles
 
 
+# filters that turn their value into text first: the value is measured before they run
+_STRINGIFYING = frozenset({
+    "capitalize", "center", "e", "escape", "forceescape", "format", "indent", "lower", "md_block", "md_cell", "pprint",
+    "replace", "safe", "string", "striptags", "title", "tojson", "trim", "truncate", "upper", "urlencode", "urlize",
+    "wordcount", "wordwrap", "xmlattr",
+})
+
+
 def _guard_filter(name: str, func):
-    """A filter whose str or list result cannot pass the size limit, with a pre-check for the filters whose cost is set
-    by an argument."""
+    """A filter that checks the clock, whose str or list result cannot pass the size limit and whose lazy result checks
+    the clock as it is consumed; filters that make text measure their value first, and those whose cost is set by an
+    argument have a pre-check."""
     pre = _FILTER_CHECKS.get(name)
+    value_at = 1 if getattr(func, "jinja_pass_arg", None) is not None else 0  # after the environment or context
+    measure = name in _STRINGIFYING
     inner = inspect.unwrap(func)
     # Jinja's async_variant filters (slice, for one) take a pass argument their wrapped function does not declare
     skip = 1 if getattr(func, "jinja_pass_arg", None) is not None and getattr(inner, "jinja_pass_arg", None) is None else 0
@@ -299,6 +370,9 @@ def _guard_filter(name: str, func):
 
     @functools.wraps(func)  # keeps the jinja_pass_arg marker
     def guarded(*args, **kwargs):
+        _check_deadline()
+        if measure and len(args) > value_at:
+            _check_text(args[value_at])
         if pre is not None:
             try:
                 bound = sig.bind(*args[skip:], **kwargs)
@@ -311,6 +385,8 @@ def _guard_filter(name: str, func):
         result = func(*args, **kwargs)
         if isinstance(result, (str, list)) and len(result) > MAX_SEQ:
             raise _too_long()
+        if isinstance(result, Iterator) and not isinstance(result, (str, bytes)):
+            return _watched(result)
         return result
 
     return guarded
@@ -395,40 +471,57 @@ class _Sandbox(ImmutableSandboxedEnvironment):
         return _CountedIter(iterable)
 
     def budget_concat(self, parts, markup):
-        """`a ~ b`: measured before joining, so doubling a string cannot run away."""
-        if markup:  # inside {% autoescape true %}: escaping can lengthen the parts, so the result is checked too
-            if sum(len(p) for p in parts if isinstance(p, str)) > MAX_SEQ:
+        """`a ~ b`: every part measured as text before any is converted or joined, so doubling a string or printing a
+        cheap list of long strings cannot run away."""
+        total = 0
+        for p in parts:
+            total += _text_size(p, MAX_SEQ - total)
+            if total > MAX_SEQ:
                 raise _too_long()
+        if markup:  # inside {% autoescape true %}: escaping can lengthen the parts, so the result is checked too
             return _check_size(markup_join(parts))
-        parts = [p if isinstance(p, str) else str(p) for p in parts]
-        if sum(map(len, parts)) > MAX_SEQ:
-            raise _too_long()
-        return "".join(parts)
+        return "".join(p if isinstance(p, str) else str(p) for p in parts)
+
+    def budget_text(self, value):
+        """An output expression's value, measured before the finaliser and str() turn it into text."""
+        return _check_text(value)
 
     def budget_out(self, text):
         b = _budget.get()
         if b is not None:
             b.out += len(text)
             if b.out > MAX_OUTPUT:
-                raise TemplateTooLarge(f"it writes more than {MAX_OUTPUT:,} characters")
+                raise TemplateTooLarge(f"the document passes {MAX_OUTPUT:,} characters")
         return text
 
     def call_binop(self, context, operator, left, right):
         if operator == "*":
             for seq, n in ((left, right), (right, left)):
-                if isinstance(seq, _SEQ) and _is_int(n) and len(seq) * n > MAX_SEQ:
-                    raise _too_long()
+                if isinstance(seq, _SEQ) and _is_int(n) and n > 0:
+                    if len(seq) * n > MAX_SEQ:
+                        raise _too_long()
+                    # a list of a million references to one long string is cheap to hold and huge as text
+                    if isinstance(seq, (list, tuple)) and _text_size(seq, MAX_SEQ // n) * n > MAX_SEQ:
+                        raise _too_long()
             if _is_int(left) and _is_int(right) and left.bit_length() + right.bit_length() > _INT_BITS:
-                raise TemplateTooLarge(f"it builds a number of more than {MAX_DIGITS} digits")
+                raise TemplateTooLarge(f"a number grows past {MAX_DIGITS} digits")
         elif operator == "+":
             if isinstance(left, _SEQ) and isinstance(right, _SEQ) and len(left) + len(right) > MAX_SEQ:
                 raise _too_long()
+            if isinstance(left, (list, tuple)) and isinstance(right, (list, tuple)):
+                size = _text_size(left)
+                if size > MAX_SEQ or size + _text_size(right, MAX_SEQ - size) > MAX_SEQ:
+                    raise _too_long()
         elif operator == "**":
             if _is_int(left) and _is_int(right) and right > 0 and abs(left) > 1 and (right > _INT_BITS or right * math.log10(abs(left)) > MAX_DIGITS):
-                raise TemplateTooLarge(f"it builds a number of more than {MAX_DIGITS} digits")
+                raise TemplateTooLarge(f"a number grows past {MAX_DIGITS} digits")
         elif operator == "%" and isinstance(left, str):
             _check_percent(left, right)
         return super().call_binop(context, operator, left, right)
+
+    def call_test(self, *args, **kwargs):
+        _check_deadline()  # select, reject, selectattr and rejectattr call tests once per item
+        return super().call_test(*args, **kwargs)
 
     def call(__self, __context, __obj, *args, **kwargs):  # noqa: N805 - Jinja's signature, so no keyword can clash
         _tick()
@@ -530,11 +623,14 @@ def active_template(db: Session, key: str) -> DocumentTemplate:
     return t
 
 
-def render_string(body: str, context: dict, seconds: float = RENDER_SECONDS) -> str:
-    """Render a template body within its own budget; raises TemplateTooLarge (422) when it would do too much work."""
+def render_string(body: str, context: dict, seconds: float = RENDER_SECONDS, editing: bool = False) -> str:
+    """Render a template body within its own budget; raises TemplateTooLarge (422) when it would do too much work,
+    worded for the admin saving it (`editing`) or for whoever is generating a document from it."""
     token = _budget.set(_Budget(seconds))
     try:
         return _env.from_string(body).render(**context).strip()
+    except TemplateTooLarge as exc:
+        raise TemplateTooLarge(exc.reason, editing=editing) from None
     finally:
         _budget.reset(token)
 
@@ -551,7 +647,7 @@ def edit_template(db: Session, actor: User, key: str, body: str) -> DocumentTemp
     except TemplateSyntaxError as exc:
         raise Invalid("The template has a merge-field error.", [{"field": "body", "message": f"Line {exc.lineno}: {exc.message}"}])
     try:
-        render_string(body, {}, seconds=SAVE_SECONDS)  # test render: missing fields are blank, unsafe, broken or runaway expressions fail here, not at generation
+        render_string(body, {}, seconds=SAVE_SECONDS, editing=True)  # test render: missing fields are blank, unsafe, broken or runaway expressions fail here, not at generation
     except TemplateTooLarge:
         raise
     except Exception as exc:
