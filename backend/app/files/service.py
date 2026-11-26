@@ -53,12 +53,32 @@ class StoredFileMissing(AppError, FileNotFoundError):
 # an .exe renamed report.pdf is refused.
 ZIP = (b"PK\x03\x04", b"PK\x05\x06")  # a zip file, or an empty one: docx, xlsx, pptx, odt, ods and zip are zip containers
 OLE = (b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1",)  # the older Office formats and Outlook messages
+RTF = (b"{\\rtf",)
 SIGNATURES: dict[str, tuple[bytes, ...]] = {
-    ".docx": ZIP, ".xlsx": ZIP, ".pptx": ZIP, ".odt": ZIP, ".ods": ZIP, ".zip": ZIP,
-    ".doc": OLE + ZIP, ".xls": OLE + ZIP, ".msg": OLE,  # an older-format name on a newer-format file still opens
+    # a password-protected .docx, .xlsx or .pptx is stored in the older (OLE) container
+    ".docx": ZIP + OLE, ".xlsx": ZIP + OLE, ".pptx": ZIP + OLE, ".odt": ZIP, ".ods": ZIP, ".zip": ZIP,
+    ".doc": OLE + ZIP + RTF, ".xls": OLE + ZIP, ".msg": OLE,  # an older-format name on a newer-format file still opens
     ".rtf": (b"{\\rtf",), ".png": (b"\x89PNG\r\n\x1a\n",), ".jpg": (b"\xff\xd8\xff",), ".jpeg": (b"\xff\xd8\xff",), ".gif": (b"GIF87a", b"GIF89a"),
 }
 TEXT_TYPES = {".csv", ".txt", ".md", ".json", ".eml"}  # plain text: no NUL bytes
+
+
+TEXT_LIKE_OFFICE = {".xls", ".doc"}  # web systems' "Export to Excel" and older tools' "Save as Word" write HTML or plain text
+
+
+def _utf16_without_bom(data: bytes) -> bool:
+    """UTF-16 text with no byte-order mark: nearly every other byte is NUL (ASCII letters), the rest are not."""
+    sample = data[:512]
+    if len(sample) < 8:
+        return False
+    even, odd = sample[0::2], sample[1::2]
+    return (odd.count(0) >= 0.9 * len(odd) and even.count(0) == 0) or (even.count(0) >= 0.9 * len(even) and odd.count(0) == 0)
+
+
+def _plain_text(data: bytes) -> bool:
+    if data.startswith(b"MZ"):  # a Windows program is never text, whatever its name
+        return False
+    return data.startswith((b"\xff\xfe", b"\xfe\xff")) or b"\x00" not in data or _utf16_without_bom(data)
 
 
 def contents_match(ext: str, data: bytes) -> bool:
@@ -66,9 +86,11 @@ def contents_match(ext: str, data: bytes) -> bool:
     if ext == ".pdf":
         return b"%PDF-" in data[:1024]  # PDF readers accept a short preamble before the header
     if ext in TEXT_TYPES:
-        return data.startswith((b"\xff\xfe", b"\xfe\xff")) or b"\x00" not in data  # UTF-16 text starts with its byte order mark
+        return _plain_text(data)
     sigs = SIGNATURES.get(ext)
-    return sigs is None or data.startswith(sigs)
+    if sigs is None or data.startswith(sigs):
+        return True
+    return ext in TEXT_LIKE_OFFICE and _plain_text(data)  # an HTML table or tab-separated export named .xls, an HTML .doc
 
 
 def content_type_for(filename: str) -> str:
@@ -116,7 +138,8 @@ def upload(
         raise Invalid("This file type can't be uploaded. Use PDF, Word, Excel, CSV, PowerPoint, text, images or ZIP.", [{"field": "file", "message": "File type not allowed."}])
     ext = Path(name).suffix.lower()
     if not contents_match(ext, data):
-        raise Invalid(f"This file's contents don't match its {ext} extension.", [{"field": "file", "message": "The contents don't match the file type."}])
+        raise Invalid(f"This file's contents don't match its {ext} extension. Open it and save it again as PDF, Word, Excel or CSV, then upload it.",
+                      [{"field": "file", "message": "The contents don't match the file type."}])
     status = scan(data, settings)
     if status == "infected":
         audit.record(db, actor_id=actor.id if actor else None, action="file.rejected_virus", object_type="File", object_id=None, organization_id=organization_id, summary=f"Rejected {name}: failed the virus scan")

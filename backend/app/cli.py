@@ -131,11 +131,19 @@ def cmd_rematch_reg_updates(args) -> int:
     return 0
 
 
-def _repair_script_main(argv: list[str]) -> int:
-    import importlib.util
+def _repair_script_path():
     from pathlib import Path
 
-    path = Path(__file__).resolve().parents[1] / "scripts" / "repair_mojibake.py"
+    return Path(__file__).resolve().parents[1] / "scripts" / "repair_mojibake.py"
+
+
+def _repair_script_main(argv: list[str]) -> int:
+    import importlib.util
+
+    path = _repair_script_path()
+    if not path.exists():
+        print(f"The repair script is not in this installation ({path}). Run it from a copy of the codebase.", file=sys.stderr)
+        return 2
     spec = importlib.util.spec_from_file_location("repair_mojibake", path)
     mod = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = mod  # its dataclasses look their module up here

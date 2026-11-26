@@ -108,7 +108,7 @@ def test_files_whose_contents_do_not_match_their_extension_are_refused(db, setti
     ext = name[name.rindex("."):]
     with pytest.raises(Invalid) as exc:
         upload(db, settings, world["caico_a"], data=data, filename=name, content_type=None, organization_id=world["a"].id)
-    assert exc.value.detail == f"This file's contents don't match its {ext} extension."
+    assert exc.value.detail == f"This file's contents don't match its {ext} extension. Open it and save it again as PDF, Word, Excel or CSV, then upload it."
     assert exc.value.errors[0]["field"] == "file"
     assert db.query(FileObject).count() == 0
 
@@ -120,3 +120,40 @@ def test_utf16_text_with_a_byte_order_mark_is_text():
     assert contents_match(".txt", "Name\tEmail\n".encode("utf-16"))
     assert contents_match(".csv", "﻿a,b\n".encode("utf-16-be"))
     assert not contents_match(".txt", b"MZ\x90\x00\x03\x00")
+
+
+# ---- review of the 20 Nov port (OBS-05): real client files the content check must accept, and what it still refuses
+import pytest as _pytest  # noqa: E402
+
+from app.files.service import contents_match  # noqa: E402
+
+OLE_HEADER = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" + b"\x00" * 504
+EXE = b"MZ\x90\x00\x03\x00\x00\x00\x04\x00\x00\x00\xff\xff\x00\x00" + b"\x00" * 200 + b"This program cannot be run in DOS mode."
+
+
+@_pytest.mark.parametrize("ext,data", [
+    (".xls", b"<html><body><table><tr><td>Name</td><td>Role</td></tr></table></body></html>"),  # "Export to Excel" from a web system
+    (".xls", b"Name\tRole\tDepartment\r\nAsha Rao\tRecruiter\tHR\r\n"),  # tab-separated export
+    (".doc", b"{\\rtf1\\ansi Older tools save Word files as RTF}"),
+    (".doc", b"<html xmlns:o='urn:schemas-microsoft-com:office:office'><body>Saved as Word</body></html>"),
+    (".docx", OLE_HEADER), (".xlsx", OLE_HEADER), (".pptx", OLE_HEADER),  # password-protected Office files use the older container
+    (".csv", "Name,Role\r\nAsha,Recruiter\r\n".encode("utf-16-le")),  # UTF-16 without a byte-order mark
+])
+def test_real_client_files_are_accepted(ext, data):
+    assert contents_match(ext, data)
+
+
+@_pytest.mark.parametrize("ext", [".pdf", ".xls", ".doc", ".docx", ".xlsx", ".csv", ".txt", ".zip", ".png"])
+def test_a_renamed_program_is_still_refused(ext):
+    assert not contents_match(ext, EXE)
+
+
+def test_the_refusal_says_how_to_fix_it(db, settings):
+    from app.core.errors import Invalid
+    from app.files.service import upload
+    from tests.factories import make_org
+
+    org = make_org(db)
+    with _pytest.raises(Invalid) as e:
+        upload(db, settings, None, data=EXE, filename="report.xlsx", content_type=None, organization_id=org.id)
+    assert "save it again" in e.value.detail

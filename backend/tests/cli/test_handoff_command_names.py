@@ -64,3 +64,23 @@ def test_repair_text_dry_run_on_a_real_database(tmp_path, capsys):
     Base.metadata.create_all(eng)
     eng.dispose()
     assert cli._repair_script_main([url]) == 0
+
+
+def test_the_image_keeps_what_repair_text_loads():
+    """Review of the bloat trim: repair-text loads backend/scripts/repair_mojibake.py, so the Docker image must keep it."""
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[3]
+    ignored = {line.strip().rstrip("/") for line in (root / ".dockerignore").read_text(encoding="utf-8").splitlines() if line.strip() and not line.startswith("#")}
+    assert "backend/scripts" not in ignored
+    assert (root / "backend" / "scripts" / "repair_mojibake.py").exists()
+
+
+def test_repair_text_without_the_script_says_so(monkeypatch, capsys):
+    from pathlib import Path
+
+    from app import cli
+
+    monkeypatch.setattr(cli, "_repair_script_path", lambda: Path("/nonexistent/repair_mojibake.py"))
+    assert cli._repair_script_main(["sqlite:///x.db"]) == 2
+    assert "repair script is not in this installation" in capsys.readouterr().err
