@@ -39,6 +39,8 @@ class PreviewIn(BaseModel):
     eu_screening: dict | None = None
     name: str = ""
     purpose: str = ""
+    department_id: str | None = None  # its name counts towards the Local Law 144 test, as on the detail page
+    use_case_id: str | None = None  # when editing: the use case's own AEDT determination, as on its detail page
 
 
 class EuScreeningIn(BaseModel):
@@ -154,7 +156,12 @@ def tier_preview(client_id: str, body: PreviewIn, actor: Actor = Depends(current
     tier = inv.propose_tier(body.decision_impact, body.data_categories, tools)
     errs: list[dict] = []
     level, why = eu_risk.level_for(eu_risk.clean_screening(body.eu_screening, errs))
-    reason = inv.tier_reason(body.decision_impact, body.data_categories, tools, text=f"{body.name} {body.purpose}", in_nyc=inv.in_nyc(db, org.id))
+    # From the 20 Nov hand-off build: the preview gives the reason the detail page will give
+    dept = body.department_id if body.department_id and db.scalar(select(Department.id).where(Department.id == body.department_id, Department.organization_id == org.id)) else None
+    uc = db.get(UseCase, body.use_case_id) if body.use_case_id else None
+    aedt = uc.aedt_determination if uc is not None and uc.organization_id == org.id and uc.deleted_at is None else None
+    reason = inv.tier_reason(body.decision_impact, body.data_categories, tools, text=inv.reason_text(db, body.name, body.purpose, dept), in_nyc=inv.in_nyc(db, org.id),
+                             aedt_determination=aedt)
     return {"tier": tier, "label": inv.TIER_NAMES[tier], "reason": reason,
             "eu_risk_level": level, "eu_risk_label": eu_risk.label(level), "eu_risk_reason": why}
 

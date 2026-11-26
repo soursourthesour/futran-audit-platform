@@ -71,3 +71,20 @@ def test_a_draft_already_mapped_to_an_ai_system_is_kept(client, db, inv):
     db.commit()
     r = client.delete(f"/api/v1/use-cases/{uc['id']}")
     assert r.status_code == 409 and "SYS-009" in r.json()["detail"]
+
+
+def test_a_draft_named_in_an_evidence_request_is_kept(client, db, inv, people):
+    """From the 20 Nov hand-off build (BUG-03 fix round 1, M-6): the Futran team's evidence request refers to it."""
+    from datetime import date
+
+    from app.docrequests.models import EvidenceRequest
+
+    cid, e, *_ = inv
+    uc = _draft(client, db, inv)
+    db.add(EvidenceRequest(organization_id=cid, engagement_id=e.id, ref="ER-001", use_case_id=uc["id"], description="Retention settings",
+                           requested_by=people["aud"].id, due_date=date(2026, 12, 1)))
+    db.commit()
+    r = client.delete(f"/api/v1/use-cases/{uc['id']}")
+    assert r.status_code == 409 and "ER-001" in r.json()["detail"]
+    db.expire_all()
+    assert db.get(UseCase, uc["id"]).deleted_at is None
