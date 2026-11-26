@@ -69,3 +69,16 @@ def test_report_screen_gets_the_scale(client, db, ready, people):
     login_as(client, db, people["aud"])
     d = client.get(f"/api/v1/clients/{cid}/report").json()
     assert d["risk_levels"][1] == {"key": "high", "level": 4, "label": "High"}
+
+
+def test_roadmap_headings_are_not_read_as_counts(client, db, ready, people):
+    """From the 20 Nov hand-off build (BUG-06 class): 'High priority (4)' printed the level, which reads as four actions."""
+    cid, e, maria, f = ready
+    login_as(client, db, people["aud"])
+    for action in ("Move recruiters to company AI accounts", "Train recruiters on the AI policy"):
+        r = client.post(f"/api/v1/clients/{cid}/report/roadmap", json={"action": action, "owner": "Head of HR", "priority": "high", "target_date": "2027-01-31",
+                                                                       "how_futran_can_help": "Workshop", "finding_ids": [f["id"]]})
+        assert r.status_code == 200, r.text
+    md = _draft(client, db, people, cid)
+    headings = re.findall(r"^### (.+ priority \(.+\))$", md, re.M)
+    assert headings == ["High priority (level 4)"], headings
