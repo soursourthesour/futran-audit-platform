@@ -14,7 +14,7 @@ APP_CSP = ("default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-i
 DOCS_CSP = ("default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
             "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https://fastapi.tiangolo.com; "
             "frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'")
-DOCS_PATHS = ("/api/docs", "/api/public/v1/docs")
+DOCS_PATHS = ("/api/docs", "/api/public/v1/docs", "/api/public/v1/library/docs")
 HSTS = "max-age=31536000"
 
 _COMMON = ((b"x-content-type-options", b"nosniff"), (b"x-frame-options", b"DENY"), (b"referrer-policy", b"strict-origin-when-cross-origin"))

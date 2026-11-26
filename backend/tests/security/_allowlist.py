@@ -83,6 +83,15 @@ PUBLIC: dict[str, str] = {
     "GET /api/public/v1/remediation": "Public API; bearer token, scope checked by publicapi.auth.require.",
     "GET /api/public/v1/updates": "Public API; bearer token, scope checked by publicapi.auth.require.",
     "POST /api/public/v1/agents/{system_id}/decisions": "Public API; bearer token, scope checked by publicapi.auth.require.",
+    # website library API: a Futran website key (app.library.public_app.website_key), published law and case records only
+    "GET /api/public/v1/library/openapi.json": "Website library API schema document; describes routes, holds no tenant data.",
+    "GET /api/public/v1/library/docs": "Website library API Swagger page; static. Test mode only.",
+    "GET /api/public/v1/library/docs/oauth2-redirect": "Website library API Swagger helper page; static. Test mode only.",
+    "GET /api/public/v1/library/laws": "Website library API; website key checked by library.public_app.website_key; published laws, no tenant data.",
+    "GET /api/public/v1/library/laws/{law_id}": "Website library API; website key checked by library.public_app.website_key; published laws, no tenant data.",
+    "GET /api/public/v1/library/cases": "Website library API; website key checked by library.public_app.website_key; published cases, no client matches.",
+    "GET /api/public/v1/library/cases/{case_id}": "Website library API; website key checked by library.public_app.website_key; published cases, no client matches.",
+    "GET /api/public/v1/library/meta": "Website library API; website key checked by library.public_app.website_key; filter values and counts only.",
 }
 
 SIGNED_IN: dict[str, str] = {
