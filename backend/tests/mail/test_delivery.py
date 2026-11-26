@@ -157,34 +157,102 @@ def test_a_stranger_gets_the_same_limit_as_a_recipient(db, settings, org, caico)
     assert e.value.status_code == 429
 
 
-def test_wrong_codes_are_capped_per_link_across_all_recipients(db, settings, org, caico):
-    """H09: per-address tries multiplied by recipients; the link itself now stops after LINK_WRONG_PER_HOUR."""
-    people = _people(db, org, 12)
+def _many(db, settings, org, caico, n=12):
+    people = _people(db, org, n)
     g = _list(db, caico, org, "Many", people)
     s = send_to_groups(db, settings, caico, organization_id=org.id, group_ids=[g.id], template_key="ll144_notice", mode="bcc")
-    raw = db.query(OutboxMessage).filter_by(mail_send_id=s.id).one().body_text.split("/m/s/")[1].split()[0]
-    wrong_total = 0
-    for i in range(12):
-        email = f"p{i}@abc.com"
-        code = links.request_code(db, settings, raw, email)
+    return s, db.query(OutboxMessage).filter_by(mail_send_id=s.id).one().body_text.split("/m/s/")[1].split()[0]
+
+
+def _burn(db, settings, raw, n_wrong, ip_for=lambda i: "10.0.0.1"):
+    """Make n_wrong wrong tries spread over recipients' real codes; returns how many were made."""
+    made, i = 0, 0
+    while made < n_wrong:
+        email = f"p{i % 12}@abc.com"
+        set_now(utcnow() + timedelta(seconds=1))  # the next ten-minute code window per address is far off
+        try:
+            code = links.request_code(db, settings, raw, email)
+        except AppError:
+            i += 1
+            continue
         wrong = "00000000" if code != "00000000" else "11111111"
         for _ in range(links.CODE_TRIES):
-            if wrong_total >= links.LINK_WRONG_PER_HOUR:
+            if made >= n_wrong:
                 break
             with pytest.raises(Invalid):
-                links.verify_code(db, raw, email, wrong)
-            wrong_total += 1
-    assert wrong_total == links.LINK_WRONG_PER_HOUR
-    fresh = people[-1].email.lower()
-    with pytest.raises(AppError) as e:
-        links.verify_code(db, raw, fresh, "12345678")
-    assert e.value.status_code == 429
-    set_now(utcnow() + timedelta(minutes=71))
+                links.verify_code(db, raw, email, wrong, ip=ip_for(made))
+            made += 1
+        i += 1
+    return made
+
+
+def test_one_address_pauses_only_its_own_tries_on_a_link(db, settings, org, caico):
+    """H09 review #3: wrong codes are capped per link and network address, so one person with a forwarded link
+    cannot pause it for everyone; the right code is refused from that address while it is paused."""
+    s, raw = _many(db, settings, org, caico)
     try:
-        c = links.request_code(db, settings, raw, fresh)
-        assert links.verify_code(db, raw, fresh, c)  # the link works again after the hour
+        assert _burn(db, settings, raw, links.IP_WRONG_PER_HOUR) == links.IP_WRONG_PER_HOUR
+        code = links.request_code(db, settings, raw, "p11@abc.com")
+        with pytest.raises(AppError) as e:
+            links.verify_code(db, raw, "p11@abc.com", code, ip="10.0.0.1")
+        assert e.value.status_code == 429  # the right code too: guessing stops
+        assert links.verify_code(db, raw, "p11@abc.com", code, ip="10.0.0.2")  # a colleague elsewhere is not locked out
     finally:
         set_now(None)
+
+
+def test_a_link_wide_backstop_pauses_the_link_and_tells_the_sender(db, settings, org, caico, monkeypatch):
+    from app.mail.models import AdminLogEntry
+
+    monkeypatch.setattr(links, "LINK_WRONG_PER_HOUR", 20)
+    s, raw = _many(db, settings, org, caico)
+    try:
+        _burn(db, settings, raw, 20, ip_for=lambda i: f"10.0.1.{i}")
+        code = links.request_code(db, settings, raw, "p11@abc.com")
+        with pytest.raises(AppError) as e:
+            links.verify_code(db, raw, "p11@abc.com", code, ip="10.9.9.9")
+        assert e.value.status_code == 429
+        logged = db.query(AdminLogEntry).filter(AdminLogEntry.send_id == s.id, AdminLogEntry.action == "shared_link_paused").count()
+        assert logged == 1
+    finally:
+        set_now(None)
+
+
+def test_a_recipient_with_a_used_up_code_gets_the_strangers_answer(db, settings, org, caico):
+    """H09 review #2: the sixth wrong code must not read differently for a recipient than for a stranger."""
+    s, raw = _bcc(db, settings, org, caico)
+    code = links.request_code(db, settings, raw, "p1@abc.com")
+    wrong = "00000000" if code != "00000000" else "11111111"
+    for _ in range(links.CODE_TRIES):
+        with pytest.raises(Invalid):
+            links.verify_code(db, raw, "p1@abc.com", wrong)
+    answers = {}
+    for email in ("p1@abc.com", "nobody@abc.com"):
+        with pytest.raises(Invalid) as e:
+            links.verify_code(db, raw, email, wrong)
+        answers[email] = e.value.errors[0]["message"]
+    assert answers["p1@abc.com"] == answers["nobody@abc.com"]
+
+
+def test_an_overlong_address_is_refused_and_not_kept(db, settings, org, caico):
+    """H09 review #4: the strangers' table cannot be filled with huge keys."""
+    s, raw = _bcc(db, settings, org, caico)
+    with pytest.raises(Invalid):
+        links.request_code(db, settings, raw, "a" * 5_000_000 + "@abc.com")
+    assert not any(len(k[1]) > 254 for k in links._STRANGERS)
+
+
+def test_the_code_email_is_sent_after_the_response(client, db, settings, org, caico, monkeypatch):
+    """H09 review #1: sending the code inside the request made a recipient's answer slower than a stranger's."""
+    s, raw = _bcc(db, settings, org, caico)
+    db.commit()
+    seen = []
+    real = links.request_code
+    monkeypatch.setattr(links, "request_code", lambda *a, **k: seen.append(k.get("send", True)) or real(*a, **k))
+    r = client.post(f"/api/v1/public/m/s/{raw}/code", json={"email": "p1@abc.com"})
+    assert r.status_code == 200 and seen == [False]
+    db.expire_all()
+    assert db.query(OutboxMessage).filter(OutboxMessage.template_key == "one_time_code", OutboxMessage.to == ["p1@abc.com"]).count() == 1  # sent in the background
 
 
 def _connect_fake(db, settings, org):

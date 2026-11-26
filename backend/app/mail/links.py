@@ -5,8 +5,9 @@ send), expiring (default 14 days). Sending again to the same person for the same
 
 Shared (BCC) link: one per send. Before answering, the person types their work email; it must be one of that send's
 recipients, and an 8-digit code (10 minutes, 5 tries, 3 codes per 10 minutes per address) is sent to it. Any address
-gets the same answer, so the page doesn't reveal who was sent the message, and the link as a whole stops taking codes
-after LINK_WRONG_PER_HOUR wrong ones (review 11-25 H09).
+gets the same answers, in the same time (the code email goes out after the response), so the page doesn't reveal who
+was sent the message. Wrong codes are capped per link and network address, with a much higher backstop for the whole
+link that tells the sender when it trips (review 11-25 H09 and its review).
 """
 import hashlib
 import hmac
@@ -27,12 +28,29 @@ CODE_MINUTES = 10
 CODE_TRIES = 5
 CODES_PER_WINDOW = 3
 CODE_DIGITS = 8
-LINK_WRONG_PER_HOUR = 50  # wrong codes on one shared link, across every recipient, before it pauses for an hour
+IP_WRONG_PER_HOUR = 50  # wrong codes on one shared link from one network address before that address pauses for an hour
+LINK_WRONG_PER_HOUR = 1000  # backstop for the whole link, across every address; the sender is told when it trips
+MAX_EMAIL = 254
 PROOF_MINUTES = 60
 
 # (send id, address) -> times a code was asked for an address that was not sent the message. In memory, like the
 # other rate limits (the platform runs as one process), so a stranger meets the same limit as a recipient.
 _STRANGERS: dict[tuple[str, str], list] = {}
+# (send id, network address) -> times of wrong codes in the last hour
+_WRONG_BY_IP: dict[tuple[str, str], list] = {}
+
+
+def _work_email(email: str | None) -> str:
+    email = (email or "").strip().lower()
+    if "@" not in email or len(email) > MAX_EMAIL:
+        raise Invalid(errors=[{"field": "email", "message": "Enter your work email."}])
+    return email
+
+
+def _recent(store: dict, key, since) -> list:
+    for k in [k for k, v in store.items() if not v or v[-1] <= since]:
+        store.pop(k, None)
+    return [t for t in store.get(key, []) if t > since]
 
 
 class Gone(AppError):
@@ -109,20 +127,16 @@ def _too_many(count: int) -> None:
         raise TooManyRequests("Too many codes asked for. Wait ten minutes and try again.")
 
 
-def request_code(db: Session, settings: Settings, raw: str, email: str) -> str | None:
-    """Send a code if the address was sent this message. The caller answers the same way either way; None means no
-    code was sent."""
+def request_code(db: Session, settings: Settings, raw: str, email: str, *, send: bool = True) -> str | None:
+    """Make a code if the address was sent this message, and email it (send=False leaves the email to
+    send_code_email, which the public route runs after the response). The caller answers the same way either way;
+    None means no code was made."""
     s = shared_send(db, raw)
-    email = (email or "").strip().lower()
-    if "@" not in email:
-        raise Invalid(errors=[{"field": "email", "message": "Enter your work email."}])
+    email = _work_email(email)
     now = utcnow()
     r = _recipient(db, s, email)
     if r is None:
-        since = now - timedelta(minutes=CODE_MINUTES)
-        for k in [k for k, v in _STRANGERS.items() if not v or v[-1] <= since]:
-            _STRANGERS.pop(k, None)
-        times = [t for t in _STRANGERS.get((s.id, email), []) if t > since]
+        times = _recent(_STRANGERS, (s.id, email), now - timedelta(minutes=CODE_MINUTES))
         _too_many(len(times))
         _STRANGERS[(s.id, email)] = [*times, now]
         return None
@@ -132,37 +146,77 @@ def request_code(db: Session, settings: Settings, raw: str, email: str) -> str |
     code = f"{secrets.randbelow(10**CODE_DIGITS):0{CODE_DIGITS}d}"
     db.add(MailOneTimeCode(organization_id=s.organization_id, send_id=s.id, recipient_id=r.id, email=email, code_hash=_code_hash(s.id, email, code),
                            expires_at=now + timedelta(minutes=CODE_MINUTES), attempts=0, created_at=now))
+    db.flush()
+    if send:
+        send_code_email(db, settings, s.id, email, code)
+    return code
+
+
+def send_code_email(db: Session, settings: Settings, send_id: str, email: str, code: str) -> None:
     from app.mail.service import send as send_mail
     from app.tenancy.models import Organization
 
+    s = db.get(MailSend, send_id)
     org = db.get(Organization, s.organization_id)
     send_mail(db, settings, "one_time_code", to=[email], organization_id=s.organization_id, context={"code": code, "organization": org.name if org else "", "minutes": CODE_MINUTES},
               redact={"code": "(code sent to the recipient, not stored)"})
     db.flush()
-    return code
 
 
-def verify_code(db: Session, raw: str, email: str, code: str) -> str:
+def send_code_in_background(app, send_id: str, email: str, code: str) -> None:
+    """Run after the response (FastAPI background task) with its own session, so a recipient's answer takes as long
+    as a stranger's."""
+    import logging
+
+    db = app.state.sessionmaker()
+    try:
+        send_code_email(db, app.state.settings, send_id, email, code)
+        db.commit()
+    except Exception:  # noqa: BLE001 (logged; the person can ask for a new code)
+        db.rollback()
+        logging.getLogger(__name__).exception("One-time code email for send %s failed", send_id)
+    finally:
+        db.close()
+
+
+def _paused(message: str):
+    return TooManyRequests(message)
+
+
+def verify_code(db: Session, raw: str, email: str, code: str, *, ip: str | None = None) -> str:
     """Check the code and return a short-lived proof the answer form sends back. A wrong code counts as a try; the
     caller commits before re-raising so the count is kept."""
     s = shared_send(db, raw)
-    email = (email or "").strip().lower()
+    email = _work_email(email)
     now = utcnow()
+    ip_key = (s.id, ip or "unknown")
+    ip_wrong = _recent(_WRONG_BY_IP, ip_key, now - timedelta(hours=1))
+    if len(ip_wrong) >= IP_WRONG_PER_HOUR:
+        raise _paused("Too many wrong codes have been tried from your network. Try again in an hour.")
     row = db.scalar(select(MailOneTimeCode).where(MailOneTimeCode.send_id == s.id, MailOneTimeCode.email == email, MailOneTimeCode.used_at.is_(None))
                     .order_by(MailOneTimeCode.created_at.desc()).limit(1))
     wrong_recently = db.scalar(select(func.coalesce(func.sum(MailOneTimeCode.attempts), 0)).where(
         MailOneTimeCode.send_id == s.id, MailOneTimeCode.created_at > now - timedelta(minutes=60 + CODE_MINUTES)))
     if wrong_recently >= LINK_WRONG_PER_HOUR:
-        raise TooManyRequests("This link has had too many wrong codes. Try again in an hour, or use a personal link if you have one.")
+        raise _paused("Too many wrong codes have been tried on this link. Try again in an hour.")
     bad = Invalid(errors=[{"field": "code", "message": "That code is not right, or it has expired. Check the latest email or ask for a new code."}])
-    if row is None or row.expires_at <= now:
-        raise bad
-    if row.attempts >= CODE_TRIES:
-        raise Invalid(errors=[{"field": "code", "message": "Too many wrong codes. Ask for a new code."}])
+
+    def wrong():
+        _WRONG_BY_IP[ip_key] = [*ip_wrong, now]
+        return bad
+
+    if row is None or row.expires_at <= now or row.attempts >= CODE_TRIES:  # one answer, so a used-up code reads like no code
+        raise wrong()
     if not hmac.compare_digest(row.code_hash, _code_hash(s.id, email, (code or "").strip())):
         row.attempts += 1
         db.flush()
-        raise bad
+        if wrong_recently + 1 == LINK_WRONG_PER_HOUR:
+            from app.mail import adminlog
+
+            adminlog.write(db, organization_id=s.organization_id, category="send", action="shared_link_paused", actor_name="System", send_id=s.id,
+                           engagement_id=s.engagement_id,
+                           summary=f"The shared link for \"{s.subject}\" was paused for an hour after {LINK_WRONG_PER_HOUR:,} wrong codes. Recipients with the code can try again after that.")
+        raise wrong()
     proof = secrets.token_urlsafe(32)
     row.used_at, row.proof_hash, row.proof_expires_at = now, token_hash(proof), now + timedelta(minutes=PROOF_MINUTES)
     r = db.get(MailRecipient, row.recipient_id)

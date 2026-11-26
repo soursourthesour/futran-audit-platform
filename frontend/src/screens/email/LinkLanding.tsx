@@ -95,7 +95,7 @@ function ConfirmEmail({ base, onProof }: { base: string; onProof: (p: string) =>
           <>
             <p className="small" role="status" style={{ margin: 0 }}>If {email.trim()} was sent this message, a code is on its way. It can take a minute to arrive.</p>
             <TextField label="Code" help={H.code} inputMode="numeric" autoComplete="one-time-code" maxLength={8} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} error={fe.code} />
-            <Button variant="primary" block disabled={busy || code.length < 6} onClick={() => go(async () => { const r = await api.post<{ proof: string }>(`${base}/verify`, { email, code }); onProof(r.proof); })}>Continue</Button>
+            <Button variant="primary" block disabled={busy || (code.length !== 8 && code.length !== 6)} onClick={() => go(async () => { const r = await api.post<{ proof: string }>(`${base}/verify`, { email, code }); onProof(r.proof); })}>Continue</Button>
             <Button variant="ghost" block disabled={busy} onClick={() => go(async () => { await api.post(`${base}/code`, { email }); setCode(''); })}>Send a new code</Button>
           </>
         )}

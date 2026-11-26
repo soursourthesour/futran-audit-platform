@@ -1,6 +1,6 @@
 """Public, no-sign-in endpoints behind the links in group emails (spec §26.5). Each link resolves to exactly one send
 (and, for a personal link, one recipient); nothing else is visible through it."""
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -90,17 +90,20 @@ def shared_view(token: str, db: Session = Depends(get_db, scope="function")):
 
 
 @router.post("/s/{token}/code")
-def shared_code(token: str, body: EmailIn, request: Request, db: Session = Depends(get_db, scope="function")):
+def shared_code(token: str, body: EmailIn, request: Request, background: BackgroundTasks, db: Session = Depends(get_db, scope="function")):
     limiter(request, "mail_code", 10).check(client_ip(request))
-    links.request_code(db, request.app.state.settings, token, body.email)
-    return {"sent": True}  # the same answer whether or not the address was sent the message (review 11-25 H09)
+    code = links.request_code(db, request.app.state.settings, token, body.email, send=False)
+    if code:  # emailed after the response, so a recipient's answer takes as long as a stranger's (review 11-25 H09)
+        s = links.shared_send(db, token)
+        background.add_task(links.send_code_in_background, request.app, s.id, body.email.strip().lower(), code)
+    return {"sent": True}  # the same answer whether or not the address was sent the message
 
 
 @router.post("/s/{token}/verify")
 def shared_verify(token: str, body: CodeIn, request: Request, db: Session = Depends(get_db, scope="function")):
     limiter(request, "mail_verify", 20).check(client_ip(request))
     try:
-        proof = links.verify_code(db, token, body.email, body.code)
+        proof = links.verify_code(db, token, body.email, body.code, ip=client_ip(request))
     except Invalid:
         db.commit()  # keep the count of wrong tries
         raise
