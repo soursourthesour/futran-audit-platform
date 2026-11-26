@@ -22,9 +22,18 @@ from app.laws.publish import chain_ids
 from app.litigation.models import STAGE_LABELS, STAGES, Case
 from app.reference.models import Jurisdiction
 from app.refresh.models import RefreshRun
-from app.regmaster import changes, letter as letters
+from app.regmaster import changes
+from app.regmaster import letter as letters
 from app.regmaster import router as M
-from app.regmaster.models import CommitteeRule, LawRoleMap, LawVersion, Requirement, RoleCatalog, ScopeTest, Source
+from app.regmaster.models import (
+    CommitteeRule,
+    LawRoleMap,
+    LawVersion,
+    Requirement,
+    RoleCatalog,
+    ScopeTest,
+    Source,
+)
 
 REGIONS = M.REGIONS
 REGION_LABELS = dict(REGIONS)
@@ -101,7 +110,9 @@ def last_refreshed(db: Session, kind: str) -> str | None:
 
 def fingerprint(db: Session) -> tuple:
     """A cheap summary of every table the library responses read. It changes when a law, version, requirement, source,
-    obligation, case or refresh run is added or changed, so it keys the server-side cache."""
+    obligation, case, role or refresh run is added or changed, so it keys the server-side cache. Approved law changes
+    always write a new LawVersion (and reference data edits a new Regulation row), so in-place edits are not missed; the
+    cache's time limit (public_app.CACHE_SECONDS) covers anything else, such as a renamed jurisdiction."""
     q = lambda *cols: tuple(db.execute(select(*cols)).one())  # noqa: E731
     return (
         q(func.count(Regulation.id), func.max(Regulation.created_at), func.max(Regulation.current_version_id)),
@@ -111,7 +122,7 @@ def fingerprint(db: Session) -> tuple:
         q(func.count(Obligation.id), func.max(Obligation.updated_at)),
         q(func.count(Case.id), func.max(Case.updated_at), func.max(Case.deleted_at)),
         q(func.count(RefreshRun.id), func.max(RefreshRun.finished_at)),
-        q(func.count(Jurisdiction.id)),
+        q(func.count(Jurisdiction.id)), q(func.count(RoleCatalog.id), func.max(RoleCatalog.updated_at)),
     )
 
 

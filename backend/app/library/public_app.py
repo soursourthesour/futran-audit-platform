@@ -11,6 +11,7 @@ the underlying records change (content.fingerprint) and after CACHE_SECONDS in a
 """
 import hashlib
 import json
+import threading
 import time
 from collections import OrderedDict
 from typing import Literal
@@ -23,7 +24,8 @@ from sqlalchemy.orm import Session
 from app.core.db import get_db
 from app.core.errors import Invalid, install_error_handlers
 from app.core.ratelimit import TooManyRequests, client_ip, limiter
-from app.library import content, keys as K
+from app.library import content
+from app.library import keys as K
 from app.library.models import WebsiteApiKey
 
 PREFIX = "/api/public/v1/library"
@@ -35,6 +37,7 @@ BAD_KEYS_PER_MINUTE = 30  # per network address
 EXPOSE = "ETag, X-Library-Last-Refreshed, Retry-After, X-RateLimit-Limit, X-RateLimit-Remaining"
 ALLOW_HEADERS = "X-API-Key, Authorization, If-None-Match, Content-Type"
 NEVER = "never"
+_CACHE_LOCK = threading.Lock()  # sync endpoints run in a thread pool
 
 
 class LibraryError(Exception):
@@ -107,7 +110,8 @@ def _serve(request: Request, db: Session, name: str, params: dict, build, kind: 
     fp = content.fingerprint(db)
     ck = (name, tuple(sorted((k, str(v)) for k, v in params.items() if v is not None)))
     now = time.monotonic()
-    hit = store.get(ck)
+    with _CACHE_LOCK:
+        hit = store.get(ck)
     if hit is None or hit["fp"] != fp or now - hit["at"] > CACHE_SECONDS:
         body = json.dumps(jsonable_encoder(build()), ensure_ascii=False, separators=(",", ":")).encode()
         if kind == "both":
@@ -115,10 +119,11 @@ def _serve(request: Request, db: Session, name: str, params: dict, build, kind: 
         else:
             refreshed = content.last_refreshed(db, kind)
         hit = {"fp": fp, "at": now, "body": body, "etag": '"' + hashlib.sha256(body).hexdigest()[:32] + '"', "refreshed": refreshed or NEVER}
-        store[ck] = hit
-        store.move_to_end(ck)
-        while len(store) > CACHE_ENTRIES:
-            store.popitem(last=False)
+        with _CACHE_LOCK:
+            store[ck] = hit
+            store.move_to_end(ck)
+            while len(store) > CACHE_ENTRIES:
+                store.popitem(last=False)
     limit, remaining = getattr(request.state, "rate", (None, None))
     headers = {"ETag": hit["etag"], "Cache-Control": CACHE_CONTROL, "X-Library-Last-Refreshed": hit["refreshed"]}
     if limit is not None:
@@ -185,8 +190,8 @@ async def _send(send, status: int, headers: list, body: bytes = b"") -> None:
 
 LawSort = Literal["geography", "name", "effective_on", "-effective_on"]
 CaseSort = Literal["geography", "name", "-last_update_on"]
-PAGE = dict(ge=1, le=10000)
-LIMIT = dict(ge=1, le=200)
+PAGE = {"ge": 1, "le": 10000}
+LIMIT = {"ge": 1, "le": 200}
 
 
 def build(main: FastAPI) -> FastAPI:
