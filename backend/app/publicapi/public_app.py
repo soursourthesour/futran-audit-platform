@@ -302,4 +302,7 @@ def build(main: FastAPI) -> FastAPI:
 
 
 def mount(main: FastAPI) -> None:
+    from app.library.public_app import mount as mount_library  # the website library API, /api/public/v1/library (its own key, not OAuth)
+
+    mount_library(main)  # first: the mount below would otherwise take its paths
     main.mount(PREFIX, build(main))

@@ -3,6 +3,7 @@ import { UsersAdmin } from '@/screens/admin/Users';
 import { ClientUsers } from '@/screens/admin/ClientUsers';
 import { AuditLogScreen } from '@/screens/admin/AuditLog';
 import { SettingsScreen } from '@/screens/admin/Settings';
+import { WebsiteKeys } from '@/screens/admin/WebsiteKeys';
 import { ReferenceData } from '@/screens/admin/ReferenceData';
 import { TemplatesAdmin } from '@/screens/admin/Templates';
 import { NewClientStart, NewClientWizard } from '@/screens/futran/newclient/Wizard';
@@ -88,6 +89,7 @@ export const futranRoutes: RouteObject[] = [
   { path: '/admin/audit-log', element: <AuditLogScreen /> },
   { path: '/admin/outbox', element: <Navigate to="/admin/log?tab=outbox" replace /> },  // 11-03 F14b: the outbox is a tab of the email log
   { path: '/admin/settings', element: <SettingsScreen /> },
+  { path: '/admin/website-keys', element: <WebsiteKeys /> },  // 26 Nov: keys for the website library API
   { path: '/admin/reference', element: <ReferenceData /> },
   { path: '/admin/templates', element: <TemplatesAdmin /> },
   { path: '/audits/new', element: <NewClientStart /> },

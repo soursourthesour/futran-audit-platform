@@ -121,6 +121,7 @@ class Action(StrEnum):
     REVIEW_SCORE_OVERRIDE = "review_score_override"  # approve or return a Chief Auditor's rating override
     VIEW_PLATFORM_SETTINGS = "view_platform_settings"  # §5 "Manage Futran users and platform settings" (V or C/E)
     MANAGE_AI_CONNECTION = "manage_ai_connection"  # 11-03 F1: the AI provider, model and key every AI feature uses (Futran Admin)
+    MANAGE_WEBSITE_KEYS = "manage_website_keys"  # 26 Nov: website API keys for the public law library and litigation API (Futran Admin)
     VIEW_INITIATION_CHECKLIST = "view_initiation_checklist"  # the Getting started checklist is worked by these roles
     VIEW_CLIENT_ADMIN_HOME = "view_client_admin_home"
     VIEW_SPONSOR_HOME = "view_sponsor_home"
