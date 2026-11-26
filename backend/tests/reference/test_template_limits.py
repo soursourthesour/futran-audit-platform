@@ -208,7 +208,7 @@ FILTER_CHAINS = {  # one expression, no loop and no call: only the filters thems
     "select with a test": "{% set n = range(99999) | list %}{{ n" + "|select('number')" * 80 + "|list|length }}",
     "selectattr": S + "{{ s|list" + "|selectattr(0)|rejectattr(1)" * 30 + "|list|length }}",
     # 200,000 items: one sort is a single uninterruptible call, so the input is kept small enough that one call can't overrun the bound
-    "sort and unique": "{% set s = 'abcdefghij' * 20000 %}" + "{{ s|list|sort|list|reverse|list|sort|unique|list|length }}" * 400,
+    "sort and unique": "{% set s = 'abcdefghij' * 20000 %}" + "{{ s|list|sort|list|reverse|list|sort|unique|list|length }}" * 60,  # few copies: compiling is outside the deadline
     "groupby": "{% set d = [{'a': 1}] * 20000 %}" + "{{ d | groupby('a') | length }}" * 1000,
 }
 
