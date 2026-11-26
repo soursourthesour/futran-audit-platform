@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from app.core.clock import utcnow
 from app.docrequests.models import DocumentRequest
 from app.engagements.models import Engagement
-from app.findings.models import DraftFindingLink, Finding
+from app.findings.models import DraftFindingLink
 from app.inventory.models import UseCase
 from app.questionnaire.models import Question, Response
 from app.reference.models import DocumentCatalogItem
@@ -15,7 +15,7 @@ from app.scoring import service as scoring
 from app.systems.models import AISystem
 from app.systems.service import create_from_use_case
 from app.tenancy.models import User
-from tests.factories import login_as
+from tests.factories import findings_from_questions, login_as
 from tests.initiation.conftest import live, people, submitted  # noqa: F401
 from tests.inventory.test_named_users import inv  # noqa: F401
 from tests.questionnaire.test_service import sys1  # noqa: F401
@@ -60,10 +60,10 @@ def test_inapplicable_answer_stops_counting(client, db, ats, people):
     _aud(db, people, e, s, "5.1.02", "yes")
     _aud(db, people, e, s, "5.3.02", "baa_not_in_place")
     assert "phi_vendor_no_baa" in scoring.latest(db, s).knockouts_triggered
-    assert db.scalar(select(Finding).where(Finding.source_question_ids == ["5.3.02"], Finding.deleted_at.is_(None))) is not None
+    assert findings_from_questions(db, ["5.3.02"], include_deleted=False)
     _aud(db, people, e, s, "5.1.02", "no")
     assert "phi_vendor_no_baa" not in scoring.latest(db, s).knockouts_triggered
-    assert db.scalar(select(Finding).where(Finding.source_question_ids == ["5.3.02"], Finding.deleted_at.is_(None))) is None
+    assert not findings_from_questions(db, ["5.3.02"], include_deleted=False)
 
 
 # ---- I4: evidence downloads follow who may see the system; clients cannot use Futran's evidence
@@ -96,14 +96,15 @@ def test_governance_submission_prefills_section_4(client, db, live):
     qs = {q["code"]: q["response"] for q in client.get(f"/api/v1/clients/{cid}/assessment").json()["questions"]}
     assert qs["4.1.02"]["value"] == {"name": "Maria Lopez", "title": None}
     assert qs["4.1.04"]["value"] == "no" and qs["4.2.07"]["value"] == "partial"
-    assert db.scalar(select(Finding).where(Finding.source_question_ids == ["4.1.04"])) is not None
+    assert findings_from_questions(db, ["4.1.04"])
 
 
 # ---- I6: dismissing a High draft recalculates the score
 def test_dismiss_recalculates(client, db, ats, people):
     cid, e, maria, s = ats
     assert scoring.latest(db, s).domain_inputs["bias"]["open_high_or_critical"] == 1
-    link = db.scalar(select(DraftFindingLink).join(Finding, Finding.id == DraftFindingLink.finding_id).where(Finding.source_question_ids == ["6.2.01"]))
+    ids = [f.id for f in findings_from_questions(db, ["6.2.01"])]
+    link = db.scalar(select(DraftFindingLink).where(DraftFindingLink.finding_id.in_(ids)))
     login_as(client, db, people["aud"])
     assert client.post(f"/api/v1/draft-findings/{link.id}/dismiss", json={"reason": "Vendor test covers this."}).status_code == 200
     db.expire_all()

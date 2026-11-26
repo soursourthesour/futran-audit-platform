@@ -61,7 +61,8 @@ def test_demo_abc_report_shows_scoring_and_references(db, demo):
     from app.findings.models import Finding
     from app.reports.models import Report
 
-    abc = db.scalar(select(Engagement).where(Engagement.client_id == demo["abc"]))
+    # ABC Corp has more than one engagement: take the audit that has the final report (no ORDER BY means no order on PostgreSQL)
+    abc = db.scalar(select(Engagement).join(Report, Report.engagement_id == Engagement.id).where(Engagement.client_id == demo["abc"], Report.version == "v1.1"))
     findings = list(db.scalars(select(Finding).where(Finding.engagement_id == abc.id, Finding.deleted_at.is_(None), Finding.status == "approved")))
     assert len(findings) == 6
     for f in findings:

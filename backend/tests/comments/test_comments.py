@@ -5,8 +5,8 @@ from sqlalchemy import select
 
 from app.audit_log.models import AuditLog
 from app.comments.models import Comment
-from app.mail.models import OutboxMessage
 from app.notifications.models import Notification
+from tests.factories import mails_to
 
 API = "/api/v1"
 
@@ -96,7 +96,7 @@ def test_mentions_notify_in_app_and_by_email(client, db, w):
     assert r.status_code == 200, r.text
     n = db.scalar(select(Notification).where(Notification.user_id == w.caico.id, Notification.kind == "comment_mention"))
     assert n is not None and n.link == "/responses"
-    assert db.scalar(select(OutboxMessage).where(OutboxMessage.to.contains("maria@abc.test"))) is not None
+    assert mails_to(db, "maria@abc.test")
     i = _post(client, "finding", w.finding.id, body="@Cara Chief internal view please", mention_ids=[w.chief.id])
     assert i.status_code == 200
     n2 = db.scalar(select(Notification).where(Notification.user_id == w.chief.id, Notification.kind == "comment_mention"))

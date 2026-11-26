@@ -48,8 +48,11 @@ def test_ensure_versions_gives_every_current_law_version_one(matrix):
 
 
 def _law(db, code, contains):
+    """The current law whose short name contains `contains`, the exact name first: "SB 26-189" is also part of another
+    row's name, and without an ORDER BY PostgreSQL may return either."""
     j = db.scalar(select(Jurisdiction).where(Jurisdiction.code == code))
-    return db.scalar(select(Regulation).where(Regulation.jurisdiction_id == j.id, Regulation.short_name.contains(contains), Regulation.superseded_by_id.is_(None)))
+    rows = db.scalars(select(Regulation).where(Regulation.jurisdiction_id == j.id, Regulation.short_name.contains(contains), Regulation.superseded_by_id.is_(None)))
+    return min(rows, key=lambda r: (r.short_name != contains, len(r.short_name)), default=None)
 
 
 def test_seed_attaches_cited_requirements_to_existing_laws(matrix):

@@ -13,7 +13,7 @@ from app.mail.models import OutboxMessage
 from app.main import create_app
 from app.policy.actions import Action as A
 from app.policy.authorize import authorize, get_scoped
-from tests.factories import login_as, make_department, make_org, make_user
+from tests.factories import login_as, mails_to, make_department, make_org, make_user
 from tests.policy.test_sod import actor_for
 
 PW = "Correct-Horse-2026"
@@ -156,7 +156,7 @@ def test_disabled_user_cannot_accept_invitation(client, db):
     db.commit()
     login_as(client, db, admin)
     uid = client.post("/api/v1/admin/users", json={"name": "Quinn", "email": "quinn@f.test", "roles": ["auditor"]}).json()["id"]
-    msg = db.query(OutboxMessage).filter(OutboxMessage.to.contains("quinn@f.test")).one()
+    (msg,) = mails_to(db, "quinn@f.test")
     token = msg.body_text.split("/invite/")[1].split()[0]
     from app.tenancy.models import User
 

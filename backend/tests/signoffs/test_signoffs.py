@@ -10,7 +10,7 @@ from app.inventory.snapshot import InventorySnapshot, SnapshotAddendum
 from app.mail.models import OutboxMessage
 from app.signoffs.models import SignOff
 from app.tenancy.models import RoleAssignment, User
-from tests.factories import login_as
+from tests.factories import login_as, mails_to
 from tests.initiation.conftest import live, people, submitted  # noqa: F401
 from tests.inventory.test_named_users import _uc, inv  # noqa: F401
 
@@ -74,7 +74,7 @@ def test_signoff2_per_department_preconditions(client, db, rev):
     so = so.json()
     assert so["status"] == "in_review" and [p["role"] for p in so["parties"]] == ["dept_compliance_lead"]
     assert _sign(client, so["id"], tom).status_code == 403  # the preparer
-    assert db.scalar(select(OutboxMessage).where(OutboxMessage.template_key == "notification", OutboxMessage.to == ["priya@abc.test"])) is not None
+    assert mails_to(db, "priya@abc.test", template_key="notification", only=True)
     login_as(client, db, priya)
     assert _sign(client, so["id"], priya).json()["status"] == "approved"
 
@@ -185,3 +185,34 @@ def test_late_confirmation_becomes_addendum(client, db, rev, settings):
     add = db.scalars(select(SnapshotAddendum).where(SnapshotAddendum.snapshot_id == snap.id)).all()
     assert len(add) == 1 and add[0].kind == "named_user_confirmation" and add[0].payload["person_name"] == "Lee Park"
     assert db.get(InventorySnapshot, snap.id).payload == before
+
+
+def test_correct_is_not_offered_once_later_work_relies_on_the_sign_off(client, db, rev):
+    """BUG-09: the review screen offers 'Correct with a reason' only while correct() would accept it."""
+    cid, e, maria, hr, copilot, chatgpt = rev
+    so = _approved_dept(client, db, cid, hr, copilot)
+    login_as(client, db, _u(db, "tom@abc.test"))
+    dept = lambda: next(d for d in client.get(f"/api/v1/clients/{cid}/review").json()["departments"] if d["id"] == hr.id)  # noqa: E731
+    assert dept()["can_correct"] is True
+    db.get(Engagement, e.id).stage = 6  # past CORRECTABLE_UNTIL[2] (stage 5): the report relies on it
+    db.commit()
+    assert dept()["can_correct"] is False
+    assert client.post(f"/api/v1/signoffs/{so['id']}/correct", json={"reason": "A use case was left out."}).status_code == 409
+    eng = db.get(Engagement, e.id)
+    eng.stage, eng.status = 4, "completed"  # a finished audit is not corrected either
+    db.commit()
+    assert dept()["can_correct"] is False
+
+
+def test_a_stray_draft_added_after_signoff3_was_sent_can_be_deleted_so_it_can_be_signed(client, db, rev):
+    """BUG-03 (C-REV-05): the CAICO deletes the draft that blocked sign-off 3 instead of submitting and approving it."""
+    cid, e, maria, hr, copilot, chatgpt = rev
+    _approved_dept(client, db, cid, hr, copilot)
+    login_as(client, db, _u(db, "priya@abc.test"))
+    so3 = _submit(client, cid, 3).json()
+    login_as(client, db, maria)
+    stray = _uc(client, cid, hr, [copilot["id"]], name="Added by mistake")
+    blocked = _sign(client, so3["id"], maria)
+    assert blocked.status_code >= 400 and "still a draft" in blocked.text
+    assert client.delete(f"/api/v1/use-cases/{stray['id']}").status_code == 200
+    assert _sign(client, so3["id"], maria).json()["status"] == "approved"
