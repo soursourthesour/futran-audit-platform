@@ -23,6 +23,7 @@ CLIENT_HOMES = {
 }
 # home data endpoint -> the only roles that may load it
 HOME_ENDPOINTS = {
+    "/home/chief": {"chief_auditor"},  # Y02: VIEW_CHIEF_HOME
     "/home/admin": {"admin"},
     "/home/my-work": {"auditor", "engagement_manager", "legal_reviewer"},
     "/home/qa": {"qa_reviewer"},
@@ -121,3 +122,22 @@ def test_each_home_loads_only_for_its_own_roles(client, db, orgs, path):
 def test_home_data_needs_a_session(client):
     for path in HOME_ENDPOINTS:
         assert client.get(f"/api/v1{path}").status_code == 401
+
+
+def test_the_chief_home_lists_the_drafts_waiting_for_approval(client, db, orgs):
+    """Y02: the Chief Auditor home reads its own endpoint behind VIEW_CHIEF_HOME, not the Dashboard everyone shares."""
+    from app.engagements.models import Engagement
+
+    f, c, _ = orgs
+    for status in ("pending_approval", "draft", "in_progress"):
+        db.add(Engagement(organization_id=c.id, client_id=c.id, name=f"ABC {status}", status=status, stage=1))
+    db.commit()
+    login_as(client, db, _user(db, orgs, "chief_auditor"))
+    r = client.get("/api/v1/home/chief")
+    assert r.status_code == 200, r.text
+    assert [(w["client_name"], w["status"]) for w in r.json()["waiting"]] == [("ABC Corp", "pending_approval")]
+    client.cookies.clear()
+    login_as(client, db, _user(db, orgs, "admin"))
+    r = client.get("/api/v1/home/chief")
+    assert r.status_code == 403 and r.json()["detail"] == "You do not have permission to do this."
+    assert client.get("/api/v1/engagements?filter=drafts").status_code == 200  # the shared Dashboard is unchanged
