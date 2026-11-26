@@ -112,7 +112,7 @@ You asked for workstreams A to F in parallel, with the load test at 2,000 to 10,
 | [[Ashvins]] (four fixers) | Fixes in separate branches | Merged into `build/v1` |
 | [[Chitragupta]] | Review of the merged fixes | 6 fixed, 4 minor deferred |
 
-58 bugs and observations in all: 52 fixed (after the evening fixes), 1 not a bug, 1 accepted (V06), 3 deferred, 1 open (Y02, fix ready). A fresh install on PostgreSQL 16 was proved end to end (BUG-K07, K08).
+58 bugs and observations in all: 52 fixed (after the evening fixes), 1 not a bug, 1 accepted (V06), 3 deferred (H08 and two minor review notes). Y02 was merged on 26 November, making 53 fixed. A fresh install on PostgreSQL 16 was proved end to end (BUG-K07, K08).
 
 ### Speed at 10,000 people (test machine, 2 CPUs)
 
@@ -144,7 +144,7 @@ You asked for workstreams A to F in parallel, with the load test at 2,000 to 10,
 
 ## 6. Still open or deferred
 
-- **Y02:** fix ready and reviewed, waiting for your approval (section 7).
+- **Y02:** fixed and merged on 26 November (section 7).
 - **V06:** in outbox (demo) mode the attestation send runs inside the request. Hosted installs use `EMAIL_MODE=smtp`, so this only affects the laptop demo. Accepted: not fixing for now.
 - **H07:** fixed in the evening (section 7).
 - **H08:** no in-app password or MFA reset yet. The live (AWS) team will build it.
@@ -154,7 +154,7 @@ You asked for workstreams A to F in parallel, with the load test at 2,000 to 10,
 
 ## 7. Evening fixes: H09, H07 and Y02
 
-Your decisions on the open items: V06 is accepted (demo mode only), H08 goes to the live team, and H09, H07 and Y02 were fixed in the evening. H09 and H07 are on `build/v1`; Y02 is ready and reviewed on `fix/y02-wave2`, waiting for your approval of the role changes below. Two [[Ashvins]] fixers worked in parallel and [[Chitragupta]] reviewed each fix, more than once where it found gaps.
+Your decisions on the open items: V06 is accepted (demo mode only), H08 goes to the live team, and H09, H07 and Y02 were fixed in the evening. All three are on `build/v1`; you approved the Y02 role changes on 26 November. Two [[Ashvins]] fixers worked in parallel and [[Chitragupta]] reviewed each fix, more than once where it found gaps.
 
 ### H09: shared-link codes
 - Any address gets the same answer, in the same time. Strangers get no code but meet the same limit of 3 requests per 10 minutes. The code email goes out after the response, so a recipient's answer is no slower than a stranger's.
@@ -176,8 +176,8 @@ The shipped report with 500 findings, 100 systems and 500 responses at about 1,6
 
 Not covered: a template holding many references to one value builds no new text and stays within memory, and is refused if it is turned into text. One very large sort can overrun the time limit by a few seconds. Only template editors can write templates.
 
-### Y02: permission checks (ready, not merged)
-The six matrix actions that no route checked would be enforced where the step happens:
+### Y02: permission checks
+The six matrix actions that no route checked are now enforced where the step happens:
 
 | Action | Checked when | Who loses it |
 |---|---|---|
@@ -188,7 +188,7 @@ The six matrix actions that no route checked would be enforced where the step ha
 | View initiation checklist | Getting started is opened or ticked | Executive Sponsor, DPO, Department Compliance Lead, Contributor (the menu already hid it) |
 | View chief home | The Chief Auditor home loads | Nobody in practice |
 
-With it merged, the permission test that every matrix action is checked somewhere passes. Two of the reviewer's notes are your call: Futran auditors could no longer change named users on a use case (the matrix doesn't grant it), and the Chief Auditor home check adds little, since other Futran staff see the same drafts on the dashboard within their own scope.
+The permission test that every matrix action is checked somewhere now passes. The public API also refuses named users: they are recorded in the platform. Two of the reviewer's notes stand as decided: Futran auditors could no longer change named users on a use case (the matrix doesn't grant it), and the Chief Auditor home check adds little, since other Futran staff see the same drafts on the dashboard within their own scope.
 
 ## 8. Upgrade on the laptop (when you're ready)
 Not installed yet. The steps, when you say go:
