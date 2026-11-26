@@ -1,7 +1,7 @@
 ---
 type: change-log
 tags: [futran, audit-platform, eu-ai-act, bug-fixes, testing, performance, security]
-updated: 2026-11-25
+updated: 2026-11-26
 branch: build/v1
 ---
 
@@ -190,13 +190,33 @@ The six matrix actions that no route checked are now enforced where the step hap
 
 The permission test that every matrix action is checked somewhere now passes. The public API also refuses named users: they are recorded in the platform. Two of the reviewer's notes stand as decided: Futran auditors could no longer change named users on a use case (the matrix doesn't grant it), and the Chief Auditor home check adds little, since other Futran staff see the same drafts on the dashboard within their own scope.
 
-## 8. Upgrade on the laptop (when you're ready)
+## 8. 26 November: the 20 November fixes merged, and a code trim
+
+### The 20 November fixes
+A separate line of work on 20 November (the first AWS hand-off package, never given to the team) fixed the same 13 November bugs as this branch and some more, but was never merged into GitHub. Everything it had that `build/v1` lacked is now merged, each with its own test:
+
+- **OBS-04:** client change orders leave out Futran-internal fields (approval flag, approver names, internal references).
+- **OBS-05:** uploads are checked by content, so a file must match its extension (a renamed `.exe` is refused). After review, real client files that the strict check refused are accepted: password-protected Office files, HTML or tab-separated `.xls` exports from web systems, RTF or HTML `.doc` files and UTF-16 text without a byte-order mark. A refused file's message says to save it again as PDF, Word, Excel or CSV.
+- **OBS-06:** a monitoring result shows who took the action. **OBS-07:** a tool whose vendor and product match is named once. **OBS-08:** the client questionnaire page has a main heading.
+- **API reference:** `/api/docs` and `/api/openapi.json` are served in test mode only. The reference is in the hand-off package.
+- **PostgreSQL:** eight columns widened (seven short status and code columns and `monitor_checks.frequency`) and four lists given a fixed order (price list history, report context, finding lineage, a demo id). A test checks every text column's length against its model on PostgreSQL.
+- **Follow-ups that make our earlier fixes complete:** BUG-12 (the email preview also refuses a closed campaign), BUG-08 (earlier updates reach a client whose applicability a later publish builds), BUG-03 (a draft named in an evidence request can't be deleted), BUG-02 (Local Law 144 named only for employment wording), BUG-06 (roadmap headings read "High priority (level 4)").
+- **Commands:** `repair-text` and `rematch-updates` work as other names for the repair script and `rematch-reg-updates`. Both are dry runs unless `--apply`.
+
+Migrations: the 20 November migrations keep their own ids, and a merge migration (`e3c1a9f0b742`) joins the two lines, so the chain has one head. Proved on an empty SQLite database, on a copy of the laptop data (integrity ok), and on PostgreSQL 16 from empty and from the 20 November head; the two PostgreSQL schemas came out identical.
+
+### Code trim (bloat check)
+An audit of the whole codebase found it lean: 1.17% duplication, no debug leftovers. Removed: 13 functions nothing calls, 27 unused imports, 7 unused frontend exports and a logo file, and three npm packages never imported (`react-hook-form`, `@hookform/resolvers`, `zod`). Python dependencies now declare what the app imports (`pypdf`, `Pillow`, already installed with `xhtml2pdf`) and drop two unused ones. The Docker image leaves out `backend/tests` (`backend/scripts` stays: `repair-text` loads the repair script from it).
+
+Left for a later decision: code reached only by tests (for example the old law refresh path), three endpoints with no caller, the unused `ScopeItem` table, about 30 unused help strings and 14 CSS classes, and moving the 12 MB screens PDF out of the repo. The audit report is in the hand-off package's testing folder.
+
+## 9. Upgrade on the laptop (when you're ready)
 Not installed yet. The steps, when you say go:
 1. Stop the platform and back up the data folder.
 2. Dry-run the repair script and read the changes file.
 3. Apply the repair.
 4. Run `run.bat`, which applies the migrations, then start the platform.
-5. Run `python -m app.cli seed-reference` so the report template and glossary pick up the EU rows.
+5. Run `python -m app.cli seed-reference` so the report template and glossary pick up the EU rows. (The laptop database is on `717087b4a6c3`, before both lines; it upgrades through both to `e3c1a9f0b742`.)
 6. Optionally, dry-run then apply `rematch-reg-updates`.
 
 Your two earlier decisions (correct the signed ABC reports in place or not, and the acknowledged notices) only concern demo records. By default the script holds signed reports back.
