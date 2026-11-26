@@ -154,3 +154,22 @@ def test_the_plan_note_is_for_futran_staff_only(w):
         r = w.client.get("/api/v1/monitoring")
         assert r.status_code == 200 and r.json()["plan"] == "monitor"
         assert "Discounted" not in r.text and r.json()["subscription"]["note"] is None
+
+
+def test_an_action_taken_shows_who_took_it(w, checks, monkeypatch):
+    """OBS-06: the result shows the person next to the time the action was taken."""
+    import sys
+    import types
+
+    mod = types.ModuleType("app.impact.triggers")
+    mod.raise_trigger = lambda db, register_system_id, type, source, **kw: object()
+    monkeypatch.setitem(sys.modules, "app.impact.triggers", mod)
+    _plan(w)
+    w.as_(w.caico)
+    w.client.post("/api/v1/monitoring/run")
+    rid = w.db.query(MonitorResult).filter_by(status="failed").one().id
+    r = w.client.post(f"/api/v1/monitoring/results/{rid}/act")
+    assert r.status_code == 200 and r.json()["result"]["action_taken_by"] == w.caico.name
+    d = w.client.get("/api/v1/monitoring").json()
+    row = next(x for x in d["needs_action"] + d["healthy"] if x["id"] == rid)
+    assert row["action_taken_at"] and row["action_taken_by"] == w.caico.name

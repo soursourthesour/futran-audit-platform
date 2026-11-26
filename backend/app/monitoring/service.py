@@ -263,11 +263,13 @@ def action_kind(code: str, action: str | None) -> str | None:
     return "link"
 
 
-def result_out(r: MonitorResult, check: MonitorCheck) -> dict:
+def result_out(r: MonitorResult, check: MonitorCheck, db: Session | None = None) -> dict:
+    by = db.get(User, r.action_taken_by) if db is not None and r.action_taken_by else None
     return {"id": r.id, "check_code": check.code, "check": check.description, "severity": check.severity, "status": r.status, "object_id": r.object_id,
             "object_label": r.object_label, "detail": r.detail, "action": r.action, "action_label": ACTION_LABELS.get(r.action or ""), "action_link": r.action_link,
             "action_kind": action_kind(check.code, r.action),
-            "action_taken": r.action_taken, "action_taken_at": r.action_taken_at.isoformat() if r.action_taken_at else None, "alert_sent": r.alert_sent,
+            "action_taken": r.action_taken, "action_taken_at": r.action_taken_at.isoformat() if r.action_taken_at else None,
+            "action_taken_by": by.name if by is not None else None, "alert_sent": r.alert_sent,  # OBS-06: who took the action, beside when
             "run_at": r.run_at.isoformat()}
 
 
@@ -291,8 +293,8 @@ def dashboard(db: Session, org: Organization, *, for_futran: bool = False) -> di
     for r in results:
         kpis[r.status] += 1
     runs = db.scalars(select(MonitorRun).where(MonitorRun.organization_id == org.id, MonitorRun.deleted_at.is_(None)).order_by(MonitorRun.started_at.desc()).limit(12))
-    return base | {"kpis": kpis, "needs_action": [result_out(r, checks[r.check_id]) for r in results if r.status in ("failed", "attention")],
-                   "healthy": [result_out(r, checks[r.check_id]) for r in results if r.status in ("healthy", "not_started")],
+    return base | {"kpis": kpis, "needs_action": [result_out(r, checks[r.check_id], db) for r in results if r.status in ("failed", "attention")],
+                   "healthy": [result_out(r, checks[r.check_id], db) for r in results if r.status in ("healthy", "not_started")],
                    "last_run": {"id": mr.id, "at": mr.started_at.isoformat(), "trigger": mr.trigger} if mr else None,
                    "runs": [{"id": x.id, "at": x.started_at.isoformat(), "trigger": x.trigger, "status": x.status, "counts": x.counts} for x in runs]}
 
@@ -335,4 +337,4 @@ def act(db: Session, settings: Settings | None, user: User, org: Organization, r
     r.action_taken, r.action_taken_at, r.action_taken_by = r.action, utcnow(), user.id
     audit.record(db, actor_id=user.id, action=f"monitoring.{r.action}", obj=r, summary=f"{ACTION_LABELS[r.action]}: {check.description}, {r.object_label}")
     db.flush()
-    return {"message": message, "result": result_out(r, check)}
+    return {"message": message, "result": result_out(r, check, db)}
