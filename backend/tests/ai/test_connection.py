@@ -61,7 +61,7 @@ def test_admin_saves_a_connection_and_the_key_never_comes_back(client, db, staff
     assert out["active"] == {"source": "connection", "provider": "openai", "provider_label": "OpenAI", "model": "gpt-test"}
     g = client.get(f"{API}/admin/ai-connection")
     assert g.status_code == 200 and KEY not in g.text and g.json()["key_hint"] == "…1c7e"
-    assert {p["id"] for p in g.json()["providers"]} == {"anthropic", "openai", "azure_openai", "gemini"}
+    assert {p["id"] for p in g.json()["providers"]} == {"anthropic", "anthropic_aws", "openai", "azure_openai", "gemini"}
     row = db.scalar(select(AIConnection))
     db.refresh(row)
     assert row.key_encrypted and KEY not in row.key_encrypted and row.key_ref.startswith(("secret_key:", "token_key:"))

@@ -62,6 +62,8 @@ class AnthropicAIClient:
         try:
             msg = self.client.messages.create(model=self.model, max_tokens=max_tokens, system=system, messages=[{"role": "user", "content": prompt}],
                                               extra_body={"output_config": {"format": {"type": "json_schema", "schema": schema}}})
+        except AIError:  # already a fixed message (Claude Platform on AWS)
+            raise
         except Exception as e:  # noqa: BLE001 - any SDK or network failure is reported the same way
             raise AIError(f"The model could not be reached: {type(e).__name__}.") from e
         if getattr(msg, "stop_reason", None) == "max_tokens":  # half a JSON reply: say so rather than report a parse error
@@ -120,10 +122,20 @@ def connected_provider(app_state, settings: Settings, db=None):
     return build(cfg, settings, transport=getattr(app_state, "ai_http_transport", None) if app_state is not None else None)
 
 
+def _aws_from_env(settings: Settings, model: str | None = None):
+    """Claude Platform on AWS from ANTHROPIC_AWS_REGION and ANTHROPIC_AWS_WORKSPACE_ID (with ANTHROPIC_AWS_API_KEY, or the
+    server's AWS role without it), or None. It comes after ANTHROPIC_API_KEY: an install that has a direct Anthropic key
+    keeps using it until that key is removed, so adding the AWS settings never switches billing on its own."""
+    from app.ai.providers.anthropic_aws import from_settings
+
+    return from_settings(settings, model)
+
+
 def client_for(app_state, settings: Settings, db=None) -> AIClient | None:
     """JSON answers for the copilot, obligations, questionnaires, Explain this question. In order: an injected factory
     (pytest); the fake (AI_CLIENT=fake: demo and browser tests; never the connection); the saved connection; Anthropic
-    when ANTHROPIC_API_KEY is set; else (AI_CLIENT=auto in test mode) the fake. None when no model is available. The
+    when ANTHROPIC_API_KEY is set; Claude Platform on AWS when ANTHROPIC_AWS_REGION and ANTHROPIC_AWS_WORKSPACE_ID are
+    set; else (AI_CLIENT=auto in test mode) the fake. None when no model is available. The
     fake's rows record provider "fake"."""
     factory = getattr(app_state, "ai_client_factory", None) if app_state is not None else None
     if factory is not None:
@@ -135,6 +147,9 @@ def client_for(app_state, settings: Settings, db=None) -> AIClient | None:
         return provider
     if settings.anthropic_api_key:
         return AnthropicAIClient(settings)
+    aws = _aws_from_env(settings, settings.ai_model or settings.claude_model)
+    if aws is not None:
+        return aws
     if settings.ai_client == "auto" and settings.test_mode:  # the demo laptop with no key: the demonstration model
         return FakeAIClient()
     return None
@@ -142,8 +157,8 @@ def client_for(app_state, settings: Settings, db=None) -> AIClient | None:
 
 def research_client_for(app_state, settings: Settings, db=None):
     """Law and litigation refresh (`propose(...)`). In order: an injected factory (tests); the demo client
-    (REFRESH_CLIENT=fake: demo, browser tests); the saved connection; Anthropic when ANTHROPIC_API_KEY is set. None when
-    refresh cannot run (it has no demonstration fallback, as before)."""
+    (REFRESH_CLIENT=fake: demo, browser tests); the saved connection; Anthropic when ANTHROPIC_API_KEY is set; Claude
+    Platform on AWS from the ANTHROPIC_AWS_* settings. None when refresh cannot run (it has no demonstration fallback, as before)."""
     factory = getattr(app_state, "refresh_client_factory", None) if app_state is not None else None
     if factory is not None:
         return factory(settings)
@@ -158,12 +173,16 @@ def research_client_for(app_state, settings: Settings, db=None):
         from app.refresh.claude import AnthropicStructuredClient
 
         return AnthropicStructuredClient(settings)
+    aws = _aws_from_env(settings)
+    if aws is not None:
+        return aws.refresh_client(settings)
     return None
 
 
 def drafting_client_for(app_state, settings: Settings, db=None):
     """Draft with AI (`research(prompt) -> str`). In order: an injected factory (tests: app.state.claude_factory); the
-    saved connection (not under AI_CLIENT=fake); Anthropic when ANTHROPIC_API_KEY is set. None when drafting is off."""
+    saved connection (not under AI_CLIENT=fake); Anthropic when ANTHROPIC_API_KEY is set; Claude Platform on AWS from the
+    ANTHROPIC_AWS_* settings. None when drafting is off."""
     factory = getattr(app_state, "claude_factory", None) if app_state is not None else None
     if factory is not None:
         return factory(settings)
@@ -174,6 +193,9 @@ def drafting_client_for(app_state, settings: Settings, db=None):
         from app.laws.refresh import default_factory
 
         return default_factory(settings)
+    aws = _aws_from_env(settings)
+    if aws is not None:
+        return aws.drafting_client(settings)
     return None
 
 
@@ -190,6 +212,10 @@ def ai_status(app_state, settings: Settings, db=None) -> dict:
         return {"source": "demonstration", "provider": "fake", "provider_label": LABELS["fake"], "model": "fake-ai"}
     if settings.anthropic_api_key:
         return {"source": "environment", "provider": "anthropic", "provider_label": LABELS["anthropic"], "model": settings.ai_model or settings.claude_model}
+    from app.ai.providers.anthropic_aws import env_configured
+
+    if env_configured(settings):
+        return {"source": "environment", "provider": "anthropic_aws", "provider_label": LABELS["anthropic_aws"], "model": settings.ai_model or settings.claude_model}
     if settings.ai_client == "auto" and settings.test_mode:
         return {"source": "demonstration", "provider": "fake", "provider_label": LABELS["fake"], "model": "fake-ai"}
     return {"source": None, "provider": None, "provider_label": None, "model": None}

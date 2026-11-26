@@ -177,7 +177,7 @@ Use a normal browser window for Futran staff and a private (InPrivate or Incogni
    - `EMAIL_MODE=smtp` plus the `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` and `SMTP_FROM` values for the sending mailbox. For Microsoft 365 use `smtp.office365.com`, port 587.
    - `BASE_URL` set to the address people will use. Links in emails use it.
 3. Restart with `run.bat`. The red test-mode bar disappears once both settings are on.
-4. Optional: add `ANTHROPIC_API_KEY` to switch on **Reference data → Law updates**. Claude checks the law matrix against current sources and proposes changes for an administrator to accept or reject.
+4. Optional: add `ANTHROPIC_API_KEY`, or connect an AI provider in Platform settings (Claude Platform on AWS to run on AWS), to switch on **Reference data → Law updates**. Claude checks the law matrix against current sources and proposes changes for an administrator to accept or reject.
 
 Hosting on a server (Render, later Azure) is described in `README.md`.
 

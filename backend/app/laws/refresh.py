@@ -27,12 +27,20 @@ class ClaudeClient(Protocol):
 class AnthropicClaudeClient:
     provider = "anthropic"
 
-    def __init__(self, settings: Settings, *, api_key: str | None = None, model: str | None = None):
-        import anthropic
-
+    def __init__(self, settings: Settings, *, api_key: str | None = None, model: str | None = None, client=None, provider: str | None = None):
+        """`client`: any object with `messages.create(...)` (Claude Platform on AWS passes its `Gateway`); else the
+        Anthropic SDK with the saved or ANTHROPIC_API_KEY key."""
         self.settings = settings
         self.model = model or settings.claude_model
-        self.client = anthropic.Anthropic(api_key=api_key or settings.anthropic_api_key)
+        self.provider = provider or type(self).provider
+        if client is None:
+            import anthropic
+
+            client = anthropic.Anthropic(api_key=api_key or settings.anthropic_api_key)
+        self.client = client
+
+    def __repr__(self) -> str:  # the key stays out of logs and tracebacks
+        return f"{type(self).__name__}(provider={self.provider!r}, model={self.model!r})"
 
     def research(self, prompt: str) -> str:
         msg = self.client.messages.create(

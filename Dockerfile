@@ -14,7 +14,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 PORT=8000 \
 WORKDIR /app/backend
 COPY backend/ ./
 COPY --from=web /src/backend/app/static ./app/static
-RUN pip install -e . \
+RUN pip install -e ".[aws]" \
  && chmod -R a+rX /app/backend \
  && useradd --create-home --uid 10001 futran \
  && mkdir -p data \

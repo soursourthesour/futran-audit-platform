@@ -285,7 +285,7 @@ def _futran_resend_ok(db: Session, actor: Actor, org: Organization) -> None:
 
 
 def _ai_settings(request: Request, s, db: Session) -> dict:
-    """What law refresh and Draft with AI use: the connected AI provider, else ANTHROPIC_API_KEY (11-03 F1)."""
+    """What law refresh and Draft with AI use: the connected AI provider, else ANTHROPIC_API_KEY, else the ANTHROPIC_AWS_* settings."""
     from app.ai.client import ai_status, research_client_for
 
     st = ai_status(request.app.state, s, db)

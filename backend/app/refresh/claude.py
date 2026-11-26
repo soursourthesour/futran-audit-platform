@@ -23,7 +23,7 @@ class ClaudeReply:
     # pages web search cited and the passages it cited from each ({url: [passage, ...]}); the pipeline checks every
     # change's source_url and source_quote against these. None = the client reported no citations at all.
     cited: dict[str, list[str]] | None = None
-    provider: str = "anthropic"  # who answered: anthropic, openai, azure_openai, gemini, or fake
+    provider: str = "anthropic"  # who answered: anthropic, anthropic_aws, openai, azure_openai, gemini, or fake
 
 
 class StructuredClaude(Protocol):
@@ -48,9 +48,12 @@ class AnthropicStructuredClient:
 
     provider = "anthropic"
 
-    def __init__(self, settings: Settings, client=None, *, api_key: str | None = None, model: str | None = None):
+    def __init__(self, settings: Settings, client=None, *, api_key: str | None = None, model: str | None = None, provider: str | None = None):
+        """`client` is any object with `messages.create(...)`: an `anthropic.Anthropic`, or Claude Platform on AWS's
+        `Gateway` (app.ai.providers.anthropic_aws), which then names itself in `provider`."""
         self.settings = settings
         self.model = model or settings.claude_model
+        self.provider = provider or type(self).provider
         if client is None:
             import anthropic
 
@@ -102,7 +105,7 @@ class AnthropicStructuredClient:
         count(msg)
         texts = [getattr(b, "text", "") for b in msg.content if getattr(b, "type", "") == "text"]
         return ClaudeReply(text=texts[-1] if texts else "", model=model, input_tokens=totals["in"], output_tokens=totals["out"], searches=totals["searches"],
-                           cited=cited)
+                           cited=cited, provider=self.provider)
 
 
 def cites_of(reply) -> dict[str, list[str]]:

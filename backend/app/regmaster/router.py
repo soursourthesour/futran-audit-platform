@@ -147,7 +147,7 @@ def _authorize_propose(db: Session, actor: Actor) -> None:
 
 
 def _claude_available(request: Request) -> bool:
-    """Draft with AI is on when an AI provider is connected (11-03 F1) or ANTHROPIC_API_KEY is set."""
+    """Draft with AI is on when an AI provider is connected (11-03 F1), ANTHROPIC_API_KEY is set, or the ANTHROPIC_AWS_* settings are."""
     from app.ai.client import drafting_client_for
 
     return drafting_client_for(request.app.state, request.app.state.settings) is not None

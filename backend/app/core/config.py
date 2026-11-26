@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 VERSION = "0.1.0"
@@ -23,6 +24,13 @@ class Settings(BaseSettings):
     anthropic_api_key: str | None = None
     claude_model: str = "claude-sonnet-5-5"
     claude_web_search_tool: str = "web_search_20250305"
+    # Claude Platform on AWS (docs/Futran_Audit_Platform_Claude_on_AWS.md): used when no provider is saved in Platform
+    # settings, ANTHROPIC_API_KEY is not set, and both the region and the workspace ID are. Without an API key the
+    # server's AWS credentials sign the requests (the ECS task role on Fargate).
+    anthropic_aws_region: str | None = None
+    anthropic_aws_workspace_id: str | None = None
+    anthropic_aws_api_key: str | None = Field(default=None, repr=False)
+    anthropic_aws_base_url: str | None = None  # blank: https://aws-external-anthropic.<region>.api.aws
     # the copilot, obligations and questionnaires (§21): auto (Anthropic when a key is set, the in-process demonstration
     # model in test mode, else off), anthropic, or fake (demo and browser tests)
     ai_client: str = "auto"

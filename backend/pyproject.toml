@@ -23,7 +23,7 @@ dependencies = [
   "python-docx>=1.1",
   "xhtml2pdf>=0.2.16",
   "apscheduler>=3.10,<4",
-  "anthropic>=0.40",
+  "anthropic>=2.8",  # 2.8 adds anthropic.AnthropicAWS (Claude Platform on AWS)
   "itsdangerous>=2.2",
   "segno>=1.6",
   "pypdf>=4",  # reads uploaded PDFs (app/ai/text.py); also arrives with xhtml2pdf
@@ -33,6 +33,9 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
+# Claude Platform on AWS signed with the server's AWS role (SigV4) needs boto3 and botocore; an API key does not.
+# Install with: pip install -e ".[aws]"
+aws = ["anthropic[aws]>=2.8"]
 
 [build-system]
 requires = ["setuptools>=69"]
