@@ -144,15 +144,53 @@ You asked for workstreams A to F in parallel, with the load test at 2,000 to 10,
 
 ## 6. Still open or deferred
 
-- **Y02:** six actions in the permission matrix that no route checks yet. Pinned by a failing test so it can't be forgotten.
-- **V06:** in outbox (demo) mode the attestation send runs inside the request. Hosted installs use `EMAIL_MODE=smtp`, so this only affects the laptop demo.
-- **H07:** editable templates accept unbounded work; only template editors can do this.
-- **H08:** no in-app password or MFA reset yet. A feature to build.
-- **H09:** the shared-link code request reveals whether an address was a recipient.
+- **Y02:** fix ready and reviewed, waiting for your approval (section 7).
+- **V06:** in outbox (demo) mode the attestation send runs inside the request. Hosted installs use `EMAIL_MODE=smtp`, so this only affects the laptop demo. Accepted: not fixing for now.
+- **H07:** fixed in the evening (section 7).
+- **H08:** no in-app password or MFA reset yet. The live (AWS) team will build it.
+- **H09:** fixed in the evening (section 7).
 - **Review minors:** two tests (cross-tenant and call-graph) can pass for the wrong reason; an old error message can stay on screen after a reload; two other small notes.
 - **Not yet measured:** mailbox daily caps at volume and memory growth under sustained load. Both belong with the AWS sizing.
 
-## 7. Upgrade on the laptop (when you're ready)
+## 7. Evening fixes: H09, H07 and Y02
+
+Your decisions on the open items: V06 is accepted (demo mode only), H08 goes to the live team, and H09, H07 and Y02 were fixed in the evening. H09 and H07 are on `build/v1`; Y02 is ready and reviewed on `fix/y02-wave2`, waiting for your approval of the role changes below. Two [[Ashvins]] fixers worked in parallel and [[Chitragupta]] reviewed each fix, more than once where it found gaps.
+
+### H09: shared-link codes
+- Any address gets the same answer, in the same time. Strangers get no code but meet the same limit of 3 requests per 10 minutes. The code email goes out after the response, so a recipient's answer is no slower than a stranger's.
+- A used-up code reads the same as no code.
+- Codes are 8 digits. A 6-digit code issued before the upgrade still works until it expires.
+- Wrong codes are capped at 50 an hour per link and network address, so one person with a forwarded link can't lock out a campaign. A backstop of 1,000 an hour pauses the whole link and writes an entry to the email log.
+- Addresses over 254 characters are refused.
+
+### H07: limits on editable templates
+One render of a document template is refused, with the reason in plain words, when it:
+- takes more than 200,000 loop steps or calls;
+- takes longer than 10 s (2 s for the trial render on save);
+- builds one value over 1,000,000 characters or items, or more than 50,000,000 in total;
+- writes more than 25,000,000 characters of output.
+
+Template bodies over 500,000 characters are refused on save. Saving a runaway template gives "This template does too much work to render: … Simplify it." At generation the message is "The document template does too much work to render (…). An administrator can check the template."
+
+The shipped report with 500 findings, 100 systems and 500 responses at about 1,600 characters a field renders in 0.24 s and uses about 5% of the total limit.
+
+Not covered: a template holding many references to one value builds no new text and stays within memory, and is refused if it is turned into text. One very large sort can overrun the time limit by a few seconds. Only template editors can write templates.
+
+### Y02: permission checks (ready, not merged)
+The six matrix actions that no route checked would be enforced where the step happens:
+
+| Action | Checked when | Who loses it |
+|---|---|---|
+| Propose tier | A department approves a use case | Nobody |
+| Record named users | The named-user list on a use case changes (screen), and always refused through the public API | Auditor, through the API only |
+| Approve governance | The CAICO submits the governance set-up | Nobody |
+| Approve responses | A client signs sign-off 6 | Nobody (the CAICO still stands in for a missing Sponsor) |
+| View initiation checklist | Getting started is opened or ticked | Executive Sponsor, DPO, Department Compliance Lead, Contributor (the menu already hid it) |
+| View chief home | The Chief Auditor home loads | Nobody in practice |
+
+With it merged, the permission test that every matrix action is checked somewhere passes. Two of the reviewer's notes are your call: Futran auditors could no longer change named users on a use case (the matrix doesn't grant it), and the Chief Auditor home check adds little, since other Futran staff see the same drafts on the dashboard within their own scope.
+
+## 8. Upgrade on the laptop (when you're ready)
 Not installed yet. The steps, when you say go:
 1. Stop the platform and back up the data folder.
 2. Dry-run the repair script and read the changes file.
