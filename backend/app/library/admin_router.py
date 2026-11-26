@@ -78,6 +78,7 @@ def create_key(body: KeyIn, request: Request, actor: Actor = Depends(current_act
     audit.record(db, actor_id=actor.id, action="website_key.create", object_type="WebsiteApiKey", object_id=k.id, organization_id=actor.organization.id, request=request,
                  after={"name": k.name, "key_prefix": k.key_prefix, "allowed_origins": k.allowed_origins, "rate_limit_per_minute": k.rate_limit_per_minute},
                  summary=f"Created website API key {k.name} ({k.key_prefix}…)")
+    K.drop_origin_cache(request.app.state)
     return {"website_key": _out(db, k), "key": raw}
 
 
@@ -93,4 +94,5 @@ def revoke_key(key_id: str, request: Request, actor: Actor = Depends(current_act
     db.flush()
     audit.record(db, actor_id=actor.id, action="website_key.revoke", object_type="WebsiteApiKey", object_id=k.id, organization_id=actor.organization.id, request=request,
                  before={"status": "active"}, after={"status": "revoked"}, summary=f"Revoked website API key {k.name} ({k.key_prefix}…)")
+    K.drop_origin_cache(request.app.state)
     return _out(db, k)

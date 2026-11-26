@@ -1,5 +1,6 @@
 """Website API keys: making, checking and describing them."""
 import hashlib
+import re
 import secrets
 from datetime import timedelta
 from urllib.parse import urlsplit
@@ -14,6 +15,9 @@ KEY_PREFIX = "fwl_"  # "Futran website library"
 PREFIX_SHOWN = 12
 LAST_USED_EVERY = timedelta(minutes=1)  # last_used_at is written at most once a minute per key, not on every call
 LOCAL_HOSTS = ("localhost", "127.0.0.1")
+DEFAULT_PORTS = {"https": 443, "http": 80}
+HOST = re.compile(r"[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*")
+ORIGIN_CACHE = "_library_origins"  # app.state key of the preflight origin cache (public_app.allowed_origins)
 
 
 def new_key() -> str:
@@ -25,20 +29,27 @@ def key_hash(raw: str) -> str:
 
 
 def normalize_origin(value: str) -> str | None:
-    """`https://host[:port]` in lower case, or `http://localhost[:port]` for local work; None when it is not an origin."""
+    """`https://host[:port]` with the host in lower-case IDNA ASCII and no default port (443, or 80 for http), or
+    `http://localhost[:port]` for local work; None when it is not an origin. Used for saved origins and request
+    Origin headers alike, so the two compare equal."""
     v = (value or "").strip()
     parts = urlsplit(v)
     if parts.scheme not in ("https", "http") or not parts.hostname or parts.username or parts.password or parts.query or parts.fragment:
         return None
     if parts.path not in ("", "/") or "*" in v:
         return None
-    if parts.scheme == "http" and parts.hostname not in LOCAL_HOSTS:
-        return None
     try:
         port = parts.port
-    except ValueError:
+        host = parts.hostname.encode("idna").decode("ascii").lower()
+    except (ValueError, UnicodeError):
         return None
-    return f"{parts.scheme}://{parts.hostname.lower()}" + (f":{port}" if port else "")
+    if not HOST.fullmatch(host):
+        return None
+    if parts.scheme == "http" and host not in LOCAL_HOSTS:
+        return None
+    if port == DEFAULT_PORTS[parts.scheme]:
+        port = None
+    return f"{parts.scheme}://{host}" + (f":{port}" if port else "")
 
 
 def find_active(db: Session, raw: str) -> WebsiteApiKey | None:
@@ -54,6 +65,10 @@ def touch(k: WebsiteApiKey) -> None:
         k.last_used_at = now
 
 
-def allowed_anywhere(db: Session, origin: str) -> bool:
-    """Whether any active key lists this browser origin (for CORS preflight, which carries no key)."""
-    return any(origin in (k.allowed_origins or []) for k in db.scalars(select(WebsiteApiKey).where(WebsiteApiKey.status == "active")))
+def active_origins(db: Session) -> set[str]:
+    """Every browser origin an active key lists (CORS preflight carries no key)."""
+    return {normalize_origin(o) or o for k in db.scalars(select(WebsiteApiKey).where(WebsiteApiKey.status == "active")) for o in (k.allowed_origins or [])}
+
+
+def drop_origin_cache(state) -> None:
+    state.__dict__.pop(ORIGIN_CACHE, None)
