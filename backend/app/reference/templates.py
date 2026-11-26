@@ -33,6 +33,7 @@ TEMPLATE_DIR = SEEDS / "templates"
 MAX_SEQ = 1_000_000  # characters or items one expression may build
 MAX_STEPS = 200_000  # loop iterations plus calls in one render
 MAX_OUTPUT = 25_000_000  # characters of output in one render, counted at every output, buffered blocks included
+MAX_BUILT = 50_000_000  # characters and items built in one render, all values together (many values held at once)
 MAX_BODY = 500_000  # characters in one template body, checked on save
 MAX_DIGITS = 100  # digits in an integer that * or ** may produce
 MAX_TABSIZE = 100
@@ -58,10 +59,10 @@ class TemplateTooLarge(Invalid):
 
 
 class _Budget:
-    __slots__ = ("steps", "out", "seconds", "deadline")
+    __slots__ = ("steps", "out", "built", "seconds", "deadline")
 
     def __init__(self, seconds: float):
-        self.steps = self.out = 0
+        self.steps = self.out = self.built = 0
         self.seconds = seconds
         self.deadline = time.monotonic() + seconds
 
@@ -97,6 +98,21 @@ def _watched(iterator):
         if not n & 255:
             _check_deadline()
         yield item
+
+
+def _charge(value):
+    """Add what a value cost to build to the render's running total and check the clock. Each value passing the
+    per-value limit is not enough: 2,500 separate 1M-character strings are 2.5 GB. Returns the value untouched."""
+    b = _budget.get()
+    if b is None:
+        return value
+    if isinstance(value, _SIZED):
+        b.built += len(value)
+        if b.built > MAX_BUILT:
+            raise TemplateTooLarge(f"it builds more than {MAX_BUILT:,} characters or items in total")
+    if time.monotonic() > b.deadline:
+        raise TemplateTooLarge(f"it takes longer than the time limit of {b.seconds:g} s")
+    return value
 
 
 def _too_long():
@@ -274,7 +290,7 @@ class _GuardedNamespace(Namespace):
 
     def __setitem__(self, name, value):
         _tick()
-        _check_size(value)
+        _charge(_check_size(value))
         super().__setitem__(name, value)
 
 
@@ -385,6 +401,7 @@ def _guard_filter(name: str, func):
         result = func(*args, **kwargs)
         if isinstance(result, (str, list)) and len(result) > MAX_SEQ:
             raise _too_long()
+        _charge(result)
         if isinstance(result, Iterator) and not isinstance(result, (str, bytes)):
             return _watched(result)
         return result
@@ -479,8 +496,8 @@ class _Sandbox(ImmutableSandboxedEnvironment):
             if total > MAX_SEQ:
                 raise _too_long()
         if markup:  # inside {% autoescape true %}: escaping can lengthen the parts, so the result is checked too
-            return _check_size(markup_join(parts))
-        return "".join(p if isinstance(p, str) else str(p) for p in parts)
+            return _charge(_check_size(markup_join(parts)))
+        return _charge("".join(p if isinstance(p, str) else str(p) for p in parts))
 
     def budget_text(self, value):
         """An output expression's value, measured before the finaliser and str() turn it into text."""
@@ -517,7 +534,7 @@ class _Sandbox(ImmutableSandboxedEnvironment):
                 raise TemplateTooLarge(f"a number grows past {MAX_DIGITS} digits")
         elif operator == "%" and isinstance(left, str):
             _check_percent(left, right)
-        return super().call_binop(context, operator, left, right)
+        return _charge(super().call_binop(context, operator, left, right))
 
     def call_test(self, *args, **kwargs):
         _check_deadline()  # select, reject, selectattr and rejectattr call tests once per item
@@ -535,7 +552,7 @@ class _Sandbox(ImmutableSandboxedEnvironment):
             args = _check_str_method(owner, name, args, kwargs)
         elif _is_int(owner) and name == "to_bytes":
             _check_width(args[0] if args else kwargs.get("length"))
-        return _check_size(super().call(__context, __obj, *args, **kwargs))
+        return _charge(_check_size(super().call(__context, __obj, *args, **kwargs)))
 
 
 MD_SPECIAL = str.maketrans({c: "\\" + c for c in "\\[]*_`<>"})  # the backslash too: left alone it undoes the other escapes (review 11-25 #4)

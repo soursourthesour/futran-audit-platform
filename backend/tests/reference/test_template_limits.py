@@ -272,3 +272,51 @@ def test_the_refusal_names_the_limit_and_suits_who_sees_it(db, admin):
     with pytest.raises(TemplateTooLarge) as e:
         edit_template(db, admin, "roles_note", "{% for i in range(3000) %}{% for j in range(3000) %}{% endfor %}{% endfor %}")
     assert "200,000" in e.value.errors[0]["message"] and "Simplify it." in e.value.errors[0]["message"]
+
+
+# Review 11-25 (Chitragupta) on b7647ed: many separate values, each inside the per-value limit, held at once.
+MANY_VALUES = {
+    "a list literal of 2,500 long strings": "{% set l = [" + ",".join(["'x'*999999"] * 2500) + "] %}{{ l|length }}",
+    "2,500 separate set lines": "".join(f"{{% set a{n} = 'x'*999999 %}}" for n in range(2500)) + "done",
+}
+
+
+def test_many_separate_large_values_are_refused_within_a_memory_cap():
+    """Each would hold about 2.5 GB. Run in a child process capped at 1.5 GB of address space, as above; the save-time
+    trial render (2 s) is checked with 6,000 values, which reached MemoryError at 2.24 s under a 3 GB cap."""
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    cases = [(body, False) for body in MANY_VALUES.values()]
+    cases.append(("{% set l = [" + ",".join(["'x'*999999"] * 6000) + "] %}{{ l|length }}", True))
+    script = (
+        "import resource, sys, time\n"
+        "resource.setrlimit(resource.RLIMIT_AS, (1_500_000_000, 1_500_000_000))\n"
+        "from app.reference.templates import SAVE_SECONDS, TemplateTooLarge, render_string\n"
+        "for body, saving in eval(sys.stdin.read()):\n"
+        "    start = time.monotonic()\n"
+        "    try:\n"
+        "        render_string(body, {}, seconds=SAVE_SECONDS if saving else 10, editing=saving)\n"
+        "        print('rendered')\n"
+        "    except TemplateTooLarge as exc:\n"
+        "        print('refused' if time.monotonic() - start < 3 and 'in total' in exc.reason else 'slow-or-other:' + exc.reason.replace(' ', '_'))\n"
+        "    except MemoryError:\n"
+        "        print('memory-error')\n"
+    )
+    backend = Path(__file__).resolve().parents[2]
+    run = subprocess.run([sys.executable, "-c", script], input=repr(cases), cwd=backend, capture_output=True, text=True, timeout=180)
+    assert run.stdout.split() == ["refused"] * len(cases), run.stdout + run.stderr[-2000:]
+
+
+def test_the_large_report_builds_well_inside_the_total():
+    from app.reference import templates as T
+
+    body = (T.TEMPLATE_DIR / "report.md.j2").read_text(encoding="utf-8")
+    budget = T._Budget(T.RENDER_SECONDS)
+    token = T._budget.set(budget)
+    try:
+        T._env.from_string(body).render(**_large_report_context())
+    finally:
+        T._budget.reset(token)
+    assert budget.built < T.MAX_BUILT // 5, budget.built
