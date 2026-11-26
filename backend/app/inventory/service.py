@@ -223,6 +223,25 @@ def sync_tools_from_attestations(db: Session, org_id: str) -> None:
 
 
 # ---- use cases
+def _clean_named(data: dict, errs: list) -> list[dict]:
+    named = []
+    for n in (data.get("named_users") if isinstance(data.get("named_users"), list) else [])[:200]:
+        if isinstance(n, dict) and str(n.get("person_name") or "").strip():
+            email = str(n.get("email") or "").strip().lower() or None
+            if email and ("@" not in email or " " in email):
+                errs.append({"field": "named_users", "message": f"{n['person_name']}: enter a valid work email."})
+            named.append({"person_name": " ".join(str(n["person_name"]).split())[:120], "email": email, "role_name": (str(n.get("role_name") or "").strip()[:120] or None), "oversight_role": (str(n.get("oversight_role") or "").strip()[:200] or None)})
+    return named
+
+
+def named_users_change(db: Session, data: dict, uc: UseCase | None = None) -> bool:
+    """Whether saving `data` would add, remove or edit a named user (Y02: that step needs RECORD_NAMED_USERS)."""
+    fields = ("person_name", "email", "role_name", "oversight_role")
+    wanted = {(n["email"] or n["person_name"]).lower(): tuple(n[f] for f in fields) for n in _clean_named(data, [])}
+    stored = {(n.email or n.person_name).lower(): tuple(getattr(n, f) for f in fields) for n in named_users(db, uc)} if uc is not None else {}
+    return wanted != stored
+
+
 def _clean_use_case(db: Session, org: Organization, data: dict) -> dict:
     errs = []
     name = " ".join(str(data.get("name") or "").split())[:160]
@@ -248,13 +267,7 @@ def _clean_use_case(db: Session, org: Organization, data: dict) -> dict:
         if isinstance(u, dict) and str(u.get("role_name") or "").strip():
             hc = str(u.get("headcount") or "").strip()
             usage.append({"role_name": str(u["role_name"]).strip()[:120], "headcount": int(hc) if hc.isascii() and hc.isdigit() else None, "frequency": (str(u.get("frequency") or "").strip()[:20] or None)})
-    named = []
-    for n in (data.get("named_users") if isinstance(data.get("named_users"), list) else [])[:200]:
-        if isinstance(n, dict) and str(n.get("person_name") or "").strip():
-            email = str(n.get("email") or "").strip().lower() or None
-            if email and ("@" not in email or " " in email):
-                errs.append({"field": "named_users", "message": f"{n['person_name']}: enter a valid work email."})
-            named.append({"person_name": " ".join(str(n["person_name"]).split())[:120], "email": email, "role_name": (str(n.get("role_name") or "").strip()[:120] or None), "oversight_role": (str(n.get("oversight_role") or "").strip()[:200] or None)})
+    named = _clean_named(data, errs)
     screening = eu_risk.clean_screening(data.get("eu_screening"), errs) if "eu_screening" in data else _KEEP
     if errs:
         raise Invalid(errors=errs)

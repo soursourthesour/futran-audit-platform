@@ -154,15 +154,18 @@ def sign(db: Session, settings, actor: Actor, so: SignOff, typed_name: str, requ
 
 
 def _authorize_signature(db: Session, actor: Actor, so: SignOff, role: str) -> None:
-    """The matrix's sign actions govern signing (Y02): a client signer needs SIGN_CLIENT_SIGNOFF, the Chief Auditor
-    signing the final report needs SIGN_FINAL_REPORT. The other Futran signatures (sign-offs 1 and 5) have no sign action
-    in the matrix and stay on VIEW_ENGAGEMENT, checked when the sign-off is loaded."""
+    """The matrix's sign actions govern signing (Y02): a client signer needs SIGN_CLIENT_SIGNOFF, and on sign-off 6, the
+    client's approval of its management responses, also APPROVE_RESPONSES; the Chief Auditor signing the final report
+    needs SIGN_FINAL_REPORT. The other Futran signatures (sign-offs 1 and 5) have no sign action in the matrix and stay
+    on VIEW_ENGAGEMENT, checked when the sign-off is loaded."""
     if role in FUTRAN_SIGNER_ROLES:
         if so.number == 7:
             authorize(db, actor, Action.SIGN_FINAL_REPORT, engagement_id=so.engagement_id)
         return
     dept = so.scope_ref if role == "dept_compliance_lead" and so.number == 2 else None
     authorize(db, actor, Action.SIGN_CLIENT_SIGNOFF, engagement_id=so.engagement_id, department_id=dept)
+    if so.number == 6:
+        authorize(db, actor, Action.APPROVE_RESPONSES, engagement_id=so.engagement_id)
 
 
 def _fallback_self_sign(db: Session, so: SignOff, role: str) -> bool:

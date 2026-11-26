@@ -122,5 +122,6 @@ def put_extra(client_id: str, body: ExtraIn, actor: Actor = Depends(current_acto
 @router.post("/clients/{client_id}/governance/submit")
 def post_submit(client_id: str, body: SubmitIn, request: Request, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     req = _request(db, actor, client_id, Action.ANSWER_GOVERNANCE)
+    authorize(db, actor, Action.APPROVE_GOVERNANCE, engagement_id=req.engagement_id)  # submitting with the accuracy box is the client's approval
     gov.submit(db, request.app.state.settings, actor.user, req, body.accuracy_confirmed)
     return {"status": req.status}

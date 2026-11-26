@@ -169,7 +169,14 @@ def eu_screening_options(client_id: str, actor: Actor = Depends(current_actor), 
 def post_use_case(client_id: str, data: dict, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     dept = data.get("department_id") if isinstance(data.get("department_id"), str) else None
     org, e = _ctx(db, actor, client_id, Action.SUBMIT_USE_CASE, department_id=dept)
+    _check_named_users(db, actor, data, None, e.id, dept)
     return use_case_out(db, inv.save_use_case(db, actor.user, org, e, data), detail=True)
+
+
+def _check_named_users(db: Session, actor: Actor, data: dict, uc: UseCase | None, engagement_id: str, department_id: str | None) -> None:
+    """Y02: naming the people who use a use case needs RECORD_NAMED_USERS, checked only when the list changes."""
+    if inv.named_users_change(db, data, uc):
+        authorize(db, actor, Action.RECORD_NAMED_USERS, engagement_id=engagement_id, department_id=department_id)
 
 
 def _uc(db: Session, actor: Actor, uc_id: str, action: Action) -> UseCase:
@@ -190,6 +197,7 @@ def put_use_case(uc_id: str, data: dict, actor: Actor = Depends(current_actor), 
     uc = _uc(db, actor, uc_id, Action.SUBMIT_USE_CASE)
     if isinstance(data.get("department_id"), str) and data["department_id"] != uc.department_id:
         authorize(db, actor, Action.SUBMIT_USE_CASE, engagement_id=uc.engagement_id, department_id=data["department_id"])
+    _check_named_users(db, actor, data, uc, uc.engagement_id, data["department_id"] if isinstance(data.get("department_id"), str) else uc.department_id)
     org = db.get(Organization, uc.organization_id)
     return use_case_out(db, inv.save_use_case(db, actor.user, org, db.get(Engagement, uc.engagement_id), data, uc), detail=True)
 
@@ -203,6 +211,8 @@ def submit(uc_id: str, request: Request, actor: Actor = Depends(current_actor), 
 @router.post("/use-cases/{uc_id}/review")
 def review(uc_id: str, body: ReviewIn, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
     uc = _uc(db, actor, uc_id, Action.APPROVE_USE_CASE)
+    if body.approve:  # the proposed tier is computed; approving the use case is the client proposing it to Futran (§6 rule 3)
+        authorize(db, actor, Action.PROPOSE_TIER, engagement_id=uc.engagement_id, department_id=uc.department_id)
     return use_case_out(db, inv.review_use_case(db, actor.user, uc, body.approve, body.comment), detail=True)
 
 

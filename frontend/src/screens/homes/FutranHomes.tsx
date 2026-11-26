@@ -18,8 +18,8 @@ function useHome<T>(key: string) {
 
 /** Chief Auditor home (10 Nov feedback F2): drafts waiting for approval, then the Dashboard. */
 export function ChiefHome() {
-  const drafts = useQuery({ queryKey: ['engagements', 'drafts', ''], queryFn: () => api.get<DashboardData>('/engagements?filter=drafts&q=') });
-  const waiting = (drafts.data?.rows ?? []).filter((r) => r.status === 'pending_approval');
+  const drafts = useHome<{ waiting: DashboardData['rows'] }>('chief');
+  const waiting = drafts.data?.waiting ?? [];
   return (
     <div className="page">
       <PageHeader title="Chief Auditor home" subtitle="Every client and engagement, and the drafts that need your approval before the initiation package goes out."

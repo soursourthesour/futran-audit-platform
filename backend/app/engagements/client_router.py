@@ -268,12 +268,19 @@ def _client_engagement(db: Session, actor: Actor) -> Engagement:
     return e
 
 
+def _checklist_engagement(db: Session, actor: Actor) -> Engagement:
+    """Y02: the checklist is worked by the holders of VIEW_INITIATION_CHECKLIST (the CAICO and the Client Admin)."""
+    e = _client_engagement(db, actor)
+    authorize(db, actor, Action.VIEW_INITIATION_CHECKLIST, engagement_id=e.id)
+    return e
+
+
 from app.mail.onboarding import getting_started_items  # noqa: E402  (email onboarding, spec §26.1)
 
 
 @router.get("/me/initiation")
 def my_initiation(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
-    e = _client_engagement(db, actor)
+    e = _checklist_engagement(db, actor)
     pkg = current_package(db, e)
     docs = {d.item: d for d in documents(db, pkg)} if pkg else {}
     so1 = current_sign_off(db, e, 1)
@@ -309,7 +316,7 @@ def my_initiation(actor: Actor = Depends(current_actor), db: Session = Depends(g
 
 @router.post("/me/initiation/items/{key}/done")
 def mark_done(key: str, request: Request, background: BackgroundTasks, actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
-    e = _client_engagement(db, actor)
+    e = _checklist_engagement(db, actor)
     if key not in SELF_COMPLETE:
         raise Invalid("This item is completed by doing it, not by ticking it off.")
     if key == "notice" and not actor.has_role("caico"):

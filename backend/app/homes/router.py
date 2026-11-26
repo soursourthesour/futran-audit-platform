@@ -51,6 +51,17 @@ def _client_org(db: Session, actor: Actor, action: Action) -> Organization:
     return db.get(Organization, actor.organization.id)
 
 
+# ---- Chief Auditor home (10 Nov feedback F2): drafts waiting for approval; the page also shows the shared Dashboard
+@router.get("/home/chief")
+def chief_home(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):
+    """The drafts submitted for the Chief Auditor's approval, as Dashboard rows."""
+    authorize(db, actor, Action.VIEW_CHIEF_HOME)
+    from app.engagements.client_router import dashboard
+
+    rows = dashboard(filter="drafts", q=None, actor=actor, db=db)["rows"]
+    return {"waiting": [r for r in rows if r["status"] == "pending_approval"]}
+
+
 # ---- Futran Admin console
 @router.get("/home/admin")
 def admin_home(actor: Actor = Depends(current_actor), db: Session = Depends(get_db, scope="function")):

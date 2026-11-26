@@ -156,6 +156,9 @@ def create_use_case(data: dict, c: Caller = Depends(caller), db: Session = Depen
     from app.tenancy.people import current_engagement
 
     require(c, "usecases:write")
+    if data.get("named_users"):  # recorded in the platform under RECORD_NAMED_USERS, never by a token (Y02 review)
+        raise Invalid("Named users can't be sent through the API.", [{"field": "named_users", "message": "Name the people who use this AI in the platform, on the use case."}])
+    data = {k: v for k, v in data.items() if k != "named_users"}
     e = current_engagement(db, c.organization)
     if e is None:
         raise Conflict("There is no audit in progress to take use cases. Add the system to the register instead.")

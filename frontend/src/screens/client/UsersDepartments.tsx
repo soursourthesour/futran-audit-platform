@@ -2,7 +2,7 @@ import { useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { NavLink, useParams } from 'react-router-dom';
 import { api, errorMessage, fieldErrors } from '@/api/client';
-import { useMe } from '@/api/auth';
+import { can, useMe } from '@/api/auth';
 import { Alert, Badge, Button, Card, Checkbox, Dialog, FieldHelp, Loading, PageHeader, SelectField, TextField, WithHelp, fmtDate } from '@/components/ui';
 import { DataGrid, type GridColumn, type GridRowAction } from '@/components/ui/DataGrid';
 import { DownloadIcon } from '@/components/DownloadLinks';
@@ -370,7 +370,8 @@ function UsersTab({ p, cid, setMsg, refresh, pick, meId, isClient }: TabProps & 
   const roleOptions = ROLES.filter((r) => p.users.some((u) => u.roles.some((x) => x.role === r.value)));
   const inviteOptions = [...new Set(p.users.map((u) => u.invite_status))].sort().map((s) => ({ value: s, label: s === 'Disabled' ? 'Deactivated' : s }));
   const canResend = (u: Person) => !u.signed_in && u.status !== 'disabled';
-  const initiation = useQuery({ queryKey: ['my-initiation'], queryFn: () => api.get<{ items: { key: string; document: { id: string } | null }[] }>('/me/initiation'), enabled: isClient, retry: false });
+  const { data: me } = useMe();
+  const initiation = useQuery({ queryKey: ['my-initiation'], queryFn: () => api.get<{ items: { key: string; document: { id: string } | null }[] }>('/me/initiation'), enabled: isClient && can(me, 'view_initiation_checklist'), retry: false });
   const rolesNote = initiation.data?.items.find((i) => i.key === 'nominate')?.document ?? null;
 
   async function patch(u: Person, body: Record<string, unknown>, field?: string) {
