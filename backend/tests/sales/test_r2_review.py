@@ -68,7 +68,7 @@ def test_v06_add_opportunity_needs_approval_for_a_flagged_client(client, db, lit
 def test_v06_row_on_a_current_audit_client_reads_as_flagged(client, db, lit):
     db.add(Engagement(organization_id=lit["abc"].id, client_id=lit["abc"].id, name="ABC audit", status="in_progress", stage=5))
     db.execute(text("INSERT INTO opportunities (id, organization_id, trigger, service, service_kind, stage, system_ids, system_types, needs_ca_approval, created_at, updated_at) "
-                    "VALUES ('old-1', :org, 'case', 'Bias audit', 'bias_audit', 'new', '[]', '[]', 1, :at, :at)"), {"org": lit["abc"].id, "at": datetime(2026, 9, 1)})
+                    "VALUES ('old-1', :org, 'case', 'Bias audit', 'bias_audit', 'new', '[]', '[]', :ca, :at, :at)"), {"org": lit["abc"].id, "ca": True, "at": datetime(2026, 9, 1)})
     db.commit()
     login_as(client, db, lit["sales"])
     x = client.get(f"{API}/opportunities/old-1").json()

@@ -4,6 +4,7 @@ client. Prices and quantities are the ones the SM-13, G-01, G-02 and G-03 design
 stand-in until the proposals workstream (R4) is in place."""
 from __future__ import annotations
 
+import uuid
 from types import SimpleNamespace
 
 from sqlalchemy import func, select
@@ -49,7 +50,8 @@ def seed(db: Session) -> dict:
         _line("M-11a", 2, 3000, 1, "Tracing module"), _line("M-13", 20, 0, None, "Advisor hours bank (20 h)", value=0),
         _line("M-12b", 1, 350, None, "Incident response, activated (per hour)", value=0),
     ]
-    proposal = SimpleNamespace(id=f"demo-proposal-{org.id}", opportunity_id=opp.id, version=1, catalog_version=None, discount_recurring_pct=0,
+    # an id the 36-character id columns take, the same on every run (the hand-off is idempotent on it)
+    proposal = SimpleNamespace(id=str(uuid.uuid5(uuid.NAMESPACE_URL, f"futran-demo-proposal/{org.id}")), opportunity_id=opp.id, version=1, catalog_version=None, discount_recurring_pct=0,
                                terms={"term_months": 12, "data_region": "us", "support_level": "Business hours", "onboarding_fee_waived": True}, lines=lines)
     acceptance = SimpleNamespace(id=None, name="Dana Diaz", title="COO", email="dana.diaz@acmestaffing.example", po_number="PO-4471", accepted_at=utcnow())
     h = handoff.create_from_acceptance(db, proposal, acceptance, sales)

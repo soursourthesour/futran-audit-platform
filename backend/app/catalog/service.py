@@ -5,7 +5,7 @@ from collections import defaultdict
 from datetime import date
 
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 
 from app.catalog import fields as F
 from app.catalog.models import CatalogChange, CatalogItem, CatalogSetting, CatalogVersion, PackageTemplate, PriceSuggestion
@@ -481,7 +481,9 @@ def _change_out(db: Session, c: CatalogChange, versions: dict | None = None) -> 
 
 def change_log(db: Session, *, code: str | None = None, user_id: str | None = None, version: int | None = None, field: str | None = None,
                since: date | None = None, q: str | None = None, limit: int | None = None) -> list[dict]:
-    stmt = select(CatalogChange, CatalogVersion).join(CatalogVersion, CatalogVersion.id == CatalogChange.catalog_version_id)
+    applied = aliased(CatalogVersion)
+    stmt = (select(CatalogChange, CatalogVersion).join(CatalogVersion, CatalogVersion.id == CatalogChange.catalog_version_id)
+            .outerjoin(applied, applied.id == CatalogChange.applied_version_id))
     if code:
         stmt = stmt.where(CatalogChange.item_code == code)
     if user_id:
@@ -494,7 +496,10 @@ def change_log(db: Session, *, code: str | None = None, user_id: str | None = No
         from datetime import datetime, time
 
         stmt = stmt.where(CatalogChange.changed_at >= datetime.combine(since, time.min))
-    stmt = stmt.order_by(CatalogVersion.version.desc(), CatalogChange.changed_at.desc())
+    # newest first: a held change confirmed later counts from the version it was applied in; the change's own id breaks
+    # the last ties so the order is the same on every database (PostgreSQL has no insertion order)
+    stmt = stmt.order_by(func.coalesce(applied.version, CatalogVersion.version).desc(), CatalogVersion.version.desc(), CatalogChange.changed_at.desc(),
+                         CatalogChange.confirmed_at.desc(), CatalogChange.id)
     rows = []
     for c, v in db.execute(stmt):
         out = _change_out(db, c, {v.id: v})
