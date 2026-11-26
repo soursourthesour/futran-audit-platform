@@ -124,8 +124,7 @@ def save(db: Session, settings, actor, body: dict) -> AIConnection:
         if not aws.WORKSPACE_RE.match(workspace):
             errors.append({"field": "aws_workspace_id", "message": "Enter the workspace ID from the AWS Console (Claude Platform on AWS, Workspaces), starting wrkspc_."})
         if endpoint:
-            p = urlparse(endpoint)
-            if p.scheme != "https" or not aws.gateway_host_ok(p.hostname or ""):
+            if not aws.gateway_url_ok(endpoint):
                 errors.append({"field": "endpoint", "message": "Use the https address of the Claude Platform on AWS gateway, such as https://aws-external-anthropic.us-east-1.api.aws, or leave it blank."})
         if model.startswith(("anthropic.", "us.anthropic.", "eu.anthropic.", "global.anthropic.")):
             errors.append({"field": "model", "message": "Use the Claude model ID, such as claude-sonnet-5-5, not an Amazon Bedrock model ID."})
