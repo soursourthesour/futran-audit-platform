@@ -44,7 +44,11 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
     check_secret_key(settings)
     engine = engine or make_engine(settings.database_url)
 
-    app = FastAPI(title="Futran Audit Platform", version=VERSION, docs_url="/api/docs", openapi_url="/api/openapi.json", redoc_url=None)
+    # The internal API reference lists every operation without sign-in, so it is served in test mode only (go-live gap
+    # found for the 20 Nov hand-off); the public API keeps its own reference at /api/public/v1/docs.
+    docs = settings.test_mode
+    app = FastAPI(title="Futran Audit Platform", version=VERSION, docs_url="/api/docs" if docs else None,
+                  openapi_url="/api/openapi.json" if docs else None, redoc_url=None)
     app.state.settings = settings
     app.state.engine = engine
     app.state.sessionmaker = make_sessionmaker(engine)
