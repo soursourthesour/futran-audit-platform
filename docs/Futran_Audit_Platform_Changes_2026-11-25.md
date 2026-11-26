@@ -7,7 +7,7 @@ branch: build/v1
 
 # Futran Audit Platform: changes of 25 Nov 2026
 
-Three pieces of work: the EU AI Act risk level beside the Futran tier, the fixes for the 14 bugs from the 13 Nov test run, and a second test wave (functional, coverage, permissions, security, accessibility and load) with its fixes. The mail architecture reference for the AWS team is a separate note: [[Futran_Audit_Platform_Mail_Architecture]].
+Four pieces of work: the EU AI Act risk level beside the Futran tier, the fixes for the 14 bugs from the 13 Nov test run, a second test wave (functional, coverage, permissions, security, accessibility and load) with its fixes, and on 26 November the website library API and Claude on AWS. The mail architecture reference for the AWS team is a separate note: [[Futran_Audit_Platform_Mail_Architecture]].
 
 ## 1. EU AI Act risk level beside the tier
 
@@ -210,13 +210,35 @@ An audit of the whole codebase found it lean: 1.17% duplication, no debug leftov
 
 Left for a later decision: code reached only by tests (for example the old law refresh path), three endpoints with no caller, the unused `ScopeItem` table, about 30 unused help strings and 14 CSS classes, and moving the 12 MB screens PDF out of the repo. The audit report is in the hand-off package's testing folder.
 
-## 9. Upgrade on the laptop (when you're ready)
+## 9. 26 November: the website library API and Claude on AWS
+
+### Website library API
+A public, read-only API lets the Futran website show the full law library and the AI court cases as the app shows them. Documentation: `docs/Futran_Audit_Platform_Website_Library_API.md`.
+
+- **Endpoints** under `/api/public/v1/library`: `/laws` (search, the law library's filters, sort, pages), `/laws/{id}` (the full record: versions, requirements, approved obligations, scope, sources, related cases), `/cases` (the litigation tracker's filters), `/cases/{id}` (the full case with linked laws), and `/meta` (filter values, counts, last refresh).
+- **Website keys:** Administration > Website API keys (Admin only). A key is shown once, stored only as a hash, limited to the website's own addresses (CORS) and to 120 requests a minute by default, and can be revoked. Creating and revoking keys is in the audit log.
+- **Fast and safe:** responses carry ETag and `Cache-Control: public, max-age=300`, and the server keeps a small cache that refreshes when the records change.
+- **What stays private:** anything that ties a law or case to a Futran client or staff member (client matches and applicability, opportunities, briefings, follows, reviewers and approvers, Futran-only talking points) and anything still awaiting review. A guard also replaces a client's name with "[client]" if one is typed into a published note.
+- **Freshness:** both libraries keep updating through the existing scheduled refresh and its human review; the API serves what is published.
+
+### Claude on AWS
+The law and litigation refresh, and every AI feature, can now run on **Claude Platform on AWS**: Anthropic's own Claude API reached through the company's AWS account, billed through AWS Marketplace. Set-up: `docs/Futran_Audit_Platform_Claude_on_AWS.md`.
+
+- **Why not Amazon Bedrock:** Claude on Bedrock does not support Anthropic's web search tool, which the refresh needs to find law changes and court cases. Claude Platform on AWS does.
+- **Set-up:** Platform settings > AI provider > Claude Platform on AWS, with the AWS region and workspace id, signing with either an API key or the server's own AWS role (the ECS task role; no key stored). The Docker image includes what the AWS role needs. Or set `ANTHROPIC_AWS_REGION` and `ANTHROPIC_AWS_WORKSPACE_ID` (and `ANTHROPIC_AWS_API_KEY` for key mode) as environment settings.
+- **IAM:** the task role needs `aws-external-anthropic:CreateInference` on the workspace. Egress: TCP 443 to `aws-external-anthropic.<region>.api.aws`.
+- **Not yet tried against a live account.** First use: Test connection in Platform settings, then refresh one geography.
+
+### Migrations
+Two additive migrations: `f0ce163adcb2` (website API keys) and `130c86deb93f` (Claude Platform on AWS settings on the AI connection). One head: `130c86deb93f`.
+
+## 10. Upgrade on the laptop (when you're ready)
 Not installed yet. The steps, when you say go:
 1. Stop the platform and back up the data folder.
 2. Dry-run the repair script and read the changes file.
 3. Apply the repair.
 4. Run `run.bat`, which applies the migrations, then start the platform.
-5. Run `python -m app.cli seed-reference` so the report template and glossary pick up the EU rows. (The laptop database is on `717087b4a6c3`, before both lines; it upgrades through both to `e3c1a9f0b742`.)
+5. Run `python -m app.cli seed-reference` so the report template and glossary pick up the EU rows. (The laptop database is on `717087b4a6c3`, before both lines; it upgrades through both lines and on to `130c86deb93f`.)
 6. Optionally, dry-run then apply `rematch-reg-updates`.
 
 Your two earlier decisions (correct the signed ABC reports in place or not, and the acknowledged notices) only concern demo records. By default the script holds signed reports back.
