@@ -29,8 +29,18 @@ def _sqlite_retype(declared: str) -> None:
     op.execute("ALTER TABLE law_versions RENAME COLUMN effective_text_retyped TO effective_text")
 
 
+def _already_text(bind) -> bool:
+    """Idempotent: 9a1f3c5e7b20 (the 20 Nov hand-off branch) may have run first and widened the column to a varchar(500);
+    that is still converted. Only a column that is already unbounded text is left alone."""
+    t = next(c["type"] for c in sa.inspect(bind).get_columns("law_versions") if c["name"] == "effective_text")
+    return isinstance(t, sa.Text)
+
+
 def upgrade() -> None:
-    if op.get_bind().dialect.name == "sqlite":
+    bind = op.get_bind()
+    if _already_text(bind):
+        return
+    if bind.dialect.name == "sqlite":
         _sqlite_retype("TEXT")
         return
     op.alter_column('law_versions', 'effective_text', existing_type=sa.VARCHAR(length=200), type_=sa.Text(), existing_nullable=True)

@@ -86,7 +86,7 @@ class UpdateDigestRun(IdMixin, Base):
 
     organization_id: Mapped[str] = mapped_column(String(36), ForeignKey("organizations.id"), index=True)
     week_start: Mapped[date] = mapped_column(Date)
-    status: Mapped[str] = mapped_column(String(12), default="sending")  # sending | sent | nothing_new | no_recipients
+    status: Mapped[str] = mapped_column(String(20), default="sending")  # sending | sent | nothing_new | no_recipients
     update_ids: Mapped[list] = mapped_column(JSON, default=list)
     recipient_count: Mapped[int] = mapped_column(Integer, default=0)
     outbox_message_id: Mapped[str | None] = mapped_column(String(36))

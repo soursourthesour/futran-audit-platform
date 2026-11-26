@@ -324,7 +324,7 @@ class MailReply(TimestampedTenantMixin, Base):
     subject: Mapped[str | None] = mapped_column(String(300))
     snippet: Mapped[str | None] = mapped_column(String(500))
     attachment_ids: Mapped[list | None] = mapped_column(JSON)
-    kind: Mapped[str] = mapped_column(String(12), default="reply")  # reply | out_of_office | bounce
+    kind: Mapped[str] = mapped_column(String(20), default="reply")  # reply | out_of_office | bounce
     linked_entity: Mapped[str | None] = mapped_column(String(80))
 
 

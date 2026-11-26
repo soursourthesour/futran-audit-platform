@@ -76,7 +76,7 @@ class CatalogChange(IdMixin, Base):
     old_value: Mapped[object | None] = mapped_column(JSON)
     new_value: Mapped[object | None] = mapped_column(JSON)
     effective_from: Mapped[date | None] = mapped_column(Date)  # null: took effect when saved
-    status: Mapped[str] = mapped_column(String(12), default="applied", index=True)  # applied | pending | awaiting_check | declined
+    status: Mapped[str] = mapped_column(String(20), default="applied", index=True)  # applied | pending | awaiting_check | declined
     applied_at: Mapped[datetime | None] = mapped_column(DateTime)
     applied_version_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("catalog_versions.id"))
     reason: Mapped[str] = mapped_column(Text, default="")

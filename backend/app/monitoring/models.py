@@ -49,7 +49,7 @@ class MonitorCheck(IdMixin, Base):
 
     code: Mapped[str] = mapped_column(String(60), unique=True)
     description: Mapped[str] = mapped_column(String(200))
-    frequency: Mapped[str] = mapped_column(String(20))
+    frequency: Mapped[str] = mapped_column(String(100))
     rule: Mapped[dict] = mapped_column(JSON, default=dict)
     severity: Mapped[str] = mapped_column(String(8))
     applies_to: Mapped[str] = mapped_column(String(12))
