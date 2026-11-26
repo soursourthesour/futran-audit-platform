@@ -7,10 +7,15 @@ import './aiConnection.css';
 /* 11-03 F1: Platform settings › AI provider. One connection for the whole platform; only the Futran Admin changes it.
    The API key is sent once and never comes back: the server returns only its last four characters. */
 
-type Provider = { id: string; label: string; needs_endpoint: boolean; models: string[]; key_help: string };
+type AuthMode = { id: 'api_key' | 'aws_role'; label: string; help: string };
+type Provider = {
+  id: string; label: string; needs_endpoint: boolean; models: string[]; key_help: string;
+  aws?: boolean; region_help?: string; workspace_help?: string; endpoint_help?: string; auth_modes?: AuthMode[];
+};
 type Active = { source: 'connection' | 'environment' | 'demonstration' | null; provider: string | null; provider_label: string | null; model: string | null };
 type Conn = {
   connected: boolean; provider: string | null; provider_label: string | null; model: string | null; endpoint: string | null; deployment: string | null;
+  auth_mode: 'api_key' | 'aws_role' | null; aws_region: string | null; aws_workspace_id: string | null;
   key_hint: string | null; key_unreadable: boolean; updated_at: string | null; last_test: { at: string; ok: boolean; message: string } | null;
   active: Active; demo_mode: boolean; stand_in: boolean; providers: Provider[]; can_manage: boolean;
 };
@@ -22,7 +27,9 @@ const HELP = {
     <>
       The service every AI feature calls: law and case refresh, Draft with AI, the copilot, obligation extraction, customer questionnaires and
       Explain this question. One connection serves the whole platform. With nothing saved, the platform uses ANTHROPIC_API_KEY from the server's
-      .env file if it is set, and otherwise (in test mode) its built-in demonstration model.
+      .env file if it is set, then Claude Platform on AWS if ANTHROPIC_AWS_REGION and ANTHROPIC_AWS_WORKSPACE_ID are set, and otherwise (in test
+      mode) its built-in demonstration model. Choose Claude Platform on AWS, not Amazon Bedrock, to run Claude on AWS: law and case refresh need
+      Anthropic's web search, which Bedrock does not offer.
     </>
   ),
   model: 'The model name exactly as the provider writes it. The suggestions were current in November 2026; any newer name the provider offers works.',
@@ -39,6 +46,7 @@ const HELP = {
 
 function inUse(a: Active): string {
   if (a.source === 'connection') return `${a.provider_label} · ${a.model} (saved below)`;
+  if (a.source === 'environment' && a.provider === 'anthropic_aws') return `${a.provider_label} · ${a.model} (ANTHROPIC_AWS_* settings on the server)`;
   if (a.source === 'environment') return `${a.provider_label} · ${a.model} (ANTHROPIC_API_KEY in the server's .env file)`;
   if (a.source === 'demonstration') return 'The built-in demonstration model (no AI provider connected)';
   return 'None. AI features are off until a provider is connected.';
@@ -52,6 +60,9 @@ export function AIConnection() {
   const [model, setModel] = useState('');
   const [endpoint, setEndpoint] = useState('');
   const [deployment, setDeployment] = useState('');
+  const [authMode, setAuthMode] = useState<'api_key' | 'aws_role'>('api_key');
+  const [region, setRegion] = useState('');
+  const [workspace, setWorkspace] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [errs, setErrs] = useState<Record<string, string>>({});
   const [msg, setMsg] = useState<{ tone: 'success' | 'danger'; text: string } | null>(null);
@@ -63,12 +74,18 @@ export function AIConnection() {
     setModel(c.model ?? '');
     setEndpoint(c.endpoint ?? '');
     setDeployment(c.deployment ?? '');
+    setAuthMode(c.auth_mode ?? 'api_key');
+    setRegion(c.aws_region ?? '');
+    setWorkspace(c.aws_workspace_id ?? '');
     setApiKey('');
-  }, [c?.provider, c?.model, c?.endpoint, c?.deployment, c?.updated_at]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [c?.provider, c?.model, c?.endpoint, c?.deployment, c?.auth_mode, c?.aws_region, c?.aws_workspace_id, c?.updated_at]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const changed = (d: Conn) => { qc.setQueryData(KEY, d); qc.invalidateQueries({ queryKey: ['admin-settings'] }); };
   const save = useMutation({
-    mutationFn: () => api.put<Conn>('/admin/ai-connection', { provider, model, api_key: apiKey || null, endpoint: endpoint || null, deployment: deployment || null }),
+    mutationFn: () => api.put<Conn>('/admin/ai-connection', {
+      provider, model, api_key: (onAws && role ? null : apiKey || null), endpoint: endpoint || null, deployment: deployment || null,
+      auth_mode: onAws ? authMode : null, aws_region: onAws ? region || null : null, aws_workspace_id: onAws ? workspace || null : null,
+    }),
     onSuccess: (d) => { changed(d); setErrs({}); setMsg({ tone: 'success', text: `Saved. AI features now use ${d.provider_label} (${d.model}). Test the connection to check the key.` }); },
     onError: (e) => { setErrs(fieldErrors(e)); setMsg({ tone: 'danger', text: errorMessage(e) }); },
   });
@@ -83,13 +100,20 @@ export function AIConnection() {
     onError: (e) => { setConfirmRemove(false); setMsg({ tone: 'danger', text: errorMessage(e) }); },
   });
 
+  const pick = c?.providers.find((x) => x.id === provider);
+  const onAws = Boolean(pick?.aws);
+  const role = authMode === 'aws_role';
+
   if (q.isError) return null; // not allowed to see platform settings
   if (q.isLoading || !c) return <Card title="AI provider"><Loading /></Card>;
 
   const p = c.providers.find((x) => x.id === provider) ?? c.providers[0];
   const azure = p.needs_endpoint;
   const sameProvider = c.connected && c.provider === provider;
-  const dirty = !c.connected || provider !== c.provider || model !== (c.model ?? '') || endpoint !== (c.endpoint ?? '') || deployment !== (c.deployment ?? '') || apiKey !== '';
+  const keySaved = sameProvider && c.key_hint !== null;
+  const awsChanged = onAws && (authMode !== (c.auth_mode ?? 'api_key') || region !== (c.aws_region ?? '') || workspace !== (c.aws_workspace_id ?? ''));
+  const dirty = !c.connected || provider !== c.provider || model !== (c.model ?? '') || endpoint !== (c.endpoint ?? '') || deployment !== (c.deployment ?? '') || apiKey !== '' || awsChanged;
+  const modeHelp = p.auth_modes?.find((m) => m.id === authMode)?.help;
   const busy = save.isPending || test.isPending || remove.isPending;
 
   return (
@@ -102,7 +126,9 @@ export function AIConnection() {
             <>
               <dt>Saved connection</dt>
               <dd>
-                {c.provider_label} · {c.model}{c.deployment ? ` · deployment ${c.deployment}` : ''} · key {c.key_hint}
+                {c.provider_label} · {c.model}{c.deployment ? ` · deployment ${c.deployment}` : ''}
+                {c.aws_region ? ` · ${c.aws_region} · workspace ${c.aws_workspace_id}` : ''}
+                {c.auth_mode === 'aws_role' ? " · signed with the server's AWS role" : ` · key ${c.key_hint}`}
                 {c.updated_at && <div className="small muted">Saved {fmtDateTime(c.updated_at)}</div>}
               </dd>
               <dt>Last test</dt>
@@ -125,7 +151,10 @@ export function AIConnection() {
         {c.can_manage ? (
           <form className="ai-conn-form" autoComplete="off" onSubmit={(e) => { e.preventDefault(); setMsg(null); save.mutate(); }}>
             <SelectField label="Provider" help={HELP.provider} value={provider} error={errs.provider}
-              onChange={(e) => { setProvider(e.target.value); setErrs({}); setModel(e.target.value === c.provider ? (c.model ?? '') : ''); }}
+              onChange={(e) => {
+                const same = e.target.value === c.provider;
+                setProvider(e.target.value); setErrs({}); setModel(same ? (c.model ?? '') : ''); setEndpoint(same ? (c.endpoint ?? '') : '');
+              }}
               options={c.providers.map((x) => ({ value: x.id, label: x.label }))} />
             <TextField label={azure ? 'Model (optional)' : 'Model'} help={azure ? HELP.azureModel : HELP.model} value={model} onChange={(e) => setModel(e.target.value)}
               list="ai-conn-models" placeholder={p.models[0]} error={errs.model} spellCheck={false} autoCapitalize="off" />
@@ -138,9 +167,25 @@ export function AIConnection() {
                   spellCheck={false} autoCapitalize="off" />
               </>
             )}
-            <TextField label="API key" help={HELP.key} hint={p.key_help} type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)}
-              autoComplete="new-password" spellCheck={false} error={errs.api_key}
-              placeholder={sameProvider ? `Leave blank to keep ${c.key_hint}` : 'Paste the API key'} />
+            {p.aws && (
+              <>
+                <TextField label="AWS Region" help={p.region_help} value={region} onChange={(e) => setRegion(e.target.value)} placeholder="us-east-1"
+                  error={errs.aws_region} spellCheck={false} autoCapitalize="off" />
+                <TextField label="Workspace ID" help={p.workspace_help} value={workspace} onChange={(e) => setWorkspace(e.target.value)} placeholder="wrkspc_…"
+                  error={errs.aws_workspace_id} spellCheck={false} autoCapitalize="off" />
+                <SelectField label="Sign requests with" help={modeHelp} value={authMode} error={errs.auth_mode}
+                  onChange={(e) => { setAuthMode(e.target.value as 'api_key' | 'aws_role'); setApiKey(''); }}
+                  options={(p.auth_modes ?? []).map((m) => ({ value: m.id, label: m.label }))} />
+                <TextField label="Gateway address (optional)" help={p.endpoint_help} value={endpoint} onChange={(e) => setEndpoint(e.target.value)} type="url"
+                  inputMode="url" placeholder={region ? `https://aws-external-anthropic.${region}.api.aws` : 'https://aws-external-anthropic.<region>.api.aws'}
+                  error={errs.endpoint} spellCheck={false} autoCapitalize="off" />
+              </>
+            )}
+            {!(p.aws && role) && (
+              <TextField label="API key" help={HELP.key} hint={p.key_help} type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)}
+                autoComplete="new-password" spellCheck={false} error={errs.api_key}
+                placeholder={keySaved ? `Leave blank to keep ${c.key_hint}` : 'Paste the API key'} />
+            )}
             <div className="ai-conn-actions">
               <Button type="submit" variant="primary" disabled={!dirty || busy}>{save.isPending ? 'Saving…' : 'Save'}</Button>
               {c.connected && <Button onClick={() => { setMsg(null); test.mutate(); }} disabled={busy || dirty}>{test.isPending ? 'Testing…' : 'Test connection'}</Button>}
@@ -152,7 +197,8 @@ export function AIConnection() {
           <p className="small">Only the Futran Admin changes the AI provider.</p>
         )}
         <p className="small muted ai-conn-note">
-          Anthropic Claude runs through the platform's existing Anthropic connection. OpenAI, Azure OpenAI and Google Gemini have been tested only
+          Anthropic Claude runs through the platform's existing Anthropic connection. Claude Platform on AWS is the same Claude API, run by Anthropic
+          and billed through AWS Marketplace; it has been tested only offline, so press Test connection after saving. OpenAI, Azure OpenAI and Google Gemini have been tested only
           against simulated replies; their live calls are untested until the first real connection, so press Test connection after saving and run one
           small feature before relying on them. Law refresh with these providers marks every change low confidence for a second review, because they
           name the pages they read but not the passages.
@@ -160,7 +206,7 @@ export function AIConnection() {
       </div>
       {confirmRemove && (
         <Dialog title="Remove the AI connection?" onClose={() => setConfirmRemove(false)}>
-          <p>The saved API key is deleted. AI features then use ANTHROPIC_API_KEY from the server's .env file if it is set, otherwise the demonstration model in test mode, otherwise they are off.</p>
+          <p>The saved API key is deleted. AI features then use ANTHROPIC_API_KEY from the server's .env file if it is set, then Claude Platform on AWS if the ANTHROPIC_AWS_* settings are set, otherwise the demonstration model in test mode, otherwise they are off.</p>
           <div className="ai-conn-actions">
             <Button variant="danger" onClick={() => remove.mutate()} disabled={remove.isPending}>{remove.isPending ? 'Removing…' : 'Remove connection'}</Button>
             <Button onClick={() => setConfirmRemove(false)}>Cancel</Button>
