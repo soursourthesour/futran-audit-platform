@@ -18,6 +18,7 @@ from app.inventory.models import AITool
 from app.policy.actions import Action
 from app.policy.authorize import authorize
 from app.tenancy.models import Organization
+from app.core.names import tool_name
 
 router = APIRouter(tags=["integrations"])
 ORDER = ["okta", "google_workspace", "microsoft_365", "entra_id", "expense_csv", "casb_csv"]
@@ -73,7 +74,7 @@ def _page(db: Session, settings, org: Organization, *, can_manage: bool, can_dec
     connectors = [svc.connector_out(db, conns[t], settings) if t in conns else {"type": t, "label": LABELS[t], "status": "not_connected", "scopes": [], "last_run": None}
                   for t in ORDER]
     tools = svc.tools(db, org)
-    ai_tools = [{"id": a.id, "label": f"{a.vendor} {a.product}"} for a in db.scalars(select(AITool).where(AITool.organization_id == org.id, AITool.deleted_at.is_(None))
+    ai_tools = [{"id": a.id, "label": tool_name(a.vendor, a.product)} for a in db.scalars(select(AITool).where(AITool.organization_id == org.id, AITool.deleted_at.is_(None))
                                                                                    .order_by(AITool.vendor, AITool.product))]
     summary = {"total": len(tools), "undeclared": sum(1 for t in tools if not t["declared"] and t["status"] != "dismissed"),
                "new": sum(1 for t in tools if t["status"] == "new")}

@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, errorMessage, fieldErrors } from '@/api/client';
 import { Alert, Badge, Button, ButtonLink, Card, Dialog, EmptyState, Loading, PageHeader, SelectField, TextArea, TextField, TableWrap } from '@/components/ui';
 import { toolHelp as H } from '@/help/client';
+import { toolName } from '@/lib/toolName';
 import { euBadge, type EuLevel } from '@/components/EuScreening';
 
 export type Tool = { id: string; vendor: string; product: string; plan: string | null; account_type: string; sso: boolean | null; training_on_inputs: string; retention_terms: string | null; approval_status: string; source: string; kind?: 'tool' | 'agent'; declared_count: number | null };
@@ -61,7 +62,7 @@ function InventoryView({ clientId }: { clientId: string }) {
               <ul className="small" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                 {d.tools.map((t) => (
                   <li key={t.id} style={{ padding: '8px 0', borderTop: '1px solid var(--line-soft)' }}>
-                    <strong>{t.vendor} {t.product}</strong>{t.kind === 'agent' && <> <Badge tone="muted">Agent</Badge></>}
+                    <strong>{toolName(t.vendor, t.product)}</strong>{t.kind === 'agent' && <> <Badge tone="muted">Agent</Badge></>}
                     <div className="muted">{ACCOUNT_LABELS[t.account_type]}{t.declared_count ? ` · declared by ${t.declared_count}` : ''}{t.training_on_inputs === 'unknown' ? ' · training on inputs not known' : ''}</div>
                   </li>
                 ))}
@@ -85,7 +86,7 @@ export function AddTool({ clientId, onClose, onDone }: { clientId: string; onClo
     try {
       await api.post(`/clients/${clientId}/tools`, f);
       await Promise.all([qc.invalidateQueries({ queryKey: ['inventory', clientId] }), qc.invalidateQueries({ queryKey: ['ai-systems'] })]);
-      onClose(); onDone?.(`${f.vendor} ${f.product} was added to the AI inventory.`);
+      onClose(); onDone?.(`${toolName(f.vendor, f.product)} was added to the AI inventory.`);
     } catch (ex) { setErr(errorMessage(ex)); setFe(fieldErrors(ex)); }
   }
   return (

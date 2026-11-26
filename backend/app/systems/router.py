@@ -16,6 +16,7 @@ from app.systems import service as svc
 from app.systems.models import AISystem, SystemAdditionRequest, Vendor
 from app.tenancy.models import Department, Organization, User
 from app.tenancy.people import current_engagement
+from app.core.names import tool_name
 
 router = APIRouter(tags=["systems"])
 
@@ -59,7 +60,7 @@ def system_out(db: Session, s: AISystem) -> dict:
         "id": s.id, "reference_id": s.reference_id, "name": s.name, "version": s.version, "built_by": s.built_by, "built_by_label": svc.BUILT_BY_LABELS.get(s.built_by or "", "Not set"),
         "vendor_id": s.vendor_id, "vendor": vendor.legal_name if vendor else None, "department_id": s.department_id, "department": dept.name if dept else None,
         "owner": person(s.owner_user_id), "technical_owner": person(s.technical_owner_user_id),
-        "use_cases": [{"id": u.id, "name": u.name, "tier": effective_tier(u)} for u in ucs], "tools": [{"id": t.id, "label": f"{t.vendor} {t.product}"} for t in tools],
+        "use_cases": [{"id": u.id, "name": u.name, "tier": effective_tier(u)} for u in ucs], "tools": [{"id": t.id, "label": tool_name(t.vendor, t.product)} for t in tools],
         "assessment_depth": s.assessment_depth, "status": s.status, "completion_pct": s.completion_pct, "methodology_version": s.methodology_version, "source": s.source,
         "register_system": _register_ref(db, s.register_system_id),
         **_score(db, s),
@@ -121,7 +122,7 @@ def get_register(client_id: str, actor: Actor = Depends(current_actor), db: Sess
         "systems": [system_out(db, s) for s in systems],
         "unmapped_tier3": [{"id": u.id, "name": u.name, "department_id": u.department_id} for u in svc.unmapped_tier3(db, e)],
         "use_case_options": [{"id": u.id, "name": u.name, "tier": effective_tier(u)} for u in ucs if (effective_tier(u) or 1) >= 2],
-        "tool_options": [{"id": t.id, "label": f"{t.vendor} {t.product}"} for t in tools_for(db, org.id)],
+        "tool_options": [{"id": t.id, "label": tool_name(t.vendor, t.product)} for t in tools_for(db, org.id)],
         "vendors": [vendor_out(v) for v in svc.vendors_for(db, org.id)],
         "departments": [{"id": d.id, "name": d.name} for d in depts],
         "people": [{"id": u.id, "name": u.name} for u in users],

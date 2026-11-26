@@ -30,6 +30,7 @@ from app.register.serialize import system_out
 from app.systems.models import AISystem
 from app.tenancy.models import Department
 from app.tenancy.people import current_engagement
+from app.core.names import tool_name
 
 router = APIRouter(tags=["ai-systems"])
 
@@ -160,7 +161,7 @@ def ai_systems(actor: Actor = Depends(current_actor), db: Session = Depends(get_
                     tool_depts[i].append(dept(u.department_id))
         for t in tools:
             home = (by_ref.get(f"tool:{t.id}") or by_key.get(dedupe_key(t.vendor, t.product))) if see_register else None
-            rows.append(_row(f"tool:{t.id}", "tool", f"{t.vendor} {t.product}", sources=[TOOL_SOURCE.get(t.source, "inventory")],
+            rows.append(_row(f"tool:{t.id}", "tool", tool_name(t.vendor, t.product), sources=[TOOL_SOURCE.get(t.source, "inventory")],
                              subtype="Agent" if t.kind == "agent" else "Tool", detail=t.account_type.replace("_", " "), departments=tool_depts.get(t.id, []),
                              stage=f"tool:{t.approval_status}", stage_label=TOOL_STATUS.get(t.approval_status, t.approval_status),
                              registered=(True if home is not None else None if (f"tool:{t.id}" in unseen_refs or dedupe_key(t.vendor, t.product) in unseen_keys) else False)

@@ -15,6 +15,7 @@ from app.euaiact import risk as eu_risk
 from app.inventory.models import AITool, NamedUser, NamedUserLink, UsageRecord, UseCase
 from app.tenancy.models import Department, Organization, User
 from app.tenancy.service import find_user_by_email
+from app.core.names import tool_name
 
 ACCOUNT_TYPES = ("enterprise", "team", "personal_paid", "personal_free", "unknown")
 RISKY_ACCOUNTS = {"personal_free", "personal_paid", "unknown"}
@@ -175,7 +176,7 @@ def save_tool(db: Session, actor: User, org: Organization, data: dict, tool: AIT
         raise Invalid(errors=errs)
     dup = _find_tool(db, org.id, vendor, product, acct)
     if dup is not None and (tool is None or dup.id != tool.id):
-        raise Conflict(f"{vendor} {product} on that account type is already in the inventory.")
+        raise Conflict(f"{tool_name(vendor, product)} on that account type is already in the inventory.")
     if tool is None:
         tool = AITool(organization_id=org.id, source="manual", created_by=actor.id)
         db.add(tool)
@@ -191,7 +192,7 @@ def save_tool(db: Session, actor: User, org: Organization, data: dict, tool: AIT
     if can_approve and data.get("approval_status") in ("unreviewed", "approved", "not_approved"):
         tool.approval_status = data["approval_status"]
     db.flush()
-    audit.record(db, actor_id=actor.id, action="inventory.tool", obj=tool, summary=f"Saved AI tool {vendor} {product} ({acct.replace('_', ' ')})")
+    audit.record(db, actor_id=actor.id, action="inventory.tool", obj=tool, summary=f"Saved AI tool {tool_name(vendor, product)} ({acct.replace('_', ' ')})")
     return tool
 
 
@@ -451,7 +452,7 @@ def public_confirm_view(db: Session, link: NamedUserLink) -> dict:
     tool = _tools(db, uc)
     return {
         "client_name": org.name, "first_name": n.person_name.split()[0], "use_case": uc.name,
-        "tool": ", ".join(f"{t.vendor} {t.product}" for t in tool), "oversight_role": n.oversight_role, "policy_text": POLICY_TEXT,
+        "tool": ", ".join(tool_name(t.vendor, t.product) for t in tool), "oversight_role": n.oversight_role, "policy_text": POLICY_TEXT,
         "completed": link.completed_at is not None,
     }
 

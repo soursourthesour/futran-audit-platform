@@ -42,6 +42,7 @@ from app.inventory.models import AITool
 from app.mail import tokens
 from app.tenancy.models import Department, Organization, RoleAssignment, User
 from app.connectors.manual_import import EXPORT_TYPES as IMPORT_TYPES  # noqa: E402  (G-05; adapters.LABELS names its connectors too)
+from app.core.names import tool_name
 
 STATE_MAX_AGE = 3600
 SIGNAL_LABELS = {"sso_app": "SSO app", "oauth_grant": "OAuth grant", "licence": "Licence", "expense": "Expense", "traffic": "Network traffic", "manual_import": "Manual import"}
@@ -447,7 +448,7 @@ def map_to_tool(db: Session, user: User, org: Organization, tool_id: str, ai_too
     if target is None or target.organization_id != org.id or target.deleted_at is not None:
         raise Invalid(errors=[{"field": "ai_tool_id", "message": "Choose a tool from your AI inventory."}])
     t.status, t.matched_tool_id, t.decided_by, t.decided_at, t.dismiss_reason = "mapped", target.id, user.id, utcnow(), None
-    audit.record(db, actor_id=user.id, action="discovered_tool.mapped", obj=t, summary=f"Mapped {t.product} ({_dept_label(db, t)}) to {target.vendor} {target.product}")
+    audit.record(db, actor_id=user.id, action="discovered_tool.mapped", obj=t, summary=f"Mapped {t.product} ({_dept_label(db, t)}) to {tool_name(target.vendor, target.product)}")
     db.flush()
     return t
 
@@ -513,7 +514,7 @@ def tool_out(db: Session, t: DiscoveredTool, conn: Connector, declared: set[str]
     return {"id": t.id, "vendor": t.vendor, "product": t.product, "category": t.category, "signal": t.signal, "signal_label": sig, "source": conn.type, "source_label": src,
             "department_id": t.department_id, "department": _dept_label(db, t), "department_matched": bool(t.department_id), "user_count": t.user_count, "detail": t.detail,
             "declared": t.vendor_key in declared, "attestation_exists": has_campaign, "status": t.status, "dismiss_reason": t.dismiss_reason,
-            "matched_tool": {"id": matched.id, "label": f"{matched.vendor} {matched.product}"} if matched else None,
+            "matched_tool": {"id": matched.id, "label": tool_name(matched.vendor, matched.product)} if matched else None,
             "system_reference": systems_by_tool.get(matched.id) if matched else None, "first_seen": t.first_seen.isoformat(), "last_seen": t.last_seen.isoformat(),
             "decided_at": t.decided_at.isoformat() if t.decided_at else None, "import_type": t.import_type, "import_id": t.import_id}
 

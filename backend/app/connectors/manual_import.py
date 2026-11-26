@@ -40,6 +40,7 @@ from app.core.clock import utcnow
 from app.core.config import Settings
 from app.core.errors import Invalid, NotFound
 from app.tenancy.models import Organization, User
+from app.core.names import tool_name
 
 MAX_COLS = 200
 PREVIEW_ROWS = 20
@@ -601,7 +602,7 @@ def match_unmatched(db: Session, user: User, org: Organization, import_id: str, 
     row = _upsert_custom(db, conn, c, utcnow(), {"import_id": imp.id, "import_type": t.key})
     items[index] = dict(u, matched_tool_id=row.id)
     imp.unmatched = items
-    audit.record(db, actor_id=user.id, action="discovery_import.matched", obj=imp, organization_id=org.id, summary=f"Matched “{u['name']}” to {row.vendor} {row.product} by hand")
+    audit.record(db, actor_id=user.id, action="discovery_import.matched", obj=imp, organization_id=org.id, summary=f"Matched “{u['name']}” to {tool_name(row.vendor, row.product)} by hand")
     db.flush()
     return row
 
