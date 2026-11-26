@@ -1,7 +1,7 @@
 ---
 title: Futran Audit Platform — deployment architecture
 tags: [futran, audit-platform, deployment, architecture]
-updated: 2026-11-25
+updated: 2026-11-26
 status: laptop live; hosting options Render, Azure, AWS, GCP
 ---
 
@@ -69,6 +69,7 @@ Today the platform runs only on the laptop. Four hosting options are open. All o
 
 - **AWS.** Use ECS on Fargate, not App Runner: AWS closed App Runner to new customers on 30 April 2026 and points to ECS Express Mode instead. App Runner also had no persistent storage. On Fargate, mount EFS at `/app/backend/data` so the current file store works unchanged.
   - **Run exactly one task, including during deployments (corrected 25 Nov 2026).** A default ECS rolling deployment starts the new task before stopping the old one (maximum 200%). ECS Express Mode uses canary deployments and can auto-scale to 20 tasks. Either way, two schedulers would work the same outbox. Use a standard ECS service with desired count 1, `maximumPercent` 100, `minimumHealthyPercent` 0 and no auto scaling. Expect a short outage on each deployment. See [[Futran_Audit_Platform_Mail_Architecture]] §7.
+  - **Claude on AWS.** To run the law and court-case refresh on AWS, connect **Claude Platform on AWS** (Anthropic's own Claude API through an AWS gateway, billed through AWS Marketplace), not Claude on Amazon Bedrock: Bedrock has no web search tool, which refresh needs. Sign with an API key or the ECS task role (IAM action `aws-external-anthropic:CreateInference`; the task role also needs the image built with `pip install -e ".[aws]"`), and allow egress on 443 to `aws-external-anthropic.<region>.api.aws`. Set-up, settings and checks: [[Futran_Audit_Platform_Claude_on_AWS]].
 - **GCP.** Cloud Run fits, with three settings: exactly one instance (min 1, max 1), CPU always allocated so the in-process scheduler keeps running between requests, and a Filestore NFS volume for files. A Cloud Storage FUSE mount also works, but it is not a full file system, so Filestore is the safer choice until a Cloud Storage adapter exists. The plainest alternative is one Compute Engine VM running the container with a persistent disk.
 - **Lift between them.** Moving between any two options is the same job: create Postgres, restore the data, copy the files folder, set the environment variables, deploy the image. No code changes, as long as the file store stays on a mounted volume.
 
@@ -92,6 +93,7 @@ The first administrator is created from the host's shell with `python -m app.cli
 | `MFA_REQUIRED` | `false` in test mode | `true` |
 | `EMAIL_MODE` | `outbox` | `smtp`, required for any live mail, even when all mail goes through a connected Microsoft 365 or Google mailbox (see [[Futran_Audit_Platform_Mail_Architecture]] §5) |
 | `ANTHROPIC_API_KEY` or an AI provider connection | optional | set for AI features |
+| `ANTHROPIC_AWS_REGION`, `ANTHROPIC_AWS_WORKSPACE_ID`, `ANTHROPIC_AWS_API_KEY` | unset | Claude Platform on AWS when nothing is saved in Platform settings and `ANTHROPIC_API_KEY` is unset; no API key means the task role signs ([[Futran_Audit_Platform_Claude_on_AWS]]) |
 | `VIRUS_SCAN` | `off` | `clamav` (not built yet) |
 | `DISABLE_SCHEDULER` | `false` | `false` on exactly one instance |
 

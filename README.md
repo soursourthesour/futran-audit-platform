@@ -90,6 +90,7 @@ Settings are read from `.env` (see `.env.example`).
 | `EMAIL_MODE` | `outbox` (emails stay in Admin > Outbox) | `smtp` |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` | empty | the sending mailbox |
 | `ANTHROPIC_API_KEY`, `CLAUDE_MODEL` | empty (law updates off) | set to switch on Admin > Law updates |
+| `ANTHROPIC_AWS_REGION`, `ANTHROPIC_AWS_WORKSPACE_ID`, `ANTHROPIC_AWS_API_KEY`, `ANTHROPIC_AWS_BASE_URL` | empty | Claude Platform on AWS, used when no AI provider is saved and `ANTHROPIC_API_KEY` is empty; see `docs/Futran_Audit_Platform_Claude_on_AWS.md` |
 | `DATA_REGION_LABEL` | `us-east` | per installation |
 | `SESSION_IDLE_MIN`, `SESSION_MAX_HOURS` | 30, 12 | 30, 12 |
 | `RETENTION_YEARS_DEFAULT` | 7 | 7 |
@@ -163,7 +164,7 @@ Documentation checked on 30 October 2026:
 
 ### Claude law updates
 
-Add `ANTHROPIC_API_KEY` (and optionally `CLAUDE_MODEL`) to `.env` and restart. Admin > Law updates then asks Claude to check the law matrix against current sources and lists proposed changes for an administrator to accept or reject. Nothing changes until it is accepted.
+Add `ANTHROPIC_API_KEY` (and optionally `CLAUDE_MODEL`) to `.env` and restart, or connect an AI provider in Platform settings. To run on AWS, use Claude Platform on AWS (not Amazon Bedrock, which has no web search): see `docs/Futran_Audit_Platform_Claude_on_AWS.md`. Admin > Law updates then asks Claude to check the law matrix against current sources and lists proposed changes for an administrator to accept or reject. Nothing changes until it is accepted.
 
 ### Address suggestions
 
