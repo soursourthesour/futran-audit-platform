@@ -64,3 +64,25 @@ def test_without_sign_final_report_the_chief_does_not_sign_it(client, db, sent, 
     monkeypatch.setitem(MATRIX, Role.CHIEF_AUDITOR, {a: s for a, s in MATRIX[Role.CHIEF_AUDITOR].items() if a != Action.SIGN_FINAL_REPORT})
     login_as(client, db, people["chief"])
     assert _sign(client, so, people["chief"]).status_code == 403
+
+
+def _as_management_responses(db, so):
+    so.number = 6  # management responses and remediation plan, which the CAICO and Executive Sponsor sign
+    db.commit()
+
+
+def test_signing_management_responses_approves_them(client, db, sent, spy):
+    """Y02: sign-off 6 is the client's approval of its management responses, so a signer needs APPROVE_RESPONSES."""
+    cid, e, maria, so = sent
+    _as_management_responses(db, so)
+    login_as(client, db, maria)
+    r = _sign(client, so, maria)
+    assert Action.APPROVE_RESPONSES in spy and r.status_code != 403, r.text
+
+
+def test_without_approve_responses_the_caico_does_not_sign_them(client, db, sent, monkeypatch):
+    cid, e, maria, so = sent
+    _as_management_responses(db, so)
+    monkeypatch.setitem(MATRIX, Role.CAICO, {a: s for a, s in MATRIX[Role.CAICO].items() if a != Action.APPROVE_RESPONSES})
+    login_as(client, db, maria)
+    assert _sign(client, so, maria).status_code == 403
