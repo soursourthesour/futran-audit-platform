@@ -28,7 +28,7 @@ ATTACKS = {
     "doubling a namespace": "{% set ns = namespace(s='AAAAAAAA') %}{% for i in range(40) %}{% set ns.s = ns.s ~ ns.s %}{% endfor %}{{ ns.s | length }}",
     "padding method": "{{ 'a'.ljust(500000000) }}",
     "padding filter": "{{ 'a' | center(500000000) }}",
-    "huge output": "{% for i in range(1000) %}{{ 'ABCDEFGHIJ' * 1000 }}{% endfor %}",
+    "huge output": "{% for i in range(5000) %}{{ 'ABCDEFGHIJ' * 1000 }}{% endfor %}",
 }
 
 
@@ -128,3 +128,147 @@ def test_loops_keep_their_loop_variable_and_else():
 def test_a_render_past_its_time_limit_is_stopped():
     with pytest.raises(TemplateTooLarge, match="longer than"):
         render_string("{% for i in range(10) %}{% endfor %}", {}, seconds=0)
+
+
+# Review 11-25 (Chitragupta) on f6abc0a, probes ported with the expectation flipped.
+
+S = "{% set s = 'x' * 999999 %}"
+TEXT_EXPANDERS = {  # a cheap container turned into text: each builds 200 MB or more if nothing measures it first
+    "output a list of one big string x200": S + "{{ [s] * 200 }}",
+    "concat a list": S + "{{ 'a' ~ ([s] * 200) }}",
+    "string filter": S + "{{ ([s] * 200) | string | length }}",
+    "tojson filter": S + "{{ ([s] * 200) | tojson | length }}",
+    "join measures str(list)": S + "{{ [[s] * 200] | join | length }}",
+    "percent with a list": S + "{{ '%s' % ([s] * 200,) }}",
+    "replace filter str(list)": S + "{{ ([s] * 200) | replace('a', 'b') | length }}",
+}
+# the same conversions from a two-item literal, which no repeat check sees: only the conversion itself can refuse it
+L = S + "{% set l = [s, s] %}"
+TEXT_FROM_LITERALS = {
+    "output": L + "{{ l }}",
+    "concat": L + "{{ 'a' ~ l }}",
+    "string filter": L + "{{ l | string | length }}",
+    "tojson filter": L + "{{ l | tojson | length }}",
+    "pprint filter": L + "{{ l | pprint | length }}",
+    "upper filter": L + "{{ l | upper | length }}",
+    "md_cell filter": L + "{{ l | md_cell | length }}",
+    "join of lists": L + "{{ [l] | join | length }}",
+    "percent": L + "{{ '%s' % (l,) }}",
+    "format method": L + "{{ '{}'.format(l) }}",
+    "replace filter": L + "{{ l | replace('a', 'b') | length }}",
+    "list plus list": L + "{{ (l + ['a']) | length }}",
+    "dict values": S + "{% set d = {'a': s, 'b': s} %}{{ d.values() }}",
+}
+
+
+@pytest.mark.parametrize("body", [*TEXT_EXPANDERS.values(), *TEXT_FROM_LITERALS.values()],
+                         ids=[*TEXT_EXPANDERS.keys(), *("literal " + k for k in TEXT_FROM_LITERALS)])
+def test_a_container_is_measured_before_it_becomes_text(body):
+    start = time.monotonic()
+    with pytest.raises(TemplateTooLarge):
+        render_string(body, {})
+    assert time.monotonic() - start < 3
+
+
+def test_a_million_copies_of_a_big_string_is_refused_within_a_memory_cap():
+    """The reviewer's proof: 999,999 references to a 1M-character string, then text; and a 2,000-item literal of the
+    same, which no repeat check sees. Each would build 2 GB or more. Run in a child process capped at 1.5 GB of address
+    space, so a regression fails with MemoryError there instead of taking the shared machine down."""
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    tails = ["{{ l }}", "{{ l | string | length }}", "{{ 'a' ~ l }}", "{{ l | tojson | length }}", "{{ l | pprint | length }}",
+             "{{ l | upper | length }}", "{{ l | md_cell | length }}", "{{ [l] | join | length }}", "{{ '%s' % (l,) }}",
+             "{{ '{}'.format(l) }}", "{{ l | replace('a', 'b') | length }}", "{{ (l + ['a']) | length }}"]
+    heads = ["{% set s = 'x' * 999999 %}{% set l = [s] * 999999 %}", "{% set s = 'x' * 999999 %}{% set l = [" + "s, " * 2000 + "] %}"]
+    script = (
+        "import resource, sys\n"
+        "resource.setrlimit(resource.RLIMIT_AS, (1_500_000_000, 1_500_000_000))\n"
+        "from app.reference.templates import TemplateTooLarge, render_string\n"
+        "heads, tails = eval(sys.argv[1]), eval(sys.argv[2])\n"
+        "for head in heads:\n"
+        "    for tail in tails:\n"
+        "        try:\n"
+        "            render_string(head + tail, {})\n"
+        "            print('rendered', tail)\n"
+        "        except TemplateTooLarge:\n"
+        "            print('refused')\n"
+        "        except MemoryError:\n"
+        "            print('memory-error', tail)\n"
+    )
+    backend = Path(__file__).resolve().parents[2]
+    run = subprocess.run([sys.executable, "-c", script, repr(heads), repr(tails)], cwd=backend, capture_output=True, text=True, timeout=180)
+    assert run.stdout.split() == ["refused"] * (len(heads) * len(tails)), run.stdout + run.stderr[-2000:]
+
+
+FILTER_CHAINS = {  # one expression, no loop and no call: only the filters themselves can see the clock
+    "map a filter": S + "{{ s" + "|map('upper')" * 60 + "|list|length }}",
+    "map an attribute": S + "{{ s|list" + "|map(attribute=0)" * 60 + "|list|length }}",
+    "select with a test": "{% set n = range(99999) | list %}{{ n" + "|select('number')" * 80 + "|list|length }}",
+    "selectattr": S + "{{ s|list" + "|selectattr(0)|rejectattr(1)" * 30 + "|list|length }}",
+    "sort and unique": "{% set s = 'abcdefghij' * 99999 %}" + "{{ s|list|sort|list|reverse|list|sort|unique|list|length }}" * 40,
+    "groupby": "{% set d = [{'a': 1}] * 20000 %}" + "{{ d | groupby('a') | length }}" * 1000,
+}
+
+
+@pytest.mark.parametrize("body", FILTER_CHAINS.values(), ids=FILTER_CHAINS.keys())
+def test_a_long_filter_chain_stops_at_the_deadline(body):
+    start = time.monotonic()
+    with pytest.raises(TemplateTooLarge, match="longer than"):
+        render_string(body, {}, seconds=1)
+    assert time.monotonic() - start < 2.5
+
+
+@pytest.mark.parametrize("body", [
+    "{% set environment = 1 %}{{ 'a' ~ 'b' }}{% for x in [1] %}{{ x }}{% endfor %}",
+    "{% macro m(environment) %}{{ environment ~ 'x' }}{% for i in [1] %}{% endfor %}{% endmacro %}{{ m(1) }}",
+    "{% for environment in [1, 2] %}{{ 'a' ~ environment }}{% endfor %}",
+    "{% with environment = 3 %}{{ environment ~ 'x' }}{% endwith %}",
+    "{{ environment }}|{{ budget_iter }}|{{ self }}",
+])
+def test_a_template_cannot_shadow_the_environment_the_guards_call(body):
+    from app.reference import templates as T
+
+    src = T._env.compile(body, raw=True)
+    assert "\nenvironment =" not in src
+    assert " environment = " not in src.replace("l_0_environment", "").replace("l_1_environment", "")
+    render_string(body, {})
+
+
+def _large_report_context(findings=500, systems=100, chars=1600):
+    para = ("The organization has not documented a bias test for this system and the owner could not show evidence of "
+            "review. " * (chars // 100 + 1))[:chars]
+    fs = [{"ref": f"F-{i:03d}", "title": f"Finding {i} title about governance", "severity": "high", "severity_label": "High",
+           "section": "Governance", "system": f"SYS-{i % systems:03d}", "use_cases": "Hiring", "owner": "Owner Name",
+           "due": "1 Jan 2027", "system_or_scope": "SYS", "condition": para, "risk": para, "remediation": para,
+           "citations": [f"NYC LL144 §20-87{k}" for k in range(4)],
+           "questions": [{"code": f"Q{k}", "label": "Is there a documented test?", "answer": "No"} for k in range(6)],
+           "evidence": [{"ref": f"EV-{k}", "text": para[:200], "status": "Accepted", "answer": "Yes"} for k in range(6)]}
+          for i in range(findings)]
+    ss = [{"ref": f"SYS-{i:03d}", "name": f"System {i}", "vendor": "Vendor", "built_by": "Vendor", "department": "HR",
+           "use_cases": "Hiring", "inherent": 3.2, "maturity": 2, "residual": 2.4, "rating": "High", "depth": "Full",
+           "calc": "3.2 x 0.75", "computed": "x", "knockouts": ["K1", "K2"], "weights": "Standard", "eu_level": "High"}
+          for i in range(systems)]
+    responses = [{"ref": f"F-{i:03d}", "owner": "O", "target_date": "2027", "response": para} for i in range(findings)]
+    return {"findings": fs, "findings_by_severity": [{"label": "High findings", "items": fs}], "systems": ss,
+            "management_responses": responses, "summary": {"critical": fs[:50]}}
+
+
+def test_the_shipped_report_renders_for_a_large_engagement():
+    from app.reference.templates import TEMPLATE_DIR
+
+    body = (TEMPLATE_DIR / "report.md.j2").read_text(encoding="utf-8")
+    out = render_string(body, _large_report_context())  # past the first limit of 5,000,000 characters
+    assert len(out) > 5_000_000 and "F-499" in out
+
+
+def test_the_refusal_names_the_limit_and_suits_who_sees_it(db, admin):
+    with pytest.raises(TemplateTooLarge) as e:
+        render_string("{{ 'A' * 20000000 }}", {})  # at generation: the reader may not be the editor
+    assert e.value.detail.startswith("The document template does too much work to render (")
+    assert "1,000,000 characters" in e.value.detail and "An administrator can check the template." in e.value.detail
+    assert "Simplify" not in e.value.detail
+    with pytest.raises(TemplateTooLarge) as e:
+        edit_template(db, admin, "roles_note", "{% for i in range(3000) %}{% for j in range(3000) %}{% endfor %}{% endfor %}")
+    assert "200,000" in e.value.errors[0]["message"] and "Simplify it." in e.value.errors[0]["message"]
