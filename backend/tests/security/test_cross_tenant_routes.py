@@ -40,6 +40,7 @@ SKIP_PARAMS = {"token", "slug", "notification_id", "alert_id"}
 # (parameter, path fragment or None, model class name). The first rule whose fragment is in the path wins.
 RULES: list[tuple[str, str | None, str]] = [
     ("client_id", "/admin/api/clients/", "ApiClient"),
+    ("key_id", "/admin/website-keys/", "WebsiteApiKey"),
     ("client_id", None, "Organization"), ("org_id", None, "Organization"), ("entity_id", None, "Organization"),
     ("system_id", "/systems/{system_id}", "AISystem"), ("system_id", "/api/public/", "RegisterSystem"), ("system_id", None, "RegisterSystem"),
     ("sid", None, "RegisterSystem"),

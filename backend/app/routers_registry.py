@@ -67,3 +67,5 @@ ROUTER_MODULES += ["hierarchy.router"]
 ROUTER_MODULES += ["vault.router"]
 # Release 2 R7: partners and referrals (G-11)
 ROUTER_MODULES += ["partners.router"]
+# Website library API: Administration > Website API keys (the public endpoints are a sub-app under /api/public/v1/library)
+ROUTER_MODULES += ["library.admin_router"]

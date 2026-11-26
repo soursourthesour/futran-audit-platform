@@ -367,6 +367,10 @@ for _role, _grants in _WS_F.items():
 # changes, tests or removes it.
 MATRIX.setdefault(R.ADMIN, {}).update({A.MANAGE_AI_CONNECTION: S.ALL})
 
+# ---- 26 Nov: website API keys for the public library API (/api/public/v1/library). Platform settings: only the Futran
+# Admin lists, creates and revokes them.
+MATRIX.setdefault(R.ADMIN, {}).update({A.MANAGE_WEBSITE_KEYS: S.ALL})
+
 
 # ---- wave 3 WS-K (spec §21 F11, F13, F6, F15, F16). Bias runs: the engagement's auditors and the Chief Auditor; QA reads.
 # Heat map and lineage: Lead Auditor (team role), Chief Auditor and QA; auditors on the engagement read it as they read scores.
