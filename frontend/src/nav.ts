@@ -59,6 +59,7 @@ export const FUTRAN_GROUPS: NavGroup[] = [
     { to: '/admin/audit-log', label: 'Audit log', requires: ['view_audit_log'] },
     { to: '/staff/billing', label: 'Billing export', requires: ['run_billing_export'] },  // Release 2 R5 (G-01)
     { to: '/admin/settings', label: 'Settings', requires: ['view_platform_settings'] },
+    { to: '/admin/website-keys', label: 'Website API keys', requires: ['manage_website_keys'] },  // 26 Nov: website library API
   ] },
 ];
 
